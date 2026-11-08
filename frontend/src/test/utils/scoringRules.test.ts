@@ -12,6 +12,24 @@ const keysOf = (format: Parameters<typeof scoringSections>[0], pichichi: boolean
   scoringSections(format, pichichi).flatMap((section) => section.fields.map((field) => field.key));
 
 describe('scoringRules', () => {
+  it('en la NFL cada partido solo puntúa el ganador', () => {
+    expect(
+      scoringSections('MATCH_DAY', false, false, false, true).flatMap((s) =>
+        s.fields.map((f) => f.key),
+      ),
+    ).toEqual(['correctSignPoints']);
+  });
+
+  it('en el LoL cada serie puntúa el ganador y el resultado, y superviviente no tiene empate', () => {
+    const keys = (format: 'MATCH_DAY' | 'SURVIVOR') =>
+      scoringSections(format, false, false, false, true, 'LEAGUE_OF_LEGENDS').flatMap((s) =>
+        s.fields.map((f) => f.key),
+      );
+    expect(keys('MATCH_DAY')).toEqual(['correctSignPoints', 'exactScorePoints']);
+    expect(keys('SURVIVOR')).not.toContain('survivorDrawSurvives');
+    expect(keys('SURVIVOR')).toContain('survivorLives');
+  });
+
   it('cada formato muestra sus reglas', () => {
     expect(keysOf('MATCH_DAY', true)).toEqual([
       'exactScorePoints',
@@ -25,10 +43,36 @@ describe('scoringRules', () => {
     expect(keysOf('KNOCKOUTS_ONLY', true)).toContain('roundOf32Points');
     // Sin formato conocido se tratan como cuadro completo.
     expect(keysOf(null, false)).toEqual(keysOf('FULL_BRACKET', false));
+    expect(keysOf('GRAND_PRIX', true)).toEqual([
+      'f1ExactPositionPoints',
+      'f1PodiumPoints',
+      'f1PolePoints',
+      'f1FastestLapPoints',
+    ]);
   });
 
-  it('las reglas del cuadro y las de jornadas cubren todas las del backend', () => {
-    const shown = new Set([...keysOf('FULL_BRACKET', true), ...keysOf('MATCH_DAY', true)]);
+  it('los playoffs de la NBA puntúan cada serie y el extra por acertar en cuántos partidos', () => {
+    const nba = scoringSections('KNOCKOUTS_ONLY', false, true, true).flatMap((section) =>
+      section.fields.map((field) => field.key),
+    );
+    expect(nba).toContain('nbaPlayInPoints');
+    expect(nba).toContain('nbaFinalsExactPoints');
+    expect(nba).not.toContain('roundOf16Points');
+  });
+
+  it('las reglas del cuadro, las de jornadas, las de peleas, las de superviviente, las de la NBA y las de Fórmula 1 cubren todas las del backend', () => {
+    const shown = new Set([
+      ...keysOf('FULL_BRACKET', true),
+      ...keysOf('MATCH_DAY', true),
+      ...scoringSections('MATCH_DAY', false, false, false, false, null, true).flatMap((section) =>
+        section.fields.map((field) => field.key),
+      ),
+      ...keysOf('SURVIVOR', false),
+      ...keysOf('GRAND_PRIX', false),
+      ...scoringSections('KNOCKOUTS_ONLY', false, true, true).flatMap((section) =>
+        section.fields.map((field) => field.key),
+      ),
+    ]);
     expect([...shown].sort()).toEqual(Object.keys(DEFAULT_SCORING).sort());
   });
 

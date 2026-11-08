@@ -47,7 +47,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class SyncService {
 
-    private static final String WORLD_CUP_DATE_RANGE = "2026";
+    /** Paso de la sincronización que recalcula los grupos y el cuadro del Mundial. */
+    static final String WORLD_CUP_REFRESH = "Clasificación y cuadro del Mundial";
     private static final DateTimeFormatter ESPN_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     static final String STATUS_SUCCESS = "success";
@@ -66,6 +67,7 @@ public class SyncService {
     private final CustomLockService customLockService;
     private final MatchRepository matchRepository;
     private final SyncLock syncLock;
+    private final com.porra.mundial.service.formulaone.FormulaOneSyncService formulaOneSyncService;
 
 
     /** Un partido cuenta como «en juego» desde 15 min antes del inicio hasta 4 h después si no ha terminado. */
@@ -202,7 +204,7 @@ public class SyncService {
         }
         worldCupRefreshPending |= results.stream().anyMatch(CompetitionSync::worldCupResultsChanged);
         if (worldCupRefreshPending && !Thread.currentThread().isInterrupted()) {
-            results.add(refreshWorldCup(competitions));
+            results.add(refreshWorldCup());
             topScorerService.refresh();
         }
         if (results.stream().anyMatch(r -> r.matchesUpdated() > 0 || r.teamsUpdated() > 0)) {
@@ -215,8 +217,13 @@ public class SyncService {
     }
 
     private CompetitionSync syncCompetition(Competition competition, boolean liveOnly) {
+        if (competition.isFormulaOne()) return syncFormulaOne(competition, liveOnly);
         long start = System.currentTimeMillis();
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
+        SportsDataProvider provider = sportsDataProviderRegistry.findProviderForCompetition(competition.getExternalId())
+                .orElse(null);
+        if (provider == null) {
+            return CompetitionSync.failed(competition.getName(), STATUS_ERROR, "sin proveedor de datos");
+        }
         String slug = competition.getExternalId();
         if (!provider.isAvailable()) {
             log.warn("Sincronización de {} omitida: el circuit breaker de {} está abierto",
@@ -229,7 +236,7 @@ public class SyncService {
             Map<String, Team> teams = matchEventProcessor.teamCache();
 
             if (worldCup) {
-                processEvents(provider.fetchScoreboardEvents(slug, WORLD_CUP_DATE_RANGE), teams, batch);
+                processEvents(provider.fetchScoreboardEvents(slug, Competition.WORLD_CUP_SEASON), teams, batch);
             } else if (LolEsportsDataProvider.isLolCompetition(slug)) {
                 // El calendario de lolesports llega entero de una vez (y en caché) e incluye ediciones
                 // anteriores: se repasa la temporada en curso para que las series ya jugadas reciban su fase.
@@ -272,6 +279,22 @@ public class SyncService {
     }
 
     /**
+     * Fórmula 1: el Gran Premio en curso o el siguiente, en una consulta, y la temporada entera si aún
+     * no está cargada (por ejemplo, si falló la carga al crear la liga). La pasada en directo no lo mira:
+     * un Gran Premio se puntúa entero al acabar la carrera, no hay marcador que seguir.
+     */
+    private CompetitionSync syncFormulaOne(Competition competition, boolean liveOnly) {
+        if (liveOnly) return new CompetitionSync(competition.getName(), STATUS_SUCCESS, 0, 0, null, false, 0);
+        try {
+            var result = formulaOneSyncService.sync(competition);
+            return new CompetitionSync(competition.getName(), STATUS_SUCCESS, result.updated(), 0, null, false, 0);
+        } catch (Exception e) {
+            log.warn("Falló la sincronización de {}: {}", competition.getName(), e.getMessage());
+            return CompetitionSync.failed(competition.getName(), STATUS_ERROR, e.getMessage());
+        }
+    }
+
+    /**
      * Trae el calendario de las dos próximas semanas para que la siguiente jornada se pueda pronosticar antes
      * de que empiece. Es una consulta por día, así que se hace como mucho cada {@link #UPCOMING_REFRESH}; un
      * fallo no marca la pasada como errónea (los partidos cercanos ya se han sincronizado) y se reintenta en la
@@ -303,9 +326,8 @@ public class SyncService {
      * Recalcula la clasificación de grupos y el cuadro del Mundial al final de una pasada. Si falla, se
      * repite en la siguiente aunque esa no cambie ningún resultado.
      */
-    private CompetitionSync refreshWorldCup(List<Competition> competitions) {
-        String name = competitions.stream().filter(WorldCupTables::isWorldCup).map(Competition::getName)
-                .findFirst().orElse(Competition.WORLD_CUP_EXTERNAL_ID);
+    private CompetitionSync refreshWorldCup() {
+        String name = WORLD_CUP_REFRESH;
         worldCupRefreshPending = true;
         try {
             int placed = WorldCupTables.refresh(knockoutBracketService, standingsService);

@@ -51,7 +51,7 @@ class MatchdayStatsControllerTest {
     void returnsMatchStats() throws Exception {
         MatchStats match = new MatchStats(7L, "Jornada 3", AppTime.fromLocal(LocalDateTime.of(2026, 10, 25, 21, 0)),
                 "Real Madrid", "Barcelona", null, null, true, false, 2, 1,
-                5, 3, 1, 1, List.of(new ScoreCount(2, 1, 2)), 2, 3);
+                5, 3, 1, 1, List.of(new ScoreCount(2, 1, 2)), 2, 3, List.of());
         Mockito.when(matchdayStatsService.getStats("user@test.com", 10L))
                 .thenReturn(new MatchdayStatsDTO(8, List.of(match)));
 

@@ -1,4 +1,6 @@
 import Flag from '../Flag';
+import { isLiveMatch } from '../../utils/homeMatches';
+import { liveLabel } from '../../utils/matchday';
 import { openStats } from '../../utils/navigation';
 import type { Match, MatchRadar } from '../../types/api';
 import InkStamp from '../InkStamp';
@@ -33,11 +35,7 @@ function LiveMatchesPanel({
     return (
       <div key={m.id} className="last-match-card">
         <div className="last-match-date">
-          {hasStarted
-            ? m.displayClock
-              ? `En juego · ${m.displayClock}`
-              : 'En juego'
-            : dateFormatted}
+          {hasStarted ? liveLabel(m.displayClock) : dateFormatted}
         </div>
         <div className="last-match-teams my-auto mx-0">
           <div className="last-match-team">
@@ -46,7 +44,8 @@ function LiveMatchesPanel({
           </div>
 
           <div className="last-match-center flex flex-col items-center">
-            {hasStarted && m.homeScore !== null && m.awayScore !== null ? (
+            {/* Una pelea de la UFC no tiene marcador. */}
+            {hasStarted && !m.fight && m.homeScore !== null && m.awayScore !== null ? (
               <span className="last-match-score">
                 {m.homeScore} - {m.awayScore}
               </span>
@@ -79,7 +78,7 @@ function LiveMatchesPanel({
     .filter((m) => !liveMatches.some((live) => live.id === m.id))
     .slice(0, maxNext);
   const hasLive = liveMatches && liveMatches.length > 0;
-  const isActuallyLive = hasLive && liveMatches.some((m) => new Date(m.date ?? 0) <= new Date());
+  const isActuallyLive = hasLive && liveMatches.some(isLiveMatch);
 
   if (!hasLive && nextMatches.length === 0) {
     return (

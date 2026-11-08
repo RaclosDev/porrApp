@@ -5,69 +5,44 @@ import { setCustomLockConfig, type CustomLockMode } from '../../../services/api'
 import { queryKeys } from '../../../services/queryKeys';
 import { useCustomLock } from '../../../hooks/useCustomLock';
 import type { Group } from '../../../types/api';
+import { isMatchBasedFormat } from '../../../utils/poolFormat';
+import { isNbaCompetition } from '../../../utils/nbaPlayoffs';
 import { formatMatchDate, type SaveAction } from './customCompetition';
+import {
+  BRACKET_LOCK_MODES,
+  DRAWN_KNOCKOUT_LOCK_MODES,
+  FIGHT_NIGHT_LOCK_MODES,
+  SERIES_LOCK_MODES,
+  LOCK_UNIT_MINUTES,
+  matchdayLockModes,
+  MAX_LOCK_OFFSET_MINUTES,
+  SINGLE_LOCK_MODES,
+  describeLockOffset,
+  splitLockOffset,
+  type LockUnit,
+} from './lockModes';
 
-const MODES: { value: CustomLockMode; label: string; hint: string }[] = [
-  {
-    value: 'FIXED_DATE',
-    label: 'En una fecha fija',
-    hint: 'Todas las predicciones se cierran a la vez en la fecha que elijas.',
-  },
-  {
-    value: 'FIRST_MATCH',
-    label: 'Al empezar el primer partido',
-    hint: 'Todo se cierra a la vez cuando empieza el primer partido, o antes si pones margen. Sigue al calendario aunque cambies partidos.',
-  },
-  {
-    value: 'PER_ROUND',
-    label: 'Por rondas',
-    hint: 'Cada grupo y cada ronda del cuadro se cierran al empezar su primer partido. El resto se puede cambiar hasta entonces.',
-  },
-  {
-    value: 'PER_MATCH',
-    label: 'Por partidos',
-    hint: 'Cada cruce se cierra al empezar ese partido; cada grupo, al empezar su primer partido.',
-  },
-];
-
-/** Ligas por jornadas: cada partido se pronostica por separado. */
-const MATCHDAY_MODES: { value: CustomLockMode; label: string; hint: string }[] = [
-  {
-    value: 'PER_MATCH',
-    label: 'Cada partido',
-    hint: 'Cada partido se cierra al empezar, o antes si pones margen.',
-  },
-  {
-    value: 'PER_DAY',
-    label: 'Por días',
-    hint: 'Todos los partidos de un mismo día se cierran al empezar el primero de ese día. Con 1 día de margen, se cierran la víspera.',
-  },
-  {
-    value: 'PER_ROUND',
-    label: 'Por jornadas',
-    hint: 'Toda la jornada se cierra al empezar su primer partido, o antes si pones margen.',
-  },
-];
-
-type Unit = 'minutes' | 'hours' | 'days';
-const UNIT_MINUTES: Record<Unit, number> = { minutes: 1, hours: 60, days: 1440 };
-
-function splitOffset(minutes: number): { amount: number; unit: Unit } {
-  if (minutes > 0 && minutes % 1440 === 0) return { amount: minutes / 1440, unit: 'days' };
-  if (minutes > 0 && minutes % 60 === 0) return { amount: minutes / 60, unit: 'hours' };
-  return { amount: minutes, unit: 'minutes' };
-}
-
-function describe(mode: CustomLockMode, offsetMinutes: number, matchday: boolean): string {
+function describe(
+  mode: CustomLockMode,
+  offsetMinutes: number,
+  matchday: boolean,
+  knockoutDraw = false,
+  multiCompetition = false,
+  fightNights = false,
+  series = false,
+  competitionExternalId: string | null = null,
+): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
-  const { amount, unit } = splitOffset(offsetMinutes);
-  const unitLabel = {
-    minutes: 'min',
-    hours: amount === 1 ? 'hora' : 'horas',
-    days: amount === 1 ? 'día' : 'días',
-  }[unit];
-  const margin = offsetMinutes ? ` · ${amount} ${unitLabel} antes` : '';
-  const modes = matchday ? MATCHDAY_MODES : MODES;
+  const margin = offsetMinutes ? ` · ${describeLockOffset(offsetMinutes)}` : '';
+  const modes = matchday
+    ? fightNights
+      ? FIGHT_NIGHT_LOCK_MODES
+      : matchdayLockModes(multiCompetition, competitionExternalId)
+    : series
+      ? SERIES_LOCK_MODES
+      : knockoutDraw
+        ? DRAWN_KNOCKOUT_LOCK_MODES
+        : BRACKET_LOCK_MODES;
   return `${modes.find((item) => item.value === mode)?.label ?? mode}${margin}`;
 }
 
@@ -88,13 +63,15 @@ export default function CustomLockCard({
   allowProgressive?: boolean;
 }) {
   const queryClient = useQueryClient();
-  const matchday = group.poolFormat === 'MATCH_DAY';
+  // Superviviente también se pronostica partido a partido.
+  const matchday = isMatchBasedFormat(group.poolFormat);
+  const series = Boolean(group.knockoutDraw) && isNbaCompetition(group.competitionExternalId);
   const lock = useCustomLock(group.id.toString());
   const current = lock.state;
   const [mode, setMode] = useState<CustomLockMode>('FIXED_DATE');
   const [date, setDate] = useState('');
   const [amount, setAmount] = useState(0);
-  const [unit, setUnit] = useState<Unit>('hours');
+  const [unit, setUnit] = useState<LockUnit>('hours');
 
   // Se rellena una sola vez: el estado se vuelve a pedir cada minuto y no debe pisar lo que se edita.
   const loaded = useRef(false);
@@ -103,24 +80,47 @@ export default function CustomLockCard({
     loaded.current = true;
     setMode(current.mode);
     setDate(current.mode === 'FIXED_DATE' ? (current.lockDate?.slice(0, 16) ?? '') : '');
-    const offset = splitOffset(current.offsetMinutes);
+    const offset = splitLockOffset(current.offsetMinutes);
     setAmount(offset.amount);
     setUnit(offset.amount ? offset.unit : 'hours');
   }, [current]);
 
-  const offsetMinutes = Math.max(0, Math.round(amount)) * UNIT_MINUTES[unit];
-  let modes = MODES;
-  if (matchday) modes = MATCHDAY_MODES;
+  const offsetMinutes = Math.max(0, Math.round(amount)) * LOCK_UNIT_MINUTES[unit];
+  let modes = BRACKET_LOCK_MODES;
+  const fightNights = group.formatType === 'EVENTS';
+  if (matchday)
+    modes = fightNights
+      ? FIGHT_NIGHT_LOCK_MODES
+      : matchdayLockModes(Boolean(group.multiCompetition), group.competitionExternalId);
+  else if (series) modes = SERIES_LOCK_MODES;
+  else if (group.knockoutDraw) modes = DRAWN_KNOCKOUT_LOCK_MODES;
   else if (!allowProgressive) {
-    modes = MODES.filter((item) => item.value === 'FIXED_DATE' || item.value === 'FIRST_MATCH');
+    modes = SINGLE_LOCK_MODES;
   }
   const selected = modes.find((item) => item.value === mode) ?? modes[0];
 
   let status = 'Sin fijar';
   if (current && matchday) {
-    status = describe(current.mode, current.offsetMinutes, true);
+    status = describe(
+      current.mode,
+      current.offsetMinutes,
+      true,
+      false,
+      Boolean(group.multiCompetition),
+      fightNights,
+      false,
+      group.competitionExternalId,
+    );
   } else if (current && lock.configured) {
-    status = describe(current.mode, current.offsetMinutes, false);
+    status = describe(
+      current.mode,
+      current.offsetMinutes,
+      false,
+      group.knockoutDraw,
+      false,
+      false,
+      series,
+    );
     if (current.fullyLocked) status += ' · cerrado';
     else if (current.mode === 'FIXED_DATE' || current.mode === 'FIRST_MATCH') {
       status += current.lockDate ? ` · ${formatMatchDate(current.lockDate)}` : '';
@@ -216,32 +216,31 @@ export default function CustomLockCard({
                   className="glass-input"
                   aria-label="Unidad del margen"
                   value={unit}
-                  onChange={(event) => setUnit(event.target.value as Unit)}
+                  onChange={(event) => setUnit(event.target.value as LockUnit)}
                 >
                   <option value="minutes">minutos</option>
                   <option value="hours">horas</option>
                   <option value="days">días</option>
                 </select>
               </div>
-              <p className="league-admin-muted m-0">0 = justo cuando empieza. Máximo 30 días.</p>
+              <p className="league-admin-muted m-0">0 = justo al empezar. Máximo 30 días.</p>
             </div>
           )}
 
           <button
             type="submit"
             className="league-admin-btn is-primary"
-            disabled={(mode === 'FIXED_DATE' && !date) || offsetMinutes > 30 * 1440}
+            disabled={(mode === 'FIXED_DATE' && !date) || offsetMinutes > MAX_LOCK_OFFSET_MINUTES}
           >
             Guardar cierre
           </button>
         </form>
       )}
       <p className="league-admin-muted">
-        Puedes cambiar el criterio aunque ya haya predicciones. Si el nuevo cierre es posterior, lo
-        que ya estaba cerrado vuelve a abrirse.
+        Si retrasas el cierre, lo cerrado se vuelve a abrir.
         {lock.progressive &&
           !matchday &&
-          ' Quien no haya enviado su predicción antes del primer cierre ya no podrá entrar, y de los demás solo se ve lo que ya está cerrado.'}
+          ' Quien no envíe su predicción antes del primer cierre se queda fuera.'}
       </p>
     </section>
   );

@@ -90,7 +90,9 @@ describe('MatchFriendsPredictionsModal', () => {
 
     expect(screen.getByText('Oculto')).toBeInTheDocument();
     expect(screen.getByText('Pendiente')).toBeInTheDocument();
-    expect(screen.getByText('2 - 1')).toBeInTheDocument();
+    // Liga 1X2: se ve el signo, no el marcador guardado.
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.queryByText('2 - 1')).not.toBeInTheDocument();
     expect(screen.getByText('Tú')).toBeInTheDocument();
   });
 
@@ -113,5 +115,82 @@ describe('MatchFriendsPredictionsModal', () => {
 
     expect(await screen.findByText('Sin predicción')).toBeInTheDocument();
     expect(screen.queryByText('Pendiente')).not.toBeInTheDocument();
+  });
+
+  it('agrupa por signo un partido finalizado y muestra las predicciones sin marcador', async () => {
+    vi.mocked(fetchMatchdayFriendPredictions).mockResolvedValue(
+      [
+        { userId: 1, participantName: 'Toto', hasPredicted: true, sign: '1', pointsAwarded: 0 },
+        { userId: 2, participantName: 'Vitty', hasPredicted: true, sign: 'X', pointsAwarded: 3 },
+        {
+          userId: 3,
+          participantName: 'Raclos',
+          hasPredicted: true,
+          homeScore: 2,
+          awayScore: 1,
+          sign: '1',
+          pointsAwarded: 0,
+          isCaller: true,
+          updatedAt: '2026-11-06T21:03:00',
+        },
+        { userId: 4, participantName: 'Saul', hasPredicted: false },
+      ].map(friendPrediction),
+    );
+
+    renderModal({ finished: true, locked: true, actualHomeScore: 0, actualAwayScore: 0 });
+
+    expect(await screen.findByRole('region', { name: '1 · Gana Athletic Club' })).toHaveTextContent(
+      /Toto.*Raclos/,
+    );
+    expect(screen.getByRole('region', { name: 'X · Empate' })).toHaveTextContent(/Vitty.*\+3 pts/);
+    expect(screen.getByRole('region', { name: '2 · Gana Real Sociedad' })).toHaveTextContent(
+      'Nadie',
+    );
+    expect(screen.getByRole('region', { name: '– · Sin predicción' })).toHaveTextContent('Saul');
+    expect(screen.queryByText('Oculto')).not.toBeInTheDocument();
+    expect(screen.queryByText('2 - 1')).not.toBeInTheDocument();
+    // Tras el cierre la hora cambia al puntuar: no se enseña.
+    expect(screen.queryByText(/21:03/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/se ven al empezar/)).not.toBeInTheDocument();
+  });
+
+  it('en una pelea de la UFC terminada pinta W y L y cómo acabó, sin marcador', async () => {
+    vi.mocked(fetchMatchdayFriendPredictions).mockResolvedValue(
+      [{ userId: 1, participantName: 'Toto', hasPredicted: true, sign: '2' }].map(friendPrediction),
+    );
+
+    renderModal({
+      homeTeam: 'Keiichiro Nakamura',
+      awayTeam: 'Ollie Schmid',
+      finished: true,
+      locked: true,
+      actualHomeScore: 0,
+      actualAwayScore: 1,
+      fight: {
+        eventId: '1',
+        eventName: 'UFC Fight Night',
+        segment: 'PRELIMS',
+        order: 9,
+        weightClass: null,
+        scheduledRounds: 3,
+        homeRecord: null,
+        awayRecord: null,
+        resultMethod: 'DECISION',
+        resultDetail: 'Decision - Split',
+        resultRound: 3,
+        resultClock: '5:00',
+        winner: '2',
+      },
+    });
+
+    expect(await screen.findByRole('region', { name: '2 · Gana Ollie Schmid' })).toHaveTextContent(
+      'Toto',
+    );
+    expect(screen.queryByText('0 - 1')).not.toBeInTheDocument();
+    expect(screen.getByTitle('Derrota')).toHaveTextContent('L');
+    expect(screen.getByTitle('Victoria')).toHaveTextContent('W');
+    expect(screen.getByText('Decisión dividida')).toBeInTheDocument();
+    expect(screen.getByText('Asalto 3')).toBeInTheDocument();
+    expect(screen.getByText('5:00')).toBeInTheDocument();
   });
 });

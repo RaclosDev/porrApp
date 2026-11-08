@@ -1,0 +1,55 @@
+{
+ "leagues": [
+  {
+   "calendar": [
+    {
+     "label": "Dana White's Contender Series: Season 10, Week 10",
+     "startDate": "2026-10-14T02:00Z",
+     "endDate": "2026-10-14T06:59Z",
+     "event": {
+      "$ref": "http://sports.core.api.espn.pvt/v2/sports/mma/leagues/ufc/events/600060741?lang=en&region=us"
+     }
+    },
+    {
+     "label": "UFC Fight Night: Moicano vs. Nolan",
+     "startDate": "2026-11-01T00:00Z",
+     "endDate": "2026-11-01T06:59Z",
+     "event": {
+      "$ref": "http://sports.core.api.espn.pvt/v2/sports/mma/leagues/ufc/events/600061420?lang=en&region=us"
+     }
+    },
+    {
+     "label": "UFC 334: Gane vs. Hokit",
+     "startDate": "2026-11-15T01:00Z",
+     "endDate": "2026-11-15T07:59Z",
+     "event": {
+      "$ref": "http://sports.core.api.espn.pvt/v2/sports/mma/leagues/ufc/events/600061400?lang=en&region=us"
+     }
+    }
+   ]
+  }
+ ],
+ "events": [
+  {
+   "id": "600061420",
+   "competitions": [
+    {
+     "id": "401931616",
+     "format": {
+      "regulation": {
+       "periods": 3
+      }
+     }
+    },
+    {
+     "id": "401921310",
+     "format": {
+      "regulation": {
+       "periods": 5
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

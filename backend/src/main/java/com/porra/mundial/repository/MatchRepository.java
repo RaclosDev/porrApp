@@ -19,14 +19,22 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     // Missing teams remain visible; only two explicit placeholders hide a match.
     String RADAR_MATCHES = """
             SELECT m FROM Match m LEFT JOIN FETCH m.homeTeam h LEFT JOIN FETCH m.awayTeam a
-            LEFT JOIN FETCH m.competition LEFT JOIN FETCH m.winnerTeam
+            LEFT JOIN FETCH m.competition rc LEFT JOIN FETCH m.winnerTeam
             WHERE (:competitionId IS NULL OR m.competition.id = :competitionId)
+              AND (rc IS NULL OR rc.externalId IS NULL OR rc.externalId <> 'f1')
               AND (h IS NULL OR a IS NULL OR NOT (
                 (LOWER(h.name) IN ('por definir', 'tbd') OR LOWER(COALESCE(h.nameEn, '')) = 'tbd')
                 AND (LOWER(a.name) IN ('por definir', 'tbd') OR LOWER(COALESCE(a.nameEn, '')) = 'tbd')))
             """;
 
+    /**
+     * En juego o a punto de empezar. Aquí sí hacen falta los dos rivales reales: un evento sin
+     * equipos (un cruce aún por definir) no se puede anunciar como partido en directo.
+     */
     @Query(RADAR_MATCHES + """
+              AND h IS NOT NULL AND a IS NOT NULL
+              AND LOWER(h.name) NOT IN ('por definir', 'tbd') AND LOWER(COALESCE(h.nameEn, '')) <> 'tbd'
+              AND LOWER(a.name) NOT IN ('por definir', 'tbd') AND LOWER(COALESCE(a.nameEn, '')) <> 'tbd'
               AND (m.finished = FALSE OR m.finished IS NULL)
               AND (m.status IS NULL OR m.status IN :statuses)
               AND m.matchDate > :past AND m.matchDate < :soon
@@ -59,6 +67,16 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findByCompetitionIdOrderByMatchDateAsc(Long competitionId);
 
     long countByCompetitionId(Long competitionId);
+
+    /**
+     * Por competición: partidos, partidos sin terminar y partidos de fase de grupos. Sirve para saber al
+     * crear una liga si la competición ya acabó y si tiene grupos que pronosticar.
+     */
+    @Query("SELECT m.competition.id, COUNT(m), SUM(CASE WHEN m.finished = true OR m.status = "
+            + "com.porra.mundial.model.MatchStatusNormalized.CANCELLED THEN 0 ELSE 1 END), "
+            + "SUM(CASE WHEN m.groupName IS NOT NULL AND m.groupName <> '' THEN 1 ELSE 0 END) "
+            + "FROM Match m WHERE m.competition IS NOT NULL GROUP BY m.competition.id")
+    List<Object[]> calendarStatsByCompetition();
 
     /**
      * Partidos de una competición que pueden ser de una jornada ({@code MatchRound.lookup}): por ronda o
@@ -98,4 +116,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Query("SELECT DISTINCT m.competition.id FROM Match m WHERE (m.finished = FALSE OR m.finished IS NULL)"
             + " AND m.matchDate BETWEEN :from AND :to")
     List<Long> findCompetitionIdsWithOpenMatchesBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** Inicio de la última pelea de cada velada (ronda) de la competición: {@code [ronda, fecha]}. */
+    @Query("SELECT m.round, MAX(m.matchDate) FROM Match m WHERE m.competition.id = :competitionId"
+            + " AND m.round IN :rounds GROUP BY m.round")
+    List<Object[]> lastMatchDateByRound(@Param("competitionId") Long competitionId,
+                                        @Param("rounds") Collection<String> rounds);
 }

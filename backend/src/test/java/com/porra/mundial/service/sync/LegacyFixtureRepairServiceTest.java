@@ -56,7 +56,7 @@ class LegacyFixtureRepairServiceTest {
             default -> throw new AssertionError();
         }
         when(matches.findLegacyPlaceholderFixtures(eq(0L), any())).thenReturn(candidates(1));
-        when(providers.getProviderForCompetition("esp.1")).thenReturn(provider);
+        when(providers.findProviderForCompetition("esp.1")).thenReturn(java.util.Optional.of(provider));
         when(provider.isAvailable()).thenReturn(true);
         when(provider.fetchEvent("esp.1", "1")).thenReturn(event);
 
@@ -69,7 +69,7 @@ class LegacyFixtureRepairServiceTest {
     void limitsRequestsAndBacksOffFailuresWithoutStartingTransactions() throws Exception {
         var fixtures = candidates(20);
         when(matches.findLegacyPlaceholderFixtures(eq(0L), any())).thenReturn(fixtures);
-        when(providers.getProviderForCompetition("esp.1")).thenReturn(provider);
+        when(providers.findProviderForCompetition("esp.1")).thenReturn(java.util.Optional.of(provider));
         when(provider.isAvailable()).thenReturn(true);
         when(provider.fetchEvent(anyString(), anyString())).thenThrow(new java.io.IOException("503"));
         Instant now = Instant.parse("2026-10-31T12:00:00Z");
@@ -85,7 +85,7 @@ class LegacyFixtureRepairServiceTest {
     @Test
     void interruptionStopsTheBatchAndPreservesTheInterruptFlag() throws Exception {
         when(matches.findLegacyPlaceholderFixtures(eq(0L), any())).thenReturn(candidates(2));
-        when(providers.getProviderForCompetition("esp.1")).thenReturn(provider);
+        when(providers.findProviderForCompetition("esp.1")).thenReturn(java.util.Optional.of(provider));
         when(provider.isAvailable()).thenReturn(true);
         when(provider.fetchEvent(anyString(), anyString())).thenThrow(new InterruptedException("closing"));
         try {
@@ -101,7 +101,7 @@ class LegacyFixtureRepairServiceTest {
     @Test
     void openCircuitMakesNoRequests() {
         when(matches.findLegacyPlaceholderFixtures(eq(0L), any())).thenReturn(candidates(2));
-        when(providers.getProviderForCompetition("esp.1")).thenReturn(provider);
+        when(providers.findProviderForCompetition("esp.1")).thenReturn(java.util.Optional.of(provider));
 
         assertEquals(0, repair.repairBatch().attempted());
 

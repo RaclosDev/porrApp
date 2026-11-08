@@ -35,8 +35,22 @@ export const queryKeys = {
   /** Cuelga del ranking: invalidar `leaderboard(groupId)` también lo invalida. */
   leaderboardLogs: (groupId: Id) => key('leaderboard', asText(groupId), 'logs'),
   leaderboardMatchdays: (groupId?: Id) => key('leaderboardMatchdays', asText(groupId)),
+  /** Grandes Premios de una liga de Fórmula 1 con la predicción del usuario. */
+  grandPrix: (groupId?: Id, user?: Id) => key('grandPrix', asText(groupId), user),
+  /** Cuelga de grandPrix: al guardar se refrescan también las de la liga. */
+  grandPrixPicks: (groupId: Id, matchId: number) =>
+    key('grandPrix', asText(groupId), 'picks', matchId),
+  grandPrixClassification: (groupId: Id, matchId: number) =>
+    key('grandPrixClassification', asText(groupId), matchId),
+  /** Mundial de F1: es el mismo para todas las ligas, la liga solo comprueba el acceso. */
+  formulaOneStandings: (groupId: Id) => key('formulaOneStandings', asText(groupId)),
   matchdayFixtures: (groupId?: Id, user?: Id, round?: string) =>
     key('matchdayFixtures', asText(groupId), user, round),
+  /** Todos los partidos de una liga que elige los suyos, para su portada; cuelga de matchdayFixtures. */
+  leagueMatches: (groupId?: Id) => key('matchdayFixtures', asText(groupId), 'league'),
+  /** Cuelga de matchdayFixtures: lo que refresca los partidos de la liga refresca también esto. */
+  survivorStatus: (groupId: Id, user?: Id) =>
+    key('matchdayFixtures', asText(groupId), 'survivor', user),
   matchFriendPredictions: (groupId?: Id, matchId?: Id) =>
     key('matchFriendPredictions', asText(groupId), matchId),
   matchdayStats: (groupId?: Id) => key('matchdayStats', asText(groupId)),
@@ -46,10 +60,10 @@ export const queryKeys = {
   /** También cuelga de matchdayStats, para refrescarse con cada predicción nueva de la liga. */
   roundParticipants: (groupId: Id, matchIds: string) =>
     key('matchdayStats', asText(groupId), 'participants', matchIds),
-  standings: () => key('standings'),
-  odds: () => key('odds'),
-  topScorers: () => key('topScorers'),
-  officialBracket: () => key('officialBracket'),
+  worldCupStandings: () => key('worldCupStandings'),
+  worldCupGroupOdds: () => key('worldCupGroupOdds'),
+  worldCupTopScorers: () => key('worldCupTopScorers'),
+  worldCupOfficialBracket: () => key('worldCupOfficialBracket'),
   predictionScore: (predictionId?: Id) => key('predictionScore', asText(predictionId)),
   matches: (competitionId?: Id) => key('matches', competitionId),
   radar: (competitionId?: Id) => key('radar', competitionId),
@@ -57,4 +71,8 @@ export const queryKeys = {
   customMatches: (groupId?: Id) => key('customMatches', asText(groupId)),
   customTeams: (groupId?: Id) => key('customTeams', asText(groupId)),
   customLockState: (groupId?: Id) => key('customLockState', asText(groupId)),
+  matchSelection: (groupId?: Id) => key('matchSelection', asText(groupId)),
+  /** Calendario de una o varias competiciones (la principal primero) para elegir partidos. */
+  selectableMatches: (competitionIds?: number[]) =>
+    key('selectableMatches', competitionIds?.join(',')),
 };

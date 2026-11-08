@@ -23,6 +23,9 @@ import java.util.regex.Pattern;
 @RestController
 @RequiredArgsConstructor
 public class JoinPreviewController {
+    /** Nombre de la competición en una liga que junta partidos de varias. */
+    private static final String MULTI_COMPETITION = "Varias competiciones";
+
 
     /** Dirección pública de la web; la fija {@code app.public-base-url}. */
     @Value("${app.public-base-url:https://porrapp.app}")
@@ -59,7 +62,10 @@ public class JoinPreviewController {
 
             Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
             if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
-                String competitionName = activeEdition.get().getCompetition().getName();
+                String competitionName = activeEdition.get().getTennisScope() != null
+                        ? activeEdition.get().getTennisScope().label()
+                        : activeEdition.get().isMultiCompetition() ? MULTI_COMPETITION
+                        : activeEdition.get().getCompetition().getName();
                 String format = activeEdition.get().getPoolFormat() != null
                         ? formatLabel(activeEdition.get().getPoolFormat().name())
                         : null;
@@ -110,7 +116,11 @@ public class JoinPreviewController {
         Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
         if (activeEdition.isPresent()) {
             Edition edition = activeEdition.get();
-            if (edition.getCompetition() != null && edition.getCompetition().getName() != null) {
+            if (edition.getTennisScope() != null) {
+                competition = edition.getTennisScope().label();
+            } else if (edition.isMultiCompetition()) {
+                competition = MULTI_COMPETITION;
+            } else if (edition.getCompetition() != null && edition.getCompetition().getName() != null) {
                 competition = edition.getCompetition().getName();
             }
             if (edition.getPoolFormat() != null) {
@@ -136,6 +146,8 @@ public class JoinPreviewController {
     private String formatLabel(String format) {
         return switch (format) {
             case "MATCH_DAY" -> "Por jornadas";
+            case "SURVIVOR" -> "Superviviente";
+            case "GRAND_PRIX" -> "Grandes Premios";
             case "FULL_BRACKET" -> "Cuadro completo";
             case "KNOCKOUTS_ONLY" -> "Eliminatorias";
             default -> format.toLowerCase().replace('_', ' ');

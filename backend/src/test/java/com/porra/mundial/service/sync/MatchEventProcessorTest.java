@@ -130,6 +130,18 @@ class MatchEventProcessorTest {
     }
 
     @Test
+    @DisplayName("Una serie del LoL guarda al mejor de cuántas partidas se juega")
+    void savesTheBestOfOfALolSeries() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        var event = event("pre", false, "Semifinals", "", "", "Spain", "164", "Uruguay", "212", "[]");
+        ((tools.jackson.databind.node.ObjectNode) event.path("competitions").get(0)).put("bestOf", 5);
+
+        processor.process(event, cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertEquals(5, savedMatch().getBestOf());
+    }
+
+    @Test
     @DisplayName("Asigna la ronda de eliminatoria a partir de las notas del evento")
     void parsesKnockoutRound() throws Exception {
         when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
@@ -178,8 +190,38 @@ class MatchEventProcessorTest {
         assertEquals("sf", MatchEventProcessor.roundFromSlug("semifinals"));
         assertEquals("third", MatchEventProcessor.roundFromSlug("3rd-place-match"));
         assertEquals("final", MatchEventProcessor.roundFromSlug("final"));
+        assertEquals("playoff", MatchEventProcessor.roundFromSlug("knockout-round-playoffs"));
+        assertEquals("round1", MatchEventProcessor.roundFromSlug("first-round"));
+        assertEquals("round2", MatchEventProcessor.roundFromSlug("second-round"));
+        assertEquals("qualifying", MatchEventProcessor.roundFromSlug("qualifying-round"));
+        assertEquals("roundrobin", MatchEventProcessor.roundFromSlug("round-robin"));
         assertNull(MatchEventProcessor.roundFromSlug("league-phase"));
         assertNull(MatchEventProcessor.roundFromSlug(null));
+    }
+
+    @Test
+    @DisplayName("Un tenista que aún no estaba guardado se crea con el partido, con su bandera")
+    void createsATennisPlayerThatArrivesWithItsMatch() throws Exception {
+        Competition paris = Competition.builder().id(7L).name("Masters de París").externalId("tennis.atp.13")
+                .formatType("TOURNAMENT").build();
+        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
+        when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        JsonNode event = JSON.readTree("""
+                {"id": "tennis-186507", "date": "2026-11-08T14:00Z", "season": {"slug": "final"},
+                 "competitions": [{"altGameNote": "", "status": {"type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false}},
+                   "competitors": [
+                     {"homeAway": "home", "winner": false, "team": {"id": "tennis-1", "displayName": "Ben Shelton", "logo": "https://flags/usa.png"}},
+                     {"homeAway": "away", "winner": false, "team": {"id": "tennis-2", "displayName": "Carlos Alcaraz", "logo": "https://flags/esp.png"}}]}]}
+                """);
+
+        processor.process(event, cache, new MatchEventProcessor.Batch(paris));
+
+        Match saved = savedMatch();
+        assertEquals("Ben Shelton", saved.getHomeTeam().getName());
+        assertEquals("https://flags/esp.png", saved.getAwayTeam().getLogoUrl());
+        assertEquals("tennis-2", saved.getAwayTeam().getExternalId());
+        assertEquals("final", saved.getRound());
+        assertSame(saved.getAwayTeam(), cache.get("tennis-2"));
     }
 
     @Test
@@ -387,5 +429,129 @@ class MatchEventProcessorTest {
         when(matchRepository.findByCompetitionIdAndRoundStartingWith(4L, "Jornada "))
                 .thenReturn(new ArrayList<>(matchday(38, 10, AppTime.fromLocal(LocalDateTime.of(2026, 5, 23, 21, 0)))));
         assertNull(processor.inferLeagueMatchday(laLiga, AppTime.fromLocal(LocalDateTime.of(2026, 8, 15, 19, 0))));
+    }
+
+    private JsonNode legEvent(String slug, int leg, String homeExtra, String awayExtra) throws Exception {
+        return JSON.readTree("""
+                {"id": "401", "date": "2026-03-10T20:00Z", "season": {"slug": "%s"},
+                 "competitions": [{
+                   "altGameNote": "UEFA Champions League, Round of 16",
+                   "leg": {"value": %d}, "series": {"totalCompetitions": 2},
+                   "status": {"type": {"state": "post", "completed": true}},
+                   "competitors": [
+                     {"homeAway": "home", "score": "1", "team": {"displayName": "Spain", "id": "164"}%s},
+                     {"homeAway": "away", "score": "0", "team": {"displayName": "Uruguay", "id": "212"}%s}
+                   ]
+                 }]}
+                """.formatted(slug, leg, homeExtra, awayExtra));
+    }
+
+    @Test
+    @DisplayName("Las eliminatorias de una competición de liga guardan su ronda y la ida no decide quién pasa")
+    void leagueKnockoutKeepsRoundAndFirstLegHasNoQualifier() throws Exception {
+        Competition champions = Competition.builder().id(5L).externalId("uefa.champions").formatType("LEAGUE").build();
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(legEvent("round-of-16", 1, ", \"winner\": true", ", \"winner\": false"), cache,
+                new MatchEventProcessor.Batch(champions));
+
+        Match match = savedMatch();
+        assertEquals("r16", match.getRound());
+        assertNull(match.getWinnerTeam(), "ganar la ida no es pasar");
+    }
+
+    @Test
+    @DisplayName("La vuelta marca quién pasa con advance")
+    void secondLegMarksTheQualifier() throws Exception {
+        Competition champions = Competition.builder().id(5L).externalId("uefa.champions").formatType("LEAGUE").build();
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(legEvent("knockout-round-playoffs", 2, ", \"winner\": true",
+                ", \"winner\": false, \"advance\": true"), cache, new MatchEventProcessor.Batch(champions));
+
+        Match match = savedMatch();
+        assertEquals("playoff", match.getRound());
+        assertSame(uruguay, match.getWinnerTeam());
+    }
+
+    @Test
+    @DisplayName("La fase de liga de una competición de liga no guarda ronda")
+    void leaguePhaseHasNoRound() throws Exception {
+        Competition champions = Competition.builder().id(5L).externalId("uefa.champions").formatType("LEAGUE").build();
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        lenient().when(matchRepository.findByCompetitionIdAndRoundStartingWith(5L, "Jornada ")).thenReturn(List.of());
+
+        processor.process(legEvent("league-phase", 1, "", ""), cache, new MatchEventProcessor.Batch(champions));
+
+        assertNotEquals("r16", savedMatch().getRound());
+    }
+
+    private JsonNode nflEvent(String name) throws Exception {
+        try (var input = getClass().getResourceAsStream("/espn/nfl-scoreboard.json")) {
+            for (JsonNode event : JSON.readTree(java.util.Objects.requireNonNull(input)).path("events")) {
+                if (event.path("name").asText().equals(name)) return event;
+            }
+        }
+        throw new IllegalArgumentException(name);
+    }
+
+    @Test
+    @DisplayName("Un partido de la NFL va a su semana de ESPN y la pretemporada no se guarda")
+    void nflGamesTakeTheirEspnWeekAndPreseasonIsSkipped() throws Exception {
+        Competition nfl = Competition.builder().id(30L).name("NFL").externalId("nfl").formatType("LEAGUE").build();
+        Team ravens = Team.builder().id(31L).name("Baltimore Ravens").externalId("33").build();
+        Team jaguars = Team.builder().id(32L).name("Jacksonville Jaguars").externalId("30").build();
+        Map<String, Team> nflTeams = new HashMap<>(Map.of("Baltimore Ravens", ravens, "Jacksonville Jaguars", jaguars));
+        when(matchRepository.findByExternalId("401873037")).thenReturn(Optional.empty());
+        when(matchRepository.save(any(Match.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        processor.process(nflEvent("Jacksonville Jaguars at Baltimore Ravens"), nflTeams, new MatchEventProcessor.Batch(nfl));
+        processor.process(nflEvent("Indianapolis Colts at Baltimore Ravens"), nflTeams, new MatchEventProcessor.Batch(nfl));
+
+        Match game = savedMatch();
+        assertEquals("Semana 9", game.getRound());
+        assertEquals(10, game.getHomeScore());
+        assertEquals(33, game.getAwayScore());
+        assertSame(jaguars, game.getWinnerTeam());
+        verify(matchRepository, never()).findByExternalId(nflEvent("Indianapolis Colts at Baltimore Ravens").path("id").asText());
+    }
+
+    @Test
+    @DisplayName("Importar el catálogo no cambia el nombre en español de un equipo que ya existe")
+    void importTeamsKeepsTheLocalNameOfAnExistingTeam() throws Exception {
+        when(teamRepository.findByName("España")).thenReturn(Optional.of(spain));
+        when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
+        JsonNode teams = JSON.readTree("""
+                [{"team": {"id": "164", "displayName": "Spain", "abbreviation": "ESP",
+                           "logos": [{"href": "https://example.test/esp.png"}]}}]
+                """);
+        Map<String, Team> imported = new HashMap<>();
+
+        assertEquals(1, processor.importTeams(teams, imported));
+
+        assertEquals("España", spain.getName());
+        assertEquals("Spain", spain.getNameEn());
+        assertEquals("https://example.test/esp.png", spain.getLogoUrl());
+        assertSame(spain, imported.get("España"));
+        assertSame(spain, imported.get("Spain"));
+        assertSame(spain, imported.get("164"));
+    }
+
+    @Test
+    @DisplayName("Un equipo nuevo del catálogo se guarda con su nombre en español")
+    void importTeamsCreatesNewTeamsWithTheirLocalName() throws Exception {
+        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
+        when(teamRepository.findByExternalId("478")).thenReturn(Optional.empty());
+        when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
+        JsonNode teams = JSON.readTree("""
+                [{"team": {"id": "478", "displayName": "France"}}]
+                """);
+        Map<String, Team> imported = new HashMap<>();
+
+        processor.importTeams(teams, imported);
+
+        Team france = imported.get("478");
+        assertEquals("Francia", france.getName());
+        assertEquals("France", france.getNameEn());
     }
 }

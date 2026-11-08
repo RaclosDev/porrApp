@@ -28,9 +28,33 @@ public final class PredictableBracket {
 
     /** La edición se pronostica sobre un cuadro propio (personalizado u oficial que no es el Mundial). */
     public static boolean applies(Edition edition) {
-        if (edition == null || edition.getPoolFormat() == PoolFormat.MATCH_DAY) return false;
+        if (edition == null || PoolFormat.isMatchBased(edition.getPoolFormat())) return false;
         Competition competition = edition.getCompetition();
         return competition != null && (competition.getOwnerLeague() != null || competition.hasOwnBracket());
+    }
+
+    /**
+     * Cuándo empieza lo que pronostica una liga nueva de cuadro en un torneo oficial con cuadro propio que no se
+     * sortea ronda a ronda (los Worlds del LoL): su primer cruce con los dos equipos y, en el cuadro completo,
+     * también el primer partido de grupos. Desde ese momento el cuadro ya no admite predicciones nuevas, así
+     * que una liga creada entonces nacería sin que nadie pudiera jugar. Null si no aplica (personalizadas,
+     * Mundial, cruces sorteados ronda a ronda, que sí admiten entrar tarde) o si aún no hay cruces definidos.
+     */
+    public static Instant predictionsCloseAt(Competition competition, PoolFormat format, List<Match> all) {
+        if (competition == null || competition.getOwnerLeague() != null || !competition.hasOwnBracket()
+                || competition.drawsKnockoutRounds()
+                || format != PoolFormat.KNOCKOUTS_ONLY && format != PoolFormat.FULL_BRACKET) {
+            return null;
+        }
+        List<List<Match>> bracket = rounds(competition, all);
+        List<Match> candidates = new ArrayList<>(bracket.isEmpty() ? List.of() : bracket.get(0));
+        if (format == PoolFormat.FULL_BRACKET) {
+            all.stream().filter(match -> "group".equals(match.getRound()) && match.getGroupName() != null)
+                    .forEach(candidates::add);
+        }
+        return candidates.stream()
+                .filter(match -> match.getMatchDate() != null && match.getHomeTeam() != null && match.getAwayTeam() != null)
+                .map(Match::getMatchDate).min(Comparator.naturalOrder()).orElse(null);
     }
 
     /** Partidos de cada ronda, de la primera a la última; la primera en el orden en que se pinta. */
@@ -47,7 +71,7 @@ public final class PredictableBracket {
             return result;
         }
         Map<String, List<Match>> byRound = all.stream()
-                .filter(match -> KNOCKOUT_ROUNDS.contains(match.getRound()))
+                .filter(match -> match.getRound() != null && KNOCKOUT_ROUNDS.contains(match.getRound()))
                 .collect(Collectors.groupingBy(Match::getRound));
         int first = 0;
         while (first < KNOCKOUT_ROUNDS.size() && !byRound.containsKey(KNOCKOUT_ROUNDS.get(first))) first++;

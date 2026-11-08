@@ -1,5 +1,6 @@
 package com.porra.mundial.service.league;
 
+import com.porra.mundial.service.prediction.MatchSelectionService;
 import com.porra.mundial.service.prediction.MatchdayLock;
 import com.porra.mundial.service.prediction.LeaderboardService;
 import com.porra.mundial.dto.LeagueSummaryDTO;
@@ -9,7 +10,6 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Prediction;
-import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
@@ -40,6 +40,7 @@ public class LeagueSummaryService {
     private final MatchRepository matchRepository;
     private final PredictionRepository predictionRepository;
     private final MatchPredictionRepository matchPredictionRepository;
+    private final MatchSelectionService matchSelectionService;
 
     @Transactional(readOnly = true)
     public List<LeagueSummaryDTO> summaries(String email) {
@@ -77,17 +78,23 @@ public class LeagueSummaryService {
                 || edition.getCompetition() == null) {
             return 0;
         }
-        Long competitionId = edition.getCompetition().getId();
-        List<Match> upcoming = matchRepository.findUnfinishedStartingBetween(competitionId, now,
-                now.plus(PENDING_WINDOW)).stream()
-                .filter(m -> !(Team.isPlaceholder(m.getHomeTeam()) && Team.isPlaceholder(m.getAwayTeam())))
+        // Con cierre por jornada (o por semana, en la NFL) un partido de dentro de diez días se cierra con el
+        // primero de su jornada: se buscan dos ventanas y luego se cuenta lo que se cierra en la próxima semana.
+        Instant deadline = now.plus(PENDING_WINDOW);
+        List<Match> upcoming = MatchSelectionService.competitionIds(matchSelectionService, edition).stream()
+                .flatMap(id -> matchRepository.findUnfinishedStartingBetween(id, now, deadline.plus(PENDING_WINDOW)).stream())
+                .filter(m -> !MatchdayLock.awaitingTeams(m))
                 .filter(m -> m.getStatus() == null || m.getStatus().isOpenForPrediction())
                 .toList();
+        if (MatchSelectionService.selects(edition)) upcoming = matchSelectionService.filter(edition, upcoming);
         if (upcoming.isEmpty()) return 0;
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, upcoming,
-                MatchdayLock.needsWholeCalendar(edition) ? matchRepository.findByCompetitionId(competitionId) : upcoming);
+                MatchdayLock.needsWholeCalendar(edition) ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : upcoming);
         List<Long> open = upcoming.stream()
-                .filter(m -> !lockTimes.containsKey(m.getId()) || lockTimes.get(m.getId()).isAfter(now))
+                .filter(m -> {
+                    Instant lock = lockTimes.getOrDefault(m.getId(), m.getMatchDate());
+                    return lock == null || lock.isAfter(now) && lock.isBefore(deadline);
+                })
                 .map(Match::getId)
                 .toList();
         if (open.isEmpty()) return 0;

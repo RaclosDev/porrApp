@@ -3,17 +3,16 @@ import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import type { CredentialResponse } from '@react-oauth/google';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
 import GroupCard from '../components/groups/GroupCard';
 import JoinGroupPanel from '../components/groups/JoinGroupPanel';
-import CreateLeagueWizard from '../components/groups/CreateLeagueWizard';
-import CreatedLeagueModal from '../components/groups/CreatedLeagueModal';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
 import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
+import LeagueMatchesSection, { hasMatchSelection } from '../components/groups/LeagueMatchesSection';
 import type { Group } from '../types/api';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 
@@ -22,33 +21,20 @@ export default function GroupsDashboard() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<Group | null>(null);
   const [selectedGroupForRules, setSelectedGroupForRules] = useState<Group | null>(null);
   const [selectedCustomCompetition, setSelectedCustomCompetition] = useState<Group | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
+  // Desde el selector de liga, «Unirse con código» llega abierto (?unirse); desde crear liga, tras
+  // crear una con competición personalizada, su gestión (?gestionar=<id>).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showJoinModal, setShowJoinModal] = useState(() => searchParams.has('unirse'));
 
   const {
     groups,
     summaries,
-    competitions,
     loading,
     error,
     groupsError,
     retryGroups,
-    newGroupName,
-    setNewGroupName,
-    customCompetitionName,
-    setCustomCompetitionName,
-    selectedCompetition,
-    setSelectedCompetition,
-    selectedPoolFormat,
-    setSelectedPoolFormat,
-    includePichichi,
-    setIncludePichichi,
-    newlyCreatedGroup,
-    setNewlyCreatedGroup,
     joinCode,
     setJoinCode,
-    isCreating,
-    handleCreate,
     handleJoin,
     handleSaveGroupConfig,
     handleUploadGroupImage,
@@ -62,8 +48,26 @@ export default function GroupsDashboard() {
     userName,
     userId,
     activeGroupId,
-    navigate,
   } = useGroupsDashboard();
+
+  // ?unirse se consume al abrir el modal, para que el selector pueda volver a abrirlo estando ya aquí.
+  useEffect(() => {
+    if (!searchParams.has('unirse')) return;
+    setShowJoinModal(true);
+    setSearchParams(
+      (params) => {
+        params.delete('unirse');
+        return params;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams]);
+
+  const manageId = searchParams.get('gestionar');
+  const competitionToManage =
+    selectedCustomCompetition ??
+    groups.find((group) => group.customCompetition && String(group.id) === manageId) ??
+    null;
 
   /** El nombre público puede repetirse; la administración pertenece al id de usuario. */
   const isGroupAdmin = (group: Group) =>
@@ -72,16 +76,14 @@ export default function GroupsDashboard() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setShowCreateModal(false);
         setShowJoinModal(false);
         // El modal de administración gestiona su propio Escape para proteger cambios sin guardar.
         setSelectedGroupForRules(null);
-        setNewlyCreatedGroup(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setNewlyCreatedGroup]);
+  }, []);
 
   const signInWithGoogle = useGoogleSignIn();
   const handleDirectGoogleLogin = async (credentialResponse: CredentialResponse) => {
@@ -110,17 +112,6 @@ export default function GroupsDashboard() {
 
   return (
     <section className="view-section active">
-      {newlyCreatedGroup && (
-        <CreatedLeagueModal
-          newlyCreatedGroup={newlyCreatedGroup}
-          setNewlyCreatedGroup={setNewlyCreatedGroup}
-          handleCopyCode={handleCopyCode}
-          handleCopyLink={handleCopyLink}
-          handleShareWhatsApp={handleShareWhatsApp}
-          navigate={navigate}
-        />
-      )}
-
       <div className="flex justify-between items-center flex-wrap gap-3.5 mb-6 pb-4 border-b border-b-[rgba(255,_255,_255,_0.08)]">
         <div>
           <h2 className="m-0 poster-title text-[1.8rem] text-white">Mis ligas</h2>
@@ -128,26 +119,18 @@ export default function GroupsDashboard() {
         <div className="flex gap-2.5 flex-wrap">
           <button
             type="button"
-            onClick={() => {
-              setShowJoinModal((prev) => !prev);
-              setShowCreateModal(false);
-            }}
+            onClick={() => setShowJoinModal((prev) => !prev)}
             aria-expanded={showJoinModal}
             className="glass-btn py-2 px-4 text-[0.88rem] font-bold rounded-[10px] cursor-pointer"
           >
             Unirse con código
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowCreateModal((prev) => !prev);
-              setShowJoinModal(false);
-            }}
-            aria-expanded={showCreateModal}
-            className={`glass-btn py-2 px-4.5 text-[0.88rem] font-extrabold rounded-[10px] cursor-pointer ${showCreateModal ? '' : 'primary-btn'}`}
+          <Link
+            to="/crear-liga"
+            className="glass-btn primary-btn py-2 px-4.5 text-[0.88rem] font-extrabold rounded-[10px] inline-flex items-center min-h-11"
           >
-            {showCreateModal ? 'Cancelar' : 'Crear liga'}
-          </button>
+            Crear liga
+          </Link>
         </div>
       </div>
 
@@ -158,25 +141,6 @@ export default function GroupsDashboard() {
         >
           {error}
         </div>
-      )}
-
-      {showCreateModal && (
-        <CreateLeagueWizard
-          competitions={competitions}
-          newGroupName={newGroupName}
-          setNewGroupName={setNewGroupName}
-          customCompetitionName={customCompetitionName}
-          setCustomCompetitionName={setCustomCompetitionName}
-          selectedCompetition={selectedCompetition}
-          setSelectedCompetition={setSelectedCompetition}
-          selectedPoolFormat={selectedPoolFormat}
-          setSelectedPoolFormat={setSelectedPoolFormat}
-          includePichichi={includePichichi}
-          setIncludePichichi={setIncludePichichi}
-          isCreating={isCreating}
-          handleCreate={handleCreate}
-          setShowCreateModal={setShowCreateModal}
-        />
       )}
 
       {showJoinModal && (
@@ -204,10 +168,13 @@ export default function GroupsDashboard() {
         </div>
       )}
 
-      {selectedCustomCompetition && isGroupAdmin(selectedCustomCompetition) && (
+      {competitionToManage && isGroupAdmin(competitionToManage) && (
         <CustomCompetitionEditor
-          group={selectedCustomCompetition}
-          onClose={() => setSelectedCustomCompetition(null)}
+          group={competitionToManage}
+          onClose={() => {
+            setSelectedCustomCompetition(null);
+            if (manageId) setSearchParams({}, { replace: true });
+          }}
         />
       )}
 
@@ -223,22 +190,15 @@ export default function GroupsDashboard() {
             existente usando un código de invitación.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreateModal(true);
-                setShowJoinModal(false);
-              }}
-              className="glass-btn primary-btn py-[11px] px-5.5 font-extrabold text-[0.95rem]"
+            <Link
+              to="/crear-liga"
+              className="glass-btn primary-btn py-[11px] px-5.5 font-extrabold text-[0.95rem] inline-flex items-center min-h-11"
             >
               Crear mi primera liga
-            </button>
+            </Link>
             <button
               type="button"
-              onClick={() => {
-                setShowJoinModal(true);
-                setShowCreateModal(false);
-              }}
+              onClick={() => setShowJoinModal(true)}
               className="glass-btn py-[11px] px-5 font-bold text-[0.95rem]"
             >
               Unirse con código
@@ -292,9 +252,15 @@ export default function GroupsDashboard() {
           }}
           isAdmin={isGroupAdmin(selectedGroupForMembers)}
           lockSection={
-            hasLeagueLockSetting(selectedGroupForMembers) ? (
-              <LeagueLockSection group={selectedGroupForMembers} />
-            ) : null
+            <>
+              {hasLeagueLockSetting(selectedGroupForMembers) && (
+                <LeagueLockSection group={selectedGroupForMembers} />
+              )}
+              {isGroupAdmin(selectedGroupForMembers) &&
+                hasMatchSelection(selectedGroupForMembers) && (
+                  <LeagueMatchesSection group={selectedGroupForMembers} />
+                )}
+            </>
           }
           currentUserId={userId}
           onClose={() => setSelectedGroupForMembers(null)}

@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import type { Group } from '../src/types/api';
+import { withLeagueKind } from './leagueKind';
 
-const demoLeague: Group = {
+const demoLeague: Group = withLeagueKind('worldCup', {
   id: 1,
   name: 'Porra Global',
   joinCode: null,
@@ -10,6 +11,7 @@ const demoLeague: Group = {
   createdAt: null,
   competitionId: 2,
   competitionName: 'FIFA World Cup 2026',
+  competitionExternalId: 'fifa.world',
   formatType: 'TOURNAMENT',
   poolFormat: 'FULL_BRACKET',
   pichichi: true,
@@ -17,7 +19,7 @@ const demoLeague: Group = {
   isLocked: false,
   rules: null,
   imageUrl: null,
-};
+});
 
 for (const viewport of [
   { name: 'desktop', width: 1440, height: 900 },
@@ -36,9 +38,9 @@ for (const viewport of [
         const responses: Record<string, unknown> = {
           '/api/groups/1': demoLeague,
           '/api/groups/featured': demoLeague,
-          '/api/standings': {},
-          '/api/standings/official-bracket': {},
-          '/api/teams/odds': {},
+          '/api/world-cup/standings': {},
+          '/api/world-cup/official-bracket': {},
+          '/api/world-cup/group-odds': {},
           '/api/matches/radar': { live: [], last: [], next: [] },
           '/api/auth/session/logout': { status: 'success' },
         };
@@ -51,10 +53,10 @@ for (const viewport of [
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto('/');
       await expect(page.getByRole('heading', { level: 1 })).toContainText(
-        'La porra de toda la vida',
+        'La porra con tus amigos',
       );
 
-      await page.getByRole('button', { name: 'Entrar con Google', exact: true }).click();
+      await page.getByRole('button', { name: 'Crear mi liga gratis', exact: true }).first().click();
       const dialog = page.getByRole('dialog', { name: 'Iniciar sesión' });
       await expect(dialog).toBeVisible();
       const panel = dialog.locator('.modal-content');
@@ -78,7 +80,10 @@ for (const viewport of [
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto('/');
-      await page.getByRole('link', { name: 'Ver la porra del Mundial', exact: true }).click();
+      await page
+        .getByRole('link', { name: 'Ver una porra de ejemplo', exact: true })
+        .first()
+        .click();
       await expect(page).toHaveURL('/demo');
       await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
       await expect(
@@ -89,9 +94,23 @@ for (const viewport of [
       await expect(page).toHaveURL('/');
       await expect(page.getByText('Modo demo:', { exact: true })).toHaveCount(0);
       await expect(page.getByRole('heading', { level: 1 })).toContainText(
-        'La porra de toda la vida',
+        'La porra con tus amigos',
       );
       expect(errors).toEqual([]);
+    });
+
+    test('shows the plain landing to a visitor who left the demo without exiting', async ({
+      page,
+    }) => {
+      await page.goto('/demo');
+      await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
+
+      await page.goto('/');
+      await expect(page.getByRole('heading', { level: 1 })).toContainText(
+        'La porra con tus amigos',
+      );
+      await expect(page.getByText('Modo demo:', { exact: true })).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'Resultados' })).toHaveCount(0);
     });
   });
 }

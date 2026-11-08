@@ -42,6 +42,7 @@ describe('Leaderboard Component', () => {
         activeGroupId: '1',
         activeGroupPichichi: false,
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         activeGroupAdminId: 1,
         userId: '10',
         userName: 'Carlos',
@@ -121,6 +122,7 @@ describe('Leaderboard Component', () => {
         activeGroupId: '1',
         leaderboardData: leaderboard,
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         activeGroupName: 'Liga Santander',
         loading: false,
       }),
@@ -140,6 +142,41 @@ describe('Leaderboard Component', () => {
     expect(stickers?.[1]).toHaveTextContent('Elena · Jokin');
     expect(shareImage?.querySelectorAll('.share-image-ranking-row')).toHaveLength(1);
     expect(shareImage?.querySelector('.share-image-ranking-row')).toHaveTextContent('Pablo');
+  });
+
+  it('en la NFL habla de la semana actual', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: sampleLeaderboard.map(participantScore),
+        leaderboardMatchdays: [
+          {
+            date: null,
+            label: 'Semana 9',
+            current: true,
+            finished: false,
+            matchCount: 15,
+            pointsByPrediction: {},
+          },
+        ],
+        loading: false,
+        activeGroupName: 'NFL Pick em',
+        activeGroupId: '1',
+        activeGroupPichichi: false,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
+        activeGroupAdminId: 1,
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Semana actual')).toBeInTheDocument();
   });
 
   it('muestra la jornada actual y permite navegar por las jornadas', () => {
@@ -169,6 +206,7 @@ describe('Leaderboard Component', () => {
         activeGroupId: '1',
         activeGroupPichichi: false,
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         activeGroupAdminId: 1,
         userId: '10',
         userName: 'Carlos',
@@ -251,6 +289,7 @@ describe('Leaderboard Component', () => {
         activeGroupId: '1',
         activeGroupPichichi: false,
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         activeGroupAdminId: 1,
         userId: '10',
         userName: 'Carlos',
@@ -280,6 +319,7 @@ describe('Leaderboard Component', () => {
         activeGroupId: '1',
         activeGroupPichichi: false,
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         activeGroupAdminId: 1,
         userId: '20',
         userName: 'Otro',
@@ -294,6 +334,36 @@ describe('Leaderboard Component', () => {
 
     expect(screen.getByText('Sin pagar')).toBeInTheDocument();
     expect(screen.queryByText(/Pendiente/)).not.toBeInTheDocument();
+  });
+
+  it('en la Fórmula 1 no ofrece abrir a cada participante ni las jornadas', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: [participantScore(sampleLeaderboard[0])],
+        leaderboardMatchdays: [],
+        loading: false,
+        activeGroupName: 'Paddock',
+        activeGroupId: '1',
+        activeGroupPichichi: false,
+        activeGroupPoolFormat: 'GRAND_PRIX',
+        leagueKind: 'grandPrix',
+        activeGroupAdminId: 1,
+        userId: '20',
+        userName: 'Otro',
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByText('Carlos').length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /Ver jornadas|Ver porra/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Puntos de jornada/)).not.toBeInTheDocument();
   });
 
   it('muestra las columnas del cuadro eliminatorio en modalidad FULL_BRACKET', () => {

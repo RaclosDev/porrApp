@@ -7,6 +7,8 @@ import type {
   LeagueScoring,
   LeagueImageResponse,
   LeagueStanding,
+  MatchSelectionRequest,
+  MatchSelectionView,
   Match,
   PaymentStatus,
   PaymentStatusResponse,
@@ -29,17 +31,54 @@ export const fetchFeaturedGroup = () => request<Group>('/groups/featured');
 export const fetchGroupInvitationPreview = (joinCode: string) =>
   request<Group>(`/groups/preview/${encodeURIComponent(joinCode)}`);
 
-export const createGroup = (
-  name: string,
-  competitionId: number | string | null,
-  poolFormat: PoolFormat,
-  pichichi = true,
-  customCompetitionName?: string,
-  idempotencyKey?: string,
-) =>
+/**
+ * Liga nueva (POST /groups): o `competitionId` o `customCompetitionName`. Los ajustes opcionales
+ * (normas, cuota, puntuación y cierre) dejan la liga configurada; si alguno no es válido, no se crea.
+ */
+export interface CreateGroupRequest {
+  name: string;
+  competitionId: number | null;
+  customCompetitionName?: string;
+  poolFormat: PoolFormat;
+  pichichi: boolean;
+  rules?: string;
+  entryFee?: boolean;
+  scoring?: ScoringRules;
+  lockMode?: CustomLockMode;
+  lockOffsetMinutes?: number;
+  /** Fecha y hora de Madrid (`YYYY-MM-DDTHH:mm`), solo con `lockMode = FIXED_DATE`. */
+  lockDate?: string;
+  /** Partidos que entran en una liga por jornadas; sin él, todos. */
+  matchSelection?: MatchSelectionRequest;
+}
+
+/** Calendario de una competición oficial para elegir los partidos de una liga nueva. */
+export const fetchSelectableMatches = (competitionId: number) =>
+  request<MatchSelectionView>(`/competitions/${competitionId}/selectable-matches`);
+
+/** Calendario de varias competiciones oficiales (la principal primero), agrupado por semanas. */
+export const fetchSelectableMatchesOf = (competitionIds: number[]) =>
+  competitionIds.length > 1
+    ? request<MatchSelectionView>(
+        `/competitions/selectable-matches?ids=${competitionIds.join(',')}`,
+      )
+    : fetchSelectableMatches(competitionIds[0]);
+
+/** Partidos que entran en la liga (solo su administrador). */
+export const fetchMatchSelection = (groupId: number) =>
+  request<MatchSelectionView>(`/groups/${groupId}/competition/match-selection`);
+
+export const saveMatchSelection = (groupId: number, selection: MatchSelectionRequest) =>
+  request<MatchSelectionView>(`/groups/${groupId}/competition/match-selection`, {
+    method: 'PUT',
+    json: selection,
+    fallbackError: 'No se pudieron guardar los partidos',
+  });
+
+export const createGroup = (league: CreateGroupRequest, idempotencyKey?: string) =>
   request<Group>('/groups', {
     method: 'POST',
-    json: { name, competitionId, poolFormat, pichichi, customCompetitionName },
+    json: league,
     headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     fallbackError: 'Error al crear la liga',
   });
@@ -88,6 +127,32 @@ interface CustomLockState {
   anyLocked: boolean;
   fullyLocked: boolean;
   nextLockAt: string | null;
+  /** Eliminatorias sorteadas ronda a ronda: sus rondas y cruces; null en el resto. */
+  knockoutRounds?: KnockoutRound[] | null;
+  /** Playoffs de la NBA aún sin series: cuándo empiezan (el play-in), si se sabe. */
+  playoffsStart?: string | null;
+}
+
+/** Cruce de unas eliminatorias sorteadas: el local es el de la ida; `winner`, quién pasa. */
+export interface KnockoutTie {
+  home: string | null;
+  away: string | null;
+  winner: string | null;
+  /** Sus partidos (ida y vuelta, o uno solo), por fecha. */
+  matchIds: number[];
+  /** En la NBA, la conferencia de la serie: «E» o «W» (null en las Finales). */
+  conference?: string | null;
+}
+
+/** Ronda de unas eliminatorias sorteadas ronda a ronda («playoff», «r16», «qf», «sf», «final»…). */
+export interface KnockoutRound {
+  round: string;
+  /** Ya se conocen todos sus cruces: se puede pronosticar. */
+  drawn: boolean;
+  expectedTies: number;
+  /** En la NBA, partidos máximos de cada serie (1 en el play-in, 7 en el resto); 0 en fútbol. */
+  bestOf?: number;
+  ties: KnockoutTie[];
 }
 
 export const fetchCustomLockState = (groupId: number) =>

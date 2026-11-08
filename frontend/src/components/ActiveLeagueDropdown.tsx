@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 import { LeagueAvatar } from './Avatar';
+import { competitionLabel, poolFormatShortLabel } from '../utils/poolFormat';
 
 /** Bandera del país de la competición; sin país conocido, la liga muestra su monograma. */
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -26,7 +27,7 @@ export default function ActiveLeagueDropdown() {
     activeGroupId,
     activeGroupName,
     activeCompetitionName,
-    activeCompetitionFormatType,
+    activeGroupMultiCompetition,
     userGroups,
     changeGroup,
     isAuthenticated,
@@ -69,6 +70,7 @@ export default function ActiveLeagueDropdown() {
     return <span className="chrome-placeholder w-50 h-11" aria-hidden="true" />;
   }
 
+  // Sin ligas va a Mis ligas, que ofrece crear y unirse; el asistente de crear liga solo crea.
   if (isAuthenticated && (!userGroups || userGroups.length === 0)) {
     return (
       <button
@@ -89,8 +91,12 @@ export default function ActiveLeagueDropdown() {
   const activeGroup = (userGroups || []).find((g) => String(g.id) === String(activeGroupId));
   const activeImageUrl = activeGroup?.imageUrl || null;
   const displayLeagueName = activeGroupName || 'Liga';
-  const displayCompName =
-    activeCompetitionName || (activeCompetitionFormatType === 'LEAGUE' ? 'Liga' : 'Mundial');
+  // Solo la competición real de la liga: sin liga (o sin dato) no se supone ninguna.
+  const displayCompName = !activeGroupId
+    ? 'Elige una de tus ligas'
+    : activeGroupMultiCompetition
+      ? 'Varias competiciones'
+      : activeCompetitionName || '';
 
   return (
     <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
@@ -100,7 +106,7 @@ export default function ActiveLeagueDropdown() {
         onClick={() => setIsOpen(!isOpen)}
         className="glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem]"
         aria-expanded={isOpen}
-        title={`Cambiar de liga (${displayLeagueName} · ${displayCompName})`}
+        title={`Cambiar de liga (${[displayLeagueName, displayCompName].filter(Boolean).join(' · ')})`}
       >
         <LeagueAvatar
           url={activeImageUrl}
@@ -139,7 +145,7 @@ export default function ActiveLeagueDropdown() {
             {sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
-                const gBadge = getCompetitionBadge(g.competitionName);
+                const gBadge = g.multiCompetition ? null : getCompetitionBadge(g.competitionName);
                 return (
                   <button
                     className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(17,_24,_39,_0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)]'} text-main`}
@@ -160,8 +166,9 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {g.competitionName || 'Mundial'} ·{' '}
-                          {g.poolFormat === 'MATCH_DAY' ? 'Jornadas' : 'Cuadro'}
+                          {[competitionLabel(g), poolFormatShortLabel(g.poolFormat)]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </span>
                       </div>
                     </div>
@@ -178,17 +185,27 @@ export default function ActiveLeagueDropdown() {
             )}
           </div>
 
-          <div className="border-t border-t-line pt-1.5 mt-1">
-            <button
-              className="glass-btn w-full py-2 px-2.5 rounded-[8px] border-dashed text-[0.82rem] cursor-pointer flex items-center justify-center gap-1.5"
-              type="button"
-              onClick={() => {
-                setIsOpen(false);
-                navigate('/mis-ligas');
-              }}
-            >
-              <span>Crear o unirse a una liga</span>
-            </button>
+          {/* Sin sesión, Mis ligas pide iniciarla antes de crear o unirse. */}
+          <div className="border-t border-t-line pt-1.5 mt-1 grid grid-cols-2 gap-1.5">
+            {[
+              { label: 'Crear liga', to: isAuthenticated ? '/crear-liga' : '/mis-ligas' },
+              {
+                label: 'Unirse con código',
+                to: isAuthenticated ? '/mis-ligas?unirse' : '/mis-ligas',
+              },
+            ].map(({ label, to }) => (
+              <button
+                key={label}
+                className="glass-btn py-2 px-2.5 rounded-[8px] border-dashed text-[0.82rem] cursor-pointer flex items-center justify-center"
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate(to);
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       )}

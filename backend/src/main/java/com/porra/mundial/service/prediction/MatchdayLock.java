@@ -3,6 +3,8 @@ package com.porra.mundial.service.prediction;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.PredictionLockMode;
+import com.porra.mundial.model.Sport;
+import com.porra.mundial.model.Team;
 import com.porra.mundial.util.AppTime;
 import com.porra.mundial.util.MatchRound;
 
@@ -35,17 +37,14 @@ public final class MatchdayLock {
     /**
      * Cierre de cada partido de {@code matches}; los que no tienen fecha no aparecen.
      *
-     * @param calendar todos los partidos de la competición si el modo agrupa partidos; si no, basta con
+     * @param calendar todos los partidos de la liga (su competición o los elegidos) si el modo agrupa
+     *                 partidos; si no, basta con
      *                 los mismos {@code matches}
      */
     public static Map<Long, Instant> lockTimes(Edition edition, List<Match> matches, List<Match> calendar) {
         PredictionLockMode mode = mode(edition);
         int offset = edition == null ? 0 : Math.max(0, edition.getLockOffsetMinutes());
-        Function<Match, Object> key = switch (mode) {
-            case PER_DAY -> match -> AppTime.day(match.getMatchDate());
-            case PER_ROUND -> MatchRound::label;
-            default -> Match::getId;
-        };
+        Function<Match, Object> key = groupKey(edition);
         Map<Object, Instant> first = new HashMap<>();
         for (Match match : mode == PredictionLockMode.PER_MATCH ? matches : calendar) {
             if (match.getMatchDate() == null) continue;
@@ -62,12 +61,45 @@ public final class MatchdayLock {
         return locks;
     }
 
+    /**
+     * Grupo de partidos que se cierran juntos: el mismo partido, el mismo día o la misma jornada (la de
+     * la liga: en una que junta varias competiciones, la semana).
+     */
+    public static Function<Match, Object> groupKey(Edition edition) {
+        return switch (mode(edition)) {
+            case PER_DAY -> match -> AppTime.day(match.getMatchDate());
+            case PER_ROUND -> match -> MatchRound.label(edition, match);
+            default -> Match::getId;
+        };
+    }
+
+    /**
+     * Al partido aún le falta un rival («Por definir»): no se puede predecir hasta que la sincronización
+     * rellene los dos equipos (o jugadores), y entonces se abre solo.
+     */
+    public static boolean awaitingTeams(Match match) {
+        return Team.isPlaceholder(match.getHomeTeam()) || Team.isPlaceholder(match.getAwayTeam());
+    }
+
+    /** Motivo del cierre de un partido al que aún le falta un rival. */
+    public static String awaitingTeamsReason(Match match) {
+        String who = Sport.isMma(match.getCompetition()) ? "los dos luchadores"
+                : Sport.isTennis(match.getCompetition()) ? "los dos jugadores" : "los dos equipos";
+        return "Se abre cuando se conozcan " + who;
+    }
+
     /** Motivo del cierre de un partido cuyo plazo ya ha pasado. */
     public static String reason(Edition edition, Match match, Instant now) {
         if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) return "El partido ya ha comenzado";
         return switch (mode(edition)) {
             case PER_DAY -> "Las predicciones de este día ya están cerradas";
-            case PER_ROUND -> "Las predicciones de esta jornada ya están cerradas";
+            // Con varias competiciones la jornada es la semana; en la NFL, también.
+            case PER_ROUND -> edition != null && (edition.isMultiCompetition()
+                    && !com.porra.mundial.model.Sport.isTennis(edition.getCompetition())
+                    || edition.getCompetition() != null
+                    && com.porra.mundial.sports.NflSchedule.isNfl(edition.getCompetition().getExternalId()))
+                    ? "Las predicciones de esta semana ya están cerradas"
+                    : "Las predicciones de esta jornada ya están cerradas";
             default -> "El plazo de predicción de este partido ha terminado";
         };
     }

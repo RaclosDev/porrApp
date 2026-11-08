@@ -175,6 +175,30 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
+    void fixedDateNeedsTheDate() {
+        bracketEdition();
+        BusinessException missing = assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId,
+                "admin@example.com", com.porra.mundial.model.PredictionLockMode.FIXED_DATE, null, null));
+        assertEquals(400, missing.getStatus().value());
+        assertTrue(missing.getMessage().contains("hace falta la fecha de cierre"));
+    }
+
+    @Test
+    void aNewBracketWithoutLockFollowsItsFirstMatch() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.FIRST_MATCH);
+        Instant lock = Instant.now().plus(5, ChronoUnit.DAYS);
+        when(lockService.firstMatchLock(edition)).thenReturn(lock);
+
+        service.applyDefaultLock(leagueId);
+        assertEquals(lock, edition.getLockDate());
+
+        // Si la competición ya ha empezado, ese cierre ya habría pasado: hay que elegir otro.
+        when(lockService.firstMatchLock(edition)).thenReturn(Instant.now().minus(1, ChronoUnit.DAYS));
+        assertThrows(BusinessException.class, () -> service.applyDefaultLock(leagueId));
+    }
+
+    @Test
     void rejectsMarginsOutsideZeroToThirtyDays() {
         Edition edition = bracketEdition();
         assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
@@ -194,6 +218,23 @@ class CustomCompetitionServiceTest {
 
         assertEquals(com.porra.mundial.model.PredictionLockMode.PER_MATCH, edition.getLockMode());
         assertNull(edition.getLockDate());
+    }
+
+    @Test
+    void survivorClosesLikeAMatchdayLeague() {
+        Edition edition = bracketEdition();
+        edition.setPoolFormat(com.porra.mundial.model.PoolFormat.SURVIVOR);
+        edition.setLockDate(Instant.now().plus(2, ChronoUnit.DAYS));
+
+        service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.PER_DAY, 60, null);
+
+        assertEquals(com.porra.mundial.model.PredictionLockMode.PER_DAY, edition.getLockMode());
+        assertEquals(60, edition.getLockOffsetMinutes());
+        // Una fecha única cerraría todas las elecciones a la vez.
+        assertNull(edition.getLockDate());
+        assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
+                com.porra.mundial.model.PredictionLockMode.FIXED_DATE, 0, Instant.now().plus(1, ChronoUnit.DAYS)));
     }
 
     @Test
@@ -256,6 +297,23 @@ class CustomCompetitionServiceTest {
         service.setLockConfig(leagueId, "admin@example.com", PredictionLockMode.FIXED_DATE, 0, deadline);
 
         assertEquals(deadline, edition.getLockDate());
+    }
+
+    @Test
+    void aFixedDeadlineCannotFallAfterTheFirstMatchOfAnOfficialBracket() {
+        League league = competition.getOwnerLeague();
+        Edition edition = Edition.builder().league(league).competition(competition)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
+        when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
+        Instant firstMatch = Instant.parse("2099-11-03T22:00:00Z");
+        when(lockService.bracketClosesAt(edition)).thenReturn(firstMatch);
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId,
+                "admin@example.com", PredictionLockMode.FIXED_DATE, 0, firstMatch.plus(1, ChronoUnit.HOURS)));
+        assertTrue(error.getMessage().contains("anterior al primer cruce (3/11/2099 23:00)"), error.getMessage());
+
+        service.setLockConfig(leagueId, "admin@example.com", PredictionLockMode.FIXED_DATE, 0, firstMatch);
+        assertEquals(firstMatch, edition.getLockDate());
     }
 
     @Test

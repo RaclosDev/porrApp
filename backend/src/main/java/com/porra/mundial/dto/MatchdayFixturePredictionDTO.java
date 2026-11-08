@@ -26,20 +26,41 @@ public class MatchdayFixturePredictionDTO {
     private Instant matchDate;
     private String round;
     private String groupName;
+    /** Competición del partido, solo en las ligas que juntan varias. */
+    private String competitionName;
+    /** Deporte del partido ({@code Sport}): en los que no admiten empate no se ofrece la X. */
+    private String sport;
     private Boolean finished;
     private String status;
     private Integer actualHomeScore;
     private Integer actualAwayScore;
     private String displayClock;
+    /**
+     * Tenis: sets que hay que ganar (2 o 3). LoL: partidas que hay que ganar en una serie al mejor de tres
+     * o de cinco (2 o 3), para predecir su resultado. Null en el resto.
+     */
+    private Integer setsToWin;
+    /** LoL: la serie es al mejor de 1, 3 o 5 partidas; null si no se sabe o no es LoL. */
+    private Integer bestOf;
+    /** Tenis: quién ha ganado ("1" o "2"), también tras una retirada o un W.O., que no tienen marcador. */
+    private String winnerSign;
 
     // Pronóstico del usuario
     private Integer predHomeScore;
     private Integer predAwayScore;
     private String predSign;
+    /** Pelea de la UFC: método y asalto elegidos. */
+    private String predMethod;
+    private Integer predRound;
+
+    /** Datos de pelea si el partido es de la UFC; null en el resto. */
+    private FightInfoDTO fight;
 
     // Estado del partido y cierre
     private boolean locked;
     private String lockReason;
+    /** Aún falta un rival («Por definir»): cerrado hasta que se conozcan los dos. */
+    private boolean awaitingTeams;
     /** Cuándo deja de poder cambiarse el pronóstico (puede ser antes del partido). */
     @JsonSerialize(using = MadridDateTimeSerializer.class)
     private Instant lockAt;

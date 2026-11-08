@@ -2,13 +2,25 @@
  * Lógica pura de la pantalla de jornadas: etiquetas de jornada, borradores locales y el envío
  * de pronósticos. Sin React ni red, para poder probarla aparte.
  */
-import type { MatchdayFixture, MatchdayPoints, MatchdayPredictionInput } from '../types/api';
+import type {
+  FightInfo,
+  FightMethod,
+  MatchdayFixture,
+  MatchdayPoints,
+  MatchdayPredictionInput,
+  SurvivorStatus,
+} from '../types/api';
+import { parseTennisScore, tennisScoreText } from './tennisScore';
 
 /** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
 export interface DraftPrediction {
   homeScore: string;
   awayScore: string;
   sign: string;
+  /** Pelea de la UFC: método elegido ('' o ausente si no). */
+  method?: string;
+  /** Pelea de la UFC: asalto elegido, como texto ('' o ausente si no). */
+  round?: string;
 }
 
 /** Pronósticos en edición por id de partido. */
@@ -18,6 +30,71 @@ export type MatchSign = '1' | 'X' | '2';
 
 /** `UPCOMING`: todos los que no han terminado; `PENDING`: abiertos y sin pronóstico. */
 export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
+
+/**
+ * Si se puede predecir el empate: solo en el fútbol (y en las competiciones propias, sin deporte). En la NFL,
+ * la NBA, el LoL, el tenis y la UFC se elige quién gana.
+ */
+export const allowsDraw = (sport: string | null | undefined): boolean =>
+  sport == null || sport === 'FOOTBALL';
+
+/** Lo que guarda el backend al puntuar un signo: pensado para el 1X2 del fútbol. */
+const SIGN_DETAILS = /^(Acierto de signo 1X2|Sin acierto en signo)/;
+
+/**
+ * Desglose de puntos de un partido sin empate (NFL, NBA…): ahí no hay «signo 1X2» sino un ganador.
+ * Los demás desgloses (series del LoL, sets del tenis, marcadores) se dejan tal cual.
+ */
+export const scoringDetailsText = (
+  details: string | null | undefined,
+  sport: string | null | undefined,
+  scored: boolean,
+): string | null => {
+  if (!details) return null;
+  if (allowsDraw(sport) || !SIGN_DETAILS.test(details)) return details;
+  return scored ? 'Ganador acertado' : 'Ganador fallado';
+};
+
+const OVERTIMES = /^(\d*)OT$/;
+const PENALTIES = /^PEN (\d+)-(\d+)$/;
+
+/**
+ * Cómo acabó un partido terminado más allá del marcador, a partir de su `displayClock` (`MatchClock` en el
+ * servidor): «prórroga» (`OT`, `AET`), «2 prórrogas» (`2OT`) o «4-2 en penaltis» (`PEN 4-2`). Si no, null.
+ */
+export const resultNote = (displayClock: string | null | undefined): string | null => {
+  const clock = displayClock?.trim() ?? '';
+  if (clock === 'AET') return 'prórroga';
+  const overtime = OVERTIMES.exec(clock);
+  if (overtime) {
+    const count = Number(overtime[1] || 1);
+    return count > 1 ? `${count} prórrogas` : 'prórroga';
+  }
+  const penalties = PENALTIES.exec(clock);
+  return penalties ? `${penalties[1]}-${penalties[2]} en penaltis` : null;
+};
+
+/**
+ * «Final» o, si hubo prórroga o penaltis, «Final · prórroga». En el tenis, con los juegos de cada set:
+ * «Final · 6-4 3-6 7-6(5)».
+ */
+export const finishedLabel = (displayClock: string | null | undefined): string => {
+  const tennis = parseTennisScore(displayClock);
+  if (tennis) return `Final · ${tennisScoreText(tennis)}`;
+  const note = resultNote(displayClock);
+  return note ? `Final · ${note}` : 'Final';
+};
+
+/**
+ * Etiqueta de un partido en juego con el reloj que manda el servidor (`MatchClock`): el cuarto en la NBA y
+ * la NFL («En juego · 3.er cuarto · 5:00»), el minuto en fútbol («En juego · 67'») o «Descanso». Sin reloj,
+ * «En juego».
+ */
+export const liveLabel = (displayClock: string | null | undefined): string => {
+  const clock = displayClock?.trim() ?? '';
+  if (!clock || resultNote(clock)) return 'En juego';
+  return clock === 'Descanso' ? clock : `En juego · ${clock}`;
+};
 
 export const EMPTY_PREDICTION: DraftPrediction = { homeScore: '', awayScore: '', sign: '' };
 
@@ -32,6 +109,9 @@ export const roundLabelFor = (fixture: MatchdayFixture): string =>
         : 'Sin jornada';
 
 const DATE_ROUND = /^Fecha (\d{4})-(\d{2})-(\d{2})$/;
+/** Semana de una liga que junta varias competiciones, por la fecha de su lunes. */
+const WEEK_ROUND = /^Semana (\d{4})-(\d{2})-(\d{2})$/;
+const WEEK_DAY_FORMAT = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
 const ROUND_DAY_FORMAT = new Intl.DateTimeFormat('es-ES', {
   weekday: 'long',
   day: 'numeric',
@@ -39,7 +119,31 @@ const ROUND_DAY_FORMAT = new Intl.DateTimeFormat('es-ES', {
 });
 
 /** Texto que se muestra para una jornada: «Fecha 2026-11-24» pasa a «Martes 24 nov»; el resto no cambia. */
+/** Rondas eliminatorias tal como llegan del proveedor. */
+const KNOCKOUT_LABELS: Record<string, string> = {
+  playoff: 'Playoff',
+  r32: 'Dieciseisavos',
+  r16: 'Octavos de final',
+  qf: 'Cuartos de final',
+  sf: 'Semifinales',
+  third: 'Tercer puesto',
+  final: 'Final',
+  // Fase de grupos de las ATP Finals y las WTA Finals, y el play-in de la NBA y el LoL.
+  roundrobin: 'Fase de grupos',
+  playin: 'Play-in',
+  // Rondas de la Copa del Rey antes de dieciseisavos.
+  qualifying: 'Ronda previa',
+  round1: 'Primera ronda',
+  round2: 'Segunda ronda',
+};
+
 export function displayRoundLabel(label: string): string {
+  if (KNOCKOUT_LABELS[label]) return KNOCKOUT_LABELS[label];
+  const week = WEEK_ROUND.exec(label);
+  if (week) {
+    const monday = new Date(+week[1], +week[2] - 1, +week[3]);
+    return `Semana del ${WEEK_DAY_FORMAT.format(monday).replace('.', '')}`;
+  }
   const match = DATE_ROUND.exec(label);
   if (!match) return label;
   const text = ROUND_DAY_FORMAT.format(new Date(+match[1], +match[2] - 1, +match[3]))
@@ -50,13 +154,14 @@ export function displayRoundLabel(label: string): string {
 
 const LIVE_STATUSES = new Set(['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS']);
 
-/** El partido está en juego: lo marca el proveedor o ya ha empezado y no ha terminado. */
-export const isLiveFixture = (fixture: MatchdayFixture, now: number = Date.now()): boolean =>
-  !fixture.finished &&
-  (LIVE_STATUSES.has(fixture.status ?? '') ||
-    (fixture.matchDate != null && Date.parse(fixture.matchDate) <= now));
+/** El partido está en juego: solo si lo marca el proveedor (ESPN), nunca deducido por la hora. */
+export const isLiveFixture = (fixture: MatchdayFixture): boolean =>
+  !fixture.finished && LIVE_STATUSES.has((fixture.status ?? '').toUpperCase());
 
-/** Hay algún partido empezado y sin terminar. */
+/**
+ * Algún partido ya debería haber empezado y no ha terminado: se refresca a menudo para recibir su
+ * estado. No dice que esté en directo (eso es `isLiveFixture`).
+ */
 export const hasLiveMatch = (
   fixtures: MatchdayFixture[] | undefined,
   now: number = Date.now(),
@@ -77,8 +182,9 @@ interface RoundList {
   current: string | null;
 }
 
+/** «Jornada 13» o, en la NFL, «Semana 9» (no «Semana 2026-11-02», que es de varias competiciones). */
 const matchdayNumber = (label: string): number | null => {
-  const match = /^jornada\s+(\d+)$/i.exec(label.trim());
+  const match = /^(?:jornada|semana)\s+(\d+)$/i.exec(label.trim());
   return match ? Number(match[1]) : null;
 };
 
@@ -150,15 +256,60 @@ export function mergeDraftWithServer(fixtures: MatchdayFixture[], draft: Draft):
     const d = draft[f.matchId];
     const useDraft = !f.locked && Boolean(d) && typeof d === 'object';
     if (!useDraft) delete kept[f.matchId];
-    predictions[f.matchId] = useDraft
+    const base = useDraft
       ? { homeScore: d.homeScore ?? '', awayScore: d.awayScore ?? '', sign: d.sign || '' }
       : {
           homeScore: scoreText(f.predHomeScore),
           awayScore: scoreText(f.predAwayScore),
           sign: f.predSign || '',
         };
+    predictions[f.matchId] = f.fight
+      ? {
+          ...base,
+          method: useDraft ? d.method || '' : f.predMethod || '',
+          round: useDraft ? d.round || '' : scoreText(f.predRound ?? null),
+        }
+      : base;
   });
   return { predictions, draft: kept };
+}
+
+/**
+ * Predicción de una pelea: quién gana ('1' o '2') y, si se quiere, el método y el asalto. El asalto
+ * solo se guarda con un KO/TKO o una sumisión.
+ */
+export const withFightPick = (
+  sign: '1' | '2',
+  method: FightMethod | '' = '',
+  round = '',
+): DraftPrediction => ({
+  homeScore: '',
+  awayScore: '',
+  sign,
+  method,
+  round: method === 'KO_TKO' || method === 'SUBMISSION' ? round : '',
+});
+
+/** Bloques de la cartelera, de la estelar a los preliminares tempranos. */
+const SEGMENT_RANK: Record<string, number> = { MAIN: 0, PRELIMS: 1, EARLY_PRELIMS: 2 };
+
+/**
+ * Peleas en el orden de la cartelera: la estelar arriba; las canceladas, al final. Vale para las de la
+ * jornada y para los partidos de la portada; sin peleas, la lista queda igual.
+ */
+export function sortFightCard<T extends { status?: string | null; fight?: FightInfo | null }>(
+  fixtures: T[],
+): T[] {
+  if (!fixtures.some((f) => f.fight)) return fixtures;
+  const rank = (f: T) => [
+    f.status === 'CANCELLED' ? 1 : 0,
+    SEGMENT_RANK[f.fight?.segment ?? ''] ?? 3,
+    f.fight?.order ?? 99,
+  ];
+  return [...fixtures].sort((a, b) => {
+    const [x, y] = [rank(a), rank(b)];
+    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  });
 }
 
 /** Elige un signo 1X2. El pronóstico es solo de signo: se descarta cualquier marcador anterior. */
@@ -167,6 +318,42 @@ export const withSign = (sign: MatchSign): DraftPrediction => ({
   awayScore: '',
   sign,
 });
+
+/** Sets que puede ganar quien pierde: 0 o 1 al mejor de tres; 0, 1 o 2 al mejor de cinco. */
+export const tennisLoserSets = (setsToWin: number): number[] =>
+  Array.from({ length: Math.max(0, setsToWin) }, (_, sets) => sets);
+
+/**
+ * Tenis: gana `sign` y, si se eligen, con estos sets para el que pierde (3-1 es `loserSets` 1).
+ * Sin sets queda solo el ganador.
+ */
+export function tennisPick(
+  sign: '1' | '2',
+  setsToWin: number,
+  loserSets: number | null,
+): DraftPrediction {
+  if (loserSets == null) return withSign(sign);
+  const winner = String(setsToWin);
+  const loser = String(loserSets);
+  return sign === '1'
+    ? { homeScore: winner, awayScore: loser, sign }
+    : { homeScore: loser, awayScore: winner, sign };
+}
+
+/** Sets del que pierde en un pronóstico de tenis, o null si solo tiene ganador. */
+export function tennisPickedLoserSets(prediction: DraftPrediction): number | null {
+  if (prediction.homeScore === '' || prediction.awayScore === '') return null;
+  return Math.min(Number(prediction.homeScore), Number(prediction.awayScore));
+}
+
+/** Ganador de un pronóstico de tenis: el signo o, si solo hay sets, quien tiene más. */
+export function tennisPickedSign(prediction: DraftPrediction): '1' | '2' | null {
+  if (prediction.sign === '1' || prediction.sign === '2') return prediction.sign;
+  if (prediction.homeScore === '' || prediction.awayScore === '') return null;
+  const home = Number(prediction.homeScore);
+  const away = Number(prediction.awayScore);
+  return home > away ? '1' : away > home ? '2' : null;
+}
 
 type Submission =
   { kind: 'incomplete' } | { kind: 'empty' } | { kind: 'ready'; items: MatchdayPredictionInput[] };
@@ -188,21 +375,39 @@ export function buildSubmission(fixtures: MatchdayFixture[], draft: Draft): Subm
       return;
     }
     if (!hasPrediction(pred)) return;
-    items.push({
+    const item: MatchdayPredictionInput = {
       matchId,
       homeScore: pred.homeScore !== '' ? parseInt(pred.homeScore, 10) : null,
       awayScore: pred.awayScore !== '' ? parseInt(pred.awayScore, 10) : null,
       sign: pred.sign || null,
-    });
+    };
+    if (fixture.fight) {
+      item.method = (pred.method || null) as FightMethod | null;
+      item.round = pred.round ? parseInt(pred.round, 10) : null;
+    }
+    items.push(item);
   });
   if (incomplete) return { kind: 'incomplete' };
   return items.length ? { kind: 'ready', items } : { kind: 'empty' };
 }
 
-/** Borrador sin los partidos ya guardados. */
-export function withoutSaved(draft: Draft, savedMatchIds: number[]): Draft {
+/**
+ * Borrador sin lo que ya se ha guardado. Un partido que se ha vuelto a cambiar mientras se
+ * guardaba conserva el cambio nuevo, para enviarlo en el siguiente guardado.
+ */
+export function withoutSaved(draft: Draft, saved: MatchdayPredictionInput[]): Draft {
   const rest = { ...draft };
-  savedMatchIds.forEach((id) => delete rest[id]);
+  saved.forEach((item) => {
+    const current = rest[item.matchId];
+    if (!current) return;
+    const same =
+      (current.sign || null) === item.sign &&
+      (current.homeScore === '' ? null : parseInt(current.homeScore, 10)) === item.homeScore &&
+      (current.awayScore === '' ? null : parseInt(current.awayScore, 10)) === item.awayScore &&
+      (current.method || null) === (item.method ?? null) &&
+      (current.round ? parseInt(current.round, 10) : null) === (item.round ?? null);
+    if (same) delete rest[item.matchId];
+  });
   return rest;
 }
 
@@ -218,7 +423,6 @@ export function filterFixtures(
   filter: StatusFilter,
   predictions: Draft,
   leagueLocked: boolean,
-  now: number = Date.now(),
 ): MatchdayFixture[] {
   if (filter === 'PENDING')
     return fixtures.filter((f) => isPendingFixture(f, predictions, leagueLocked));
@@ -226,8 +430,8 @@ export function filterFixtures(
   // Los partidos en juego van primero; el resto conserva su orden.
   const upcoming = fixtures.filter((f) => !f.finished);
   return [
-    ...upcoming.filter((f) => isLiveFixture(f, now)),
-    ...upcoming.filter((f) => !isLiveFixture(f, now)),
+    ...upcoming.filter((f) => isLiveFixture(f)),
+    ...upcoming.filter((f) => !isLiveFixture(f)),
   ];
 }
 
@@ -246,4 +450,19 @@ export function formatMatchDate(
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+/**
+ * Superviviente: equipos ya elegidos en otras jornadas (no se pueden repetir), con la jornada en
+ * que se usaron. La elección de la jornada abierta se puede cambiar, así que no cuenta.
+ */
+export function survivorUsedTeams(
+  status: SurvivorStatus | null | undefined,
+  activeRound: string | null,
+): Map<number, string> {
+  const used = new Map<number, string>();
+  status?.picks.forEach((pick) => {
+    if (pick.teamId != null && pick.round !== activeRound) used.set(pick.teamId, pick.round);
+  });
+  return used;
 }

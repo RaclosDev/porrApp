@@ -13,11 +13,18 @@ import java.util.List;
 public interface CompetitionRepository extends JpaRepository<Competition, Long> {
     boolean existsByIdAndOwnerLeagueIsNotNull(Long id);
 
-    @Query("SELECT c.id FROM Competition c WHERE c.ownerLeague IS NOT NULL")
-    List<Long> findPrivateCompetitionIds();
+    /**
+     * Competiciones cuyos partidos no salen en los listados públicos: las privadas de una liga y las
+     * antiguas sin proveedor de datos ni liga dueña (nadie las sincroniza, así que sus partidos se
+     * quedan para siempre sin resultado ni estado final).
+     */
+    @Query("SELECT c.id FROM Competition c WHERE c.ownerLeague IS NOT NULL OR c.externalId IS NULL OR c.externalId = ''")
+    List<Long> findHiddenCompetitionIds();
     Optional<Competition> findByName(String name);
 
     Optional<Competition> findByExternalId(String externalId);
+
+    List<Competition> findByExternalIdIn(java.util.Collection<String> externalIds);
 
     /**
      * @param externalId Código slug de la competición en ESPN.
@@ -25,4 +32,9 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
      */
     @Query("SELECT c.id FROM Competition c WHERE c.externalId = :externalId")
     Optional<Long> findIdByExternalId(@Param("externalId") String externalId);
+
+    /** Competiciones enlazadas a una edición que junta varias. */
+    @Query("SELECT c FROM Competition c WHERE c.id IN "
+            + "(SELECT ec.id.competitionId FROM EditionCompetition ec WHERE ec.id.editionId = :editionId)")
+    List<Competition> findByEditionId(@Param("editionId") Long editionId);
 }

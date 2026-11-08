@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import seoPrerender from './vite/seoPrerender.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,10 +39,12 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    seoPrerender(),
     VitePWA({
       strategies: 'generateSW',
       registerType: 'autoUpdate',
       includeAssets: [
+        'favicon.ico',
         'favicon-paper.png',
         'apple-touch-icon-paper.png',
         'icon-paper-192.png',

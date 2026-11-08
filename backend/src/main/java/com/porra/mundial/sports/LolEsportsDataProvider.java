@@ -49,6 +49,11 @@ public class LolEsportsDataProvider implements SportsDataProvider {
     /** Prefijo del id externo de los equipos, para no mezclarlos con los de ESPN. */
     static final String TEAM_ID_PREFIX = "lol-";
     /**
+     * Campo propio del evento adaptado (ESPN no lo tiene) con las partidas máximas de la serie: 1, 3 o 5.
+     * Lo lee {@code MatchEventProcessor} y lo guarda en {@code Match.bestOf}.
+     */
+    public static final String BEST_OF_FIELD = "bestOf";
+    /**
      * Logos propios para los equipos cuyo logo de lolesports es blanco y no se ve sobre el papel claro.
      * Se sirven desde el frontend ({@code public/logos}).
      */
@@ -108,11 +113,6 @@ public class LolEsportsDataProvider implements SportsDataProvider {
     public boolean isAvailable() {
         CircuitBreaker.State state = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER).getState();
         return state != CircuitBreaker.State.OPEN && state != CircuitBreaker.State.FORCED_OPEN;
-    }
-
-    @Override
-    public JsonNode fetchScoreboardEvents(String dateRange) {
-        throw new UnsupportedOperationException("lolesports necesita la competición");
     }
 
     /**
@@ -267,6 +267,8 @@ public class LolEsportsDataProvider implements SportsDataProvider {
 
         String blockName = event.path("blockName").asText("");
         ObjectNode competition = objectMapper.createObjectNode().put("id", id).put("altGameNote", blockName);
+        int bestOf = bestOf(match);
+        if (bestOf > 0) competition.put(BEST_OF_FIELD, bestOf);
         competition.set("status", status);
         competition.set("competitors", competitors);
 
@@ -276,10 +278,16 @@ public class LolEsportsDataProvider implements SportsDataProvider {
         return adapted;
     }
 
+    /** Partidas máximas de la serie (1, 3 o 5), o 0 si lolesports no la da como "bestOf". */
+    static int bestOf(JsonNode match) {
+        int count = match.path("strategy").path("count").asInt(0);
+        return "bestOf".equals(match.path("strategy").path("type").asText()) && count > 0 ? count : 0;
+    }
+
     /** Serie con ganador declarado o con un equipo que ya suma las victorias que exige el "bestOf". */
     static boolean isDecided(JsonNode match) {
-        int count = match.path("strategy").path("count").asInt(0);
-        int needed = "bestOf".equals(match.path("strategy").path("type").asText()) && count > 0 ? count / 2 + 1 : 0;
+        int count = bestOf(match);
+        int needed = count > 0 ? count / 2 + 1 : 0;
         for (JsonNode team : match.path("teams")) {
             JsonNode result = team.path("result");
             String outcome = result.path("outcome").asText("");

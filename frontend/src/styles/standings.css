@@ -82,6 +82,25 @@
     overflow-x: auto;
   }
 
+  .standings-group + .standings-group {
+    border-top: 1px solid var(--border-color);
+  }
+
+  .standings-group-title {
+    margin: 0;
+    padding: 12px 16px 6px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-main);
+  }
+
+  .standings-legend-note a {
+    color: var(--accent-cyan);
+    font-weight: 800;
+  }
+
   .standings-table {
     width: 100%;
     border-collapse: collapse;
@@ -170,6 +189,53 @@
     box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.35);
   }
 
+  /* Zonas de la tabla: una barra junto al puesto y su leyenda debajo. */
+  .standings-row[data-zone],
+  .standings-zones li[data-zone] {
+    --zone-color: var(--hit);
+  }
+
+  .standings-row[data-zone='middle'],
+  .standings-zones li[data-zone='middle'] {
+    --zone-color: #d97706;
+  }
+
+  .standings-row[data-zone='bottom'],
+  .standings-zones li[data-zone='bottom'] {
+    --zone-color: var(--miss);
+  }
+
+  .standings-row[data-zone] .standings-rank-cell {
+    box-shadow: inset 4px 0 0 var(--zone-color);
+  }
+
+  .standings-zones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 0;
+    padding: 12px 16px;
+    list-style: none;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  .standings-zones li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .standings-zones li::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--zone-color);
+  }
+
   .standings-team-cell {
     padding: 10px 12px;
   }
@@ -207,6 +273,31 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .standings-team-short {
+    display: none;
+  }
+
+  /* NFL: puesto para los playoffs junto al equipo. */
+  .standings-seed {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+
+  /* NFL por conferencias: raya bajo el último puesto de playoffs. */
+  .standings-row.is-playoff-cutline {
+    border-bottom: 2px dashed var(--accent-cyan);
   }
 
   .standings-table.is-complete .standings-team-cell {
@@ -315,6 +406,63 @@
     color: var(--text-muted);
   }
 
+  /* NBA: conferencias o divisiones, y zonas de playoffs (1-6) y play-in (7-10). */
+  .standings-subtoggle {
+    margin: 12px 16px 0;
+    width: fit-content;
+  }
+
+  .standings-row.is-playoff .standings-rank-cell,
+  .standings-row.is-playin .standings-rank-cell {
+    box-shadow: inset 3px 0 0 var(--zone-color);
+  }
+
+  .standings-row.is-playoff,
+  .standings-zone.is-playoff {
+    --zone-color: var(--accent-cyan);
+  }
+
+  .standings-row.is-playin,
+  .standings-zone.is-playin {
+    --zone-color: var(--champion-gold);
+  }
+
+  .standings-legend-zones {
+    display: inline-flex;
+    gap: 12px;
+  }
+
+  .standings-zone {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+  }
+
+  .standings-zone::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--zone-color);
+  }
+
+  .standings-table abbr {
+    text-decoration: none;
+  }
+
+  .standings-table.is-nba.is-complete {
+    min-width: 520px;
+  }
+
+  /* Tabla de la NBA: columnas de números fijas; el resto del ancho es para el equipo. */
+  .standings-nba-pos-column {
+    width: 52px;
+  }
+  .standings-nba-stat-column {
+    width: 64px;
+  }
+
   @media (max-width: 760px) {
     .standings-table.is-complete th:nth-child(2),
     .standings-table.is-complete td:nth-child(2) {
@@ -355,6 +503,18 @@
       width: 100%;
     }
 
+    .standings-subtoggle {
+      width: auto;
+      margin: 10px 10px 0;
+    }
+
+    .standings-nba-pos-column {
+      width: 38px;
+    }
+    .standings-nba-stat-column {
+      width: 48px;
+    }
+
     .standings-toggle button {
       flex: 1;
       min-height: 40px;
@@ -362,6 +522,15 @@
 
     .standings-table {
       font-size: 0.82rem;
+    }
+
+    /* «Los Angeles…» no distingue a los Rams de los Chargers: en el móvil, el nombre corto. */
+    .standings-team-full {
+      display: none;
+    }
+
+    .standings-team-short {
+      display: inline;
     }
 
     .standings-table th {
@@ -393,5 +562,13 @@
       margin-left: 0;
       flex-basis: 100%;
     }
+  }
+}
+
+@layer components {
+  /* Liga de varias competiciones: una pestaña por competición; en el móvil pasan de línea. */
+  .standings-competitions {
+    flex-wrap: wrap;
+    max-width: 100%;
   }
 }

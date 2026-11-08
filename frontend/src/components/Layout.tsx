@@ -20,6 +20,8 @@ import LoginModal from './layout/LoginModal';
 import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
 import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
+import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
+import { leagueNavItems, showsFillBracketButton } from './layout/leagueNav';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -34,8 +36,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const {
     userName,
     viewerPredictionId,
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
+    leagueKind,
     loading,
     isDemoMode,
     enterDemoMode,
@@ -43,8 +44,6 @@ function Layout({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
-    loadingGroup,
-    choosingLeague,
   } = useAppContext();
   // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
   const myPrediction = useMyLeaguePrediction();
@@ -67,14 +66,14 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   const isUserLoggedIn = isAuthenticated && Boolean(userName);
   const sessionPending = useSessionHandoffPending();
-  const isMatchDayLeague =
-    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+  useIosSessionHandoff();
 
   const location = useLocation();
   const isDemo = isDemoMode;
 
-  // /demo activates its mode in DemoPage; do not race that activation with a redirect.
-  const isLanding = location.pathname === '/' && !isUserLoggedIn && !isDemo;
+  // La portada es la portada aunque quede guardado el modo demo de una visita anterior: sin
+  // sesión, «/» siempre muestra la landing, sin la barra ni el menú de la demo.
+  const isLanding = location.pathname === '/' && !isUserLoggedIn;
   // En la pantalla de acceso/invitación no mostrar la navegación global: la propia
   // pantalla ya contiene el acceso con Google y el contexto de la invitación.
   const isInviteAuthScreen =
@@ -89,6 +88,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Un usuario autenticado sin ninguna liga solo puede crear o unirse a una.
   const isNoLeagueAllowedPath =
     location.pathname === '/mis-ligas' ||
+    location.pathname === '/crear-liga' ||
     location.pathname.startsWith('/join/') ||
     location.pathname.startsWith('/linkedin');
 
@@ -152,7 +152,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {isDemo && !isUserLoggedIn && (
+      {isDemo && !isUserLoggedIn && !isLanding && (
         <DemoBanner
           exitDemoMode={exitDemoMode}
           navigate={navigate}
@@ -164,7 +164,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className="header-left">
           <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
             <NavLink
-              to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
+              to={isUserLoggedIn ? '/' : isDemo && !isLanding ? '/demo' : '/'}
               className="header-brand-link"
               onClick={(e) => {
                 if (isNavLocked) e.preventDefault();
@@ -176,15 +176,14 @@ function Layout({ children }: { children: React.ReactNode }) {
 
             {isLanding || isInviteAuthScreen || (!isUserLoggedIn && !isDemo) ? null : isDemo ? (
               <span className="ink-stamp ink-stamp-sm ink-stamp-ink inline-block min-w-0 truncate">
-                Mundial 2026
+                Demo
               </span>
             ) : (
               <>
                 <ActiveLeagueDropdown />
 
                 {loading ||
-                choosingLeague ||
-                isMatchDayLeague ||
+                !showsFillBracketButton(leagueKind) ||
                 (userName && myPrediction) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
@@ -206,12 +205,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {!isLanding && !isInviteAuthScreen && (
-          <MainNav
-            isDemo={isDemo}
-            isMatchDayLeague={isMatchDayLeague}
-            isNavLocked={isNavLocked}
-            formatPending={loadingGroup || choosingLeague}
-          />
+          <MainNav items={leagueNavItems(leagueKind, isDemo)} isNavLocked={isNavLocked} />
         )}
 
         {!isInviteAuthScreen && (

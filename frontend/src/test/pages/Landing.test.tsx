@@ -42,20 +42,31 @@ describe('Landing', () => {
     expect(screen.getByText('España campeona en 17 de 21 cuadros')).toBeInTheDocument();
   });
 
-  it('opens the login modal from the main button and links to the demo', () => {
+  it('opens the login modal from the hero and the closing call, and links to the demo', () => {
     const onOpen = vi.fn();
     window.addEventListener('open-login-modal', onOpen);
     renderLanding();
-    fireEvent.click(screen.getByRole('button', { name: 'Entrar con Google' }));
-    expect(onOpen).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('link', { name: 'Ver la porra del Mundial' })).toHaveAttribute(
-      'href',
-      '/demo',
-    );
+    const createButtons = screen.getAllByRole('button', { name: 'Crear mi liga gratis' });
+    expect(createButtons).toHaveLength(2);
+    createButtons.forEach((button) => fireEvent.click(button));
+    expect(onOpen).toHaveBeenCalledTimes(2);
+    for (const link of screen.getAllByRole('link', { name: 'Ver una porra de ejemplo' })) {
+      expect(link).toHaveAttribute('href', '/demo');
+    }
     window.removeEventListener('open-login-modal', onOpen);
   });
 
-  it('shows only the top three in the hero podium and keeps the album accessible', () => {
+  it('explains how to play in three steps', () => {
+    renderLanding();
+    const steps = screen.getByRole('list', { name: 'Pasos para jugar' });
+    expect(
+      within(steps)
+        .getAllByRole('heading', { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['Crea tu liga', 'Invita con un enlace', 'Predice y compite']);
+  });
+
+  it('shows only the top three in the hero podium and every sticker in the album', () => {
     renderLanding();
     const podium = screen.getByRole('list', { name: 'Podio de Liga abierta' });
     expect(within(podium).getAllByRole('listitem')).toHaveLength(3);
@@ -65,7 +76,8 @@ describe('Landing', () => {
     expect(within(podium).queryByText('Ana')).not.toBeInTheDocument();
     const album = screen.getByRole('list', { name: 'Cromos de Liga abierta' });
     expect(within(album).getAllByRole('listitem')).toHaveLength(4);
-    expect(album).toHaveAttribute('tabindex', '0');
+    // Ya no se desplaza: todos los cromos caben en una fila, así que no hace falta enfocarlo.
+    expect(album).not.toHaveAttribute('tabindex');
   });
 
   it('tells the visitor when the ranking is not available', () => {

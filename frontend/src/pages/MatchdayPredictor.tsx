@@ -1,30 +1,49 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useEffect, useState } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 import MatchdayHeader from '../components/matchday/MatchdayHeader';
+import NflByeTeams from '../components/matchday/NflByeTeams';
 import RoundSelector from '../components/matchday/RoundSelector';
 import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
-import FloatingSaveButton from '../components/matchday/FloatingSaveButton';
+import FightCard from '../components/matchday/FightCard';
+import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
-import MatchVotersModal from '../components/voters/MatchVotersModal';
-import type { MatchdayFixture } from '../types/api';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import type { LeagueKind } from '../context/leagueKind';
+import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
 
+/** «Jornadas»: solo las ligas que se predicen partido a partido; el resto tiene su propia porra. */
 function MatchdayPredictor() {
   const context = useAppContext();
   const switchingGroup = useRequestedGroup(context);
-  if (switchingGroup || context.loadingGroup || context.groupError)
-    return <LeagueLoadState error={context.groupError} />;
-  return (
+  if (switchingGroup) return <LeagueLoadState />;
+  const league = (
     <MatchdayLeague
       key={`${context.userId || context.userName}:${context.activeGroupId}`}
       context={context}
     />
   );
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={context.groupError} />,
+    none: <NoLeagueState title="Mi porra" what="las predicciones" />,
+    unknown: <UnsupportedLeagueState />,
+    matchday: league,
+    fightCard: league,
+    tennisDraw: league,
+    worldCup: <Navigate to="/prediction" replace />,
+    customBracket: <Navigate to="/prediction" replace />,
+    ownBracket: <Navigate to="/prediction" replace />,
+    knockoutDraw: <Navigate to="/prediction" replace />,
+    // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[context.leagueKind];
 }
 
 /**
@@ -62,33 +81,46 @@ function useRequestedGroup({
  * empezar y muestra los puntos obtenidos.
  */
 function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext> }) {
-  const { activeGroupId, activeGroupName, activeGroupIsLocked, activeGroupPoolFormat } = context;
+  const {
+    activeGroupId,
+    activeGroupName,
+    activeGroupIsLocked,
+    activeCompetitionId,
+    activeCompetitionExternalId,
+    activeGroupPicksMatches,
+  } = context;
+  // Los descansos solo se deducen si la liga lleva todos los partidos de la semana.
+  const nflWeeks = activeCompetitionExternalId === 'nfl' && !activeGroupPicksMatches;
   const md = useMatchdayPredictor(context);
-  const [votersFixture, setVotersFixture] = useState<MatchdayFixture | null>(null);
   const voters = useMatchVoters(
-    md.isMatchDay ? activeGroupId : null,
+    activeGroupId,
     md.fixtures
       .filter((fixture) => fixture.locked || activeGroupIsLocked)
       .map((fixture) => fixture.matchId),
   );
-
-  if (activeGroupPoolFormat && !md.isMatchDay) {
-    return <Navigate to="/" replace />;
-  }
 
   return (
     <div className="md-page paper-panel album-sheet">
       <MatchdayHeader
         title={activeGroupName || 'Jornadas'}
         isLocked={activeGroupIsLocked}
-        canEdit={md.fixtures.some((fixture) => !fixture.locked)}
+        isLoading={md.isLoading}
         predicted={md.counts.predicted}
         total={md.counts.total}
-        isSaving={md.isSaving}
-        onSave={md.handleSaveAll}
-        successMsg={md.saveSuccessMsg}
+        survivor={md.isSurvivor}
+        saveStatus={md.saveStatus}
         errorMsg={md.saveErrorMsg}
+        onRetry={md.retrySave}
       />
+
+      {md.isSurvivor && (
+        <SurvivorStatusBar
+          status={md.survivor}
+          weeks={
+            activeCompetitionExternalId === 'nfl' || isNbaRegularSeason(activeCompetitionExternalId)
+          }
+        />
+      )}
 
       {md.availableRounds.length > 0 && (
         <RoundSelector
@@ -96,6 +128,14 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
           selected={md.selectedRound}
           index={md.roundIndex}
           onSelect={md.setSelectedRound}
+        />
+      )}
+
+      {nflWeeks && (
+        <NflByeTeams
+          competitionId={activeCompetitionId}
+          round={md.activeRound}
+          fixtures={md.roundFixtures}
         />
       )}
 
@@ -119,42 +159,48 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       )}
       {!md.isLoading && !md.isError && md.fixtures.length === 0 && (
         <div className="paper-panel album-sheet landing-tape text-center p-10 text-muted rounded-[12px]">
-          No hay partidos programados para esta competición o jornada.
+          {context.leagueKind === 'tennisDraw' && md.availableRounds.length === 0
+            ? 'El cuadro aún no está publicado: los partidos aparecerán aquí en cuanto ESPN lo publique.'
+            : 'No hay partidos programados para esta competición o jornada.'}
         </div>
       )}
 
       <div className="flex flex-col gap-3.5">
-        {md.displayedFixtures.map((fixture) => (
-          <FixtureCard
-            key={fixture.matchId}
-            fixture={fixture}
-            prediction={md.predictionFor(fixture.matchId)}
-            locked={fixture.locked || activeGroupIsLocked}
-            disabled={md.isSaving}
-            onQuickSign={md.handleQuickSign}
-            onShowFriends={md.setSelectedMatchForFriends}
-            voters={voters.get(fixture.matchId)}
-            onShowVoters={setVotersFixture}
-          />
-        ))}
+        {md.displayedFixtures.map((fixture) =>
+          fixture.fight ? (
+            <FightCard
+              key={fixture.matchId}
+              fixture={fixture}
+              prediction={md.predictionFor(fixture.matchId)}
+              locked={fixture.locked || activeGroupIsLocked}
+              onPick={md.handleFightPick}
+              onShowFriends={md.setSelectedMatchForFriends}
+            />
+          ) : (
+            <FixtureCard
+              key={fixture.matchId}
+              fixture={fixture}
+              prediction={md.predictionFor(fixture.matchId)}
+              locked={fixture.locked || activeGroupIsLocked}
+              onQuickSign={md.handleQuickSign}
+              onTennisPick={md.handleTennisPick}
+              onShowFriends={md.setSelectedMatchForFriends}
+              voters={voters.get(fixture.matchId)}
+              onShowVoters={md.setSelectedMatchForFriends}
+              survivor={
+                md.isSurvivor
+                  ? {
+                      usedTeams: md.usedTeams,
+                      eliminated: Boolean(md.survivor?.eliminated),
+                      onPick: md.handleSurvivorPick,
+                    }
+                  : undefined
+              }
+            />
+          ),
+        )}
       </div>
 
-      {md.hasUnsavedChanges && (
-        <FloatingSaveButton
-          isSaving={md.isSaving}
-          isLocked={activeGroupIsLocked}
-          predicted={md.counts.predicted}
-          total={md.counts.total}
-          onSave={md.handleSaveAll}
-        />
-      )}
-
-      <MatchVotersModal
-        voters={votersFixture ? (voters.get(votersFixture.matchId) ?? null) : null}
-        homeTeam={votersFixture?.homeTeam ?? ''}
-        awayTeam={votersFixture?.awayTeam ?? ''}
-        onClose={() => setVotersFixture(null)}
-      />
       <MatchFriendsPredictionsModal
         groupId={activeGroupId}
         match={md.selectedMatchForFriends}

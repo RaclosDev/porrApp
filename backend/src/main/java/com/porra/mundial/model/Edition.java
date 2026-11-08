@@ -16,10 +16,25 @@ public class Edition {
     // Fecha de cierre de cuadros ya establecida por V24, también para las nuevas ligas.
     private static final Instant WORLD_CUP_DEADLINE = Instant.parse("2026-06-11T18:00:00Z"); // 20:00 en Madrid
 
+    /** Solo el cuadro del Mundial tiene una fecha de cierre conocida; el resto se cierra como diga su liga. */
     public static Instant defaultLockDate(Competition competition, PoolFormat format) {
-        return competition != null
-                && Competition.WORLD_CUP_EXTERNAL_ID.equals(competition.getExternalId())
-                && format != PoolFormat.MATCH_DAY ? WORLD_CUP_DEADLINE : null;
+        return isWorldCupBracket(competition, format) ? WORLD_CUP_DEADLINE : null;
+    }
+
+    /** Cuadro del Mundial (completo o solo eliminatorias): grupos, terceros y cruces oficiales de la FIFA. */
+    public static boolean isWorldCupBracket(Competition competition, PoolFormat format) {
+        return competition != null && competition.isWorldCup()
+                && (format == PoolFormat.FULL_BRACKET || format == PoolFormat.KNOCKOUTS_ONLY);
+    }
+
+    /** @see #isWorldCupBracket(Competition, PoolFormat) */
+    public boolean isWorldCupBracket() {
+        return isWorldCupBracket(competition, poolFormat);
+    }
+
+    /** Puntúa el máximo goleador: solo en el cuadro del Mundial, el único con pichichi oficial. */
+    public boolean scoresPichichi() {
+        return pichichi && isWorldCupBracket();
     }
 
     @Id
@@ -52,7 +67,7 @@ public class Edition {
     /** Flag indicando si en esta edición se otorgan puntos extra por adivinar al Pichichi. */
     @Builder.Default
     @Column(nullable = false)
-    private boolean pichichi = true;
+    private boolean pichichi = false;
 
     /** Fecha y hora límite para enviar o editar pronósticos. */
     @Column(name = "lock_date")
@@ -68,6 +83,43 @@ public class Edition {
     @Column(name = "lock_offset_minutes", nullable = false)
     @Builder.Default
     private int lockOffsetMinutes = 0;
+
+    /** Qué partidos de la competición entran en la liga (solo en ligas por jornadas). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "match_selection", nullable = false, length = 20)
+    @Builder.Default
+    private MatchSelectionMode matchSelection = MatchSelectionMode.ALL;
+
+    /** UFC con todas las veladas: solo las numeradas o solo las Fight Night; null para todas. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_series", length = 20)
+    private EventSeries eventSeries;
+
+    /** UFC: partes de la cartelera de cada velada que entran en la liga; null para la velada completa. */
+    @Convert(converter = CardSegmentsConverter.class)
+    @Column(name = "card_segments", length = 40)
+    private java.util.Set<CardSegment> cardSegments;
+
+    /**
+     * Tenis: torneos que sigue una liga de varios (todos, Grand Slams o Masters 1000), cuyos cuadros guarda
+     * {@code edition_competitions}; null en una liga de un solo torneo y en el resto de deportes.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tennis_scope", length = 20)
+    private TennisScope tennisScope;
+
+    /** Tenis con {@link #tennisScope}: cuadros que sigue (ATP, WTA o los dos). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tennis_tour", length = 10)
+    private TennisTour tennisTour;
+
+    /**
+     * Si la liga junta partidos de varias competiciones oficiales (las guarda {@code edition_competitions};
+     * {@link #competition} es la principal). Sus jornadas son semanas de lunes a domingo.
+     */
+    @Column(name = "multi_competition", nullable = false)
+    @Builder.Default
+    private boolean multiCompetition = false;
 
     /** Configuración serializada de reglas de puntuación para esta edición. */
     @Column(name = "scoring_rules_json", columnDefinition = "TEXT")

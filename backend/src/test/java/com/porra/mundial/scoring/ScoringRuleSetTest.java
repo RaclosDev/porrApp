@@ -17,7 +17,7 @@ class ScoringRuleSetTest {
     @Test
     @DisplayName("Los valores por defecto corresponden al reglamento oficial del Mundial 2026")
     void testDefaultValues() {
-        ScoringRuleSet rules = ScoringRuleSet.defaultWorldCup2026();
+        ScoringRuleSet rules = ScoringRuleSet.defaults();
 
         assertEquals(10, rules.getGroupQualifierPoints());
         assertEquals(10, rules.getGroupExactPositionPoints());
@@ -81,7 +81,7 @@ class ScoringRuleSetTest {
     @Test
     @DisplayName("Una edición sin reglas guardadas puntúa con las de por defecto")
     void editionWithoutRulesUsesTheDefaults() {
-        ScoringRuleSet defaults = ScoringRuleSet.defaultWorldCup2026();
+        ScoringRuleSet defaults = ScoringRuleSet.defaults();
 
         assertEquals(defaults, ScoringRuleSet.forEdition(null));
         assertEquals(defaults, ScoringRuleSet.forEdition(Edition.builder().build()));
@@ -90,19 +90,23 @@ class ScoringRuleSetTest {
     }
 
     @Test
-    @DisplayName("asMap lista las catorce reglas con su nombre del JSON")
+    @DisplayName("asMap lista las diecisiete reglas con su nombre del JSON")
     void asMapListsEveryRule() {
-        Map<String, Integer> rules = ScoringRuleSet.defaultWorldCup2026().asMap();
+        Map<String, Integer> rules = ScoringRuleSet.defaults().asMap();
 
-        assertEquals(14, rules.size());
+        assertEquals(33, rules.size());
+        assertEquals(3, rules.get("fightWinnerPoints"));
+        assertEquals(10, rules.get("f1ExactPositionPoints"));
         assertEquals(200, rules.get("championPoints"));
         assertEquals(1, rules.get("goalDiffBonusPoints"));
+        assertEquals(1, rules.get("survivorLives"));
+        assertEquals(25, rules.get("nbaFinalsExactPoints"));
     }
 
     @Test
     @DisplayName("Se admiten de 0 a 1000 puntos por regla")
     void validateAcceptsTheWholeRange() {
-        assertDoesNotThrow(() -> ScoringRuleSet.defaultWorldCup2026().validate());
+        assertDoesNotThrow(() -> ScoringRuleSet.defaults().validate());
         assertDoesNotThrow(() -> ScoringRuleSet.builder().championPoints(0).topScorerPoints(ScoringRuleSet.MAX_POINTS)
                 .build().validate());
     }
@@ -141,7 +145,7 @@ class ScoringRuleSetTest {
     }
     @Test
     void disabledPichichiChangesEffectivePointsButPreservesConfiguredRules() {
-        ScoringRuleSet configured = ScoringRuleSet.defaultWorldCup2026();
+        ScoringRuleSet configured = ScoringRuleSet.defaults();
         configured.setTopScorerPoints(73);
         Edition edition = Edition.builder().pichichi(false).scoringRulesJson(configured.toJson()).build();
         assertEquals(0, ScoringRuleSet.effectiveForEdition(edition).getTopScorerPoints());

@@ -1,0 +1,602 @@
+@layer components {
+  /*
+   * Crear liga (/crear-liga): una hoja de papel por paso sobre el fondo oscuro, con los pasos como
+   * sellos de tinta encima. Las opciones son fichas con su radio nativo para que el teclado y el
+   * lector funcionen como en cualquier formulario.
+   */
+  .create-league {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-bottom: 32px;
+  }
+
+  .create-league-header {
+    margin-bottom: 10px;
+  }
+
+  .create-league-progress {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .create-league-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--marker-ink);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  .create-league-link:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  /* Pasos: sellos numerados; el actual es una pegatina de papel, como la pestaña activa. */
+  .create-league-steps {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .create-league-step {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .create-league-step > button,
+  .create-league-step > span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    min-height: 44px;
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    text-align: center;
+  }
+
+  .create-league-step > button {
+    cursor: pointer;
+  }
+
+  .create-league-step > button:hover .create-league-step-num {
+    border-color: var(--text-main);
+    color: var(--text-main);
+  }
+
+  .create-league-step > button:focus-visible {
+    outline: 2px solid var(--accent-text);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  .create-league-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1.5px solid currentColor;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 0.9rem;
+  }
+
+  .create-league-step.is-done > * {
+    color: var(--marker-ink);
+  }
+
+  .create-league-step.is-current {
+    flex-grow: 2;
+  }
+
+  .create-league-step.is-current .create-league-step-num {
+    border-color: var(--paper);
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .create-league-step.is-current > * {
+    color: var(--text-main);
+  }
+
+  .create-league-step-label {
+    max-width: 100%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  /* En móvil solo se lee el nombre del paso actual; los demás quedan para el lector. */
+  @media (max-width: 639px) {
+    .create-league-step:not(.is-current) .create-league-step-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+
+  .create-league-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 24px 16px 18px;
+  }
+
+  @media (min-width: 640px) {
+    .create-league-sheet {
+      padding: 30px 28px 22px;
+    }
+  }
+
+  .create-league-title {
+    margin: 0;
+    font-size: 1.45rem;
+    line-height: 1.15;
+  }
+
+  .create-league-title:focus-visible {
+    outline: 2px dashed var(--ink);
+    outline-offset: 4px;
+  }
+
+  .create-league-fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .create-league-group + .create-league-group {
+    margin-top: 18px;
+  }
+
+  .create-league-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .create-league-section + .create-league-section {
+    padding-top: 16px;
+    border-top: 1px dashed var(--border-color);
+  }
+
+  .create-league-section-title {
+    margin: 0 0 4px;
+    color: var(--ink);
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  .create-league-hint {
+    display: block;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .create-league-group .create-league-hint {
+    margin-bottom: 8px;
+  }
+
+  .create-league-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+    gap: 8px;
+  }
+
+  /* Opciones de una palabra (el deporte): dos por fila en el móvil; la que lleva texto, a lo ancho. */
+  .create-league-options.is-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  }
+
+  .create-league-options.is-tiles .create-league-option {
+    gap: 10px;
+    padding-inline: 12px;
+  }
+
+  .create-league-options.is-tiles .create-league-option:not(.is-compact) {
+    grid-column: 1 / -1;
+  }
+
+  .create-league-options.is-row {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    margin-bottom: 12px;
+  }
+
+  .create-league-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--panel-bg);
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+
+  .create-league-option.is-compact {
+    align-items: center;
+  }
+
+  .create-league-option.is-compact input {
+    margin-top: 0;
+  }
+
+  .create-league-option:hover {
+    border-color: var(--ink);
+  }
+
+  .create-league-option.is-checked {
+    border-color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--ink);
+    background: #ffffff;
+  }
+
+  .create-league-option:has(input:focus-visible) {
+    outline: 2px solid var(--marker-ink);
+    outline-offset: 2px;
+  }
+
+  .create-league-option.is-disabled {
+    border-style: dashed;
+    background: transparent;
+    cursor: not-allowed;
+  }
+
+  .create-league-option.is-disabled:hover {
+    border-color: var(--border-color);
+  }
+
+  .create-league-option input,
+  .create-league-check input {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin: 2px 0 0;
+    accent-color: var(--ink);
+  }
+
+  .create-league-option-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .create-league-option-title {
+    font-size: 0.98rem;
+    font-weight: 800;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+  }
+
+  .create-league-option.is-disabled .create-league-option-title {
+    color: var(--text-muted);
+  }
+
+  .create-league-option-text {
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .create-league-option-reason {
+    color: var(--stamp-red);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .create-league-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .create-league-field > label {
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .create-league-field > label.create-league-hint {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .create-league-field .glass-input {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .create-league-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .create-league-inline.is-center {
+    justify-content: center;
+  }
+
+  .create-league-field .create-league-inline .glass-input {
+    width: auto;
+  }
+
+  .create-league-field .create-league-inline .create-league-amount {
+    width: 6.5rem;
+  }
+
+  .create-league-textarea {
+    min-height: 140px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .create-league-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 44px;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--panel-bg);
+    color: var(--ink);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .create-league-check:has(input:focus-visible) {
+    outline: 2px solid var(--marker-ink);
+    outline-offset: 2px;
+  }
+
+  .create-league-check .create-league-hint {
+    margin-top: 2px;
+  }
+
+  .create-league-segments {
+    margin-top: 18px;
+  }
+
+  .create-league-segments > .create-league-hint {
+    margin: 0 0 10px;
+  }
+
+  /* Las tres partes cuelgan de «Toda la velada». */
+  .create-league-segments-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+    gap: 0 12px;
+    padding-left: 24px;
+  }
+
+  .create-league-error {
+    margin: 0;
+    color: var(--stamp-red);
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .create-league-error.is-block {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--stamp-red);
+    border-radius: 6px;
+  }
+
+  .create-league-note {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px dashed var(--marker-ink);
+    border-radius: 6px;
+    color: var(--ink);
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .create-league-small-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .create-league-wide-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .create-league-image {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .create-league-image-actions {
+    display: flex;
+    flex: 1 1 200px;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* Pie de la hoja: una raya de tinta separa lo que se rellena de cómo se avanza. */
+  .create-league-nav {
+    display: flex;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1.5px solid var(--ink);
+  }
+
+  /* Empezar de nuevo: secundario, bajo los botones de avanzar. */
+  .create-league-restart {
+    align-self: center;
+    margin-top: -10px;
+  }
+
+  .create-league-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .create-league-nav-btn.is-primary {
+    flex: 1 1 auto;
+  }
+
+  @media (min-width: 640px) {
+    .create-league-nav-btn.is-primary {
+      flex: 0 1 auto;
+      margin-left: auto;
+      min-width: 240px;
+    }
+  }
+
+  .create-league-summary {
+    margin: 0;
+  }
+
+  .create-league-summary-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'label edit'
+      'value value';
+    align-items: center;
+    gap: 0 12px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .create-league-summary-row dt {
+    grid-area: label;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .create-league-summary-row dd {
+    grid-area: value;
+    margin: 0;
+    color: var(--ink);
+    font-size: 0.98rem;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .create-league-summary-row dd.create-league-summary-edit {
+    grid-area: edit;
+  }
+
+  @media (min-width: 640px) {
+    .create-league-summary-row {
+      grid-template-columns: 9rem 1fr auto;
+      grid-template-areas: 'label value edit';
+    }
+  }
+
+  .create-league-summary-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .create-league-done {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .create-league-done-name {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .create-league-code {
+    padding: 14px;
+    border: 1.5px dashed var(--ink);
+    border-radius: 10px;
+  }
+
+  .create-league-code-value {
+    margin: 4px 0 10px;
+    color: var(--marker-ink);
+    font-size: clamp(1.4rem, 7vw, 2rem);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    word-break: break-all;
+  }
+
+  .create-league-done-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+}

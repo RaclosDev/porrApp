@@ -1,4 +1,4 @@
-import type { Match } from '../types/api';
+import type { Match, MatchdayFixture } from '../types/api';
 
 const LIVE_STATUSES = new Set(['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS']);
 const VOID_STATUSES = new Set(['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED']);
@@ -6,8 +6,25 @@ const VOID_STATUSES = new Set(['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED
 const timeOf = (match: Match) => (match.date ? new Date(match.date).getTime() || 0 : 0);
 const byDate = (a: Match, b: Match) => timeOf(a) - timeOf(b);
 
+const PLACEHOLDER_TEAMS = new Set(['', 'por definir', 'tbd', '???']);
+
+/** Equipo real: ni vacío ni un hueco «Por definir» (una carrera o un cruce aún sin rivales). */
+const isDefinedTeam = (name: string | null | undefined) =>
+  !PLACEHOLDER_TEAMS.has((name ?? '').trim().toLowerCase());
+
+/**
+ * En directo solo si el proveedor (ESPN) lo marca así, nunca por la hora, y con dos equipos reales:
+ * un evento sin rivales (un Gran Premio, un cruce por definir) no es un partido en juego.
+ */
 export const isLiveMatch = (match: Match) =>
-  !match.finished && LIVE_STATUSES.has((match.status || '').toUpperCase());
+  !match.finished &&
+  LIVE_STATUSES.has((match.status || '').toUpperCase()) &&
+  isDefinedTeam(match.home) &&
+  isDefinedTeam(match.away);
+
+/** Marcador que se puede enseñar: el partido ha terminado o está en juego (antes, nada de 0-0). */
+export const hasShownScore = (match: Match) =>
+  (match.finished || isLiveMatch(match)) && match.home_score != null && match.away_score != null;
 
 /** Partido que aún se jugará: no ha terminado ni se ha cancelado o aplazado. */
 const isPlayableMatch = (match: Match) =>
@@ -24,6 +41,32 @@ function roundLabelFor(match: Match) {
  * Jornada actual de una liga: la primera ronda con partidos por jugar (o la última si ya acabó todo),
  * con todos sus partidos, también los ya finalizados.
  */
+/** Partido de la jornada de una liga (`/predictions/matchday`) con la forma de los de la competición. */
+export const fixtureAsMatch = (fixture: MatchdayFixture): Match => ({
+  id: fixture.matchId,
+  home: fixture.homeTeam,
+  away: fixture.awayTeam,
+  home_team_id: fixture.homeTeamId,
+  away_team_id: fixture.awayTeamId,
+  homeLogo: fixture.homeTeamLogo,
+  awayLogo: fixture.awayTeamLogo,
+  homeTeamLogo: fixture.homeTeamLogo,
+  awayTeamLogo: fixture.awayTeamLogo,
+  homeScore: fixture.actualHomeScore ?? null,
+  awayScore: fixture.actualAwayScore ?? null,
+  home_score: fixture.actualHomeScore ?? null,
+  away_score: fixture.actualAwayScore ?? null,
+  date: fixture.matchDate,
+  finished: Boolean(fixture.finished),
+  round: fixture.round ?? '',
+  groupName: fixture.groupName,
+  winner: null,
+  displayClock: fixture.displayClock ?? null,
+  isStartingSoon: false,
+  status: fixture.status ?? 'SCHEDULED',
+  fight: fixture.fight ?? null,
+});
+
 export function currentRoundMatches(matches: Match[]): { round: string | null; matches: Match[] } {
   const rounds: string[] = [];
   const byRound = new Map<string, Match[]>();
@@ -40,7 +83,27 @@ export function currentRoundMatches(matches: Match[]): { round: string | null; m
 
   let index = rounds.findIndex((label) => (byRound.get(label) ?? []).some(isPlayableMatch));
   if (index === -1) index = rounds.length - 1;
-  return { round: rounds[index], matches: byRound.get(rounds[index]) ?? [] };
+  return { round: rounds[index], matches: aroundNow(byRound.get(rounds[index]) ?? []) };
+}
+
+/** Jornada a partir de la cual la portada enseña solo los partidos de alrededor de ahora. */
+const LONG_ROUND = 16;
+/** Partidos que enseña la portada de una jornada larga, y cuántos de ellos ya jugados. */
+const LONG_ROUND_SHOWN = 10;
+const LONG_ROUND_PLAYED = 3;
+
+/**
+ * Una semana de la NBA trae unos 50 partidos: la portada enseña los últimos resultados y los siguientes
+ * por jugar, no la semana entera (que está en Jornadas). Las jornadas normales van enteras.
+ */
+function aroundNow(matches: Match[]): Match[] {
+  if (matches.length <= LONG_ROUND) return matches;
+  const next = matches.findIndex(isPlayableMatch);
+  const start =
+    next === -1
+      ? matches.length - LONG_ROUND_SHOWN
+      : Math.min(Math.max(0, next - LONG_ROUND_PLAYED), matches.length - LONG_ROUND_SHOWN);
+  return matches.slice(start, start + LONG_ROUND_SHOWN);
 }
 
 /**
@@ -50,9 +113,13 @@ export function currentRoundMatches(matches: Match[]): { round: string | null; m
 export function upcomingMatches(
   matches: Match[],
   limit = 6,
+  now: number = Date.now(),
 ): { finished: boolean; matches: Match[] } {
-  const defined = matches.filter((match) => match.home && match.away);
-  const pending = defined.filter(isPlayableMatch).sort(byDate);
+  const defined = matches.filter((match) => isDefinedTeam(match.home) && isDefinedTeam(match.away));
+  // Un partido cuya hora ya ha pasado sin que el proveedor lo dé por empezado no es «próximo».
+  const pending = defined
+    .filter((match) => isPlayableMatch(match) && (isLiveMatch(match) || timeOf(match) >= now))
+    .sort(byDate);
   if (pending.length > 0) {
     return {
       finished: false,

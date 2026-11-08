@@ -31,7 +31,7 @@ import static org.mockito.Mockito.*;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({LegacyFixtureRepairService.class, MatchEventProcessor.class})
+@Import({LegacyFixtureRepairService.class, MatchEventProcessor.class, FightCardService.class})
 class LegacyFixtureRepairPersistenceTest {
     @Container @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
@@ -71,7 +71,7 @@ class LegacyFixtureRepairPersistenceTest {
         }
         event.put("date", event.path("competitions").get(0).path("date").asText());
         SportsDataProvider provider = mock(SportsDataProvider.class);
-        when(providers.getProviderForCompetition("esp.1")).thenReturn(provider);
+        when(providers.findProviderForCompetition("esp.1")).thenReturn(java.util.Optional.of(provider));
         when(provider.isAvailable()).thenReturn(true);
         when(provider.fetchEvent(anyString(), anyString())).thenAnswer(invocation -> {
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();

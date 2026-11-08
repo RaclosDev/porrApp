@@ -3,6 +3,7 @@
  * Funciones puras: reciben el pronóstico, los puntos y los datos oficiales.
  */
 import { isMatchInRound, matchWinner } from './bracketBuilder';
+import { isLiveMatch } from './homeMatches';
 import { teamKey } from './teamKey';
 import type { ViewerPrediction } from './predictionData';
 import {
@@ -254,7 +255,6 @@ export function featuredSlot(
   featuredMatch: Match | null,
   name: string | null | undefined,
   roundIndex: RoundRef,
-  now: Date = new Date(),
 ): { isFeatured: boolean; isLive: boolean } {
   if (!featuredMatch || isPlaceholderTeam(name) || !isMatchInRound(featuredMatch, roundIndex)) {
     return { isFeatured: false, isLive: false };
@@ -264,6 +264,7 @@ export function featuredSlot(
   }
   return {
     isFeatured: true,
-    isLive: Boolean(featuredMatch.date && new Date(featuredMatch.date) <= now),
+    // En juego solo si el proveedor lo dice, no porque haya pasado la hora de inicio.
+    isLive: isLiveMatch(featuredMatch),
   };
 }

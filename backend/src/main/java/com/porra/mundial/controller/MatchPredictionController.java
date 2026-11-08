@@ -4,6 +4,7 @@ import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
 import com.porra.mundial.dto.MatchdayFriendPredictionDTO;
 import com.porra.mundial.dto.MatchdaySubmissionDTO;
 import com.porra.mundial.dto.MatchdaySubmissionResponse;
+import com.porra.mundial.dto.SurvivorStatusDTO;
 import com.porra.mundial.service.prediction.MatchPredictionService;
 import com.porra.mundial.service.notification.WebSocketService;
 import jakarta.validation.Valid;
@@ -31,6 +32,12 @@ public class MatchPredictionController {
                                                                   @RequestParam(required = false) String round,
                                                                   Principal principal) {
         return matchPredictionService.getMatchdayFixtures(CurrentUser.email(principal), groupId, round);
+    }
+
+    /** Situación del usuario en una liga superviviente: vivo o eliminado y equipos ya elegidos. */
+    @GetMapping("/survivor")
+    public SurvivorStatusDTO getSurvivorStatus(@RequestParam Long groupId, Principal principal) {
+        return matchPredictionService.getSurvivorStatus(CurrentUser.email(principal), groupId);
     }
 
     /** Guarda los pronósticos de varios partidos respetando el cierre de cada uno. */

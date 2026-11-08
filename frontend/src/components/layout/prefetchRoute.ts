@@ -28,5 +28,8 @@ export const prefetchRoute = (path: string) => {
     case '/mis-ligas':
       import('../../pages/GroupsDashboard');
       break;
+    case '/crear-liga':
+      import('../../pages/CreateLeague');
+      break;
   }
 };

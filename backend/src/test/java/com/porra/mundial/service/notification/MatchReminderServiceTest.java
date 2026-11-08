@@ -1,11 +1,14 @@
 package com.porra.mundial.service.notification;
 
+import com.porra.mundial.service.prediction.MatchSelectionService;
+
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchReminderSent;
 import com.porra.mundial.model.Membership;
+import com.porra.mundial.model.MatchSelectionMode;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.PushSubscription;
@@ -56,8 +59,9 @@ class MatchReminderServiceTest {
     private final WebPushSender sender = mock(WebPushSender.class);
     private final ObjectMapper json = JsonMapper.builder().build();
     private final PushNotificationLogService notificationLog = mock(PushNotificationLogService.class);
+    private final MatchSelectionService selection = mock(MatchSelectionService.class);
     private final MatchReminderService service = new MatchReminderService(editions, matches, memberships,
-            predictions, reminders, subscriptions, sender, json, notificationLog);
+            predictions, reminders, subscriptions, sender, json, notificationLog, selection);
 
     private final League league = League.builder().id(5L).name("Los del barrio").joinCode("BARRIO").build();
     private final Competition competition = Competition.builder().id(9L).build();
@@ -74,6 +78,8 @@ class MatchReminderServiceTest {
         when(memberships.findByLeagueId(5L)).thenReturn(List.of(member(ana), member(luis), member(muted)));
         when(reminders.findKeysByMatchIdIn(any())).thenReturn(List.of());
         when(predictions.findPredictedUserMatchPairs(eq(50L), any())).thenReturn(List.of());
+        when(selection.competitionIds(any())).thenAnswer(call ->
+                List.of(call.<Edition>getArgument(0).getCompetition().getId()));
     }
 
     @Test
@@ -88,6 +94,17 @@ class MatchReminderServiceTest {
 
         assertThat(pending).extracting(MatchReminderService.Pending::userId).containsExactly(1L);
         assertThat(pending).extracting(p -> p.match().getId()).containsExactly(100L);
+    }
+
+    @Test
+    void leaguesThatPickTheirMatchesOnlyRemindAboutThoseMatches() {
+        edition.setMatchSelection(MatchSelectionMode.CUSTOM);
+        Match picked = match(100L, NOW.plus(30, ChronoUnit.MINUTES));
+        Match other = match(101L, NOW.plus(40, ChronoUnit.MINUTES));
+        when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), any())).thenReturn(List.of(picked, other));
+        when(selection.filter(eq(edition), any())).thenReturn(List.of(picked));
+
+        assertThat(service.findPending(NOW)).extracting(p -> p.match().getId()).containsOnly(100L);
     }
 
     @Test
@@ -169,6 +186,27 @@ class MatchReminderServiceTest {
 
         assertThat(message.title()).isEqualTo("Te falta predecir Betis – Sevilla");
         assertThat(message.body()).isEqualTo("Los del barrio · cierra a las 18:00");
+    }
+
+    @Test
+    void remindsFormulaOneLeaguesAnHourBeforeQualifyingAndNamesTheGrandPrix() {
+        Edition grandPrix = Edition.builder().id(60L).league(league).competition(competition)
+                .poolFormat(PoolFormat.GRAND_PRIX).lockMode(PredictionLockMode.PER_MATCH).build();
+        when(editions.findActiveByPoolFormat(PoolFormat.MATCH_DAY)).thenReturn(List.of());
+        when(editions.findActiveByPoolFormat(PoolFormat.GRAND_PRIX)).thenReturn(List.of(grandPrix));
+        when(predictions.findPredictedUserMatchPairs(eq(60L), any())).thenReturn(List.of());
+        // Un Gran Premio no tiene equipos; su fecha es la de la clasificación.
+        Match saoPaulo = Match.builder().id(300L).round("GP de São Paulo")
+                .matchDate(NOW.plus(40, ChronoUnit.MINUTES)).build();
+        when(matches.findUnfinishedStartingBetween(eq(9L), eq(NOW), any())).thenReturn(List.of(saoPaulo));
+
+        List<MatchReminderService.Pending> pending = service.findPending(NOW);
+
+        assertThat(pending).extracting(MatchReminderService.Pending::userId).containsExactly(1L, 2L);
+        assertThat(pending).allSatisfy(p -> assertThat(p.grandPrix()).isTrue());
+        PushMessage message = service.message(pending.subList(0, 1), NOW.plus(40, ChronoUnit.MINUTES));
+        assertThat(message.title()).isEqualTo("Te falta predecir el GP de São Paulo");
+        assertThat(message.url()).isEqualTo("/jornadas?group=5");
     }
 
     @Test

@@ -52,13 +52,25 @@ describe('LeagueRulesModal', () => {
     setup({ id: 7, name: 'Jornadas' });
 
     expect(await screen.findByText('Resultado exacto')).toBeInTheDocument();
-    expect(screen.getByText(/Provisionalmente solo puntúa/)).toBeInTheDocument();
+    expect(screen.getByText(/Por ahora solo puntúa el 1X2/)).toBeInTheDocument();
     expect(screen.getAllByText('Pausado')).toHaveLength(2);
     expect(
       screen.getByText('Signo 1X2').closest('.scoring-row')?.querySelector('.scoring-points'),
     ).toHaveTextContent('3 pts');
     expect(screen.queryByText('Campeón')).not.toBeInTheDocument();
     expect(screen.queryByText('Pichichi')).not.toBeInTheDocument();
+  });
+
+  it('en el LoL por jornadas puntúan el ganador y el resultado de la serie, sin pausa', async () => {
+    api.fetchLeagueScoring.mockResolvedValue(
+      leagueScoring({ poolFormat: 'MATCH_DAY', pichichi: false, sport: 'LEAGUE_OF_LEGENDS' }),
+    );
+    setup({ id: 7, name: 'Worlds' });
+
+    expect(await screen.findByText('Resultado de la serie')).toBeInTheDocument();
+    expect(pointsOf('Ganador acertado')).toContain('3');
+    expect(screen.queryByText(/Pausado/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Por ahora solo puntúa/)).not.toBeInTheDocument();
   });
 
   it('las porras de solo eliminatorias no muestran la fase de grupos', async () => {

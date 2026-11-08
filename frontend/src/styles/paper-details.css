@@ -66,5 +66,20 @@
     .landing-hero-podium .sticker-featured .marker-ink {
       font-size: 0.9rem;
     }
+
+    /* Cromos del álbum en una fila: el nombre parte en dos líneas antes que quedarse en «Xe…». */
+    .landing-sticker-album .poster-title {
+      font-size: 0.7rem;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      text-overflow: clip;
+      text-align: center;
+      line-height: 1.05;
+    }
+
+    .landing-sticker-album .marker-ink {
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
   }
 }

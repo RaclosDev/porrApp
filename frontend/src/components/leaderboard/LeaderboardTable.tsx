@@ -14,7 +14,8 @@ interface LeaderboardTableProps {
   sortDirection: 'asc' | 'desc';
   onSort: (column: SortColumn) => void;
   /** Abre lo que se ve de un participante: su porra o la pantalla de jornadas. */
-  onOpenRow: (row: LeaderboardRow) => void;
+  /** Abre las predicciones de una fila; sin él, las filas no se abren (la Fórmula 1). */
+  onOpenRow?: (row: LeaderboardRow) => void;
 }
 
 const TOTAL_CELL_STYLE: CSSProperties = {
@@ -100,6 +101,7 @@ export default function LeaderboardTable({
             </tr>
           )}
           {rows.map((r) => {
+            const open = r.id != null && onOpenRow ? () => onOpenRow(r) : undefined;
             const isPending = !r.paid;
             const isMe = isOwnRow(r, userId, userName);
             const rowStyle: CSSProperties = {
@@ -114,8 +116,8 @@ export default function LeaderboardTable({
             return (
               <tr
                 key={r.key}
-                style={r.id != null ? { ...rowStyle, cursor: 'pointer' } : rowStyle}
-                onClick={r.id != null ? () => onOpenRow(r) : undefined}
+                style={open ? { ...rowStyle, cursor: 'pointer' } : rowStyle}
+                onClick={open}
               >
                 <td className="text-[1.2em] text-center">
                   {rankLabel(r.rank, lowestPaidRank, r.points.total)}
@@ -143,15 +145,23 @@ export default function LeaderboardTable({
                             Sin pagar
                           </span>
                         )}
+                        {r.points.eliminated && (
+                          <span
+                            className="lb-unpaid-badge lb-out-badge"
+                            title="Superviviente: eliminado. Sus jornadas superadas ya no suben."
+                          >
+                            Eliminado
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {r.id != null && (
+                    {open && (
                       <button
                         className="glass-btn bg-[rgba(11,_95,_116,_0.08)] bg-none text-accent-text border border-accent py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 whitespace-nowrap text-[0.95rem] leading-[1] inline-flex items-center justify-center"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onOpenRow(r);
+                          open();
                         }}
                         title={isMatchday ? 'Ver partidos de la jornada' : 'Ver porra'}
                       >

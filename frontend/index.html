@@ -2,6 +2,9 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <!-- Google solo muestra en los resultados favicons cuadrados de 48 px o múltiplos de 48. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-paper-192.png" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-paper.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-paper.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -60,17 +63,17 @@
         }
       </style>
     </noscript>
-    <title>PorrApp · Porras de fútbol con tus amigos</title>
+    <title>Porra con amigos gratis: fútbol, F1, UFC y más · PorrApp</title>
     <meta
       name="description"
-      content="Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo."
+      content="Crea gratis una porra con tus amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos."
     />
 
     <!-- Open Graph (WhatsApp, Twitter, Facebook previews) -->
-    <meta property="og:title" content="PorrApp · Porras de fútbol con tus amigos" />
+    <meta property="og:title" content="Porra con amigos gratis: fútbol, F1, UFC y más · PorrApp" />
     <meta
       property="og:description"
-      content="Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo."
+      content="Crea gratis una porra con tus amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://porrapp.app" />
@@ -81,17 +84,23 @@
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Cartel de papel de PorrApp: «La porra de toda la vida, pero bien hecha» y un podio de cromos" />
+    <meta
+      property="og:image:alt"
+      content="Cartel de papel de PorrApp: «La porra de toda la vida, pero bien hecha» y un podio de cromos"
+    />
     <meta property="og:site_name" content="PorrApp" />
     <meta property="og:locale" content="es_ES" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="PorrApp · Porras de fútbol con tus amigos" />
+    <meta name="twitter:title" content="Porra con amigos gratis: fútbol, F1, UFC y más · PorrApp" />
     <meta
       name="twitter:description"
-      content="Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo."
+      content="Crea gratis una porra con tus amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos."
     />
     <meta name="twitter:image" content="https://porrapp.app/og-paper.jpg" />
-    <meta name="twitter:image:alt" content="Cartel de papel de PorrApp: «La porra de toda la vida, pero bien hecha» y un podio de cromos" />
+    <meta
+      name="twitter:image:alt"
+      content="Cartel de papel de PorrApp: «La porra de toda la vida, pero bien hecha» y un podio de cromos"
+    />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -138,17 +147,46 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "PorrApp",
-        "alternateName": "La Porra",
-        "url": "https://porrapp.app/",
-        "description": "Haz tus predicciones del Mundial, LaLiga o la Champions, juega contra tus amigos y mira cómo suben los puntos en directo.",
-        "applicationCategory": "SportsApplication",
-        "operatingSystem": "Web, Android, iOS",
-        "inLanguage": "es",
-        "image": "https://porrapp.app/og-paper.jpg",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
-        "author": { "@type": "Person", "name": "Carlos Sanz Tomero", "url": "https://raclosdev.github.io/" }
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://porrapp.app/#website",
+            "name": "PorrApp",
+            "alternateName": ["Porrapp", "porrapp.app"],
+            "url": "https://porrapp.app/",
+            "inLanguage": "es"
+          },
+          {
+            "@type": "WebApplication",
+            "name": "PorrApp",
+            "url": "https://porrapp.app/",
+            "description": "Crea gratis una porra con tus amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos.",
+            "applicationCategory": "SportsApplication",
+            "operatingSystem": "Web, Android, iOS",
+            "inLanguage": "es",
+            "image": "https://porrapp.app/og-paper.jpg",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+            "author": {
+              "@type": "Person",
+              "name": "Carlos Sanz Tomero",
+              "url": "https://raclosdev.github.io/"
+            },
+            "isPartOf": { "@id": "https://porrapp.app/#website" },
+            "publisher": { "@id": "https://porrapp.app/#organization" }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://porrapp.app/#organization",
+            "name": "PorrApp",
+            "url": "https://porrapp.app/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://porrapp.app/icon-paper-512.png",
+              "width": 512,
+              "height": 512
+            }
+          }
+        ]
       }
     </script>
   </head>

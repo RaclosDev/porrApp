@@ -50,7 +50,7 @@ import static org.mockito.Mockito.*;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({CompetitionImportService.class, SyncLock.class, MatchEventProcessor.class, MatchPredictionService.class,
         MatchScoringCalculator.class, StandingsService.class, ScoreInvalidationService.class, CustomLockService.class,
-        CompetitionImportTransactionTest.Caches.class})
+        FightCardService.class, CompetitionImportTransactionTest.Caches.class})
 class CompetitionImportTransactionTest {
     @TestConfiguration @EnableCaching
     static class Caches {
@@ -75,7 +75,10 @@ class CompetitionImportTransactionTest {
     @MockitoBean KnockoutBracketService knockout;
     @MockitoBean WebSocketService updates;
     @MockitoBean TopScorerService scorers;
+    @MockitoBean com.porra.mundial.service.prediction.MatchSelectionService matchSelection;
     @MockitoBean LegacyFixtureRepairService repair;
+    @MockitoBean com.porra.mundial.service.tournament.OfficialMatchdayService matchdays;
+    @MockitoBean com.porra.mundial.service.formulaone.FormulaOneSyncService formulaOne;
     private final ObjectMapper json = new ObjectMapper();
     private SportsDataProvider provider;
     private Long competitionId;
@@ -84,7 +87,7 @@ class CompetitionImportTransactionTest {
     void prepareProvider() throws Exception {
         competitionId = competitions.findByExternalId("esp.1").orElseThrow().getId();
         provider = mock(SportsDataProvider.class);
-        when(providers.getProviderForCompetition(anyString())).thenReturn(provider);
+        when(providers.findProviderForCompetition(anyString())).thenReturn(java.util.Optional.of(provider));
         when(provider.isAvailable()).thenReturn(true);
         when(provider.fetchTeams("esp.1")).thenReturn(json.readTree("""
                 [{"team":{"id":"991001","displayName":"Import Home"}},

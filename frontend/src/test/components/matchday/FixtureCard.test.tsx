@@ -11,7 +11,6 @@ const renderCard = (fixture: Partial<MatchdayFixture>, sign = '') =>
       fixture={matchdayFixture({ homeTeam: 'Sevilla', awayTeam: 'Betis', ...fixture })}
       prediction={{ homeScore: '', awayScore: '', sign }}
       locked
-      disabled={false}
       onQuickSign={vi.fn()}
       onShowFriends={vi.fn()}
     />,
@@ -40,37 +39,66 @@ describe('FixtureCard', () => {
     expect(screen.getByText('0 pts')).toBeInTheDocument();
   });
 
+  it('en la NFL se elige quién gana, sin X', () => {
+    renderCard({ homeTeam: 'Ravens', awayTeam: 'Jaguars', sport: 'AMERICAN_FOOTBALL' }, '2');
+
+    expect(screen.queryByRole('button', { name: /Predecir X/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Predecir que gana Jaguars en Ravens - Jaguars' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Gana Ravens')).toBeInTheDocument();
+  });
+
   it('dice que un partido terminado sin predicción no suma', () => {
     renderCard({ finished: true, actualHomeScore: 1, actualAwayScore: 2, pointsAwarded: null });
 
     expect(screen.getByText(/Sin predicción/)).toBeInTheDocument();
     expect(screen.getByText('0 pts')).toBeInTheDocument();
   });
+
+  it('enseña el reloj de un partido en juego', () => {
+    renderCard({ status: 'LIVE', displayClock: '3.er cuarto · 5:00', sport: 'BASKETBALL' });
+
+    expect(screen.getByText('En juego · 3.er cuarto · 5:00')).toBeInTheDocument();
+  });
+
+  it('deja cerrado hasta conocer los dos equipos un partido con un rival por definir', () => {
+    renderCard({
+      awayTeam: 'Por definir',
+      locked: true,
+      awaitingTeams: true,
+      lockReason: 'Se abre cuando se conozcan los dos equipos',
+    });
+
+    expect(screen.getByText('Por definir', { selector: '.md-badge' })).toBeInTheDocument();
+    expect(screen.getByText('Se abre cuando se conozcan los dos equipos')).toBeInTheDocument();
+    expect(screen.queryByText('Cerrado')).not.toBeInTheDocument();
+  });
 });
 
 describe('MatchdayHeader', () => {
-  const header = (canEdit: boolean) =>
+  const header = (isLoading: boolean) =>
     render(
       <MatchdayHeader
         title="Liga"
         isLocked={false}
-        canEdit={canEdit}
+        isLoading={isLoading}
         predicted={3}
         total={3}
-        isSaving={false}
-        onSave={vi.fn()}
-        successMsg=""
+        saveStatus="idle"
         errorMsg=""
+        onRetry={vi.fn()}
       />,
     );
 
-  it('oculta «Guardar» si no queda ningún partido abierto', () => {
-    header(false);
-    expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
+  it('no muestra un «0/0» falso mientras cargan los partidos', () => {
+    header(true);
+    expect(screen.queryByText(/predicciones/)).not.toBeInTheDocument();
   });
 
-  it('muestra «Guardar» con partidos abiertos', () => {
-    header(true);
-    expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled();
+  it('muestra el progreso y ningún botón de guardar fijo', () => {
+    header(false);
+    expect(screen.getByText('3/3 predicciones')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Guardar/ })).not.toBeInTheDocument();
   });
 });

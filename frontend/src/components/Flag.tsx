@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getCountryCode, getCountryEmoji, normalizeCountryName } from '../utils/constants';
+import { smallTeamLogo } from '../utils/teamLogo';
 
 interface FlagProps {
   team: string | null | undefined;
@@ -25,7 +26,7 @@ const Flag = ({ team, logo, size = 'w40', style = {}, className = '' }: FlagProp
   if (logo && !logoError) {
     return (
       <img
-        src={logo}
+        src={smallTeamLogo(logo)}
         alt={cleanTeam || 'Escudo'}
         width={20}
         height={20}

@@ -14,11 +14,18 @@
 @import './styles/custom-admin.css';
 @import './styles/leaderboard-mobile.css';
 @import './styles/standings.css';
+@import './styles/ufc-card.css';
+@import './styles/fight.css';
+@import './styles/tennis-draw.css';
 @import './styles/paper.css';
 @import './styles/paper-overrides.css';
 @import './styles/bracket-layout.css';
+@import './styles/knockout-draw.css';
 @import './styles/paper-details.css';
 @import './styles/sheet-dialog.css';
 @import './styles/radar.css';
 
 @import './styles/league-loading.css';
+@import './styles/create-league.css';
+@import './styles/match-picker.css';
+@import './styles/grand-prix.css';

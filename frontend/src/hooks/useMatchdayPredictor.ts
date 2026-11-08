@@ -1,9 +1,13 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useEffectEvent, useMemo, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { useAppContext } from '../context/AppContext';
-import { fetchMatchdayFixtures, submitMatchdayPredictions } from '../services/api';
+import {
+  fetchMatchdayFixtures,
+  fetchSurvivorStatus,
+  submitMatchdayPredictions,
+} from '../services/api';
 import { leaderboardMatchdaysQuery } from '../services/queries';
 import { queryKeys } from '../services/queryKeys';
 import type {
@@ -15,6 +19,7 @@ import { errorMessage } from '../utils/errors';
 import { draftKey, readDraft } from '../utils/drafts';
 import {
   EMPTY_PREDICTION,
+  survivorUsedTeams,
   buildSubmission,
   filterFixtures,
   hasLiveMatch,
@@ -26,6 +31,7 @@ import {
   roundLabelFor,
   roundsFromFixtures,
   roundsFromMatchdays,
+  sortFightCard,
   withSign,
   withoutSaved,
   type Draft,
@@ -33,12 +39,15 @@ import {
   type MatchSign,
   type StatusFilter,
 } from '../utils/matchday';
+import { MATCH_KINDS } from '../context/leagueKind';
 
 interface SaveVariables {
   groupId: string;
   items: MatchdayPredictionInput[];
-  savedMatchIds: number[];
 }
+
+/** Estado del guardado automático, para la cabecera de la jornada. */
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 const EMPTY_FIXTURES: MatchdayFixture[] = [];
 
@@ -54,14 +63,15 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     activeGroupId,
     activeGroupIsLocked,
     activeGroupPoolFormat,
-    activeCompetitionFormatType,
+    leagueKind,
     userId,
     userName,
     isAuthenticated,
   } = context;
 
-  const isMatchDay =
-    activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE';
+  const isMatchDay = MATCH_KINDS[leagueKind];
+
+  const isSurvivor = activeGroupPoolFormat === 'SURVIVOR';
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -71,11 +81,13 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const [selectedMatchForFriends, setSelectedMatchForFriends] = useState<MatchdayFixture | null>(
     null,
   );
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localPredictions, setLocalPredictions] = useState<Draft>({});
-  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const draftRef = useRef<Draft | null>(null);
+  // Un solo guardado a la vez: lo que se elija mientras tanto sale en cuanto termine.
+  const inFlightRef = useRef(false);
+  const queuedRef = useRef(false);
   // El borrador es de cada usuario: en un dispositivo compartido no se ve el de otro.
   const draftUser = userId || userName;
   const storageKey = draftKey('matchday', activeGroupId, draftUser);
@@ -98,16 +110,10 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     draftRef.current = null;
   }, [storageKey]);
 
-  // Redirigir a mis-ligas si no hay liga seleccionada, o al inicio si no es modalidad por jornadas (ej. Mundial)
+  // Sin liga seleccionada, a Mis ligas. Las demás clases de liga no llegan aquí (MatchdayPredictor).
   useEffect(() => {
-    if (!activeGroupId && isAuthenticated) {
-      navigate('/mis-ligas');
-      return;
-    }
-    if (activeGroupPoolFormat && !isMatchDay) {
-      navigate('/');
-    }
-  }, [activeGroupId, activeGroupPoolFormat, isMatchDay, isAuthenticated, navigate]);
+    if (!activeGroupId && isAuthenticated) navigate('/mis-ligas');
+  }, [activeGroupId, isAuthenticated, navigate]);
 
   const enabled = Boolean(activeGroupId && isMatchDay);
 
@@ -131,6 +137,13 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   });
   const fixtures = fixturesQuery.data ?? EMPTY_FIXTURES;
 
+  // Superviviente: si sigue vivo y qué equipos ya ha gastado en otras jornadas.
+  const survivorQuery = useQuery({
+    queryKey: queryKeys.survivorStatus(activeGroupId, draftUser),
+    queryFn: () => fetchSurvivorStatus(activeGroupId),
+    enabled: enabled && isSurvivor && isAuthenticated,
+  });
+
   // Al llegar partidos, el borrador local manda en los abiertos y el servidor en los bloqueados.
   useEffect(() => {
     if (fixtures.length === 0) return;
@@ -145,7 +158,6 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     const merged = mergeDraftWithServer(fixtures, draft ?? {});
     setLocalPredictions(merged.predictions);
     persistDraft(merged.draft);
-    setHasUnsavedChanges(Object.keys(merged.draft).length > 0);
   }, [fixtures, storageKey, activeGroupId, draftUser, persistDraft]);
 
   const roundList = useMemo(
@@ -163,94 +175,174 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
 
   const saveMutation = useMutation<MatchdaySubmissionResult, Error, SaveVariables>({
     mutationFn: ({ groupId, items }) => submitMatchdayPredictions(groupId, items),
-    onSuccess: (data, { groupId, savedMatchIds }) => {
-      setSaveSuccessMsg(data.message || '¡Predicciones guardadas correctamente!');
-      const rest = withoutSaved(draftRef.current ?? {}, savedMatchIds);
-      persistDraft(rest);
-      setHasUnsavedChanges(Object.keys(rest).length > 0);
+    onSuccess: (_data, { groupId, items }) => {
+      const rest = withoutSaved(draftRef.current ?? {}, items);
+      // Superviviente: los huecos que dejó cambiar de partido ya están en el servidor.
+      persistDraft(
+        isSurvivor
+          ? Object.fromEntries(Object.entries(rest).filter(([, pred]) => hasPrediction(pred)))
+          : rest,
+      );
       setSaveErrorMsg('');
+      setSaveStatus('saved');
       queryClient.invalidateQueries({ queryKey: queryKeys.matchdayFixtures(groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) });
     },
     onError: (err) => {
-      setSaveErrorMsg(errorMessage(err, 'Error al guardar las predicciones'));
-      setSaveSuccessMsg('');
+      setSaveErrorMsg(errorMessage(err, 'No se pudo guardar la predicción'));
+      setSaveStatus('error');
+    },
+    onSettled: () => {
+      inFlightRef.current = false;
+      if (queuedRef.current) {
+        queuedRef.current = false;
+        saveDraft();
+      }
     },
   });
 
-  // El aviso de guardado desaparece a los 4 s; el temporizador se limpia al desmontar o si
-  // llega otro aviso antes.
+  // «Guardado» se queda 3 s y vuelve a desaparecer.
   useEffect(() => {
-    if (!saveSuccessMsg) return;
-    const timer = setTimeout(() => setSaveSuccessMsg(''), 4000);
+    if (saveStatus !== 'saved') return;
+    const timer = setTimeout(() => setSaveStatus('idle'), 3000);
     return () => clearTimeout(timer);
-  }, [saveSuccessMsg]);
+  }, [saveStatus]);
 
   const updatePrediction = (matchId: number, prediction: DraftPrediction) => {
     persistDraft({ ...draftRef.current, [matchId]: prediction });
-    setHasUnsavedChanges(true);
     setLocalPredictions((previous) => ({ ...previous, [matchId]: prediction }));
   };
 
   const predictionFor = (matchId: number) => localPredictions[matchId] || EMPTY_PREDICTION;
 
-  const handleQuickSign = (matchId: number, sign: MatchSign) =>
-    updatePrediction(matchId, withSign(sign));
-
   const roundFixtures = useMemo(
-    () => (activeRound ? fixtures.filter((f) => roundLabelFor(f) === activeRound) : fixtures),
+    () =>
+      sortFightCard(
+        activeRound ? fixtures.filter((f) => roundLabelFor(f) === activeRound) : fixtures,
+      ),
     [fixtures, activeRound],
   );
 
-  const handleSaveAll = () => {
-    if (saveMutation.isPending || activeGroupIsLocked) return;
+  /** Envía el borrador de la jornada; si ya hay un guardado en curso, sale justo después. */
+  function saveDraft() {
+    if (activeGroupIsLocked || !isAuthenticated) return;
+    if (inFlightRef.current) {
+      queuedRef.current = true;
+      return;
+    }
+    const submission = buildSubmission(roundFixtures, draftRef.current || {});
+    if (submission.kind !== 'ready') return;
+    inFlightRef.current = true;
+    setSaveStatus('saving');
+    saveMutation.mutate({ groupId: activeGroupId, items: submission.items });
+  }
+
+  // Lo que quedó sin guardar (sin conexión, o se cerró la app a medias) se envía al llegar los
+  // partidos. Va después del efecto que mezcla el borrador, así que ya lo tiene al día.
+  const resumeSave = useEffectEvent(saveDraft);
+  useEffect(() => {
+    if (fixtures.length > 0 && Object.keys(draftRef.current ?? {}).length > 0) resumeSave();
+  }, [fixtures]);
+
+  /** Elegir un signo lo guarda al momento: no hay botón de guardar. */
+  /** Tenis: ganador y, si se eligen, sets; se guarda al momento como un signo. */
+  const handleTennisPick = (matchId: number, prediction: DraftPrediction) => {
     if (!isAuthenticated) {
       toast.error('Inicia sesión con Google para guardar tus predicciones.');
       return;
     }
-    const submission = buildSubmission(roundFixtures, draftRef.current || {});
-    if (submission.kind === 'incomplete') {
-      setSaveErrorMsg('Completa los dos marcadores de cada partido antes de guardar.');
-      return;
-    }
-    if (submission.kind === 'empty') {
-      toast('No hay predicciones nuevas o modificadas para guardar en esta jornada.');
-      return;
-    }
-    saveMutation.mutate({
-      groupId: activeGroupId,
-      items: submission.items,
-      savedMatchIds: submission.items.map((p) => p.matchId),
-    });
+    updatePrediction(matchId, prediction);
+    saveDraft();
   };
+
+  const handleQuickSign = (matchId: number, sign: MatchSign) => {
+    if (!isAuthenticated) {
+      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      return;
+    }
+    updatePrediction(matchId, withSign(sign));
+    saveDraft();
+  };
+
+  /** Pelea de la UFC: ganador, método y asalto se guardan al momento, como un signo. */
+  const handleFightPick = (matchId: number, pick: DraftPrediction) => {
+    if (!isAuthenticated) {
+      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      return;
+    }
+    updatePrediction(matchId, pick);
+    saveDraft();
+  };
+
+  /**
+   * Superviviente: elegir un equipo deja vacíos los demás partidos abiertos de la jornada, porque
+   * solo vale una elección; el servidor sustituye la anterior al guardar.
+   */
+  const handleSurvivorPick = (matchId: number, sign: '1' | '2') => {
+    if (!isAuthenticated) {
+      toast.error('Inicia sesión con Google para guardar tu elección.');
+      return;
+    }
+    const cleared: Draft = {};
+    roundFixtures
+      .filter(
+        (f) => f.matchId !== matchId && !f.locked && hasPrediction(localPredictions[f.matchId]),
+      )
+      .forEach((f) => {
+        cleared[f.matchId] = EMPTY_PREDICTION;
+      });
+    const picked = withSign(sign);
+    persistDraft({ ...draftRef.current, ...cleared, [matchId]: picked });
+    setLocalPredictions((previous) => ({ ...previous, ...cleared, [matchId]: picked }));
+    saveDraft();
+  };
+
+  const usedTeams = useMemo(
+    () => survivorUsedTeams(survivorQuery.data, activeRound),
+    [survivorQuery.data, activeRound],
+  );
+
+  // Superviviente: con un equipo elegido la jornada ya no tiene nada pendiente.
+  const survivorPicked =
+    isSurvivor && roundFixtures.some((f) => hasPrediction(localPredictions[f.matchId]));
 
   const counts = useMemo(
     () => ({
       predicted: roundFixtures.filter((f) => hasPrediction(localPredictions[f.matchId])).length,
-      pending: roundFixtures.filter((f) =>
-        isPendingFixture(f, localPredictions, activeGroupIsLocked),
-      ).length,
+      pending: survivorPicked
+        ? 0
+        : roundFixtures.filter((f) => isPendingFixture(f, localPredictions, activeGroupIsLocked))
+            .length,
       finished: roundFixtures.filter((f) => f.finished).length,
       upcoming: roundFixtures.filter((f) => !f.finished).length,
       total: roundFixtures.length,
     }),
-    [roundFixtures, localPredictions, activeGroupIsLocked],
+    [roundFixtures, localPredictions, activeGroupIsLocked, survivorPicked],
   );
 
-  // En una jornada ya jugada, «Todos» estaría vacío: se muestran los finalizados.
+  // En una jornada ya jugada, «Por jugar» estaría vacío: se muestran los finalizados.
   const activeFilter: StatusFilter =
     statusFilter === 'UPCOMING' && counts.upcoming === 0 && counts.finished > 0
       ? 'FINISHED'
       : statusFilter;
 
   const displayedFixtures = useMemo(
-    () => filterFixtures(roundFixtures, activeFilter, localPredictions, activeGroupIsLocked),
-    [roundFixtures, activeFilter, localPredictions, activeGroupIsLocked],
+    () =>
+      survivorPicked && activeFilter === 'PENDING'
+        ? []
+        : filterFixtures(roundFixtures, activeFilter, localPredictions, activeGroupIsLocked),
+    [roundFixtures, activeFilter, localPredictions, activeGroupIsLocked, survivorPicked],
   );
 
   return {
     isMatchDay,
+    isSurvivor,
+    survivor: survivorQuery.data ?? null,
+    usedTeams,
+    handleSurvivorPick,
     fixtures,
+    activeRound,
+    roundFixtures,
     isLoading: matchdaysQuery.isLoading || fixturesQuery.isLoading,
     isError: fixturesQuery.isError,
     refetch: fixturesQuery.refetch,
@@ -264,10 +356,10 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     displayedFixtures,
     predictionFor,
     handleQuickSign,
-    handleSaveAll,
-    isSaving: saveMutation.isPending,
-    hasUnsavedChanges,
-    saveSuccessMsg,
+    handleFightPick,
+    handleTennisPick,
+    retrySave: saveDraft,
+    saveStatus,
     saveErrorMsg,
     selectedMatchForFriends,
     setSelectedMatchForFriends,

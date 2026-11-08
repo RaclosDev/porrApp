@@ -1,11 +1,9 @@
 import toast from 'react-hot-toast';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  createGroup,
   joinGroup,
   fetchGroup,
   leaveGroup,
-  fetchCompetitions,
   updateGroup,
   deleteGroup,
   uploadGroupImage,
@@ -16,27 +14,16 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
 import { myGroupsQuery, myLeagueSummariesQuery } from '../services/queries';
-import type { Competition, Group, LeagueSummary, PoolFormat } from '../types/api';
+import type { Group, LeagueSummary } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { isApiError } from '../services/apiError';
 import { useAppStore } from '../store/useAppStore';
+import { dropFromMyGroups, forgetLeague } from '../context/leagueFallback';
 import { confirmAction } from '../utils/confirmAction';
-
-/** Identificador aleatorio para la cabecera `Idempotency-Key`. */
-function newIdempotencyKey(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-}
+import { isMatchBasedFormat } from '../utils/poolFormat';
+import { copyWithToast, joinLink, shareJoinLinkOnWhatsApp } from '../utils/leagueInvite';
 
 type GroupId = number | string;
-
-export const POOL_FORMATS: { id: PoolFormat; label: string }[] = [
-  { id: 'MATCH_DAY', label: 'Por jornadas (1X2 y marcador exacto)' },
-  { id: 'FULL_BRACKET', label: 'Completa (fase de grupos y cruces)' },
-  { id: 'KNOCKOUTS_ONLY', label: 'Solo eliminatorias' },
-];
 
 const KNOWN_GROUPS_KEY = 'knownGroups';
 
@@ -93,35 +80,11 @@ export function useGroupsDashboard() {
     ? errorMessage(myGroupsError, 'No se han podido cargar tus ligas.')
     : '';
 
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [customCompetitionName, setCustomCompetitionName] = useState('');
-  const [selectedCompetition, setSelectedCompetition] = useState('');
-  const [selectedPoolFormat, setSelectedPoolFormat] = useState<PoolFormat>('MATCH_DAY');
-  const [includePichichi, setIncludePichichi] = useState(false);
-  const [newlyCreatedGroup, setNewlyCreatedGroup] = useState<Group | null>(null);
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [visibleCodes, setVisibleCodes] = useState(new Set<GroupId>());
-  const [isCreating, setIsCreating] = useState(false);
 
   const navigate = useNavigate();
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchCompetitions()
-      .catch((): Competition[] => [])
-      .then((comps) => {
-        if (cancelled) return;
-        setCompetitions(comps);
-        if (comps.length > 0) {
-          setSelectedCompetition((prev) => (prev ? prev : comps[0].id.toString()));
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Sin sesión, las ligas conocidas en este dispositivo se piden una a una (máximo 3).
   useEffect(() => {
@@ -169,52 +132,8 @@ export function useGroupsDashboard() {
     refetchMyGroups();
   }, [refetchMyGroups]);
 
-  // Clave de idempotencia de la creación en curso: se mantiene entre reintentos para que
-  // el servidor devuelva la misma liga si la primera respuesta se perdió.
-  const creationKeyRef = useRef<string | null>(null);
-
-  const handleCreate = async (e?: { preventDefault?: () => void }) => {
-    if (e && e.preventDefault) e.preventDefault();
-    if (isCreating) return;
-    if (
-      !newGroupName.trim() ||
-      (!selectedCompetition && !customCompetitionName.trim()) ||
-      !selectedPoolFormat
-    ) {
-      setError('El nombre de la liga y la competición son obligatorios');
-      return;
-    }
-    setIsCreating(true);
-    creationKeyRef.current ??= newIdempotencyKey();
-    try {
-      const group = await createGroup(
-        newGroupName.trim(),
-        selectedCompetition || null,
-        selectedPoolFormat,
-        includePichichi,
-        selectedCompetition ? undefined : customCompetitionName.trim(),
-        creationKeyRef.current,
-      );
-      creationKeyRef.current = null;
-      setNewGroupName('');
-      setCustomCompetitionName('');
-      setNewlyCreatedGroup(group);
-      changeGroup(group.id.toString());
-      refreshGroups();
-    } catch (e) {
-      setError(errorMessage(e, 'No se pudo crear la liga'));
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  // Compartir solo el enlace: WhatsApp genera la vista previa con los metadatos OG,
-  // exactamente igual que al pegar la URL a mano.
   const handleShareWhatsApp = (group: Pick<Group, 'joinCode'> | null | undefined) => {
-    if (!group?.joinCode) return;
-
-    const link = `${window.location.origin}/join/${encodeURIComponent(group.joinCode)}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, '_blank', 'noopener,noreferrer');
+    if (group?.joinCode) shareJoinLinkOnWhatsApp(group.joinCode);
   };
 
   /** Guarda nombre y reglas en una sola petición para evitar estados parciales. */
@@ -265,10 +184,10 @@ export function useGroupsDashboard() {
     try {
       await deleteGroup(groupId);
       forgetKnownGroups([groupId]);
-
-      if (useAppStore.getState().activeGroupId === groupId.toString()) {
-        changeGroup(null);
-      }
+      // Fuera de la lista ya: si era la activa, se abre sola la más reciente (useLeagueDataEffects).
+      dropFromMyGroups(queryClient, groupId);
+      if (useAppStore.getState().activeGroupId !== groupId.toString())
+        forgetLeague(queryClient, groupId);
 
       refreshGroups();
       toast.success(`La liga "${groupName}" ha sido eliminada.`);
@@ -311,7 +230,7 @@ export function useGroupsDashboard() {
   const handleEnterGroup = (groupId: GroupId) => {
     changeGroup(groupId.toString());
     const g = groups.find((item) => item.id.toString() === groupId.toString());
-    if (g && g.poolFormat === 'MATCH_DAY') {
+    if (g && isMatchBasedFormat(g.poolFormat)) {
       navigate('/jornadas');
     } else {
       navigate('/');
@@ -329,8 +248,11 @@ export function useGroupsDashboard() {
       return;
     try {
       await leaveGroup(groupId);
-      if (useAppStore.getState().activeGroupId === groupId.toString()) changeGroup(null);
       forgetKnownGroups([groupId]);
+      // Fuera de la lista ya: si era la activa, se abre sola la más reciente (useLeagueDataEffects).
+      dropFromMyGroups(queryClient, groupId);
+      if (useAppStore.getState().activeGroupId !== groupId.toString())
+        forgetLeague(queryClient, groupId);
 
       refreshGroups();
       toast.success(`Has abandonado la liga "${groupName}".`);
@@ -352,44 +274,24 @@ export function useGroupsDashboard() {
   };
 
   const handleCopyCode = (code: string | null) => {
-    if (!code) return;
-    navigator.clipboard.writeText(code);
-    toast.success(`Código "${code}" copiado al portapapeles`);
+    if (code) void copyWithToast(code, `Código "${code}" copiado al portapapeles`);
   };
 
   const handleCopyLink = (code: string | null) => {
-    if (!code) return;
-    const link = `${window.location.origin}/join/${code}`;
-    navigator.clipboard.writeText(link);
-    toast.success('Enlace de invitación copiado al portapapeles');
+    if (code) void copyWithToast(joinLink(code), 'Enlace de invitación copiado al portapapeles');
   };
 
   return {
     summaries,
     groups,
-    competitions,
     loading,
     error,
     groupsError,
     retryGroups,
-    newGroupName,
-    setNewGroupName,
-    customCompetitionName,
-    setCustomCompetitionName,
-    selectedCompetition,
-    setSelectedCompetition,
-    selectedPoolFormat,
-    setSelectedPoolFormat,
-    includePichichi,
-    setIncludePichichi,
-    newlyCreatedGroup,
-    setNewlyCreatedGroup,
     joinCode,
     setJoinCode,
     visibleCodes,
     toggleCodeVisibility,
-    isCreating,
-    handleCreate,
     handleJoin,
     handleSaveGroupConfig,
     handleUploadGroupImage,

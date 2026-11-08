@@ -27,4 +27,47 @@ class MatchRoundTest {
         assertThat(MatchRound.matchdayNumber("Fecha 2026-11-24")).isNull();
         assertThat(MatchRound.matchdayNumber(null)).isNull();
     }
+
+    @Test
+    void nflWeeksSortByNumberAndPlayoffRoundsStayAfterThem() {
+        List<String> rounds = new ArrayList<>(List.of(
+                "Semana 9", "Semana 10", "Semana 18", "Semana 11", "Ronda de comodines", "Super Bowl"));
+
+        MatchRound.sortNumberedMatchdays(rounds, Function.identity());
+
+        assertThat(rounds).containsExactly(
+                "Semana 9", "Semana 10", "Semana 11", "Semana 18", "Ronda de comodines", "Super Bowl");
+        assertThat(MatchRound.matchdayNumber("Semana 12")).isEqualTo(12);
+        // La semana de una liga con varias competiciones no es una jornada numerada.
+        assertThat(MatchRound.matchdayNumber("Semana 2026-11-02")).isNull();
+    }
+
+    @Test
+    void knockoutRoundsHaveSpanishLabelsAndCanBeLookedUpByThem() {
+        com.porra.mundial.model.Match octavos = com.porra.mundial.model.Match.builder().round("r16").build();
+
+        assertThat(MatchRound.label(octavos)).isEqualTo("Octavos de final");
+        assertThat(MatchRound.lookup("Octavos de final").names()).contains("r16");
+        assertThat(MatchRound.matches(octavos, "Octavos de final")).isTrue();
+        assertThat(MatchRound.matches(octavos, "r16")).isTrue();
+    }
+
+    @Test
+    void thePlayInOfTheLolWorldsHasASpanishLabel() {
+        com.porra.mundial.model.Match playIn = com.porra.mundial.model.Match.builder().round("playin").build();
+
+        assertThat(MatchRound.label(playIn)).isEqualTo("Play-in");
+        assertThat(MatchRound.matches(playIn, "Play-in")).isTrue();
+        assertThat(MatchRound.lookup("Play-in").names()).contains("playin");
+    }
+    @Test
+    void theEarlyRoundsOfTheCopaDelReyHaveASpanishLabel() {
+        com.porra.mundial.model.Match first = com.porra.mundial.model.Match.builder().round("round1").build();
+        com.porra.mundial.model.Match previous = com.porra.mundial.model.Match.builder().round("qualifying").build();
+
+        assertThat(MatchRound.label(first)).isEqualTo("Primera ronda");
+        assertThat(MatchRound.label(previous)).isEqualTo("Ronda previa");
+        assertThat(MatchRound.matches(first, "Primera ronda")).isTrue();
+        assertThat(MatchRound.lookup("Primera ronda").names()).contains("round1");
+    }
 }

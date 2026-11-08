@@ -42,6 +42,10 @@ public class CustomCompetitionService {
     private final CompetitionService competitionService;
     private final CustomLockService lockService;
 
+    private static final java.time.format.DateTimeFormatter FIRST_MATCH_FORMAT =
+            java.time.format.DateTimeFormatter.ofPattern("d/M/yyyy HH:mm")
+                    .withZone(java.time.ZoneId.of("Europe/Madrid"));
+
     /** Margen máximo antes del partido: 30 días. */
     static final int MAX_LOCK_OFFSET_MINUTES = 30 * 24 * 60;
 
@@ -57,15 +61,23 @@ public class CustomCompetitionService {
             throw BusinessException.forbidden("Solo el administrador puede cambiar el cierre");
         }
         if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran las predicciones");
+        if (com.porra.mundial.model.PoolFormat.isRaceBased(edition.getPoolFormat())) {
+            throw BusinessException.badRequest("En Fórmula 1 cada Gran Premio se cierra al empezar la clasificación");
+        }
         int offset = offsetMinutes == null ? 0 : offsetMinutes;
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
         }
-        if (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+        // Por jornadas y superviviente se pronostica partido a partido: se cierran igual.
+        if (com.porra.mundial.model.PoolFormat.isMatchBased(edition.getPoolFormat())) {
             return setMatchdayLock(edition, mode, offset);
         }
         if (mode == PredictionLockMode.PER_DAY) {
             throw BusinessException.badRequest("El cierre por días es solo para ligas por jornadas");
+        }
+        if (DrawnKnockout.applies(edition) && !mode.progressive()) {
+            // Las rondas siguientes aún no tienen cruces: no puede cerrarse todo a la vez.
+            throw BusinessException.badRequest("Los cruces se sortean ronda a ronda: se cierra por rondas o por eliminatorias");
         }
         if (mode.progressive() && !PredictableBracket.applies(edition)) {
             throw BusinessException.badRequest("Esta competición solo admite cerrar en una fecha o en el primer partido");
@@ -73,8 +85,17 @@ public class CustomCompetitionService {
         Instant now = Instant.now();
         edition.setLockMode(mode);
         if (mode == PredictionLockMode.FIXED_DATE) {
-            if (lockDate == null || !lockDate.isAfter(now)) {
+            if (lockDate == null) {
+                throw BusinessException.badRequest("Con el cierre en una fecha fija hace falta la fecha de cierre (lockDate)");
+            }
+            if (!lockDate.isAfter(now)) {
                 throw BusinessException.badRequest("La fecha de cierre debe ser futura");
+            }
+            // Con el cierre después del primer cruce se rellenaría el cuadro sabiendo ya resultados.
+            Instant firstMatch = lockService.bracketClosesAt(edition);
+            if (firstMatch != null && lockDate.isAfter(firstMatch)) {
+                throw BusinessException.badRequest("La fecha de cierre debe ser anterior al primer cruce ("
+                        + FIRST_MATCH_FORMAT.format(firstMatch) + "): después ya se sabrían resultados");
             }
             edition.setLockOffsetMinutes(0);
             edition.setLockDate(lockDate);
@@ -97,6 +118,8 @@ public class CustomCompetitionService {
         }
         edition.setLockMode(mode);
         edition.setLockOffsetMinutes(offset);
+        // Cada partido se cierra por su cuenta: una fecha de cierre de antes cerraría toda la liga.
+        edition.setLockDate(null);
         return edition;
     }
 
@@ -117,6 +140,28 @@ public class CustomCompetitionService {
     @Transactional(readOnly = true)
     public CustomLockService.LockState lockState(Long leagueId, String email) {
         return lockService.state(memberEdition(leagueId, email));
+    }
+
+    /** La liga pronostica los playoffs de la NBA, serie a serie. */
+    @Transactional(readOnly = true)
+    public boolean playsSeries(Long leagueId, String email) {
+        return DrawnKnockout.playsSeries(memberEdition(leagueId, email));
+    }
+
+    /**
+     * Cierre de un cuadro recién creado sin elegirlo: el de su primer partido con fecha. Si la competición ya
+     * ha empezado, ese cierre habría pasado y hay que elegir otro; sin partidos aún, lo fija la sincronización.
+     */
+    @Transactional
+    public void applyDefaultLock(Long leagueId) {
+        Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE").orElse(null);
+        if (edition == null || edition.getLockMode() != PredictionLockMode.FIRST_MATCH) return;
+        Instant lock = lockService.firstMatchLock(edition);
+        if (lock != null && !lock.isAfter(Instant.now())) {
+            throw BusinessException.badRequest("La competición ya ha empezado: elige cómo se cierran las predicciones "
+                    + "(lockMode) o una fecha de cierre futura (lockDate)");
+        }
+        edition.setLockDate(lock);
     }
 
     /** En el modo «primer partido» el cierre sigue al primer partido aunque cambie el calendario. */

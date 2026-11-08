@@ -68,8 +68,18 @@ public class LeagueService {
         if (custom == (competitionId != null)) {
             throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
         }
+        if (poolFormat == null) {
+            throw BusinessException.badRequest("Elige el formato de la porra");
+        }
         if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
             throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
+        }
+        if (custom && poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX) {
+            throw BusinessException.badRequest("El modo Gran Premio necesita la Fórmula 1 oficial");
+        }
+        if (custom && poolFormat == com.porra.mundial.model.PoolFormat.SURVIVOR) {
+            // Sin resultados automáticos nadie sabría cuándo queda eliminado cada uno.
+            throw BusinessException.badRequest("El modo superviviente necesita una competición oficial");
         }
         UserAccount adminUser = userAccountRepository.findByGoogleEmail(email)
                 .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
@@ -95,7 +105,47 @@ public class LeagueService {
             if (comp.getOwnerLeague() != null) {
                 throw BusinessException.forbidden("Esta competición pertenece a otra liga");
             }
-            comp = resolveCanonicalCompetition(comp);
+            // Sin proveedor de datos la liga se quedaría sin equipos ni partidos.
+            if (comp.getExternalId() == null || comp.getExternalId().isBlank()) {
+                throw BusinessException.badRequest("Esta competición no se puede seguir: elige otra");
+            }
+            if (com.porra.mundial.model.Sport.isMma(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+                throw BusinessException.badRequest("La UFC se juega velada a velada: elige Por veladas");
+            }
+            if (comp.isFormulaOne() != (poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX)) {
+                throw BusinessException.badRequest(comp.isFormulaOne()
+                        ? "La Fórmula 1 se juega Gran Premio a Gran Premio"
+                        : "El modo Gran Premio es solo para la Fórmula 1");
+            }
+            // Los playoffs de la NBA se pronostican serie a serie; los partidos, en la temporada regular.
+            if (comp.playsSeries() && poolFormat != com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY) {
+                throw BusinessException.badRequest("De los playoffs de la NBA se pronostica serie a serie: elige el modo Playoffs."
+                        + " Para predecir partidos, elige NBA · Temporada regular");
+            }
+            if (comp.drawsKnockoutRounds() && poolFormat == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
+                throw BusinessException.badRequest("Los cruces de esta competición se sortean ronda a ronda: elige Solo eliminatorias");
+            }
+            // La temporada regular de la NBA no tiene cuadro: se juega partido a partido.
+            if (com.porra.mundial.sports.EspnNbaDataProvider.isRegularSeason(comp.getExternalId())
+                    && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)) {
+                throw BusinessException.badRequest("La temporada regular de la NBA se juega partido a partido: elige Por semanas o Superviviente");
+            }
+            // Una liga regular (LaLiga, Premier, NFL…) no tiene cuadro: el asistente ya no lo ofrece.
+            if ("LEAGUE".equalsIgnoreCase(comp.getFormatType()) && !comp.isWorldCup() && !comp.drawsKnockoutRounds()
+                    && !poolFormat.isMatchBased() && poolFormat != com.porra.mundial.model.PoolFormat.GRAND_PRIX) {
+                throw BusinessException.badRequest("Esta competición se juega por jornadas: no tiene cuadro que rellenar");
+            }
+            if (com.porra.mundial.model.Sport.isTennis(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+                throw BusinessException.badRequest("Los torneos de tenis se juegan partido a partido");
+            }
+            // Con el cuadro ya empezado nadie podría enviar su predicción: la liga nacería muerta.
+            java.time.Instant closes = com.porra.mundial.service.prediction.PredictableBracket.predictionsCloseAt(
+                    comp, poolFormat, matchRepository.findByCompetitionId(comp.getId()));
+            if (closes != null && !closes.isAfter(java.time.Instant.now())) {
+                throw BusinessException.badRequest(poolFormat == com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY
+                        ? "Las eliminatorias de esta competición ya han empezado: elige Por jornadas"
+                        : "Esta competición ya ha empezado: el cuadro completo ya no admite predicciones");
+            }
         }
 
         League group = League.builder()
@@ -122,48 +172,41 @@ public class LeagueService {
                 .role("ADMIN")
                 .build());
 
+        java.time.Instant defaultLockDate = Edition.defaultLockDate(comp, poolFormat);
         editionRepository.save(Edition.builder()
                 .league(group)
                 .competition(comp)
-                .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
-                .lockDate(Edition.defaultLockDate(comp, poolFormat))
-                .pichichi(!custom && pichichi)
+                .poolFormat(poolFormat)
+                .lockDate(defaultLockDate)
+                // Unas eliminatorias sorteadas ronda a ronda no pueden cerrarse de una vez.
+                // En la NBA cada serie se cierra al empezar su primer partido, y cada Gran Premio de Fórmula 1
+                // al empezar su clasificación (la fecha de su fila de matches).
+                // Un cuadro sin fecha de cierre conocida se cierra al empezar su primer partido, como propone
+                // el asistente: en una fecha fija sin fecha no se cerraría nunca.
+                .lockMode(comp.playsSeries() || poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX
+                        ? com.porra.mundial.model.PredictionLockMode.PER_MATCH
+                        : com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
+                        ? com.porra.mundial.model.PredictionLockMode.FIXED_DATE
+                        : comp.drawsKnockoutRounds()
+                        ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
+                        : defaultLockDate != null
+                        ? com.porra.mundial.model.PredictionLockMode.FIXED_DATE
+                        : com.porra.mundial.model.PredictionLockMode.FIRST_MATCH)
+                // El único pichichi oficial es el del cuadro del Mundial.
+                .pichichi(pichichi && Edition.isWorldCupBracket(comp, poolFormat))
                 .status("ACTIVE")
-                .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
+                .scoringRulesJson((com.porra.mundial.model.Sport.isTennis(comp)
+                        ? com.porra.mundial.scoring.ScoringRuleSet.defaultTennis()
+                        : com.porra.mundial.scoring.ScoringRuleSet.defaults()).toJson())
                 .build());
 
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()
-                && matchRepository.countByCompetitionId(comp.getId()) == 0) {
+        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
+            // Siempre la temporada entera, aunque ya haya partidos sueltos de la sincronización diaria.
             // Se importa tras confirmar la liga: si ESPN falla, la liga ya está creada.
             eventPublisher.publishEvent(new CompetitionImportRequestedEvent(comp.getId()));
         }
 
         return group;
-    }
-
-    /**
-     * Traduce competiciones legacy (sin externalId) a su equivalente canónica con
-     * proveedor de datos, para que la importación automática siempre funcione.
-     */
-    private Competition resolveCanonicalCompetition(Competition comp) {
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
-            return comp;
-        }
-        String name = comp.getName() != null ? comp.getName().toLowerCase(java.util.Locale.ROOT) : "";
-        String slug = null;
-        if (name.contains("champions")) {
-            slug = "uefa.champions";
-        } else if (name.contains("premier")) {
-            slug = "eng.1";
-        } else if (name.contains("laliga") || name.contains("la liga")) {
-            slug = "esp.1";
-        } else if (name.contains("mundial") || name.contains("world cup")) {
-            slug = Competition.WORLD_CUP_EXTERNAL_ID;
-        }
-        if (slug == null) {
-            return comp;
-        }
-        return competitionRepository.findByExternalId(slug).orElse(comp);
     }
 
     @Transactional
@@ -260,7 +303,14 @@ public class LeagueService {
     @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "userGroups", key = "#email")
     public List<LeagueResponseDTO> getUserLeagueDTOs(String email) {
-        List<League> groups = getUserLeagues(email);
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user == null) return List.of();
+        java.util.Map<Long, Instant> joinedAt = new java.util.HashMap<>();
+        for (Membership m : membershipRepository.findByUserId(user.getId())) {
+            joinedAt.merge(m.getId().getLeagueId(), m.getJoinedAt() != null ? m.getJoinedAt() : Instant.EPOCH,
+                    (a, b) -> a.isBefore(b) ? a : b);
+        }
+        List<League> groups = leagueRepository.findAllById(joinedAt.keySet());
         if (groups.isEmpty()) return List.of();
 
         List<Long> groupIds = groups.stream().map(League::getId).collect(Collectors.toList());
@@ -270,7 +320,12 @@ public class LeagueService {
                 .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e, (e1, e2) -> e1));
 
         return groups.stream()
-                .map(g -> LeagueResponseDTO.of(g, editionMap.get(g.getId()), true))
+                .map(g -> {
+                    LeagueResponseDTO dto = LeagueResponseDTO.of(g, editionMap.get(g.getId()), true);
+                    Instant joined = joinedAt.get(g.getId());
+                    dto.setJoinedAt(Instant.EPOCH.equals(joined) ? null : joined);
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -284,7 +339,25 @@ public class LeagueService {
     @Transactional(readOnly = true)
     public LeagueResponseDTO toResponse(League league, boolean includeJoinCode) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null);
-        return LeagueResponseDTO.of(league, edition, includeJoinCode);
+        LeagueResponseDTO dto = LeagueResponseDTO.of(league, edition, includeJoinCode);
+        if (edition != null && edition.isMultiCompetition() && edition.getCompetition() != null
+                && edition.getId() != null) {
+            dto.setCompetitions(competitionsOf(edition));
+        }
+        return dto;
+    }
+
+    /** Las competiciones de una liga que junta varias: la principal primero y las demás por id. */
+    private List<LeagueResponseDTO.CompetitionRef> competitionsOf(Edition edition) {
+        Competition primary = edition.getCompetition();
+        List<LeagueResponseDTO.CompetitionRef> refs = new ArrayList<>();
+        refs.add(LeagueResponseDTO.CompetitionRef.of(primary));
+        competitionRepository.findByEditionId(edition.getId()).stream()
+                .filter(c -> !java.util.Objects.equals(c.getId(), primary.getId()))
+                .sorted(java.util.Comparator.comparing(Competition::getId))
+                .map(LeagueResponseDTO.CompetitionRef::of)
+                .forEach(refs::add);
+        return refs;
     }
 
     /**

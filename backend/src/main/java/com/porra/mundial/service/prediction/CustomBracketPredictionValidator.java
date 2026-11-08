@@ -30,6 +30,10 @@ public class CustomBracketPredictionValidator {
         if (!PredictableBracket.applies(edition) || data == null) {
             throw invalid("Esta edición no admite ese cuadro");
         }
+        if (DrawnKnockout.applies(edition)) {
+            validateDrawn(edition, data);
+            return;
+        }
         List<Team> catalog = teams.findByCompetitionIdOrderByNameAsc(competition.getId());
         Map<String, Set<String>> byGroup = new HashMap<>();
         for (Team team : catalog) {
@@ -102,6 +106,77 @@ public class CustomBracketPredictionValidator {
         }
         if (index != rounds.size() || !current.get(0).equals(data.getChampion())) {
             throw invalid("El campeón no coincide con el cuadro");
+        }
+    }
+
+    /**
+     * Eliminatorias sorteadas ronda a ronda: en cada ronda ya sorteada se elige quién pasa en los cruces
+     * que se quiera (null deja uno sin elegir); las rondas sin sortear van vacías. El campeón es el
+     * elegido en la final.
+     */
+    private void validateDrawn(Edition edition, PredictionDataDTO data) {
+        if (data.getGroups() != null && !data.getGroups().isEmpty()) {
+            throw invalid("Este cuadro no tiene fase de grupos");
+        }
+        List<DrawnKnockout.Round> rounds = DrawnKnockout.rounds(edition,
+                matches.findByCompetitionId(edition.getCompetition().getId()));
+        if (rounds.isEmpty()) throw invalid("Aún no se han sorteado los cruces");
+        List<List<String>> picks = data.getCustomRounds();
+        if (picks == null) throw invalid("Faltan las predicciones del cuadro");
+        if (picks.size() > rounds.size()) throw invalid("El cuadro tiene más rondas que la competición");
+        boolean any = false;
+        String finalPick = null;
+        for (int index = 0; index < picks.size(); index++) {
+            List<String> row = picks.get(index);
+            if (row == null || row.isEmpty()) continue;
+            DrawnKnockout.Round round = rounds.get(index);
+            if (!round.drawn()) {
+                throw invalid("La ronda de " + DrawnKnockout.title(round.key()) + " aún no se ha sorteado");
+            }
+            if (row.size() != round.ties().size()) {
+                throw invalid("Los cruces de " + DrawnKnockout.title(round.key()) + " han cambiado: vuelve a cargar");
+            }
+            for (int tie = 0; tie < row.size(); tie++) {
+                String pick = row.get(tie);
+                if (pick == null) continue;
+                if (!round.ties().get(tie).has(pick)) throw invalid("Un equipo elegido no juega ese cruce");
+                any = true;
+            }
+            if ("final".equals(round.key())) finalPick = row.get(0);
+        }
+        if (!any) throw invalid("Elige quién pasa en algún cruce");
+        String champion = data.getChampion() == null || data.getChampion().isBlank() ? null : data.getChampion();
+        if (!java.util.Objects.equals(champion, finalPick)) {
+            throw invalid("El campeón no coincide con el elegido en la final");
+        }
+        validateSeriesGames(rounds, picks, data.getCustomSeriesGames());
+    }
+
+    /**
+     * En cuántos partidos se gana cada serie de la NBA: de 4 a 7, solo en series al mejor de 7 y donde se
+     * ha elegido ganador. En fútbol y en el play-in no se elige.
+     */
+    private void validateSeriesGames(List<DrawnKnockout.Round> rounds, List<List<String>> picks,
+                                     List<List<Integer>> games) {
+        if (games == null) return;
+        if (games.size() > picks.size()) throw invalid("Hay resultados de series sin ganador elegido");
+        for (int index = 0; index < games.size(); index++) {
+            List<Integer> row = games.get(index);
+            if (row == null || row.stream().allMatch(java.util.Objects::isNull)) continue;
+            DrawnKnockout.Round round = rounds.get(index);
+            List<String> winners = picks.get(index);
+            if (round.bestOf() < 2 || winners == null || row.size() != winners.size()) {
+                throw invalid("En " + DrawnKnockout.seriesTitle(round.key()) + " no se elige el resultado de la serie");
+            }
+            int needed = round.bestOf() / 2 + 1;
+            for (int tie = 0; tie < row.size(); tie++) {
+                Integer count = row.get(tie);
+                if (count == null) continue;
+                if (winners.get(tie) == null) throw invalid("Elige primero quién gana la serie");
+                if (count < needed || count > round.bestOf()) {
+                    throw invalid("Una serie se gana en " + needed + " a " + round.bestOf() + " partidos");
+                }
+            }
         }
     }
 

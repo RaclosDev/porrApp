@@ -1,5 +1,6 @@
 package com.porra.mundial.service.notification;
 
+import com.porra.mundial.service.prediction.MatchSelectionService;
 import com.porra.mundial.service.prediction.MatchdayLock;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.League;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 
 /**
  * Avisa por push, una hora antes de que cierre un partido, a quien aún no lo ha predicho en una liga
- * por jornadas. Agrupa en un solo aviso todos los partidos pendientes del usuario y no repite el aviso
+ * por jornadas (o un Gran Premio, que cierra al empezar la clasificación, en una liga de Fórmula 1). Agrupa en un solo aviso todos los partidos pendientes del usuario y no repite el aviso
  * de un mismo partido.
  */
 @Slf4j
@@ -60,9 +61,14 @@ public class MatchReminderService {
     private final WebPushSender sender;
     private final ObjectMapper objectMapper;
     private final PushNotificationLogService notificationLog;
+    private final MatchSelectionService matchSelectionService;
 
     /** Un partido que el usuario aún no ha predicho en una liga y que cierra pronto. */
-    record Pending(Long userId, League league, Match match, Instant lockAt) {}
+    record Pending(Long userId, League league, Match match, Instant lockAt, boolean grandPrix) {
+        Pending(Long userId, League league, Match match, Instant lockAt) {
+            this(userId, league, match, lockAt, false);
+        }
+    }
 
     @Scheduled(initialDelay = 90_000, fixedDelay = 300_000)
     @SchedulerLock(name = "matchReminders", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
@@ -120,32 +126,40 @@ public class MatchReminderService {
         Map<Long, List<Match>> calendars = new HashMap<>();
         List<Pending> pending = new ArrayList<>();
 
-        for (Edition edition : editionRepository.findActiveByPoolFormat(PoolFormat.MATCH_DAY)) {
+        List<Edition> editions = new ArrayList<>(editionRepository.findActiveByPoolFormat(PoolFormat.MATCH_DAY));
+        editions.addAll(editionRepository.findActiveByPoolFormat(PoolFormat.GRAND_PRIX));
+        for (Edition edition : editions) {
             League league = edition.getLeague();
             if (league == null) continue;
             if (edition.getCompetition() == null || edition.isLocked()) continue;
-            Long competitionId = edition.getCompetition().getId();
 
             List<Match> candidates;
             List<Match> calendar;
             if (MatchdayLock.needsWholeCalendar(edition)) {
                 // Con cierre por día o por jornada, un partido lejano puede cerrar con el primero de su grupo.
-                calendar = calendars.computeIfAbsent(competitionId, matchRepository::findByCompetitionId);
+                calendar = MatchSelectionService.leagueCalendar(matchSelectionService, edition,
+                        id -> calendars.computeIfAbsent(id, matchRepository::findByCompetitionId));
                 candidates = calendar.stream()
                         .filter(m -> m.getMatchDate() != null && m.getMatchDate().isAfter(now)
                                 && !Boolean.TRUE.equals(m.getFinished()))
                         .toList();
             } else {
                 int offset = Math.max(0, edition.getLockOffsetMinutes());
-                candidates = matchRepository.findUnfinishedStartingBetween(competitionId, now,
-                        horizon.plus(offset, ChronoUnit.MINUTES));
+                Instant until = horizon.plus(offset, ChronoUnit.MINUTES);
+                candidates = MatchSelectionService.competitionIds(matchSelectionService, edition).stream()
+                        .flatMap(id -> matchRepository.findUnfinishedStartingBetween(id, now, until).stream())
+                        .toList();
                 calendar = candidates;
             }
             Map<Long, Instant> locks = MatchdayLock.lockTimes(edition, candidates, calendar);
             List<Match> due = candidates.stream()
-                    .filter(m -> isPredictable(m) && locks.containsKey(m.getId()))
+                    .filter(m -> isPredictable(m, PoolFormat.isRaceBased(edition.getPoolFormat())) && locks.containsKey(m.getId()))
                     .filter(m -> locks.get(m.getId()).isAfter(now) && !locks.get(m.getId()).isAfter(horizon))
                     .toList();
+            // Solo se avisa de los partidos que entran en la liga.
+            if (!due.isEmpty() && MatchSelectionService.selects(edition)) {
+                due = matchSelectionService.filter(edition, due);
+            }
             if (due.isEmpty()) continue;
 
             List<UserAccount> members = membershipRepository.findByLeagueId(league.getId()).stream()
@@ -164,17 +178,18 @@ public class MatchReminderService {
                 for (Match match : due) {
                     if (predicted.contains(user.getId() + ":" + match.getId())) continue;
                     if (alreadySent.contains(new MatchReminderSent.Key(user.getId(), match.getId()))) continue;
-                    pending.add(new Pending(user.getId(), league, match, locks.get(match.getId())));
+                    pending.add(new Pending(user.getId(), league, match, locks.get(match.getId()),
+                            PoolFormat.isRaceBased(edition.getPoolFormat())));
                 }
             }
         }
         return pending;
     }
 
-    private static boolean isPredictable(Match match) {
+    /** Un Gran Premio no tiene equipos; un partido, mientras le falte un rival, aún no se puede predecir. */
+    private static boolean isPredictable(Match match, boolean race) {
         if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) return false;
-        return !(match.getHomeTeam() != null && match.getAwayTeam() != null
-                && Team.isPlaceholder(match.getHomeTeam()) && Team.isPlaceholder(match.getAwayTeam()));
+        return race || !MatchdayLock.awaitingTeams(match);
     }
 
     /** Aviso con título, texto y la jornada a la que lleva al pulsarlo. */
@@ -190,7 +205,9 @@ public class MatchReminderService {
         String body;
         if (pending.size() == 1) {
             Match match = pending.get(0).match();
-            title = "Te falta predecir " + teamName(match.getHomeTeam()) + " – " + teamName(match.getAwayTeam());
+            title = pending.get(0).grandPrix() && match.getRound() != null
+                    ? "Te falta predecir el " + match.getRound()
+                    : "Te falta predecir " + teamName(match.getHomeTeam()) + " – " + teamName(match.getAwayTeam());
             body = first.getName() + " · cierra a las " + HOUR.format(firstLock);
         } else {
             title = "Te faltan " + pending.size() + " predicciones";

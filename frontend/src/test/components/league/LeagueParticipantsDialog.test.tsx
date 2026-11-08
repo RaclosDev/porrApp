@@ -36,7 +36,9 @@ describe('LeagueParticipantsDialog', () => {
     const dialog = screen.getByRole('dialog', { name: 'Participantes' });
     expect(within(dialog).getByText('Tebas League')).toBeInTheDocument();
     const items = await within(dialog).findAllByRole('listitem');
-    expect(items.map((item) => item.textContent)).toEqual(['AnaAdmin', 'bruno']);
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('AnaAdmin');
+    expect(items[1]).toHaveTextContent('bruno');
     expect(within(dialog).getByText('2 participantes en la liga')).toBeInTheDocument();
     expect(within(dialog).queryByText(/pag/i)).toBeNull();
     expect(api.fetchGroupMembers).toHaveBeenCalledWith(5);

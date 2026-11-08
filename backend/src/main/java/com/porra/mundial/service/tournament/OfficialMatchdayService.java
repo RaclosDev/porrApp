@@ -7,6 +7,7 @@ import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.FootballDataClient;
+import com.porra.mundial.sports.NflSchedule;
 import com.porra.mundial.sports.FootballDataClient.OfficialFixture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +61,7 @@ public class OfficialMatchdayService {
         int relabeled = 0;
         for (var entry : footballData.competitionCodes().entrySet()) {
             try {
-                relabeled += refresh(entry.getKey(), entry.getValue());
+                relabeled += Math.max(0, refresh(entry.getKey(), entry.getValue()));
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 return;
@@ -71,6 +72,18 @@ public class OfficialMatchdayService {
         if (relabeled > 0) clearCaches();
     }
 
+    /**
+     * {@link #refresh} no ha podido relacionar la mayoría de los partidos con el calendario oficial (en la
+     * Champions todos los horarios tienen varios partidos y no se aprende ningún equipo): no toca nada.
+     */
+    static final int NOT_COVERED = -1;
+
+    /**
+     * Pone la jornada oficial a los partidos de una liga.
+     *
+     * @return partidos cuya jornada ha cambiado, o {@link #NOT_COVERED} si el calendario oficial no cubre
+     *         la mayoría de los partidos de la temporada
+     */
     int refresh(String slug, String code) throws Exception {
         Competition competition = competitionRepository.findByExternalId(slug).orElse(null);
         if (competition == null || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())) return 0;
@@ -78,6 +91,11 @@ public class OfficialMatchdayService {
         if (fixtures.isEmpty()) return 0;
         Integer changed = new TransactionTemplate(transactionManager).execute(status -> {
             Assignment assignment = assignMatchdays(matchRepository.findByCompetitionId(competition.getId()), fixtures);
+            if (!assignment.coversSeason()) {
+                log.info("Jornadas oficiales de {}: solo {} de {} partidos emparejados; se deducen por fechas",
+                        slug, assignment.matchdays().size(), assignment.seasonMatches());
+                return NOT_COVERED;
+            }
             int count = 0;
             for (var assigned : assignment.matchdays().entrySet()) {
                 String round = MatchEventProcessor.MATCHDAY_PREFIX + assigned.getValue();
@@ -96,7 +114,12 @@ public class OfficialMatchdayService {
     }
 
     /** Jornada oficial de cada partido emparejado, con los totales para el registro. */
-    record Assignment(Map<Match, Integer> matchdays, int seasonMatches, int linkedTeams) {}
+    record Assignment(Map<Match, Integer> matchdays, int seasonMatches, int linkedTeams) {
+        /** Se ha emparejado al menos la mitad de los partidos de la temporada. */
+        boolean coversSeason() {
+            return seasonMatches > 0 && matchdays.size() * 2 >= seasonMatches;
+        }
+    }
 
     /**
      * Empareja los partidos propios con el calendario oficial. Los equipos de ambos proveedores se
@@ -113,6 +136,7 @@ public class OfficialMatchdayService {
         Map<Instant, List<Match>> oursBySlot = new HashMap<>();
         List<Match> season = new ArrayList<>();
         for (Match match : matches) {
+            if (MatchEventProcessor.isKnockoutRound(match.getRound())) continue;
             if (match.getMatchDate() == null || match.getHomeTeam() == null || match.getAwayTeam() == null
                     || match.getHomeTeam().getId() == null || match.getAwayTeam().getId() == null) continue;
             Instant kickoff = kickoff(match);
@@ -218,6 +242,108 @@ public class OfficialMatchdayService {
         int top = ranked.get(0).getValue();
         int second = ranked.size() > 1 ? ranked.get(1).getValue() : 0;
         return top >= MIN_VOTES && top > 2 * second ? ranked.get(0).getKey() : null;
+    }
+
+    /**
+     * Numera las jornadas de una liga tras importar su calendario: con la jornada oficial de football-data
+     * cuando la cubre y, si no, deduciéndolas del calendario ({@link #inferMatchdays}). Sin esto, cada día
+     * con partidos sería una jornada distinta.
+     *
+     * @return partidos cuya jornada ha cambiado
+     */
+    public int numberMatchdays(Competition competition) {
+        if (competition == null || competition.getId() == null || competition.getExternalId() == null
+                || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())
+                // La NFL y la temporada regular de la NBA ya llegan con su semana.
+                || NflSchedule.isNfl(competition.getExternalId())
+                || com.porra.mundial.sports.EspnNbaDataProvider.isRegularSeason(competition.getExternalId())) {
+            return 0;
+        }
+        String code = footballData.isEnabled() ? footballData.competitionCodes().get(competition.getExternalId()) : null;
+        int changed = NOT_COVERED;
+        if (code != null) {
+            try {
+                changed = refresh(competition.getExternalId(), code);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return 0;
+            } catch (Exception error) {
+                log.warn("No se pudieron leer las jornadas oficiales de {}: {}", competition.getExternalId(), error.getMessage());
+                return 0;
+            }
+        }
+        // Sin calendario oficial, o si no casa con el de ESPN (Champions), se deducen por fechas.
+        if (changed == NOT_COVERED) {
+            Integer inferred = new TransactionTemplate(transactionManager).execute(status -> {
+                int count = 0;
+                for (var assigned : inferMatchdays(matchRepository.findByCompetitionId(competition.getId())).entrySet()) {
+                    String round = MatchEventProcessor.MATCHDAY_PREFIX + assigned.getValue();
+                    Match match = assigned.getKey();
+                    if (!round.equals(match.getRound())) {
+                        match.setRound(round);
+                        matchRepository.save(match);
+                        count++;
+                    }
+                }
+                log.info("Jornadas deducidas de {}: {} partidos actualizados", competition.getExternalId(), count);
+                return count;
+            });
+            changed = inferred == null ? 0 : inferred;
+        }
+        if (changed > 0) clearCaches();
+        return changed;
+    }
+
+    /**
+     * Parón a partir del cual se da por empezada otra temporada. Entre temporadas pasan unos 80 días; el parón
+     * de la MLS por el Mundial de 2026 fue de 52, y no es otra temporada.
+     */
+    private static final Duration NEW_SEASON_GAP = Duration.ofDays(60);
+
+    /**
+     * Jornadas de la temporada en curso cuando no hay calendario oficial: en orden de fecha, una jornada se
+     * cierra cuando un equipo volvería a jugar o ya tiene todos sus partidos (la mitad de los equipos). Los
+     * partidos de antes del último parón largo son de otra temporada y no se numeran.
+     */
+    static Map<Match, Integer> inferMatchdays(List<Match> matches) {
+        List<Match> dated = matches.stream()
+                // Las eliminatorias de una competición de liga (Champions…) llevan su ronda, no una jornada.
+                .filter(m -> !MatchEventProcessor.isKnockoutRound(m.getRound()))
+                .filter(m -> m.getMatchDate() != null && m.getHomeTeam() != null && m.getAwayTeam() != null
+                        && m.getHomeTeam().getId() != null && m.getAwayTeam().getId() != null
+                        && !com.porra.mundial.model.Team.isPlaceholder(m.getHomeTeam())
+                        && !com.porra.mundial.model.Team.isPlaceholder(m.getAwayTeam()))
+                .sorted(java.util.Comparator.comparing(Match::getMatchDate)
+                        .thenComparing(Match::getId, java.util.Comparator.nullsLast(Long::compareTo)))
+                .toList();
+        int seasonStart = 0;
+        for (int i = 1; i < dated.size(); i++) {
+            if (Duration.between(dated.get(i - 1).getMatchDate(), dated.get(i).getMatchDate()).compareTo(NEW_SEASON_GAP) > 0) {
+                seasonStart = i;
+            }
+        }
+        List<Match> season = dated.subList(seasonStart, dated.size());
+        Set<Long> teams = new HashSet<>();
+        season.forEach(m -> {
+            teams.add(m.getHomeTeam().getId());
+            teams.add(m.getAwayTeam().getId());
+        });
+        int perRound = Math.max(1, teams.size() / 2);
+        Map<Match, Integer> result = new IdentityHashMap<>();
+        Set<Long> playing = new HashSet<>();
+        int round = 1;
+        for (Match match : season) {
+            Long home = match.getHomeTeam().getId();
+            Long away = match.getAwayTeam().getId();
+            if (playing.contains(home) || playing.contains(away) || playing.size() / 2 >= perRound) {
+                round++;
+                playing.clear();
+            }
+            playing.add(home);
+            playing.add(away);
+            result.put(match, round);
+        }
+        return result;
     }
 
     private static Instant kickoff(Match match) {

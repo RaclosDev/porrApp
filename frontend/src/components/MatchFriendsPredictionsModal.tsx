@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
 import { UserAvatar } from './Avatar';
-import type { MatchdayFixture } from '../types/api';
+import type { FriendPrediction, MatchdayFixture } from '../types/api';
 import SheetDialog from './SheetDialog';
+import { fightOutcomes, methodRoundText } from '../utils/fights';
+import { FightBadge, FightJudgesLine, FightResultLine } from './fight/FightResult';
 
 function TeamCrest({ logo, name }: { logo: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -49,6 +51,58 @@ const formatTimestamp = (dateStr: string | null) => {
   }
 };
 
+/**
+ * Signo pronosticado: el guardado o, si solo hay marcador, el que se deduce de él. Las ligas
+ * por jornadas se juegan a 1X2, así que se muestra el signo y nunca un marcador.
+ */
+const signOf = (prediction: FriendPrediction): string | null => {
+  const sign = prediction.sign?.trim().toUpperCase();
+  if (sign === '1' || sign === 'X' || sign === '2') return sign;
+  const { homeScore: home, awayScore: away } = prediction;
+  if (home == null || away == null) return null;
+  return home > away ? '1' : home === away ? 'X' : '2';
+};
+
+function PredictionRow({
+  prediction,
+  showTime,
+  children,
+}: {
+  prediction: FriendPrediction;
+  /** La hora solo dice algo antes del cierre: después cambia al repartir los puntos. */
+  showTime: boolean;
+  children: ReactNode;
+}) {
+  const formattedTime = showTime ? formatTimestamp(prediction.updatedAt) : null;
+  return (
+    <div className={`friends-prediction${prediction.isCaller ? ' is-caller' : ''}`}>
+      <UserAvatar
+        url={prediction.avatarUrl}
+        userId={prediction.userId}
+        name={prediction.participantName}
+        size={40}
+      />
+      <div className="friends-prediction-main">
+        <div className="friends-prediction-name">
+          <span>{prediction.participantName}</span>
+          {prediction.isCaller && <span className="friends-prediction-you">Tú</span>}
+        </div>
+        {formattedTime && <div className="friends-prediction-time">{formattedTime}</div>}
+      </div>
+      <div className="friends-prediction-result">{children}</div>
+    </div>
+  );
+}
+
+function Points({ points }: { points: number | null }) {
+  if (points == null) return null;
+  return (
+    <span className={`friends-prediction-points${points > 0 ? '' : ' is-zero'}`}>
+      {points > 0 ? `+${points} pts` : '0 pts'}
+    </span>
+  );
+}
+
 export default function MatchFriendsPredictionsModal({
   groupId,
   match,
@@ -76,27 +130,59 @@ export default function MatchFriendsPredictionsModal({
   const progress = predictions.length ? Math.round((predictedCount / predictions.length) * 100) : 0;
   const matchDate = formatTimestamp(match.matchDate);
   const roundLabel = match.round && match.round !== 'group' ? match.round : '';
+  // En una pelea de la UFC el «marcador» solo dice quién ganó: no se muestra.
+  const isFight = Boolean(match.fight);
+  const outcomes = fightOutcomes(match.fight, match.finished);
   const hasFinalScore =
-    match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
+    !isFight && match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
+  const ready = !isLoading && !error && predictions.length > 0;
+
+  // Cerrado: agrupado por signo, igual que la lista de votos del inicio. Abierto: quién ha
+  // predicho ya (los signos ajenos siguen ocultos).
+  const groups = [
+    { sign: '1', title: `Gana ${match.homeTeam}` },
+    { sign: 'X', title: 'Empate' },
+    { sign: '2', title: `Gana ${match.awayTeam}` },
+    { sign: '–', title: 'Sin predicción' },
+  ]
+    .map((group) => ({
+      ...group,
+      list: predictions.filter((prediction) => (signOf(prediction) ?? '–') === group.sign),
+    }))
+    .filter(({ sign, list }) => (sign !== '–' || list.length > 0) && !(isFight && sign === 'X'));
 
   return (
-    <SheetDialog title="Predicciones del partido" onClose={onClose}>
+    <SheetDialog
+      title={isFight ? 'Predicciones de la pelea' : 'Predicciones del partido'}
+      onClose={onClose}
+    >
       <div className="friends-predictions-match">
         <div className="friends-predictions-team">
           <TeamCrest logo={match.homeTeamLogo} name={match.homeTeam} />
-          <span>{match.homeTeam}</span>
+          <span className="friends-predictions-name">{match.homeTeam}</span>
+          {outcomes && <FightBadge outcome={outcomes.home} />}
         </div>
         <div className="friends-predictions-center">
-          <span className={`friends-predictions-vs${hasFinalScore ? ' is-finished' : ''}`}>
-            {hasFinalScore ? `${match.actualHomeScore} - ${match.actualAwayScore}` : 'vs'}
+          <span
+            className={`friends-predictions-vs${hasFinalScore || outcomes ? ' is-finished' : ''}`}
+          >
+            {hasFinalScore
+              ? `${match.actualHomeScore} - ${match.actualAwayScore}`
+              : outcomes
+                ? 'Final'
+                : 'vs'}
           </span>
           {roundLabel && <span className="friends-predictions-round">{roundLabel}</span>}
         </div>
         <div className="friends-predictions-team is-away">
-          <span>{match.awayTeam}</span>
+          {outcomes && <FightBadge outcome={outcomes.away} />}
+          <span className="friends-predictions-name">{match.awayTeam}</span>
           <TeamCrest logo={match.awayTeamLogo} name={match.awayTeam} />
         </div>
       </div>
+
+      {outcomes && <FightResultLine fight={match.fight} className="friends-predictions-fight" />}
+      {outcomes && <FightJudgesLine fight={match.fight} className="friends-predictions-fight" />}
 
       <div className="friends-predictions-meta">
         {matchDate && <span>{matchDate}</span>}
@@ -132,84 +218,57 @@ export default function MatchFriendsPredictionsModal({
           </p>
         )}
 
-        {!isLoading &&
-          !error &&
+        {ready &&
+          isMatchLocked &&
+          groups.map(({ sign, title, list }) => (
+            <section key={sign} className="match-voters-group" aria-label={`${sign} · ${title}`}>
+              <h3 className="match-voters-heading">
+                <span className="match-voters-sign">{sign}</span>
+                <span className="min-w-0 truncate">{title}</span>
+                <span className="match-voters-count">{list.length}</span>
+              </h3>
+              {list.length === 0 ? (
+                <p className="sheet-dialog-status">Nadie</p>
+              ) : (
+                list.map((prediction) => (
+                  <PredictionRow key={prediction.userId} prediction={prediction} showTime={false}>
+                    {isFight && prediction.method && (
+                      <span className="text-[0.75rem] text-muted shrink-0">
+                        {methodRoundText(prediction.method, prediction.round)}
+                      </span>
+                    )}
+                    <Points points={prediction.pointsAwarded} />
+                  </PredictionRow>
+                ))
+              )}
+            </section>
+          ))}
+
+        {ready &&
+          !isMatchLocked &&
           predictions.map((prediction) => {
-            const formattedTime = formatTimestamp(prediction.updatedAt);
-            const visible =
-              prediction.hasPredicted &&
-              prediction.homeScore !== null &&
-              prediction.homeScore !== undefined &&
-              prediction.awayScore !== null &&
-              prediction.awayScore !== undefined;
-            const hidden = prediction.hasPredicted && !visible;
-            const hasPoints =
-              prediction.pointsAwarded !== null && prediction.pointsAwarded !== undefined;
-
+            const sign = signOf(prediction);
             return (
-              <div
-                key={prediction.userId}
-                className={`friends-prediction${prediction.isCaller ? ' is-caller' : ''}`}
-              >
-                <UserAvatar
-                  url={prediction.avatarUrl}
-                  userId={prediction.userId}
-                  name={prediction.participantName}
-                  size={40}
-                />
-
-                <div className="friends-prediction-main">
-                  <div className="friends-prediction-name">
-                    <span>{prediction.participantName}</span>
-                    {prediction.isCaller && <span className="friends-prediction-you">Tú</span>}
-                  </div>
-                  {formattedTime && <div className="friends-prediction-time">{formattedTime}</div>}
-                </div>
-
-                <div className="friends-prediction-result">
-                  {visible ? (
-                    <>
-                      <div className="friends-prediction-score-row">
-                        <span className="friends-prediction-score">
-                          {prediction.homeScore} - {prediction.awayScore}
-                        </span>
-                        {prediction.sign && (
-                          <span className="friends-prediction-sign">{prediction.sign}</span>
-                        )}
-                      </div>
-                      {hasPoints && (
-                        <span
-                          className={`friends-prediction-points${(prediction.pointsAwarded ?? 0) > 0 ? '' : ' is-zero'}`}
-                        >
-                          {prediction.isExactScore
-                            ? 'Exacto '
-                            : prediction.isCorrectSign
-                              ? 'Signo '
-                              : ''}
-                          {(prediction.pointsAwarded ?? 0) > 0
-                            ? `+${prediction.pointsAwarded} pts`
-                            : '0 pts'}
-                        </span>
-                      )}
-                    </>
-                  ) : hidden ? (
-                    <span className="friends-prediction-status is-hidden">Oculto</span>
-                  ) : (
-                    <span
-                      className={`friends-prediction-status ${isMatchLocked ? 'is-missed' : 'is-pending'}`}
-                    >
-                      {isMatchLocked ? 'Sin predicción' : 'Pendiente'}
-                    </span>
-                  )}
-                </div>
-              </div>
+              <PredictionRow key={prediction.userId} prediction={prediction} showTime>
+                {sign ? (
+                  <span className="friends-prediction-pick">{sign}</span>
+                ) : prediction.hasPredicted ? (
+                  <span className="friends-prediction-status is-hidden">Oculto</span>
+                ) : (
+                  <span className="friends-prediction-status is-pending">Pendiente</span>
+                )}
+              </PredictionRow>
             );
           })}
       </div>
 
-      <div className="friends-predictions-foot">
-        <span>Las predicciones se revelan al empezar el partido.</span>
-      </div>
+      {!isMatchLocked && (
+        <div className="friends-predictions-foot">
+          <span>
+            Las predicciones de los demás se ven al empezar {isFight ? 'la pelea' : 'el partido'}.
+          </span>
+        </div>
+      )}
     </SheetDialog>
   );
 }

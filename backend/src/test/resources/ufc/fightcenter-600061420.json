@@ -1,0 +1,299 @@
+{
+ "event": {
+  "id": "600061420",
+  "uid": "s:3301~l:3321~e:600061420",
+  "date": "2026-10-31T21:00:00.000+00:00",
+  "name": "UFC Fight Night: Moicano vs. Nolan",
+  "shortName": "UFC Fight Night"
+ },
+ "cards": {
+  "main": {
+   "name": "main",
+   "competitions": [
+    {
+     "id": "401921310",
+     "date": "2026-11-01T00:00:00.000+00:00",
+     "type": {
+      "id": "986",
+      "text": "Lightweight",
+      "abbreviation": "Lightweight"
+     },
+     "status": {
+      "clock": "88.0",
+      "displayClock": "1:28",
+      "period": 3,
+      "type": {
+       "id": "3",
+       "name": "STATUS_FINAL",
+       "description": "Final",
+       "detail": "Final",
+       "shortDetail": "Final",
+       "state": "post",
+       "completed": true
+      },
+      "result": {
+       "id": "356",
+       "name": "kotko",
+       "displayName": "KO/TKO",
+       "shortDisplayName": "KO/TKO",
+       "description": "Elbows",
+       "displayDescription": "Elbows",
+       "target": {
+        "id": "122",
+        "name": "head",
+        "description": "Head",
+        "displayDescription": "Head"
+       }
+      },
+      "featured": false
+     },
+     "cardSegment": {
+      "id": "173",
+      "name": "main",
+      "description": "Main Card"
+     },
+     "matchNumber": 1,
+     "note": "Lightweight - Main Event",
+     "competitors": [
+      {
+       "id": "5144007",
+       "order": 2,
+       "winner": true,
+       "displayRecord": "12-1-0",
+       "athlete": {
+        "id": "5144007",
+        "displayName": "Tom Nolan",
+        "headshot": {
+         "href": "https://a.espncdn.com/i/headshots/mma/players/full/5144007.png",
+         "alt": "Tom Nolan"
+        }
+       }
+      },
+      {
+       "id": "3028863",
+       "order": 1,
+       "winner": false,
+       "displayRecord": "21-8-1",
+       "athlete": {
+        "id": "3028863",
+        "displayName": "Renato Moicano",
+        "headshot": {
+         "href": "https://a.espncdn.com/i/headshots/mma/players/full/3028863.png",
+         "alt": "Renato Moicano"
+        }
+       }
+      }
+     ]
+    },
+    {
+     "id": "401931616",
+     "date": "2026-11-01T00:00:00.000+00:00",
+     "type": {
+      "id": "969",
+      "text": "Welterweight",
+      "abbreviation": "Welterweight"
+     },
+     "status": {
+      "clock": "300.0",
+      "displayClock": "5:00",
+      "period": 3,
+      "type": {
+       "id": "3",
+       "name": "STATUS_FINAL",
+       "description": "Final",
+       "detail": "Final",
+       "shortDetail": "Final",
+       "state": "post",
+       "completed": true
+      },
+      "result": {
+       "id": "263",
+       "name": "decision---unanimous",
+       "displayName": "Decision - Unanimous",
+       "shortDisplayName": "U Dec"
+      },
+      "featured": false
+     },
+     "cardSegment": {
+      "id": "173",
+      "name": "main",
+      "description": "Main Card"
+     },
+     "matchNumber": 2,
+     "note": "Welterweight",
+     "competitors": [
+      {
+       "id": "5149961",
+       "order": 2,
+       "winner": true,
+       "displayRecord": "14-0-0",
+       "athlete": {
+        "id": "5149961",
+        "displayName": "Jacobe Smith",
+        "headshot": {
+         "href": "https://a.espncdn.com/i/headshots/mma/players/full/5149961.png",
+         "alt": "Jacobe Smith"
+        }
+       }
+      },
+      {
+       "id": "3960071",
+       "order": 1,
+       "winner": false,
+       "displayRecord": "20-9-0",
+       "athlete": {
+        "id": "3960071",
+        "displayName": "Randy Brown",
+        "headshot": {
+         "href": "https://a.espncdn.com/i/headshots/mma/players/full/3960071.png",
+         "alt": "Randy Brown"
+        }
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "prelims1": {
+   "name": "prelims1",
+   "competitions": [
+    {
+     "id": "401931617",
+     "date": "2026-10-31T21:00:00.000+00:00",
+     "type": {
+      "id": "972",
+      "text": "Middleweight",
+      "abbreviation": "Middleweight"
+     },
+     "status": {
+      "clock": "300.0",
+      "displayClock": "5:00",
+      "period": 3,
+      "type": {
+       "id": "3",
+       "name": "STATUS_FINAL",
+       "description": "Final",
+       "detail": "Final",
+       "shortDetail": "Final",
+       "state": "post",
+       "completed": true
+      },
+      "result": {
+       "id": "263",
+       "name": "decision---unanimous",
+       "displayName": "Decision - Unanimous",
+       "shortDisplayName": "U Dec"
+      },
+      "featured": false
+     },
+     "cardSegment": {
+      "id": "174",
+      "name": "prelims1",
+      "description": "Prelims"
+     },
+     "matchNumber": 9,
+     "note": "Middleweight",
+     "competitors": [
+      {
+       "id": "3960470",
+       "order": 2,
+       "winner": false,
+       "displayRecord": "7-8-0",
+       "athlete": {
+        "id": "3960470",
+        "displayName": "Mickey Gall",
+        "headshot": {
+         "href": "https://a.espncdn.com/i/headshots/mma/players/full/3960470.png",
+         "alt": "Mickey Gall"
+        }
+       }
+      },
+      {
+       "id": "5143223",
+       "order": 1,
+       "winner": true,
+       "displayRecord": "11-4-0",
+       "athlete": {
+        "id": "5143223",
+        "displayName": "Zach Reese",
+        "headshot": {
+         "href": "https://a.espncdn.com/i/headshots/mma/players/full/5143223.png",
+         "alt": "Zach Reese"
+        }
+       }
+      }
+     ]
+    },
+    {
+     "id": "401914106",
+     "date": "2026-10-31T21:00:00.000+00:00",
+     "type": {
+      "id": "972",
+      "text": "Middleweight",
+      "abbreviation": "Middleweight"
+     },
+     "status": {
+      "clock": "85.0",
+      "displayClock": "1:25",
+      "period": 2,
+      "type": {
+       "id": "3",
+       "name": "STATUS_FINAL",
+       "description": "Final",
+       "detail": "Final",
+       "shortDetail": "Final",
+       "state": "post",
+       "completed": true
+      },
+      "result": {
+       "id": "284",
+       "name": "submission",
+       "displayName": "Submission",
+       "shortDisplayName": "Sub",
+       "description": "Triangle Choke With Armbar",
+       "displayDescription": "Triangle Choke With Armbar"
+      },
+      "featured": false
+     },
+     "cardSegment": {
+      "id": "174",
+      "name": "prelims1",
+      "description": "Prelims"
+     },
+     "matchNumber": 10,
+     "note": "Middleweight",
+     "competitors": [
+      {
+       "id": "4687604",
+       "order": 2,
+       "winner": true,
+       "displayRecord": "10-3-0",
+       "athlete": {
+        "id": "4687604",
+        "displayName": "Joe Kropschot",
+        "headshot": {
+         "href": "https://a.espncdn.com/i/headshots/mma/players/full/4687604.png",
+         "alt": "Joe Kropschot"
+        }
+       }
+      },
+      {
+       "id": "5134399",
+       "order": 1,
+       "winner": false,
+       "displayRecord": "6-4-0",
+       "athlete": {
+        "id": "5134399",
+        "displayName": "Nick Klein",
+        "headshot": {
+         "href": "https://a.espncdn.com/i/headshots/mma/players/full/5134399.png",
+         "alt": "Nick Klein"
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

@@ -1,5 +1,7 @@
 package com.porra.mundial.service.sync;
 
+import com.porra.mundial.sports.LolEsportsDataProvider;
+import com.porra.mundial.sports.NflSchedule;
 import com.porra.mundial.service.prediction.MatchPredictionService;
 import com.porra.mundial.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -7,9 +9,12 @@ import com.porra.mundial.config.Constants;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.model.Sport;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.sports.TennisDataProvider;
+import com.porra.mundial.sports.UfcDataProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -44,6 +49,7 @@ public class MatchEventProcessor {
     private final MatchRepository matchRepository;
     private final MatchPredictionService matchPredictionService;
     private final WebSocketService webSocketService;
+    private final FightCardService fightCardService;
 
     /** Se sustituye entero al refrescar: quien ya tiene el mapa anterior no lo ve vaciarse a medias. */
     private volatile Map<String, Team> teamCache = new ConcurrentHashMap<>();
@@ -60,6 +66,11 @@ public class MatchEventProcessor {
         private int clockUpdated;
         private boolean resultsChanged;
         private final List<String> errors = new ArrayList<>();
+        /** Lo que solo se hace una vez por pasada (p. ej. revisar la cartelera de una velada). */
+        private final Set<String> done = new HashSet<>();
+
+        /** @return true la primera vez que se pide {@code key} en esta pasada */
+        boolean firstTime(String key) { return done.add(key); }
 
         void recordError(String error) { errors.add(error); }
         boolean hasErrors() { return !errors.isEmpty(); }
@@ -157,6 +168,10 @@ public class MatchEventProcessor {
 
     /**
      * Guarda los equipos (con escudo) del catálogo de una competición.
+     * <p>
+     * Un equipo que ya existe conserva su nombre: los cuadros de los participantes guardan los nombres en
+     * español y se puntúan comparándolos con el de cada equipo, así que cambiar «España» por el
+     * «Spain» del proveedor dejaría sin puntos a todo el que la eligió.
      *
      * @return número de equipos importados
      */
@@ -169,18 +184,19 @@ public class MatchEventProcessor {
             String displayName = t.path("displayName").asText(t.path("name").asText(null));
             if (displayName == null || displayName.isBlank()) continue;
 
-            String abbr = t.path("abbreviation").asText(null);
+            String localName = Constants.getLocalName(displayName);
             String logo = t.path("logos").path(0).path("href").asText(t.path("logo").asText(null));
 
-            Team team = teamRepository.findByName(displayName)
+            Team team = teamRepository.findByName(localName)
                     .or(() -> id != null ? teamRepository.findByExternalId(id) : Optional.empty())
-                    .orElseGet(() -> Team.builder().name(displayName).groupName("-").build());
-            team.setName(displayName);
-            if (abbr != null) team.setNameEn(abbr);
+                    .or(() -> teamRepository.findByName(displayName))
+                    .orElseGet(() -> Team.builder().name(localName).groupName("-").build());
+            team.setNameEn(displayName);
             if (id != null) team.setExternalId(id);
             if (logo != null && !logo.isBlank()) team.setLogoUrl(logo);
 
             teamRepository.save(team);
+            cache.put(team.getName(), team);
             cache.put(displayName, team);
             if (id != null) cache.put(id, team);
             imported++;
@@ -203,14 +219,28 @@ public class MatchEventProcessor {
         Team awayTeam = resolveTeam(away, cache, batch);
         // Huecos del calendario sin ningún rival conocido: no se guardan.
         if (Team.isPlaceholder(homeTeam) && Team.isPlaceholder(awayTeam)) return;
+        boolean nfl = batch.competition != null && NflSchedule.isNfl(batch.competition.getExternalId());
+        // Pretemporada y Pro Bowl no se pronostican.
+        if (nfl && NflSchedule.isExcluded(event)) return;
 
-        MatchStatus status = parseStatus(competition);
-        Scores scores = parseScores(home, away, homeTeam, awayTeam, status);
-        MatchMetadata metadata = parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
-        int[] fairPlay = fairPlayPoints(competition, home, away, homeTeam, awayTeam);
+        MatchStatus status = parseStatus(competition, playsQuarters(batch.competition));
+        Scores scores = parseScores(competition, home, away, homeTeam, awayTeam, status);
+        // Una pelea de la UFC va en la ronda de su velada y lleva sus datos de pelea aparte.
+        JsonNode fight = event.path("ufc").isObject() ? event.path("ufc") : null;
+        MatchMetadata metadata = fight != null
+                ? new MatchMetadata(null, fight.path("eventName").asText(null))
+                : nfl
+                        ? new MatchMetadata(null, NflSchedule.roundLabel(event))
+                        // La temporada regular de la NBA llega con su semana oficial («Semana 3»).
+                        : event.path("roundLabel").isString()
+                        ? new MatchMetadata(null, event.path("roundLabel").asText())
+                        : parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
+        int[] fairPlay = fight != null ? new int[]{0, 0} : fairPlayPoints(competition, home, away, homeTeam, awayTeam);
+
+        int bestOf = competition.path(LolEsportsDataProvider.BEST_OF_FIELD).asInt(0);
 
         upsertMatch(eventId, homeTeam, awayTeam, scores, fairPlay, parseDate(event.path("date").asText(null)),
-                status, metadata, batch);
+                status, metadata, bestOf > 0 ? bestOf : null, fight, batch);
     }
 
     /** Fecha del evento en hora peninsular española, o null si no se puede interpretar. */
@@ -224,7 +254,14 @@ public class MatchEventProcessor {
         }
     }
 
-    private MatchStatus parseStatus(JsonNode competition) {
+    /** La NBA y la NFL se juegan por cuartos: su reloj en directo lleva el cuarto. */
+    private static boolean playsQuarters(Competition competition) {
+        if (competition == null || competition.getOwnerLeague() != null) return false;
+        Sport sport = Sport.ofExternalId(competition.getExternalId());
+        return sport == Sport.BASKETBALL || sport == Sport.AMERICAN_FOOTBALL;
+    }
+
+    private MatchStatus parseStatus(JsonNode competition, boolean quarters) {
         JsonNode type = competition.path("status").path("type");
         String name = type.path("name").asText("").toUpperCase(Locale.ROOT).replace("STATUS_", "");
         MatchStatusNormalized normalized = switch (name) {
@@ -237,7 +274,7 @@ public class MatchEventProcessor {
                     type.path("completed").asBoolean(false));
         };
         return new MatchStatus(normalized, normalized == MatchStatusNormalized.FINISHED,
-                competition.path("status").path("displayClock").asText(null));
+                MatchClock.of(competition, normalized, quarters));
     }
 
     private Competitor findCompetitor(JsonNode competitors, String homeAway) {
@@ -254,6 +291,17 @@ public class MatchEventProcessor {
     /** Equipo conocido (actualizando su nombre en inglés e id externo) o el comodín "Por definir". */
     private Team resolveTeam(Competitor competitor, Map<String, Team> cache, Batch batch) {
         Team team = competitor != null ? findTeam(competitor, cache) : null;
+        if (team == null && competitor != null && competitor.espnId().startsWith(TennisDataProvider.ID_PREFIX)) {
+            // Un tenista que no estaba en el cuadro importado (previa, lucky loser) o de un cuadro aún sin
+            // importar: el partido ya trae su nombre y su bandera.
+            team = teamRepository.save(Team.builder().name(competitor.nameEn()).nameEn(competitor.nameEn())
+                    .externalId(competitor.espnId()).groupName("-")
+                    .logoUrl(competitor.node().path("team").path("logo").asText(null)).build());
+            cache.put(competitor.nameEn(), team);
+            cache.put(competitor.espnId(), team);
+            batch.teamsUpdated++;
+            return team;
+        }
         if (team == null) return placeholderTeam(cache);
 
         boolean changed = false;
@@ -275,6 +323,7 @@ public class MatchEventProcessor {
     }
 
     private Team findTeam(Competitor competitor, Map<String, Team> cache) {
+        if (UfcDataProvider.isFighterId(competitor.espnId())) return fighter(competitor, cache);
         String localName = Constants.getLocalName(competitor.nameEn());
         for (String key : new String[]{localName, competitor.nameEn(), competitor.espnId()}) {
             if (key != null && cache.containsKey(key)) return cache.get(key);
@@ -282,6 +331,27 @@ public class MatchEventProcessor {
         if (localName == null) return null;
         Team team = teamRepository.findByName(localName).orElse(null);
         if (team != null) cache.put(localName, team);
+        return team;
+    }
+
+    /**
+     * Luchador de la UFC por su id de ESPN (dos luchadores pueden llamarse igual), dado de alta la primera
+     * vez que aparece en una cartelera: no hay catálogo de luchadores que importar antes.
+     */
+    private Team fighter(Competitor competitor, Map<String, Team> cache) {
+        Team cached = cache.get(competitor.espnId());
+        if (cached != null && competitor.espnId().equals(cached.getExternalId())) return cached;
+        Team team = teamRepository.findByExternalId(competitor.espnId()).orElseGet(() -> {
+            String logo = competitor.node().path("team").path("logo").asText(null);
+            return teamRepository.save(Team.builder()
+                    .name(competitor.nameEn())
+                    .nameEn(competitor.nameEn())
+                    .externalId(competitor.espnId())
+                    .logoUrl(logo)
+                    .groupName("-")
+                    .build());
+        });
+        cache.put(competitor.espnId(), team);
         return team;
     }
 
@@ -302,7 +372,15 @@ public class MatchEventProcessor {
         return placeholder;
     }
 
-    private Scores parseScores(Competitor home, Competitor away, Team homeTeam, Team awayTeam, MatchStatus status) {
+    /** El partido decide el cruce: es partido único o el último de la serie (la vuelta). */
+    static boolean decidesTie(JsonNode competition) {
+        int total = competition.path("series").path("totalCompetitions").asInt(1);
+        int leg = competition.path("leg").path("value").asInt(total);
+        return total <= 1 || leg >= total;
+    }
+
+    private Scores parseScores(JsonNode competition, Competitor home, Competitor away, Team homeTeam, Team awayTeam,
+                               MatchStatus status) {
         if (!status.live() && !status.finished() || home == null || away == null) {
             return new Scores(null, null, null);
         }
@@ -314,10 +392,23 @@ public class MatchEventProcessor {
         } catch (NumberFormatException ignored) {
             // Marcador aún no disponible.
         }
-        boolean homeWins = home.node().path("advance").asBoolean(home.node().path("winner").asBoolean(false));
-        boolean awayWins = away.node().path("advance").asBoolean(away.node().path("winner").asBoolean(false));
+        // En la ida de un cruce a doble partido "winner" es quien gana ese partido, no quien pasa: el
+        // ganador del cruce solo llega con "advance" en el partido que lo decide.
+        boolean decides = decidesTie(competition);
+        boolean advance = home.node().has("advance") || away.node().has("advance");
+        boolean homeWins = advance ? home.node().path("advance").asBoolean(false)
+                : decides && home.node().path("winner").asBoolean(false);
+        boolean awayWins = advance ? away.node().path("advance").asBoolean(false)
+                : decides && away.node().path("winner").asBoolean(false);
         Team winner = homeWins && !awayWins ? homeTeam : (awayWins && !homeWins ? awayTeam : null);
         return new Scores(homeScore, awayScore, winner);
+    }
+
+    /** Rondas eliminatorias, que una competición de liga (Champions…) también guarda. */
+    private static final java.util.Set<String> KNOCKOUT_ROUNDS = java.util.Set.of("playoff", "r32", "r16", "qf", "sf", "third", "final");
+
+    public static boolean isKnockoutRound(String round) {
+        return round != null && KNOCKOUT_ROUNDS.contains(round);
     }
 
     /** Ronda que ESPN indica en {@code season.slug}; null si el evento no la trae o no se reconoce. */
@@ -325,6 +416,13 @@ public class MatchEventProcessor {
         return switch (slug == null ? "" : slug.toLowerCase()) {
             case "play-in" -> "playin";
             case "group-stage" -> "group";
+            // Fase de grupos de las ATP Finals: sin grupos con nombre, se agrupa como una ronda.
+            case "round-robin" -> "roundrobin";
+            // Rondas previas de la Copa del Rey: no son fase de grupos ni entran en el cuadro.
+            case "qualifying-round", "preliminary-round" -> "qualifying";
+            case "first-round" -> "round1";
+            case "second-round" -> "round2";
+            case "knockout-round-playoffs" -> "playoff";
             case "round-of-32" -> "r32";
             case "round-of-16" -> "r16";
             case "quarterfinals" -> "qf";
@@ -349,11 +447,12 @@ public class MatchEventProcessor {
             if (group.length() > 2) group = group.substring(0, 1);
             group = group.toUpperCase();
         }
+        String round = roundFromSlug(seasonSlug);
         if (comp != null && "LEAGUE".equalsIgnoreCase(comp.getFormatType())) {
-            return new MatchMetadata(group, null);
+            // La fase de liga va por jornadas; las eliminatorias que la siguen (Champions…) guardan su ronda.
+            return new MatchMetadata(group, isKnockoutRound(round) ? round : null);
         }
 
-        String round = roundFromSlug(seasonSlug);
         if (round != null) {
             return new MatchMetadata(group, round);
         }
@@ -381,7 +480,7 @@ public class MatchEventProcessor {
     /** Separación máxima entre partidos de una misma jornada. */
     private static final long SAME_MATCHDAY_DAYS = 4;
     /** Más allá de este parón se da por empezada otra temporada y no se sigue numerando. */
-    private static final long NEW_SEASON_GAP_DAYS = 45;
+    private static final long NEW_SEASON_GAP_DAYS = 60;
 
     /**
      * Jornada de un partido de liga nuevo, siguiendo la numeración "Jornada N" que ya tenga la competición:
@@ -430,9 +529,12 @@ public class MatchEventProcessor {
     }
 
     private void upsertMatch(String eventId, Team home, Team away, Scores scores, int[] fairPlay,
-                             Instant date, MatchStatus status, MatchMetadata meta, Batch batch) {
+                             Instant date, MatchStatus status, MatchMetadata meta, Integer bestOf, JsonNode fight,
+                             Batch batch) {
         Match match = matchRepository.findByExternalId(eventId)
                 .orElseGet(() -> Match.builder().externalId(eventId).build());
+        Team previousHome = match.getId() == null ? null : match.getHomeTeam();
+        Team previousAway = match.getId() == null ? null : match.getAwayTeam();
 
         boolean updated = match.getId() == null;
         boolean scoreChanged = !Objects.equals(match.getHomeScore(), scores.home())
@@ -465,12 +567,15 @@ public class MatchEventProcessor {
             String matchday = inferLeagueMatchday(batch.competition, date);
             if (matchday != null) match.setRound(matchday);
         }
+        // Series del LoL: al mejor de 1, 3 o 5 partidas.
+        if (bestOf != null) updated |= setIfChanged(match.getBestOf(), bestOf, match::setBestOf);
         boolean fairPlayChanged = setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay)
                 | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
         updated |= fairPlayChanged;
 
         MatchStatusNormalized normalized = status.normalized();
-        updated |= setIfChanged(match.getStatus(), normalized, match::setStatus);
+        boolean statusChanged = setIfChanged(match.getStatus(), normalized, match::setStatus);
+        updated |= statusChanged;
 
         if (updated) {
             matchRepository.save(match);
@@ -491,8 +596,14 @@ public class MatchEventProcessor {
             batch.clockUpdated++;
         }
 
+        // Datos de pelea (método, asalto) y cambios de cartelera de la UFC, antes de puntuar.
+        boolean fightResultChanged = fight != null && fightCardService.apply(match, fight, previousHome, previousAway, batch);
+        if (fightResultChanged) batch.markResultsChanged();
+
         if (status.finished() || status.live()) {
-            evaluateScoredMatch(match, scoreChanged || finishedChanged
+            // El cambio de estado (empieza el partido) también cuenta: en superviviente puede cerrar
+            // una jornada y eliminar a quien no eligió equipo.
+            evaluateScoredMatch(match, scoreChanged || finishedChanged || statusChanged || fightResultChanged
                     || matchPredictionService.hasUnscoredPredictions(match.getId()), batch.atomic);
         }
     }

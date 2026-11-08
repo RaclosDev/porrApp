@@ -27,7 +27,7 @@ class MatchDatesJsonTest {
                 mapper.valueToTree(MatchdayPointsDTO.builder().date(local).build()).path("date"),
                 mapper.valueToTree(LeagueResponseDTO.builder().lockDate(local).build()).path("lockDate"),
                 mapper.valueToTree(new MatchdayStatsDTO.MatchStats(1L, "1", local, "A", "B", null, null,
-                        false, false, null, null, 0, 0, 0, 0, List.of(), null, null)).path("matchDate"));
+                        false, false, null, null, 0, 0, 0, 0, List.of(), null, null, List.of())).path("matchDate"));
         for (var value : values) {
             OffsetDateTime parsed = OffsetDateTime.parse(value.asString());
             assertEquals(offset, parsed.getOffset().toString());

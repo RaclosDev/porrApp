@@ -12,6 +12,12 @@ import {
   roundsFromFixtures,
   roundsFromMatchdays,
   sortNumberedRounds,
+  allowsDraw,
+  finishedLabel,
+  resultNote,
+  liveLabel,
+  scoringDetailsText,
+  survivorUsedTeams,
   withSign,
   withoutSaved,
   type Draft,
@@ -53,6 +59,17 @@ describe('displayRoundLabel', () => {
     expect(displayRoundLabel('Jornada 3')).toBe('Jornada 3');
     expect(displayRoundLabel('Grupo A')).toBe('Grupo A');
   });
+
+  it('nombra como el servidor la fase de grupos de las Finals y el play-in', () => {
+    expect(displayRoundLabel('roundrobin')).toBe('Fase de grupos');
+    expect(displayRoundLabel('playin')).toBe('Play-in');
+  });
+
+  it('nombra en castellano las rondas de la Copa del Rey antes de dieciseisavos', () => {
+    expect(displayRoundLabel('qualifying')).toBe('Ronda previa');
+    expect(displayRoundLabel('round1')).toBe('Primera ronda');
+    expect(displayRoundLabel('round2')).toBe('Segunda ronda');
+  });
 });
 
 describe('roundLabelFor', () => {
@@ -91,6 +108,43 @@ describe('round lists', () => {
       'Octavos',
       'Jornada 2',
     ]);
+  });
+
+  it('ordena las semanas de la NFL por número y deja los playoffs detrás', () => {
+    expect(
+      sortNumberedRounds(['Semana 9', 'Semana 10', 'Semana 18', 'Semana 2', 'Super Bowl']),
+    ).toEqual(['Semana 2', 'Semana 9', 'Semana 10', 'Semana 18', 'Super Bowl']);
+    expect(allowsDraw('AMERICAN_FOOTBALL')).toBe(false);
+    expect(allowsDraw('FOOTBALL')).toBe(true);
+    expect(allowsDraw(undefined)).toBe(true);
+  });
+
+  it('solo deja predecir el empate en el fútbol', () => {
+    expect(allowsDraw('LEAGUE_OF_LEGENDS')).toBe(false);
+    expect(allowsDraw('BASKETBALL')).toBe(false);
+    expect(allowsDraw('TENNIS')).toBe(false);
+    expect(allowsDraw(null)).toBe(true);
+  });
+
+  it('dice si un partido acabó en la prórroga o en los penaltis', () => {
+    expect(resultNote('OT')).toBe('prórroga');
+    expect(resultNote('2OT')).toBe('2 prórrogas');
+    expect(resultNote('AET')).toBe('prórroga');
+    expect(resultNote('PEN 4-2')).toBe('4-2 en penaltis');
+    expect(resultNote("90'")).toBeNull();
+    expect(resultNote(null)).toBeNull();
+    expect(finishedLabel('OT')).toBe('Final · prórroga');
+    expect(finishedLabel('0:00')).toBe('Final');
+  });
+
+  it('pone el reloj en la etiqueta de un partido en juego', () => {
+    expect(liveLabel('3.er cuarto · 5:00')).toBe('En juego · 3.er cuarto · 5:00');
+    expect(liveLabel("67'")).toBe("En juego · 67'");
+    expect(liveLabel('Descanso')).toBe('Descanso');
+    expect(liveLabel(null)).toBe('En juego');
+    expect(liveLabel('  ')).toBe('En juego');
+    // Un código de final no es un reloj.
+    expect(liveLabel('AET')).toBe('En juego');
   });
 
   it('falls back to the last round when everything has finished', () => {
@@ -198,24 +252,31 @@ describe('buildSubmission', () => {
   });
 
   it('removes the saved matches from the draft', () => {
-    expect(withoutSaved({ 1: pred('1', '0'), 3: pred('0', '0') }, [1])).toEqual({
-      3: pred('0', '0'),
-    });
+    expect(
+      withoutSaved({ 1: pred('1', '0'), 3: pred('0', '0') }, [
+        { matchId: 1, homeScore: 1, awayScore: 0, sign: null },
+      ]),
+    ).toEqual({ 3: pred('0', '0') });
+  });
+
+  it('keeps a match changed again while it was being saved', () => {
+    expect(
+      withoutSaved({ 1: pred('', '', 'X') }, [
+        { matchId: 1, homeScore: null, awayScore: null, sign: '1' },
+      ]),
+    ).toEqual({ 1: pred('', '', 'X') });
   });
 });
 
 describe('filterFixtures', () => {
-  it('lists live matches first in the upcoming tab', () => {
-    const now = Date.parse('2030-05-01T20:30:00Z');
+  it('lists matches ESPN marks live first in the upcoming tab, not those past kick-off', () => {
     const list = [
       fixture(1, { matchDate: '2030-05-02T20:00:00Z' }),
       fixture(2, { matchDate: '2030-05-01T20:00:00Z' }),
       fixture(3, { matchDate: '2030-05-03T20:00:00Z', status: 'LIVE' }),
       fixture(4, { matchDate: '2030-05-01T18:00:00Z', finished: true }),
     ];
-    expect(filterFixtures(list, 'UPCOMING', {}, false, now).map((f) => f.matchId)).toEqual([
-      2, 3, 1,
-    ]);
+    expect(filterFixtures(list, 'UPCOMING', {}, false).map((f) => f.matchId)).toEqual([3, 1, 2]);
   });
 
   const fixtures = [fixture(1), fixture(2, { finished: true, locked: true }), fixture(3)];
@@ -244,5 +305,56 @@ describe('formatMatchDate', () => {
 
   it('formats a valid date with weekday, day, month and time', () => {
     expect(formatMatchDate('2026-06-13T18:00:00Z')).toMatch(/^sáb, 13 jun, \d{2}:00$/);
+  });
+});
+
+describe('survivorUsedTeams', () => {
+  const pick = (round: string, teamId: number) => ({
+    matchId: teamId,
+    round,
+    teamId,
+    teamName: `Equipo ${teamId}`,
+    teamLogo: null,
+    result: 'PENDING' as const,
+  });
+
+  it('cuenta los equipos de otras jornadas, no el de la jornada abierta', () => {
+    const used = survivorUsedTeams(
+      {
+        eliminated: false,
+        survived: 1,
+        eliminatedRound: null,
+        missed: false,
+        picks: [pick('Jornada 1', 7), pick('Jornada 2', 8)],
+      },
+      'Jornada 2',
+    );
+
+    expect([...used.entries()]).toEqual([[7, 'Jornada 1']]);
+  });
+
+  it('sin estado no hay equipos usados', () => {
+    expect(survivorUsedTeams(null, 'Jornada 1').size).toBe(0);
+  });
+});
+
+describe('scoringDetailsText', () => {
+  it('en la NFL y la NBA habla de ganador, no de signo 1X2', () => {
+    expect(scoringDetailsText('Acierto de signo 1X2 (3 pts)', 'AMERICAN_FOOTBALL', true)).toBe(
+      'Ganador acertado',
+    );
+    expect(scoringDetailsText('Sin acierto en signo (0 pts)', 'BASKETBALL', false)).toBe(
+      'Ganador fallado',
+    );
+  });
+
+  it('deja el fútbol y los demás desgloses como vienen', () => {
+    expect(scoringDetailsText('Acierto de signo 1X2 (3 pts)', 'FOOTBALL', true)).toBe(
+      'Acierto de signo 1X2 (3 pts)',
+    );
+    expect(scoringDetailsText('Resultado exacto 2-1 (5 pts)', 'LEAGUE_OF_LEGENDS', true)).toBe(
+      'Resultado exacto 2-1 (5 pts)',
+    );
+    expect(scoringDetailsText(null, 'AMERICAN_FOOTBALL', true)).toBeNull();
   });
 });

@@ -54,10 +54,16 @@ public class CustomLockService {
      * @param anyLocked    ya se ha cerrado algo: no se admiten pronósticos nuevos
      * @param fullyLocked  todo cerrado: el pronóstico ya no se puede cambiar
      * @param nextLockAt   próximo cierre conocido, o null
+     * @param knockoutRounds en unas eliminatorias que se sortean ronda a ronda, sus rondas y cruces; null si no
      */
     public record LockState(PredictionLockMode mode, int offsetMinutes, Instant lockDate,
                             List<String> groups, List<List<Boolean>> picks, boolean anyLocked,
-                            boolean fullyLocked, Instant nextLockAt) {
+                            boolean fullyLocked, Instant nextLockAt, List<DrawnKnockout.Round> knockoutRounds) {
+        public LockState(PredictionLockMode mode, int offsetMinutes, Instant lockDate, List<String> groups,
+                         List<List<Boolean>> picks, boolean anyLocked, boolean fullyLocked, Instant nextLockAt) {
+            this(mode, offsetMinutes, lockDate, groups, picks, anyLocked, fullyLocked, nextLockAt, null);
+        }
+
         public boolean groupLocked(String group) {
             return groups.contains(group);
         }
@@ -81,11 +87,12 @@ public class CustomLockService {
     }
 
     private LockState state(Edition edition, List<Match> all) {
-        if (edition.getPoolFormat() == PoolFormat.MATCH_DAY) {
-            // Por jornadas cada partido se cierra por su cuenta: aquí solo interesa el criterio elegido.
+        if (PoolFormat.isMatchBased(edition.getPoolFormat())) {
+            // Por jornadas (y superviviente) cada partido se cierra por su cuenta: aquí solo interesa el criterio elegido.
             return new LockState(MatchdayLock.mode(edition), Math.max(0, edition.getLockOffsetMinutes()), null,
                     List.of(), List.of(), false, edition.isLocked(clock), null);
         }
+        if (DrawnKnockout.applies(edition)) return drawnState(edition, all);
         PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();
         int offset = Math.max(0, edition.getLockOffsetMinutes());
         Instant now = clock.instant();
@@ -154,6 +161,42 @@ public class CustomLockService {
                 fullyLocked ? null : next);
     }
 
+    /**
+     * Eliminatorias sorteadas ronda a ronda: cada ronda se cierra al empezar su primer partido o, por
+     * eliminatorias, cada cruce al empezar su ida (menos el margen). Lo que aún no se ha sorteado no se
+     * cierra, y entrar tarde está permitido: solo se pierden las rondas ya cerradas.
+     */
+    private LockState drawnState(Edition edition, List<Match> all) {
+        PredictionLockMode mode = edition.getLockMode() == PredictionLockMode.PER_MATCH
+                ? PredictionLockMode.PER_MATCH : PredictionLockMode.PER_ROUND;
+        int offset = Math.max(0, edition.getLockOffsetMinutes());
+        Instant now = clock.instant();
+        List<DrawnKnockout.Round> rounds = DrawnKnockout.rounds(edition, all);
+        List<Instant> upcoming = new ArrayList<>();
+        List<List<Boolean>> picks = new ArrayList<>();
+        boolean anyLocked = false;
+        for (DrawnKnockout.Round round : rounds) {
+            List<Match> firstLegs = round.ties().stream().map(tie -> tie.legs().get(0)).toList();
+            boolean drawn = round.drawn();
+            boolean roundLocked = drawn && mode == PredictionLockMode.PER_ROUND
+                    && anyStarted(firstLegs, offset, now, upcoming);
+            List<Boolean> row = new ArrayList<>();
+            for (Match firstLeg : firstLegs) {
+                boolean locked = drawn && (roundLocked || mode == PredictionLockMode.PER_MATCH
+                        && started(firstLeg, offset, now, upcoming));
+                row.add(locked);
+                anyLocked |= locked;
+            }
+            picks.add(row);
+        }
+        DrawnKnockout.Round last = rounds.isEmpty() ? null : rounds.get(rounds.size() - 1);
+        boolean fullyLocked = last != null && "final".equals(last.key()) && last.drawn()
+                && picks.get(picks.size() - 1).stream().allMatch(Boolean::booleanValue);
+        Instant next = upcoming.stream().filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
+        return new LockState(mode, offset, null, List.of(), picks, anyLocked, fullyLocked,
+                fullyLocked ? null : next, rounds);
+    }
+
     /** Lo ya cerrado no se puede cambiar: grupos cerrados y ganadores cerrados deben coincidir con lo guardado. */
     public void requireLockedPartsUnchanged(LockState state, PredictionDataDTO saved, PredictionDataDTO incoming) {
         Map<String, List<String>> before = saved == null || saved.getGroups() == null ? Map.of() : saved.getGroups();
@@ -169,6 +212,10 @@ public class CustomLockService {
             for (int index = 0; index < state.picks().get(round).size(); index++) {
                 if (state.pickLocked(round, index) && !Objects.equals(pick(old, round, index), pick(now, round, index))) {
                     throw BusinessException.conflict("Ese cruce ya ha empezado y no se puede cambiar");
+                }
+                if (state.pickLocked(round, index) && !Objects.equals(pick(saved == null ? null
+                        : saved.getCustomSeriesGames(), round, index), pick(incoming.getCustomSeriesGames(), round, index))) {
+                    throw BusinessException.conflict("Esa serie ya ha empezado y no se puede cambiar");
                 }
             }
         }
@@ -200,14 +247,37 @@ public class CustomLockService {
             visible.add(row);
         }
         copy.setCustomRounds(visible);
+        if (data.getCustomSeriesGames() != null) {
+            List<List<Integer>> games = new ArrayList<>();
+            for (int round = 0; round < data.getCustomSeriesGames().size(); round++) {
+                List<Integer> row = data.getCustomSeriesGames().get(round);
+                List<Integer> shown = new ArrayList<>();
+                for (int index = 0; row != null && index < row.size(); index++) {
+                    shown.add(state.pickLocked(round, index) ? row.get(index) : null);
+                }
+                games.add(shown);
+            }
+            copy.setCustomSeriesGames(games);
+        }
         int last = rounds.size() - 1;
         copy.setChampion(last >= 0 && state.pickLocked(last, 0) ? data.getChampion() : null);
         return copy;
     }
 
-    private static String pick(List<List<String>> rounds, int round, int index) {
-        return round < rounds.size() && rounds.get(round) != null && index < rounds.get(round).size()
+    private static <T> T pick(List<List<T>> rounds, int round, int index) {
+        return rounds != null && round < rounds.size() && rounds.get(round) != null && index < rounds.get(round).size()
                 ? rounds.get(round).get(index) : null;
+    }
+
+    /**
+     * Primer cruce de un cuadro oficial propio que no se sortea ronda a ronda (ver
+     * {@link PredictableBracket#predictionsCloseAt}); null si no aplica o aún no hay cruces definidos.
+     */
+    public Instant bracketClosesAt(Edition edition) {
+        Competition competition = edition.getCompetition();
+        if (competition == null) return null;
+        return PredictableBracket.predictionsCloseAt(competition, edition.getPoolFormat(),
+                matches.findByCompetitionId(competition.getId()));
     }
 
     /** Fecha del primer cierre en el modo {@link PredictionLockMode#FIRST_MATCH}: el primer partido con fecha. */

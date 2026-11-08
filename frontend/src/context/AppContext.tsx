@@ -9,12 +9,7 @@ import {
 } from '../services/api';
 import { SESSION_REVISION_KEY } from '../services/sessionHint';
 import { useWebSocket } from '../hooks/useWebSocket';
-import {
-  useAppStore,
-  defaultBracketState,
-  getInitialBracketState,
-  readGroupVisits,
-} from '../store/useAppStore';
+import { useAppStore, defaultBracketState, getInitialBracketState } from '../store/useAppStore';
 import { writeDraft } from '../utils/drafts';
 import {
   useActiveLeague,
@@ -22,6 +17,7 @@ import {
   useLeagueRanking,
   useOfficialData,
 } from './leagueData';
+import { pickMostRecentLeague } from './leagueFallback';
 
 type StoreState = ReturnType<typeof useAppStore.getState>;
 
@@ -176,23 +172,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // No hay selección local válida en esta sesión, usar la preferencia de BD
             changeGroup(dbGroupId);
           } else {
-            // Sin preferencia en BD: la última liga visitada en este dispositivo y,
-            // si no hay historial, la más reciente por fecha de creación.
-            const visits = readGroupVisits();
-            const lastVisitedId = Object.entries(visits)
-              .sort(([, a], [, b]) => Number(b) - Number(a))
-              .map(([id]) => id)
-              .find((id) => myGroups.some((g) => g.id.toString() === id));
-
-            if (lastVisitedId) {
-              changeGroup(lastVisitedId);
-            } else {
-              const mostRecent = [...myGroups].sort(
-                (a, b) =>
-                  new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
-              )[0];
-              changeGroup(mostRecent.id.toString());
-            }
+            // Sin preferencia en BD: la liga más reciente (ver pickMostRecentLeague).
+            changeGroup(pickMostRecentLeague(myGroups));
           }
         }
       } catch {

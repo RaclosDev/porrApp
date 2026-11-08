@@ -52,7 +52,7 @@ describe('matchday editing and navigation', () => {
       activeGroupId: '10',
       activeGroupName: 'Liga A',
       activeGroupPoolFormat: 'MATCH_DAY',
-      activeCompetitionFormatType: 'LEAGUE',
+      leagueKind: 'matchday',
       isAuthenticated: true,
       userId: '7',
     });
@@ -60,25 +60,33 @@ describe('matchday editing and navigation', () => {
     client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
+    // El servidor recuerda lo guardado y lo devuelve al volver a pedir los partidos.
+    const saved = new Map<number, string | null>();
     vi.mocked(api.fetchMatchdayFixtures).mockImplementation((id) =>
       Promise.resolve(
-        id === '10'
+        (id === '10'
           ? [fixture(101, 'Jornada 10', 'Equipo A')]
-          : [fixture(201, 'Jornada 2', 'Equipo B')],
+          : [fixture(201, 'Jornada 2', 'Equipo B')]
+        ).map((f) => ({ ...f, predSign: saved.get(f.matchId) ?? null })),
       ),
     );
-    vi.mocked(api.submitMatchdayPredictions).mockResolvedValue({
-      success: true,
-      saved: 1,
-      message: 'Guardado',
+    vi.mocked(api.submitMatchdayPredictions).mockImplementation((_groupId, items) => {
+      items.forEach((item) => saved.set(item.matchId, item.sign));
+      return Promise.resolve({ success: true, saved: items.length, message: 'ok' });
     });
     // Sin resumen de jornadas se pide la temporada entera y las jornadas salen de los partidos.
     vi.mocked(api.fetchLeaderboardMatchdays).mockResolvedValue([]);
   });
 
-  it('resets the selected round and preserves an immediate draft when switching leagues', async () => {
+  it('saves a pick right away and keeps it when switching leagues', async () => {
     const view = render(tree());
     fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
+    await waitFor(() =>
+      expect(api.submitMatchdayPredictions).toHaveBeenCalledWith('10', [
+        { matchId: 101, homeScore: null, awayScore: null, sign: '1' },
+      ]),
+    );
+    await waitFor(() => expect(localStorage.getItem('draft_matchday_u7_g10')).toBeNull());
     context = { ...context, activeGroupId: '20', activeGroupName: 'Liga B' };
     view.rerender(tree());
     expect(await screen.findByRole('button', { name: signB('1') })).toHaveAttribute(
@@ -86,7 +94,6 @@ describe('matchday editing and navigation', () => {
       'false',
     );
     expect(screen.queryByRole('button', { name: signA('1') })).not.toBeInTheDocument();
-    expect(localStorage.getItem('draft_matchday_u7_g20')).toBeNull();
     context = { ...context, activeGroupId: '10' };
     view.rerender(tree());
     await waitFor(() =>
@@ -105,9 +112,15 @@ describe('matchday editing and navigation', () => {
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
   });
 
-  it('keeps unsaved edits across a live refresh and only submits edited matches', async () => {
+  it('keeps a pick being saved across a live refresh and only submits edited matches', async () => {
+    vi.mocked(api.submitMatchdayPredictions).mockReturnValue(new Promise(() => {}));
     render(tree());
     fireEvent.click(await screen.findByRole('button', { name: signA('2') }));
+    await waitFor(() =>
+      expect(api.submitMatchdayPredictions).toHaveBeenCalledWith('10', [
+        { matchId: 101, homeScore: null, awayScore: null, sign: '2' },
+      ]),
+    );
     act(() =>
       client.setQueryData(
         ['matchdayFixtures', '10', '7', ''],
@@ -128,12 +141,40 @@ describe('matchday editing and navigation', () => {
         'true',
       ),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-    await waitFor(() =>
-      expect(api.submitMatchdayPredictions).toHaveBeenCalledWith('10', [
-        { matchId: 101, homeScore: null, awayScore: null, sign: '2' },
-      ]),
+    expect(api.submitMatchdayPredictions).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends a pick made while another one is saving as soon as it finishes', async () => {
+    const finishers: ((result: MatchdaySubmissionResult) => void)[] = [];
+    vi.mocked(api.submitMatchdayPredictions).mockImplementation(
+      () => new Promise((resolve) => finishers.push(resolve)),
     );
+    render(tree());
+    fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
+    fireEvent.click(screen.getByRole('button', { name: signA('2') }));
+    await waitFor(() => expect(finishers).toHaveLength(1));
+    await act(async () => {});
+    expect(api.submitMatchdayPredictions).toHaveBeenCalledTimes(1);
+    await act(async () => finishers[0]({ success: true, saved: 1, message: 'ok' }));
+    await waitFor(() => expect(api.submitMatchdayPredictions).toHaveBeenCalledTimes(2));
+    expect(api.submitMatchdayPredictions).toHaveBeenLastCalledWith('10', [
+      { matchId: 101, homeScore: null, awayScore: null, sign: '2' },
+    ]);
+    expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g10') ?? '{}')['101'].sign).toBe('2');
+  });
+
+  it('offers to retry when a save fails and keeps the pick', async () => {
+    vi.mocked(api.submitMatchdayPredictions).mockRejectedValueOnce(new Error('Sin conexión'));
+    render(tree());
+    fireEvent.click(await screen.findByRole('button', { name: signA('X') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sin conexión');
+    expect(screen.getByRole('button', { name: signA('X') })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    await waitFor(() => expect(api.submitMatchdayPredictions).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
   });
 
   it('includes the final and provides calendar dates when the provider has no round', async () => {
@@ -143,53 +184,53 @@ describe('matchday editing and navigation', () => {
     ]);
     render(tree());
     const roundSelect = await screen.findByLabelText('Seleccionar jornada');
-    expect(await screen.findByRole('option', { name: 'final' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'Final' })).toBeInTheDocument();
     fireEvent.change(roundSelect, { target: { value: 'Fecha 2099-01-01' } });
     expect(screen.getByText('Sin ronda')).toBeInTheDocument();
     expect(screen.queryByText('Finalista')).not.toBeInTheDocument();
   });
 
+  it('sends a pick left unsaved last time as soon as the round loads', async () => {
+    localStorage.setItem(
+      'draft_matchday_u7_g10',
+      JSON.stringify({ 101: { homeScore: '', awayScore: '', sign: 'X' } }),
+    );
+    render(tree());
+    await waitFor(() =>
+      expect(api.submitMatchdayPredictions).toHaveBeenCalledWith('10', [
+        { matchId: 101, homeScore: null, awayScore: null, sign: 'X' },
+      ]),
+    );
+  });
+
   it('does not clear another league draft when a save finishes after switching', async () => {
-    let finishSave!: (result: MatchdaySubmissionResult) => void;
+    const finishers: ((result: MatchdaySubmissionResult) => void)[] = [];
     vi.mocked(api.submitMatchdayPredictions).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finishSave = resolve;
-        }),
+      () => new Promise((resolve) => finishers.push(resolve)),
     );
     const view = render(tree());
     fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(api.submitMatchdayPredictions).toHaveBeenCalled());
     context = { ...context, activeGroupId: '20' };
     view.rerender(tree());
     fireEvent.click(await screen.findByRole('button', { name: signB('X') }));
-    await act(async () => finishSave({ success: true, saved: 1, message: 'Guardado A' }));
+    await act(async () => finishers[0]({ success: true, saved: 1, message: 'ok' }));
     expect(screen.getByRole('button', { name: signB('X') })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
     expect(JSON.parse(localStorage.getItem('draft_matchday_u7_g20') ?? '{}')['201'].sign).toBe('X');
-    expect(screen.queryByText('Guardado A')).not.toBeInTheDocument();
   });
 
-  it('hides the save confirmation after 4 s and clears the timer on unmount', async () => {
-    const view = render(tree());
-    fireEvent.click(await screen.findByRole('button', { name: signA('1') }));
+  it('shows the save status and hides it again after 3 s', async () => {
+    render(tree());
+    const pick = await screen.findByRole('button', { name: signA('1') });
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-      expect(await screen.findByText('Guardado')).toBeInTheDocument();
-      const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
-      act(() => vi.advanceTimersByTime(4000));
-      expect(screen.queryByText('Guardado')).not.toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('button', { name: signA('2') }));
-      fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-      expect(await screen.findByText('Guardado')).toBeInTheDocument();
-      clearSpy.mockClear();
-      view.unmount();
-      expect(clearSpy).toHaveBeenCalled();
+      fireEvent.click(pick);
+      expect(await screen.findByText(/Guardado/)).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(3000));
+      expect(screen.queryByText(/Guardado/)).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -242,7 +283,7 @@ describe('matchday editing and navigation', () => {
 
     // Counter scopes to the selected round (J1 has 1 match, 0 predicted -> 0/1, not 0/6)
     expect(screen.getByText('0/1 predicciones')).toBeInTheDocument();
-    // A fully played round shows its finished matches instead of an empty "Todos" tab
+    // A fully played round shows its finished matches instead of an empty "Por jugar" tab
     expect(screen.getByRole('tab', { name: /Finalizados/ })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -250,14 +291,14 @@ describe('matchday editing and navigation', () => {
     expect(screen.getByText('Equipo 1')).toBeInTheDocument();
   });
 
-  it('hides finished matches from "Todos" and lists unpredicted ones in "Pendientes"', async () => {
+  it('hides finished matches from "Por jugar" and lists unpredicted ones in "Pendientes"', async () => {
     vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
       { ...fixture(1, 'Jornada 1', 'Jugado'), finished: true, locked: true },
       { ...fixture(2, 'Jornada 1', 'Pronosticado'), predSign: '1' },
       fixture(3, 'Jornada 1', 'Sin pronóstico'),
     ]);
     render(tree());
-    expect(await screen.findByRole('tab', { name: 'Todos 2' })).toHaveAttribute(
+    expect(await screen.findByRole('tab', { name: 'Por jugar 2' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
@@ -278,12 +319,18 @@ describe('opening a league from a reminder link', () => {
     const champions = group({ id: 20, name: 'Champions', poolFormat: 'MATCH_DAY' });
     // Como el store real, cambiar de liga la activa al momento.
     const changeGroup = vi.fn(() => {
-      current = { ...current, activeGroupId: '20', activeGroupPoolFormat: 'MATCH_DAY' };
+      current = {
+        ...current,
+        activeGroupId: '20',
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
+      };
     });
     // Liga activa sin jornadas (p. ej. un cuadro de LoL) y las ligas del usuario aún cargando.
     let current: AppContextValue = appContext({
       activeGroupId: '5',
       activeGroupPoolFormat: 'FULL_BRACKET',
+      leagueKind: 'ownBracket',
       isAuthenticated: true,
       userId: '7',
       userGroups: [],
@@ -317,18 +364,24 @@ describe('opening a league from a reminder link', () => {
 });
 
 describe('opening a league without matchdays from a notification link', () => {
-  it('switches to it and lands on its home', () => {
+  it('switches to it and lands on its own prediction', () => {
     const bracket = group({ id: 30, name: 'Cuadro', poolFormat: 'FULL_BRACKET' });
     let current: AppContextValue = appContext({
       activeGroupId: '5',
       activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'matchday',
       isAuthenticated: true,
       userId: '7',
       userGroups: [bracket],
       userGroupsLoaded: true,
     });
     const changeGroup = vi.fn(() => {
-      current = { ...current, activeGroupId: '30', activeGroupPoolFormat: 'FULL_BRACKET' };
+      current = {
+        ...current,
+        activeGroupId: '30',
+        activeGroupPoolFormat: 'FULL_BRACKET',
+        leagueKind: 'ownBracket',
+      };
     });
     current = { ...current, changeGroup };
     vi.mocked(useAppContext).mockImplementation(() => current);
@@ -340,7 +393,7 @@ describe('opening a league without matchdays from a notification link', () => {
         <MemoryRouter initialEntries={['/jornadas?group=30']}>
           <Routes>
             <Route path="/jornadas" element={<MatchdayPredictor />} />
-            <Route path="/" element={<p>Inicio</p>} />
+            <Route path="/prediction" element={<p>Mi porra</p>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -348,7 +401,7 @@ describe('opening a league without matchdays from a notification link', () => {
     const view = render(tree());
     expect(changeGroup).toHaveBeenCalledWith(30);
     view.rerender(tree());
-    expect(screen.getByText('Inicio')).toBeInTheDocument();
+    expect(screen.getByText('Mi porra')).toBeInTheDocument();
   });
 });
 
@@ -378,7 +431,7 @@ describe('matchday screen with the league round summary', () => {
         activeGroupId: '10',
         activeGroupName: 'Liga A',
         activeGroupPoolFormat: 'MATCH_DAY',
-        activeCompetitionFormatType: 'LEAGUE',
+        leagueKind: 'matchday',
         isAuthenticated: true,
         userId: '7',
       }),
@@ -424,6 +477,8 @@ describe('matchday screen with the league round summary', () => {
   });
 
   it('keeps the draft of another round while browsing rounds', async () => {
+    // Sin conexión: el guardado no termina y el borrador se conserva.
+    vi.mocked(api.submitMatchdayPredictions).mockReturnValue(new Promise(() => {}));
     render(tree());
     const pickJ2 = 'Predecir X en Local Jornada 2 - Visitante 2';
     fireEvent.click(await screen.findByRole('button', { name: pickJ2 }));

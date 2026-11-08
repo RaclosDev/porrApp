@@ -86,7 +86,8 @@ public class PredictionService {
             if (state.fullyLocked()) {
                 throw BusinessException.conflict("El plazo para enviar o modificar predicciones en esta porra ha finalizado.");
             }
-            if (existing.isEmpty() && state.anyLocked()) {
+            // En unas eliminatorias sorteadas ronda a ronda se puede entrar tarde: solo se pierde lo ya cerrado.
+            if (existing.isEmpty() && state.anyLocked() && !DrawnKnockout.applies(edition)) {
                 throw BusinessException.conflict("La competición ya ha empezado: no se admiten predicciones nuevas.");
             }
             existing.ifPresent(saved -> customLockService.requireLockedPartsUnchanged(state, saved.getBracketData(), predictionData));
@@ -123,13 +124,13 @@ public class PredictionService {
 
     /** Competición personalizada de cuadro cuyo cierre llega por partes. */
     private static boolean progressiveCustom(Edition edition) {
-        return PredictableBracket.applies(edition)
-                && edition.getLockMode() != null && edition.getLockMode().progressive();
+        return PredictableBracket.applies(edition) && (DrawnKnockout.applies(edition)
+                || edition.getLockMode() != null && edition.getLockMode().progressive());
     }
 
     private void validateBracket(Edition edition, PredictionDataDTO data) {
         if (edition.getCompetition() != null && edition.getCompetition().hasOwnBracket()
-                && edition.getPoolFormat() != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+                && !com.porra.mundial.model.PoolFormat.isMatchBased(edition.getPoolFormat())) {
             customBracketValidator.validate(edition, data);
         } else if (edition.getCompetition() != null && edition.getCompetition().getOwnerLeague() != null) {
             PredictionLockMode mode = edition.getLockMode() == null ? PredictionLockMode.FIXED_DATE : edition.getLockMode();

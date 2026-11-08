@@ -1,9 +1,26 @@
 import type { LeagueScoring, ScoringRuleKey } from '../../types/api';
-import { scoringSections, scoringValueError, type ScoringDraft } from '../../utils/scoringRules';
+import { scoringFieldError, scoringSections, type ScoringDraft } from '../../utils/scoringRules';
+import { allowsDraw } from '../../utils/matchday';
+
+/** Cómo se juega superviviente con las vidas y la regla del empate de esta liga. */
+function survivorRules(lives: number, drawSurvives: boolean, draws: boolean, weeks: boolean) {
+  // La NFL se juega por semanas.
+  const round = weeks ? 'semana' : 'jornada';
+  const survive = !draws
+    ? `Si gana, superas la ${round}; si pierde, fallas`
+    : drawSurvives
+      ? `Si gana o empata, superas la ${round}`
+      : `Si gana, superas la ${round}; si empata o pierde, fallas`;
+  const fail =
+    lives > 1
+      ? `Cada fallo te quita una vida y con la última quedas eliminado: empiezas con ${lives}.`
+      : 'Al primer fallo quedas eliminado.';
+  return `Cada ${round} eliges un equipo, sin repetir. ${survive}. ${fail} No elegir cuenta como fallo. Gana quien supere más ${round}s.`;
+}
 
 /**
  * Cuánto da cada acierto según el formato de la liga. Con `draft` y `onChange` cada valor es un
- * campo numérico que edita el administrador; sin ellos es una tabla de solo lectura.
+ * campo que edita el administrador; sin ellos es una tabla de solo lectura.
  */
 export default function ScoringRulesPanel({
   scoring,
@@ -15,15 +32,48 @@ export default function ScoringRulesPanel({
   onChange?: (key: ScoringRuleKey, value: string) => void;
 }) {
   const editing = Boolean(draft && onChange);
-  const signOnly = scoring.matchSignOnly ?? true;
-  const sections = scoringSections(scoring.poolFormat, scoring.pichichi);
+  // En tenis los sets y en el LoL el resultado de la serie sí puntúan: la pausa del resultado exacto
+  // es del fútbol.
+  const signOnly =
+    (scoring.matchSignOnly ?? true) &&
+    scoring.sport !== 'TENNIS' &&
+    scoring.sport !== 'LEAGUE_OF_LEGENDS';
+  const winnerOnly = !allowsDraw(scoring.sport);
+  // Una serie del LoL nunca acaba en empate: la regla del empate no pinta nada.
+  const seriesOnly = scoring.sport === 'LEAGUE_OF_LEGENDS';
+  const sections = scoringSections(
+    scoring.poolFormat,
+    scoring.pichichi,
+    scoring.knockoutDraw,
+    scoring.nbaSeries,
+    winnerOnly,
+    scoring.sport ?? null,
+    scoring.fights,
+  );
+  const current = (key: ScoringRuleKey) =>
+    draft?.[key] ?? String(scoring.rules[key] ?? scoring.defaults[key]);
 
   return (
     <div className="scoring-panel">
-      {scoring.poolFormat === 'MATCH_DAY' && signOnly && (
+      {scoring.poolFormat === 'SURVIVOR' && (
         <p className="scoring-row-hint">
-          Provisionalmente solo puntúa el signo 1X2. El resultado exacto y la diferencia de goles
-          están pausados; sus valores se conservan para reactivarlos más adelante.
+          {survivorRules(
+            Number(current('survivorLives')) || 1,
+            current('survivorDrawSurvives') === '1',
+            !seriesOnly,
+            scoring.sport === 'AMERICAN_FOOTBALL',
+          )}
+        </p>
+      )}
+      {scoring.poolFormat === 'MATCH_DAY' && scoring.fights && (
+        <p className="scoring-row-hint">
+          Un empate, una pelea sin resultado o cancelada no dan puntos. Si cambia un rival, esa
+          predicción se anula.
+        </p>
+      )}
+      {scoring.poolFormat === 'MATCH_DAY' && signOnly && !winnerOnly && (
+        <p className="scoring-row-hint">
+          Por ahora solo puntúa el 1X2. El resultado exacto y la diferencia de goles están pausados.
         </p>
       )}
       {sections.map((section) => (
@@ -34,14 +84,16 @@ export default function ScoringRulesPanel({
         >
           <h4 id={`scoring-${section.id}`}>{section.title}</h4>
           <dl className="scoring-rows">
-            {section.fields.map(({ key, label, hint }) => {
+            {section.fields.map(({ key, label, hint, kind = 'points' }) => {
               const paused =
                 signOnly && (key === 'exactScorePoints' || key === 'goalDiffBonusPoints');
               const inputId = `scoring-input-${key}`;
-              const value = draft?.[key] ?? String(scoring.rules[key]);
-              const error = editing ? scoringValueError(value, scoring.maxPoints) : null;
+              const value = current(key);
+              const error = editing ? scoringFieldError(key, value, scoring.maxPoints) : null;
               const defaultValue = scoring.defaults[key];
               const changedFromDefault = editing && !error && Number(value) !== defaultValue;
+              const shown = (raw: number | string) =>
+                kind === 'toggle' ? (Number(raw) === 1 ? 'Sí' : 'No') : String(raw);
               return (
                 <div key={key} className="scoring-row">
                   <dt className="scoring-row-text">
@@ -52,7 +104,7 @@ export default function ScoringRulesPanel({
                     ) : (
                       <span className="scoring-row-label">{label}</span>
                     )}
-                    <span className="scoring-row-hint">
+                    <span className="scoring-row-hint" id={`${inputId}-hint`}>
                       {paused ? `Pausado temporalmente. ${hint}` : hint}
                     </span>
                     {error && (
@@ -61,11 +113,22 @@ export default function ScoringRulesPanel({
                       </span>
                     )}
                     {changedFromDefault && (
-                      <span className="scoring-row-default">Por defecto: {defaultValue}</span>
+                      <span className="scoring-row-default">
+                        Por defecto: {shown(defaultValue)}
+                      </span>
                     )}
                   </dt>
                   <dd className="scoring-row-value">
-                    {editing ? (
+                    {editing && kind === 'toggle' ? (
+                      <input
+                        id={inputId}
+                        className="scoring-toggle"
+                        type="checkbox"
+                        checked={value === '1'}
+                        aria-describedby={`${inputId}-hint`}
+                        onChange={(event) => onChange?.(key, event.target.checked ? '1' : '0')}
+                      />
+                    ) : editing ? (
                       <span className="scoring-input-wrap">
                         <input
                           id={inputId}
@@ -73,24 +136,26 @@ export default function ScoringRulesPanel({
                           type="number"
                           disabled={paused}
                           inputMode="numeric"
-                          min={0}
-                          max={scoring.maxPoints}
+                          min={kind === 'count' ? 1 : 0}
+                          max={kind === 'count' ? 10 : scoring.maxPoints}
                           step={1}
                           value={value}
                           aria-invalid={Boolean(error)}
                           aria-describedby={error ? `${inputId}-error` : undefined}
                           onChange={(event) => onChange?.(key, event.target.value)}
                         />
-                        <span aria-hidden="true">pts</span>
+                        {kind === 'points' && <span aria-hidden="true">pts</span>}
                       </span>
                     ) : (
                       <span className="scoring-points">
                         {paused ? (
                           'Pausado'
-                        ) : (
+                        ) : kind === 'points' ? (
                           <>
                             {scoring.rules[key]} <span>pts</span>
                           </>
+                        ) : (
+                          shown(scoring.rules[key] ?? scoring.defaults[key])
                         )}
                       </span>
                     )}

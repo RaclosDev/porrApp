@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import type { Group } from '../src/types/api';
+import { withLeagueKind } from './leagueKind';
 
-const league: Group = {
+const league: Group = withLeagueKind('worldCup', {
   id: 1,
   name: 'Liga de prueba',
   joinCode: null,
@@ -9,6 +10,8 @@ const league: Group = {
   adminUserId: null,
   createdAt: null,
   competitionId: 2,
+  // La fase de grupos solo existe en las ligas del Mundial.
+  competitionExternalId: 'fifa.world',
   competitionName: 'Competición de prueba',
   formatType: 'TOURNAMENT',
   poolFormat: 'FULL_BRACKET',
@@ -17,7 +20,7 @@ const league: Group = {
   isLocked: false,
   rules: null,
   imageUrl: null,
-};
+});
 
 for (const viewport of [
   { name: 'desktop', width: 1440, height: 900 },
@@ -52,13 +55,17 @@ for (const viewport of [
             groupLoaded = true;
             return;
           }
-          if (['/api/standings', '/api/matches', '/api/teams/odds'].includes(url.pathname)) {
+          if (
+            ['/api/world-cup/standings', '/api/matches', '/api/world-cup/group-odds'].includes(
+              url.pathname,
+            )
+          ) {
             await dataGate;
           }
           const responses: Record<string, unknown> = {
-            '/api/standings': {},
-            '/api/standings/official-bracket': {},
-            '/api/teams/odds': {},
+            '/api/world-cup/standings': {},
+            '/api/world-cup/official-bracket': {},
+            '/api/world-cup/group-odds': {},
             '/api/matches/radar': { live: [], last: [], next: [] },
           };
           return route.fulfill({ json: responses[url.pathname] ?? [] });

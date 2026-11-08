@@ -1,21 +1,50 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
-import { fetchCompetitionStandings, fetchCustomStandings, fetchCustomTeams } from '../services/api';
+import {
+  fetchCompetitionStandings,
+  fetchCustomStandings,
+  fetchCustomTeams,
+  fetchMatchdayFixtures,
+} from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import { computeCustomGroupTables } from '../utils/customBracket';
-import { computeSwissStandings } from '../utils/officialTournament';
+import { KNOCKOUT_ROUNDS, computeSwissStandings } from '../utils/officialTournament';
+import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
+import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
 import { normalizeCountryName } from '../utils/constants';
-import { currentRoundMatches, nextGroupName, upcomingMatches } from '../utils/homeMatches';
-import { displayRoundLabel } from '../utils/matchday';
+import {
+  currentRoundMatches,
+  fixtureAsMatch,
+  nextGroupName,
+  upcomingMatches,
+} from '../utils/homeMatches';
+import { displayRoundLabel, sortFightCard } from '../utils/matchday';
+import { knockoutDrawPendingText } from '../utils/knockoutDrawPending';
 import { useSortedGroups } from './useSortedGroups';
+import { nflOverall, nflRecord } from '../utils/nflStandings';
 import type { Match } from '../types/api';
+import type { LeagueKind } from '../context/leagueKind';
 
-/** Competición del cuadro oficial con grupos, terceros y cruces. */
-const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
 const MINI_TABLE_SIZE = 5;
 
-type LeagueHomeFormat = 'matchday' | 'custom' | 'worldcup' | 'official';
+/** De dónde salen los partidos y la tabla de la portada; `null`: la clase no tiene esta portada. */
+type LeagueHomeSource = 'matchday' | 'custom' | 'worldCup' | 'official' | null;
+
+const HOME_SOURCE: Record<LeagueKind, LeagueHomeSource> = {
+  matchday: 'matchday',
+  fightCard: 'matchday',
+  tennisDraw: 'matchday',
+  customBracket: 'custom',
+  worldCup: 'worldCup',
+  ownBracket: 'official',
+  knockoutDraw: 'official',
+  grandPrix: null,
+  loading: null,
+  error: null,
+  none: null,
+  unknown: null,
+};
 
 export interface MiniStandingRow {
   /** Nombre original del equipo: identifica la fila y su escudo. */
@@ -43,21 +72,11 @@ interface LeagueHomeData {
   loading: boolean;
 }
 
-/** Formato de la liga activa, que decide de dónde salen los partidos y la tabla de la portada. */
-export function useLeagueHomeFormat(): LeagueHomeFormat {
-  const {
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    activeGroupCustomCompetition,
-    activeCompetitionExternalId,
-  } = useAppContext();
-  if (activeGroupPoolFormat === 'MATCH_DAY' || activeCompetitionFormatType === 'LEAGUE')
-    return 'matchday';
-  if (activeGroupCustomCompetition) return 'custom';
-  if (activeCompetitionExternalId && activeCompetitionExternalId !== WORLD_CUP_EXTERNAL_ID)
-    return 'official';
-  return 'worldcup';
-}
+const NO_HOME: Omit<LeagueHomeData, 'loading'> = {
+  subtitle: '',
+  matches: { title: '', items: [], to: '/', action: '', allTo: '/', empty: '' },
+  standings: null,
+};
 
 const logosOf = (matches: Match[]) => {
   const logos: Record<string, string> = {};
@@ -71,15 +90,67 @@ const logosOf = (matches: Match[]) => {
 };
 
 /**
+ * Título de la ronda de tenis en la portada: con el torneo delante («Masters de París · Final»). En una
+ * liga de varios torneos la ronda ya lo trae («Masters de París 2026 · Final»).
+ */
+const tennisRoundTitle = (label: string, tournament: string | null) =>
+  label.includes(' · ') || !tournament ? label : `${tournament} · ${label}`;
+
+/**
  * Datos de la portada de una liga en cualquier formato: los partidos que tocan y una tabla corta de
  * equipos. Cada formato solo cambia de dónde salen; la portada los pinta siempre igual.
  */
 export function useLeagueHomeData(): LeagueHomeData {
-  const format = useLeagueHomeFormat();
-  const { allGames, activeCompetitionId, activeGroupId, activeGroupCustomCompetition } =
-    useAppContext();
+  const {
+    leagueKind,
+    allGames: competitionGames,
+    activeCompetitionId,
+    activeGroupId,
+    activeGroupCustomCompetition,
+    activeGroupPicksMatches,
+    activeGroupMultiCompetition,
+    activeCompetitionExternalId,
+    activeCompetitionName,
+  } = useAppContext();
+  const format = HOME_SOURCE[leagueKind];
+  const knockoutDraw = leagueKind === 'knockoutDraw';
+  // En la UFC no hay tabla de equipos (los «equipos» son luchadores): su tabla es la cartelera.
+  const ufc = leagueKind === 'fightCard';
+  // La NFL y la NBA no dan puntos: se enseña el balance de victorias y derrotas.
+  const winLoss =
+    activeCompetitionExternalId === 'nfl' || isNbaRegularSeason(activeCompetitionExternalId);
+  const lol = isLolCompetition(activeCompetitionExternalId);
+  // En el tenis, igual: su tabla es el cuadro del torneo.
+  const tennis = leagueKind === 'tennisDraw';
+  // En unas eliminatorias (Champions…) la fase de liga no se pronostica: la portada enseña los cruces.
+  const allGames = useMemo(
+    () =>
+      knockoutDraw
+        ? competitionGames.filter(
+            // En los playoffs de la NBA el play-in también se pronostica.
+            (match) => KNOCKOUT_ROUNDS.includes(match.round) || match.round === 'playin',
+          )
+        : competitionGames,
+    [competitionGames, knockoutDraw],
+  );
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const sortedGroups = useSortedGroups();
+  // Una liga que elige sus partidos o los junta de varias competiciones (también la de varios torneos de
+  // tenis, que no los elige) enseña los suyos, no la jornada oficial de su competición principal.
+  const ownMatches =
+    format === 'matchday' &&
+    (activeGroupPicksMatches || activeGroupMultiCompetition) &&
+    groupId != null;
+  const { data: leagueFixtures, isLoading: loadingLeagueFixtures } = useQuery({
+    queryKey: queryKeys.leagueMatches(groupId),
+    queryFn: () => fetchMatchdayFixtures(groupId!),
+    enabled: ownMatches,
+    staleTime: 60_000,
+  });
+  const leagueGames = useMemo(
+    () => (leagueFixtures ? leagueFixtures.map(fixtureAsMatch) : null),
+    [leagueFixtures],
+  );
 
   const { data: leagueStandings, isLoading: loadingLeagueStandings } = useQuery({
     queryKey: queryKeys.competitionStandings(activeCompetitionId),
@@ -87,7 +158,13 @@ export function useLeagueHomeData(): LeagueHomeData {
       activeGroupCustomCompetition && groupId != null
         ? fetchCustomStandings(groupId)
         : fetchCompetitionStandings(activeCompetitionId),
-    enabled: format === 'matchday' && Boolean(activeCompetitionId),
+    // Con partidos de varias competiciones, la tabla de una sola no dice nada de la liga.
+    enabled:
+      format === 'matchday' &&
+      Boolean(activeCompetitionId) &&
+      !activeGroupMultiCompetition &&
+      !ufc &&
+      !tennis,
     staleTime: 120_000,
   });
   const { data: customTeams, isLoading: loadingCustomTeams } = useQuery({
@@ -96,50 +173,79 @@ export function useLeagueHomeData(): LeagueHomeData {
     enabled: format === 'custom' && groupId != null,
   });
 
-  const loading = loadingLeagueStandings || loadingCustomTeams;
+  const loading =
+    loadingLeagueStandings || loadingCustomTeams || (ownMatches && loadingLeagueFixtures);
 
   const data = useMemo<Omit<LeagueHomeData, 'loading'>>(() => {
     const logos = logosOf(allGames);
+    // Con varias tablas (grupos de la Libertadores, fases del LoL) la portada enseña una: la primera, o
+    // en el LoL la fase más reciente.
+    // La NFL llega por divisiones: la portada enseña los mejores balances de toda la liga.
+    const tables =
+      winLoss && leagueStandings?.length
+        ? [{ title: null, rows: nflOverall(leagueStandings) }]
+        : groupStandings(leagueStandings ?? []);
+    const miniTable = lol ? tables[tables.length - 1] : tables[0];
 
     if (format === 'matchday') {
-      const { round, matches } = currentRoundMatches(allGames);
+      const current = currentRoundMatches(ownMatches ? (leagueGames ?? []) : allGames);
+      const round = current.round;
+      // UFC: la velada en el orden de su cartelera, con la pelea estelar arriba, no por hora.
+      const matches = ufc ? sortFightCard(current.matches) : current.matches;
+      const label = round ? displayRoundLabel(round) : null;
       return {
         subtitle: 'Predicciones por jornada',
         matches: {
-          // «Jornada 12» se explica sola; las jornadas por fecha siguen como «Partidos Sáb 7 nov».
-          title: !round
-            ? 'Partidos'
-            : displayRoundLabel(round) === round
-              ? round
-              : `Partidos ${displayRoundLabel(round)}`,
+          // «Jornada 12» y «Semana del 9 nov» se explican solas; las jornadas por fecha siguen como
+          // «Partidos Sáb 7 nov».
+          title:
+            !round || !label
+              ? 'Partidos'
+              : tennis
+                ? tennisRoundTitle(label, activeCompetitionName)
+                : label === round || label.startsWith('Semana')
+                  ? label
+                  : `Partidos ${label}`,
           items: matches,
           to: '/jornadas',
           action: 'hacer tu predicción',
-          allTo: '/radar',
-          empty: 'No hay partidos programados para esta jornada.',
+          allTo: ownMatches ? '/jornadas' : '/radar',
+          empty:
+            tennis && !round
+              ? activeGroupMultiCompetition
+                ? 'Aún no hay partidos de los torneos de la liga: aparecerán en cuanto ESPN publique el cuadro del próximo.'
+                : 'El cuadro aún no está publicado: los partidos aparecerán en cuanto ESPN lo publique.'
+              : ownMatches
+                ? 'Esta liga aún no tiene partidos por jugar.'
+                : 'No hay partidos programados para esta jornada.',
         },
-        standings: leagueStandings?.length
-          ? {
-              title: 'Tabla',
-              to: '/tabla',
-              rows: leagueStandings.slice(0, MINI_TABLE_SIZE).map((team) => ({
-                team: team.teamName,
-                rank: team.rank,
-                name: team.teamName,
-                logo: team.teamLogo,
-                detail: `${team.gamesPlayed} PJ`,
-                value: `${team.points} pts`,
-              })),
-            }
-          : null,
+        standings:
+          !activeGroupMultiCompetition && miniTable
+            ? {
+                title: miniTable.title ? `Tabla · ${miniTable.title}` : 'Tabla',
+                to: '/tabla',
+                rows: miniTable.rows.slice(0, MINI_TABLE_SIZE).map((team) => ({
+                  team: team.teamName,
+                  rank: team.rank,
+                  name: team.teamName,
+                  logo: team.teamLogo,
+                  detail: `${team.gamesPlayed} PJ`,
+                  // En la NFL y el LoL no hay puntos: se enseña el balance de victorias y derrotas.
+                  value: winLoss || lol ? nflRecord(team) : `${team.points} pts`,
+                })),
+              }
+            : null,
       };
     }
+
+    // Sin portada de partidos (Fórmula 1, sin liga o aún cargando): nada que enseñar.
+    if (format === null) return NO_HOME;
 
     const { finished, matches } = upcomingMatches(allGames);
     const groupName = nextGroupName(allGames);
     let standings: LeagueHomeData['standings'] = null;
 
-    if (format === 'worldcup' && groupName && sortedGroups[groupName]) {
+    if (format === 'worldCup' && groupName && sortedGroups[groupName]) {
       standings = {
         title: `Grupo ${groupName}`,
         to: '/grupos',
@@ -169,7 +275,7 @@ export function useLeagueHomeData(): LeagueHomeData {
             value: `${row.points} pts`,
           })),
         };
-    } else if (format === 'official') {
+    } else if (format === 'official' && !knockoutDraw) {
       const swiss = computeSwissStandings(allGames);
       if (swiss.length > 0)
         standings = {
@@ -188,16 +294,35 @@ export function useLeagueHomeData(): LeagueHomeData {
     return {
       subtitle: 'Predicciones del cuadro',
       matches: {
-        title: finished ? 'Últimos resultados' : 'Próximos partidos',
+        title: finished && matches.length > 0 ? 'Últimos resultados' : 'Próximos partidos',
         items: matches,
         to: '/bracket',
         action: 'ver resultados',
         allTo: '/bracket',
-        empty: 'Aún no hay partidos programados.',
+        // Antes del sorteo no hay cruces: se explica cuándo empiezan, no que no haya partidos.
+        empty: knockoutDraw
+          ? knockoutDrawPendingText(activeCompetitionExternalId)
+          : 'Aún no hay partidos programados.',
       },
       standings,
     };
-  }, [format, allGames, leagueStandings, sortedGroups, customTeams]);
+  }, [
+    format,
+    allGames,
+    leagueGames,
+    ownMatches,
+    leagueStandings,
+    sortedGroups,
+    customTeams,
+    knockoutDraw,
+    activeGroupMultiCompetition,
+    winLoss,
+    lol,
+    tennis,
+    activeCompetitionName,
+    activeCompetitionExternalId,
+    ufc,
+  ]);
 
   return useMemo(() => ({ ...data, loading }), [data, loading]);
 }

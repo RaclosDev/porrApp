@@ -2,10 +2,13 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { useLeaguePredictions } from './hooks/useLeaguePredictions';
+import { leaderPredictionId } from './utils/demoPrediction';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import CookieConsent from './components/layout/CookieConsent';
-import CanonicalLink from './components/layout/CanonicalLink';
+import RouteHead from './components/layout/RouteHead';
+import { RequireLeague } from './components/NoLeagueState';
+import { CONTENT_PAGES } from './seo/pages';
 import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
 import { Toaster } from 'react-hot-toast';
@@ -22,12 +25,14 @@ const Bracket = React.lazy(() => import('./pages/Bracket'));
 const Stats = React.lazy(() => import('./pages/Stats'));
 const Search = React.lazy(() => import('./pages/Search'));
 const GroupsDashboard = React.lazy(() => import('./pages/GroupsDashboard'));
+const CreateLeague = React.lazy(() => import('./pages/CreateLeague'));
 const JoinRedirect = React.lazy(() => import('./components/JoinRedirect'));
 const OfficialBracket = React.lazy(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
 const MatchdayPredictor = React.lazy(() => import('./pages/MatchdayPredictor'));
 const LeagueStandings = React.lazy(() => import('./pages/LeagueStandings'));
 const Legal = React.lazy(() => import('./pages/Legal'));
+const ContentPage = React.lazy(() => import('./pages/ContentPage'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
 const GUEST_ALLOWED_PATHS = [
@@ -62,17 +67,26 @@ const RootPage = () => {
   const handoffPending = useSessionHandoffPending();
 
   if (isAuthed) {
-    return <Home />;
+    return (
+      <RequireLeague title="Inicio" what="los partidos y el ranking">
+        <Home />
+      </RequireLeague>
+    );
   }
 
   return handoffPending ? <PageSkeleton /> : <Landing />;
 };
 
 const DemoPredictionPage = () => {
+  const { leaderboardData, loadingLeaderboard } = useAppContext();
   const participantsHashes = useLeaguePredictions();
 
-  // La demo muestra en solo lectura la porra de un participante de la liga pública.
-  const predictionId = participantsHashes[0]?.key;
+  // La demo muestra en solo lectura la porra del primero de la liga pública; sin clasificación,
+  // la primera que haya.
+  const predictionId = leaderPredictionId(leaderboardData) ?? participantsHashes[0]?.key;
+
+  // Mientras llega la clasificación no se enseña otra porra que luego cambie por la del líder.
+  if (loadingLeaderboard) return <PageSkeleton />;
 
   if (!predictionId) {
     return (
@@ -94,7 +108,11 @@ const DemoPage = () => {
   }, [enterDemoMode]);
 
   // Reuse the same dashboard as a real session without impersonating anyone.
-  return <Home />;
+  return (
+    <RequireLeague title="Inicio" what="los partidos y el ranking">
+      <Home />
+    </RequireLeague>
+  );
 };
 
 const ProtectedRoute = ({
@@ -152,7 +170,7 @@ function App() {
       />
       <Router>
         <PwaUpdater />
-        <CanonicalLink />
+        <RouteHead />
         <CookieConsent />
         <ConfirmDialog />
         <Layout>
@@ -165,13 +183,18 @@ function App() {
               <Route path="/linkedin" element={<LinkedInEntry />} />
               <Route path="/privacidad" element={<Legal kind="privacy" />} />
               <Route path="/aviso-legal" element={<Legal kind="legal" />} />
+              {CONTENT_PAGES.map((page) => (
+                <Route key={page.path} path={page.path} element={<ContentPage page={page} />} />
+              ))}
 
               {/* Rutas de lectura - accesibles en guest_mode */}
               <Route
                 path="/radar"
                 element={
                   <ProtectedRoute guestAllowed>
-                    <Radar />
+                    <RequireLeague title="Partidos" what="los partidos">
+                      <Radar />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -185,12 +208,21 @@ function App() {
               />
               {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
               <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
-              <Route path="/grupos" element={<Home defaultMode="groups" />} />
+              <Route
+                path="/grupos"
+                element={
+                  <RequireLeague title="Grupos" what="los grupos">
+                    <Home defaultMode="groups" />
+                  </RequireLeague>
+                }
+              />
               <Route
                 path="/stats"
                 element={
                   <ProtectedRoute guestAllowed>
-                    <Stats />
+                    <RequireLeague title="Estadísticas" what="las estadísticas">
+                      <Stats />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -198,7 +230,9 @@ function App() {
                 path="/search"
                 element={
                   <ProtectedRoute guestAllowed>
-                    <Search />
+                    <RequireLeague title="Buscar" what="las predicciones">
+                      <Search />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -210,12 +244,29 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/bracket" element={<OfficialBracket />} />
+              <Route
+                path="/crear-liga"
+                element={
+                  <ProtectedRoute>
+                    <CreateLeague />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/bracket"
+                element={
+                  <RequireLeague title="Resultados" what="los resultados">
+                    <OfficialBracket />
+                  </RequireLeague>
+                }
+              />
               <Route
                 path="/tabla"
                 element={
                   <ProtectedRoute guestAllowed>
-                    <LeagueStandings />
+                    <RequireLeague title="Tabla" what="la tabla">
+                      <LeagueStandings />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -225,7 +276,9 @@ function App() {
                 path="/prediction"
                 element={
                   <ProtectedRoute>
-                    <Bracket />
+                    <RequireLeague title="Mi porra" what="las predicciones">
+                      <Bracket />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -234,7 +287,9 @@ function App() {
                 path="/jornadas"
                 element={
                   <ProtectedRoute>
-                    <MatchdayPredictor />
+                    <RequireLeague title="Mi porra" what="las predicciones">
+                      <MatchdayPredictor />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />

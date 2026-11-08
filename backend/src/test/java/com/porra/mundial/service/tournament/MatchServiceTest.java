@@ -2,9 +2,12 @@ package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Fight;
+import com.porra.mundial.model.FightMethod;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.repository.FightRepository;
 import com.porra.mundial.repository.MatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +27,7 @@ import static org.mockito.Mockito.*;
 class MatchServiceTest {
     @Mock private MatchRepository matchRepository;
     @Mock private CompetitionRepository competitionRepository;
+    @Mock private FightRepository fightRepository;
     @InjectMocks private MatchService matchService;
 
     @Test
@@ -39,11 +43,29 @@ class MatchServiceTest {
         Match privateMatch = Match.builder().id(1L).competition(Competition.builder().id(9L).build()).build();
         Match worldCup = Match.builder().id(2L).competition(Competition.builder().id(1L).build()).build();
         Match noCompetition = Match.builder().id(3L).build();
-        when(competitionRepository.findPrivateCompetitionIds()).thenReturn(List.of(9L));
+        when(competitionRepository.findHiddenCompetitionIds()).thenReturn(List.of(9L));
 
         assertThat(matchService.publicOnly(List.of(privateMatch, worldCup, noCompetition)))
                 .containsExactly(worldCup, noCompetition);
         assertThat(matchService.publicOnly(List.of())).isEmpty();
+    }
+
+    @Test
+    void fightsOfLoadsOnlyTheFightsOfUfcCompetitions() {
+        Competition ufc = Competition.builder().id(5L).externalId("mma.ufc").build();
+        Competition laLiga = Competition.builder().id(6L).externalId("esp.1").build();
+        Match bout = Match.builder().id(11L).competition(Competition.builder().id(5L).build()).build();
+        Match football = Match.builder().id(12L).competition(Competition.builder().id(6L).build()).build();
+        Fight fight = Fight.builder().matchId(11L).resultMethod(FightMethod.SUBMISSION)
+                .resultDetail("Submission - Rear Naked Choke").resultRound(2).resultClock("1:25").build();
+        when(competitionRepository.findAllById(argThat(ids -> ids != null
+                && java.util.Set.copyOf((java.util.Collection<?>) ids).equals(java.util.Set.of(5L, 6L)))))
+                .thenReturn(List.of(ufc, laLiga));
+        when(fightRepository.findByCompetitionIdIn(List.of(5L))).thenReturn(List.of(fight));
+
+        assertThat(matchService.fightsOf(List.of(bout, football))).containsOnlyKeys(11L).containsValue(fight);
+        assertThat(matchService.fightsOf(List.of())).isEmpty();
+        assertThat(matchService.fightsOf(List.of(Match.builder().id(13L).build()))).isEmpty();
     }
 
     @Test
@@ -65,8 +87,8 @@ class MatchServiceTest {
     void sendsTheRequestedLimitToTheDatabaseAndSkipsEmptyPages() {
         matchService.getLastMatches(5, 7L);
         matchService.getNextMatches(3, 7L);
-        assertThat(matchService.getLastMatches(0)).isEmpty();
-        assertThat(matchService.getNextMatches(0)).isEmpty();
+        assertThat(matchService.getLastMatches(0, 7L)).isEmpty();
+        assertThat(matchService.getNextMatches(0, 7L)).isEmpty();
         verify(matchRepository).findRadarLast(7L, PageRequest.of(0, 5));
         verify(matchRepository).findRadarNext(eq(7L), any(), eq(MatchStatusNormalized.SCHEDULED), eq(PageRequest.of(0, 3)));
         verifyNoMoreInteractions(matchRepository);

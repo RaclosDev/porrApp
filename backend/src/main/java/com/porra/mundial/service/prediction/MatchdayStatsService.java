@@ -6,6 +6,7 @@ import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchVotersDTO.Voter;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
+import com.porra.mundial.dto.MatchdayStatsDTO.MethodCount;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
@@ -49,6 +50,9 @@ public class MatchdayStatsService {
     /** Marcadores que se devuelven por partido. */
     static final int TOP_SCORES = 3;
 
+    /** Métodos de victoria que se pueden pronosticar en una pelea de la UFC, en el orden de la pantalla. */
+    private static final List<String> FIGHT_METHODS = List.of("KO_TKO", "SUBMISSION", "DECISION");
+
     /** Partidos por petición de votantes: los de una jornada larga caben de sobra. */
     static final int MAX_VOTER_MATCHES = 60;
 
@@ -59,6 +63,7 @@ public class MatchdayStatsService {
     private final MatchRepository matchRepository;
     private final PredictionRepository predictionRepository;
     private final CustomLockService customLockService;
+    private final MatchSelectionService matchSelectionService;
 
     @Transactional(readOnly = true)
     public MatchdayStatsDTO getStats(String email, Long groupId) {
@@ -79,7 +84,7 @@ public class MatchdayStatsService {
                 .filter(match -> match != null && match.getId() != null).distinct().toList();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, predicted,
                 MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
-                        ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : predicted);
+                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : predicted);
         Map<Long, List<MatchPrediction>> byMatch = new LinkedHashMap<>();
         for (MatchPrediction mp : all) {
             Match match = mp.getMatch();
@@ -90,7 +95,7 @@ public class MatchdayStatsService {
         }
 
         List<MatchStats> matches = byMatch.values().stream()
-                .map(MatchdayStatsService::aggregate)
+                .map(predictions -> aggregate(edition, predictions))
                 .sorted(Comparator.comparing(MatchStats::matchDate, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(MatchStats::matchId))
                 .toList();
@@ -115,7 +120,7 @@ public class MatchdayStatsService {
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
         if (edition == null) return List.of();
         if (PredictableBracket.applies(edition)) return bracketVoters(edition, groupId, matchIds);
-        if (edition.getPoolFormat() != PoolFormat.MATCH_DAY) return List.of();
+        if (!PoolFormat.isMatchBased(edition.getPoolFormat())) return List.of();
 
         List<MatchPrediction> all = matchPredictionRepository
                 .findWithUserByEditionIdAndMatchIds(edition.getId(), new LinkedHashSet<>(matchIds));
@@ -124,7 +129,7 @@ public class MatchdayStatsService {
         List<Match> matches = all.stream().map(MatchPrediction::getMatch).distinct().toList();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
                 MatchdayLock.needsWholeCalendar(edition) && edition.getCompetition() != null
-                        ? matchRepository.findByCompetitionId(edition.getCompetition().getId()) : matches);
+                        ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : matches);
 
         Instant now = Instant.now();
         Map<Long, Map<String, Map<Long, Voter>>> byMatch = new LinkedHashMap<>();
@@ -170,7 +175,7 @@ public class MatchdayStatsService {
         if (!leagueService.isUserMemberOrAdmin(groupId, email)) return List.of();
 
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null);
-        if (edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY) return List.of();
+        if (edition == null || !PoolFormat.isMatchBased(edition.getPoolFormat())) return List.of();
 
         Set<Long> members = memberIds(groupId);
         Map<Long, Voter> participants = new LinkedHashMap<>();
@@ -193,12 +198,29 @@ public class MatchdayStatsService {
      * en su cuadro. Solo se ven los cruces cuyo pronóstico ya está cerrado, como en el cuadro de los demás.
      */
     private List<MatchVotersDTO> bracketVoters(Edition edition, Long groupId, List<Long> matchIds) {
-        List<List<Match>> rounds = PredictableBracket.rounds(edition.getCompetition(),
-                matchRepository.findByCompetitionId(edition.getCompetition().getId()));
+        List<Match> all = matchRepository.findByCompetitionId(edition.getCompetition().getId());
         Map<Long, int[]> positions = new HashMap<>();
-        for (int round = 0; round < rounds.size(); round++) {
-            for (int index = 0; index < rounds.get(round).size(); index++) {
-                positions.put(rounds.get(round).get(index).getId(), new int[]{round, index});
+        Map<Long, Match> byId = new HashMap<>();
+        if (DrawnKnockout.applies(edition)) {
+            // Cada partido de un cruce (ida y vuelta) muestra quién eligió a cada equipo para pasar.
+            List<DrawnKnockout.Round> rounds = DrawnKnockout.rounds(edition, all);
+            for (int round = 0; round < rounds.size(); round++) {
+                List<DrawnKnockout.Tie> ties = rounds.get(round).ties();
+                for (int index = 0; index < ties.size(); index++) {
+                    for (Match leg : ties.get(index).legs()) {
+                        positions.put(leg.getId(), new int[]{round, index});
+                        byId.put(leg.getId(), leg);
+                    }
+                }
+            }
+        } else {
+            List<List<Match>> rounds = PredictableBracket.rounds(edition.getCompetition(), all);
+            for (int round = 0; round < rounds.size(); round++) {
+                for (int index = 0; index < rounds.get(round).size(); index++) {
+                    Match match = rounds.get(round).get(index);
+                    positions.put(match.getId(), new int[]{round, index});
+                    byId.put(match.getId(), match);
+                }
             }
         }
         CustomLockService.LockState lock = customLockService.state(edition);
@@ -207,7 +229,7 @@ public class MatchdayStatsService {
         for (Long matchId : new LinkedHashSet<>(matchIds)) {
             int[] at = positions.get(matchId);
             if (at == null) continue;
-            Match match = rounds.get(at[0]).get(at[1]);
+            Match match = byId.get(matchId);
             if (match.getHomeTeam() == null || match.getAwayTeam() == null) continue;
             if (lock.fullyLocked() || lock.pickLocked(at[0], at[1])
                     || isRevealed(match, null, edition.isLocked(), now)) {
@@ -285,7 +307,7 @@ public class MatchdayStatsService {
                 || (lockAt != null && !lockAt.isAfter(now));
     }
 
-    private static MatchStats aggregate(List<MatchPrediction> predictions) {
+    private static MatchStats aggregate(Edition edition, List<MatchPrediction> predictions) {
         Match match = predictions.get(0).getMatch();
         boolean finished = Boolean.TRUE.equals(match.getFinished())
                 && match.getHomeScore() != null && match.getAwayScore() != null;
@@ -297,7 +319,10 @@ public class MatchdayStatsService {
         int exactHits = 0;
         int signHits = 0;
         Map<String, ScoreCount> scores = new LinkedHashMap<>();
+        Map<String, Integer> methods = new LinkedHashMap<>();
         for (MatchPrediction mp : predictions) {
+            String method = mp.getPredictedMethod();
+            if (method != null && FIGHT_METHODS.contains(method)) methods.merge(method, 1, Integer::sum);
             boolean hasScore = mp.getHomeScore() != null && mp.getAwayScore() != null;
             String sign = hasScore ? sign(mp.getHomeScore(), mp.getAwayScore()) : normalizeSign(mp.getPredictionSign());
             if ("1".equals(sign)) homeWins++;
@@ -325,7 +350,7 @@ public class MatchdayStatsService {
 
         return new MatchStats(
                 match.getId(),
-                MatchRound.label(match),
+                MatchRound.label(edition, match),
                 match.getMatchDate(),
                 teamName(match.getHomeTeam()),
                 teamName(match.getAwayTeam()),
@@ -341,7 +366,12 @@ public class MatchdayStatsService {
                 awayWins,
                 topScores,
                 finished ? exactHits : null,
-                finished ? signHits : null);
+                finished ? signHits : null,
+                methods.entrySet().stream()
+                        .map(entry -> new MethodCount(entry.getKey(), entry.getValue()))
+                        .sorted(Comparator.comparingInt(MethodCount::count).reversed()
+                                .thenComparing(count -> FIGHT_METHODS.indexOf(count.method())))
+                        .toList());
     }
 
     private static String sign(int home, int away) {

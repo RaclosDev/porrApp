@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
-import { isLiveMatch } from '../../utils/homeMatches';
-import { formatMatchDate } from '../../utils/matchday';
+import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
+import { finishedLabel, formatMatchDate, resultNote } from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import { Skeleton } from '../SkeletonBlock';
@@ -17,6 +17,9 @@ import RoundParticipants from '../voters/RoundParticipants';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
 import { useRoundParticipants } from '../../hooks/useRoundParticipants';
 import type { Match, MatchVoter, MatchVoters } from '../../types/api';
+import { MATCH_KINDS } from '../../context/leagueKind';
+import { boutBilling, fightOutcomes, fightResultText, weightClassLabel } from '../../utils/fights';
+import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult';
 
 const RANKING_SIZE = 5;
 
@@ -108,10 +111,22 @@ function MatchCard({
   twoWay?: boolean;
 }) {
   const isLive = isLiveMatch(match);
-  const hasScore = match.home_score != null && match.away_score != null;
   const home = match.home || 'Local';
   const away = match.away || 'Visitante';
+  // Una pelea de la UFC no tiene marcador: cada luchador lleva su W o L y debajo va cómo acabó.
+  const outcomes = fightOutcomes(match.fight, match.finished);
+  const hasScore = !match.fight && hasShownScore(match);
+  const result = outcomes
+    ? fightResultText({ homeTeam: home, awayTeam: away, fight: match.fight })
+    : '';
   const matchName = `${home} - ${away}`;
+  // UFC: junto a la hora, si es la estelar o la coestelar y, si no, la categoría.
+  const fightTag = match.fight
+    ? (boutBilling(match.fight) ??
+      (match.fight.weightClass ? weightClassLabel(match.fight.weightClass) : null))
+    : null;
+  // Un empate de Copa decidido en los penaltis, o un partido que fue a la prórroga, lo dice bajo el marcador.
+  const note = hasScore && match.finished ? resultNote(match.displayClock) : null;
   // Las fotos van dentro de la tarjeta: bajo cada equipo y, en las jornadas, el empate bajo el marcador.
   const voterStack = (list: MatchVoter[], label: string) =>
     voters && onShowVoters ? (
@@ -128,10 +143,14 @@ function MatchCard({
         type="button"
         className="home-match-open"
         onClick={onOpen}
-        aria-label={`${home} contra ${away}, ${action}`}
+        aria-label={`${home} contra ${away}${result ? ` (${result})` : ''}${note ? ` (${note})` : ''}, ${action}`}
       />
       <div className="home-match-meta">
-        <span>{formatMatchDate(match.date)}</span>
+        <span>
+          {formatMatchDate(match.date)}
+          {fightTag && ` · ${fightTag}`}
+        </span>
+        <FightTitleTag fight={match.fight} />
         {isLive && <InkStamp size="sm">En directo</InkStamp>}
       </div>
       <div className="home-match-teams">
@@ -149,10 +168,19 @@ function MatchCard({
           {voterStack(voters?.home ?? [], twoWay ? home : '1')}
         </div>
         <div className="home-match-side">
-          <div
-            className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
-          >
-            {hasScore ? `${match.home_score} - ${match.away_score}` : formatKickOff(match.date)}
+          {/* UFC: la W y la L junto a «Final», siempre en el mismo sitio sea cual sea el nombre. */}
+          <div className="home-match-result">
+            {outcomes && <FightBadge outcome={outcomes.home} size="sm" />}
+            <div
+              className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
+            >
+              {hasScore
+                ? `${match.home_score} - ${match.away_score}`
+                : outcomes
+                  ? 'Final'
+                  : formatKickOff(match.date)}
+            </div>
+            {outcomes && <FightBadge outcome={outcomes.away} size="sm" />}
           </div>
           {voterStack(twoWay ? [] : (voters?.draw ?? []), 'X')}
         </div>
@@ -170,6 +198,8 @@ function MatchCard({
           {voterStack(voters?.away ?? [], twoWay ? away : '2')}
         </div>
       </div>
+      {outcomes && <FightResultLine fight={match.fight} className="home-match-fight" />}
+      {note && <p className="home-match-note">{note.charAt(0).toUpperCase() + note.slice(1)}</p>}
     </div>
   );
 }
@@ -231,6 +261,8 @@ export default function LeagueHomeDashboard() {
     userId,
     isAuthenticated,
     activeGroupPoolFormat,
+    leagueKind,
+    activeGroupWinnerOnly,
     loading: loadingOfficialData,
     loadingLeaderboard,
   } = useAppContext();
@@ -252,12 +284,12 @@ export default function LeagueHomeDashboard() {
     activeGroupId,
     matches.items.map((match) => match.id).filter(Boolean),
   );
-  const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY';
+  const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY' || activeGroupWinnerOnly;
   // Quién ya ha hecho su predicción en la jornada: solo las ligas por jornadas y solo el quién.
   const participants = useRoundParticipants(
     activeGroupId,
     matches.items.map((match) => match.id).filter(Boolean),
-    isAuthenticated && activeGroupPoolFormat === 'MATCH_DAY',
+    isAuthenticated && MATCH_KINDS[leagueKind],
   );
 
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
@@ -274,6 +306,20 @@ export default function LeagueHomeDashboard() {
         voters={votersMatch ? (voters.get(votersMatch.id) ?? null) : null}
         homeTeam={votersMatch?.home || 'Local'}
         awayTeam={votersMatch?.away || 'Visitante'}
+        homeLogo={votersMatch?.homeLogo || votersMatch?.homeTeamLogo}
+        awayLogo={votersMatch?.awayLogo || votersMatch?.awayTeamLogo}
+        homeScore={votersMatch?.home_score}
+        awayScore={votersMatch?.away_score}
+        live={Boolean(votersMatch && isLiveMatch(votersMatch))}
+        status={
+          !votersMatch
+            ? undefined
+            : votersMatch.finished
+              ? finishedLabel(votersMatch.displayClock)
+              : isLiveMatch(votersMatch)
+                ? votersMatch.displayClock || 'En directo'
+                : undefined
+        }
         twoWay={twoWayVoters}
         onClose={() => setVotersMatch(null)}
       />
@@ -330,7 +376,7 @@ export default function LeagueHomeDashboard() {
             >
               <span className="font-bold text-[var(--stamp-red)]">
                 Te {pending === 1 ? 'falta 1 predicción' : `faltan ${pending} predicciones`} para
-                los próximos partidos
+                {leagueKind === 'fightCard' ? ' las próximas peleas' : ' los próximos partidos'}
               </span>
               <span className="shrink-0 font-bold">Predecir →</span>
             </button>
@@ -341,7 +387,7 @@ export default function LeagueHomeDashboard() {
               <PanelHeader
                 title={matches.title}
                 onSeeAll={() => navigate(matches.allTo)}
-                reserveExtra={activeGroupPoolFormat === 'MATCH_DAY'}
+                reserveExtra={MATCH_KINDS[leagueKind]}
               >
                 <RoundParticipants participants={participants} roundLabel={matches.title} />
               </PanelHeader>
@@ -350,8 +396,14 @@ export default function LeagueHomeDashboard() {
                   <MatchCard
                     key={match.id || match.home + match.away}
                     match={match}
-                    action={matches.action}
-                    onOpen={() => navigate(matches.to)}
+                    // Empezado el partido, la tarjeta enseña quién eligió cada opción; antes, lleva a
+                    // hacer tu predicción (las de los demás siguen ocultas hasta el pitido inicial).
+                    action={
+                      voters.has(match.id) ? 'ver quién ha elegido cada opción' : matches.action
+                    }
+                    onOpen={() =>
+                      voters.has(match.id) ? setVotersMatch(match) : navigate(matches.to)
+                    }
                     voters={voters.get(match.id)}
                     onShowVoters={setVotersMatch}
                     twoWay={twoWayVoters}

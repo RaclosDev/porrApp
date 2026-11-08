@@ -1,5 +1,6 @@
 package com.porra.mundial.service.tournament;
 
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.service.prediction.ScoreInvalidationService;
 import com.porra.mundial.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -45,8 +46,6 @@ public class TopScorerService {
         this.scoreInvalidationService = scoreInvalidationService;
     }
 
-    // Date range covering the entire World Cup
-    private static final String WC_DATE_RANGE = "2026";
 
     // Cached list of top scorers (thread-safe)
     private final AtomicReference<List<TopScorerDTO>> cachedScorers = new AtomicReference<>(Collections.emptyList());
@@ -77,7 +76,7 @@ public class TopScorerService {
     public void refresh() {
         if (!refreshLock.tryLock()) return;
         try {
-            JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);
+            JsonNode events = sportsDataProvider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, Competition.WORLD_CUP_SEASON);
             if (events == null) return;
 
             Map<String, int[]> playerGoals = new LinkedHashMap<>();
@@ -219,7 +218,7 @@ public class TopScorerService {
             HttpRequest sportsReq = HttpRequest.newBuilder()
                     .uri(URI.create(sportsDbUrl))
                     .timeout(Duration.ofSeconds(5))
-                    .header("User-Agent", "PorraMundial/1.0")
+                    .header("User-Agent", "PorrApp/1.0")
                     .GET()
                     .build();
             HttpResponse<String> sportsRes = httpClient.send(sportsReq, HttpResponse.BodyHandlers.ofString());
@@ -240,7 +239,7 @@ public class TopScorerService {
                 HttpRequest wikiReq = HttpRequest.newBuilder()
                         .uri(URI.create(wikiUrl))
                         .timeout(Duration.ofSeconds(5))
-                        .header("User-Agent", "PorraMundial/1.0")
+                        .header("User-Agent", "PorrApp/1.0")
                         .GET()
                         .build();
                 HttpResponse<String> wikiRes = httpClient.send(wikiReq, HttpResponse.BodyHandlers.ofString());

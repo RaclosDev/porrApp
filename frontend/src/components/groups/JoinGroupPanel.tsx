@@ -30,14 +30,17 @@ export default function JoinGroupPanel({
             ✕
           </button>
         </div>
-        <p className="text-muted text-[0.88rem] m-0">Escribe el código de invitación de la liga:</p>
         <form className="flex flex-wrap gap-2.5" onSubmit={handleJoin}>
+          <label htmlFor="join-code" className="sr-only">
+            Código de invitación
+          </label>
           <input
+            id="join-code"
             type="text"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="Ej: X9K2PLMQ7R"
-            aria-label="Código de invitación"
+            placeholder="X9K2PLMQ7R"
+            autoComplete="off"
             maxLength={10}
             className="glass-input flex-1 min-w-0 uppercase tracking-[2px] font-bold"
           />
