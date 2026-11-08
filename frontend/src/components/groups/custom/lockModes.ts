@@ -63,9 +63,60 @@ const MULTI_COMPETITION_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((
     : item,
 );
 
-/** Cierres de una liga por jornadas: con varias competiciones, la jornada es la semana. */
-export const matchdayLockModes = (multiCompetition: boolean) =>
-  multiCompetition ? MULTI_COMPETITION_LOCK_MODES : MATCHDAY_LOCK_MODES;
+/**
+ * Ligas de la UFC. ESPN da la hora de cada bloque de la cartelera (preliminares y estelar), no la de
+ * cada pelea: por defecto se cierra toda la velada al empezar, igual para todos.
+ */
+export const FIGHT_NIGHT_LOCK_MODES: LockModeOption[] = [
+  {
+    value: 'PER_ROUND',
+    label: 'Al empezar la velada',
+    hint: 'Todas las peleas se cierran cuando empiezan los primeros preliminares, o antes si pones margen.',
+  },
+  {
+    value: 'PER_MATCH',
+    label: 'Por bloques',
+    hint: 'Cada pelea se cierra al empezar su bloque: preliminares o cartelera estelar.',
+  },
+];
+
+/** Temporada regular de la NBA: sus jornadas son las semanas oficiales, de lunes a domingo. */
+const NBA_WEEK_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((item) =>
+  item.value === 'PER_ROUND'
+    ? {
+        ...item,
+        label: 'Por semanas',
+        hint: 'Toda la semana, de lunes a domingo, se cierra al empezar su primer partido, o antes si pones margen.',
+      }
+    : item,
+);
+
+/** NFL: la jornada es la semana de la liga, del jueves al lunes, con el número que le da la NFL. */
+const NFL_WEEK_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((item) =>
+  item.value === 'PER_ROUND'
+    ? {
+        ...item,
+        label: 'Por semanas',
+        hint: 'Toda la semana, del jueves al lunes, se cierra al empezar su primer partido, o antes si pones margen.',
+      }
+    : item,
+);
+
+/**
+ * Cierres de una liga por jornadas: con varias competiciones, la jornada es la semana de lunes a
+ * domingo; en la NFL, la semana de la liga, y en la temporada regular de la NBA, su semana oficial.
+ */
+export const matchdayLockModes = (
+  multiCompetition: boolean,
+  competitionExternalId?: string | null,
+) =>
+  multiCompetition
+    ? MULTI_COMPETITION_LOCK_MODES
+    : competitionExternalId === 'nfl'
+      ? NFL_WEEK_LOCK_MODES
+      : competitionExternalId === 'nba.regular'
+        ? NBA_WEEK_LOCK_MODES
+        : MATCHDAY_LOCK_MODES;
 
 /** Los modos que solo aceptan cerrar todo a la vez, sin rondas ni partidos. */
 /** Eliminatorias sorteadas ronda a ronda: las rondas siguientes aún no tienen cruces, no se cierra todo a la vez. */
@@ -79,6 +130,20 @@ export const DRAWN_KNOCKOUT_LOCK_MODES: LockModeOption[] = [
     value: 'PER_MATCH',
     label: 'Por eliminatorias',
     hint: 'Cada eliminatoria se cierra al empezar su partido de ida.',
+  },
+];
+
+/** Playoffs de la NBA: cada serie se abre al conocerse sus dos equipos y se cierra al empezar. */
+export const SERIES_LOCK_MODES: LockModeOption[] = [
+  {
+    value: 'PER_MATCH',
+    label: 'Por series',
+    hint: 'Cada serie se cierra al empezar su primer partido. Las demás se pueden cambiar hasta entonces.',
+  },
+  {
+    value: 'PER_ROUND',
+    label: 'Por rondas',
+    hint: 'Todas las series de una ronda se cierran al empezar la primera.',
   },
 ];
 

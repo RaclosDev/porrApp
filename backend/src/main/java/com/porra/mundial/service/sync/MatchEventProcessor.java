@@ -1,5 +1,6 @@
 package com.porra.mundial.service.sync;
 
+import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.NflSchedule;
 import com.porra.mundial.service.prediction.MatchPredictionService;
 import com.porra.mundial.service.notification.WebSocketService;
@@ -8,6 +9,7 @@ import com.porra.mundial.config.Constants;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.model.Sport;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
@@ -221,7 +223,7 @@ public class MatchEventProcessor {
         // Pretemporada y Pro Bowl no se pronostican.
         if (nfl && NflSchedule.isExcluded(event)) return;
 
-        MatchStatus status = parseStatus(competition);
+        MatchStatus status = parseStatus(competition, playsQuarters(batch.competition));
         Scores scores = parseScores(competition, home, away, homeTeam, awayTeam, status);
         // Una pelea de la UFC va en la ronda de su velada y lleva sus datos de pelea aparte.
         JsonNode fight = event.path("ufc").isObject() ? event.path("ufc") : null;
@@ -229,11 +231,16 @@ public class MatchEventProcessor {
                 ? new MatchMetadata(null, fight.path("eventName").asText(null))
                 : nfl
                         ? new MatchMetadata(null, NflSchedule.roundLabel(event))
+                        // La temporada regular de la NBA llega con su semana oficial («Semana 3»).
+                        : event.path("roundLabel").isString()
+                        ? new MatchMetadata(null, event.path("roundLabel").asText())
                         : parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fight != null ? new int[]{0, 0} : fairPlayPoints(competition, home, away, homeTeam, awayTeam);
 
+        int bestOf = competition.path(LolEsportsDataProvider.BEST_OF_FIELD).asInt(0);
+
         upsertMatch(eventId, homeTeam, awayTeam, scores, fairPlay, parseDate(event.path("date").asText(null)),
-                status, metadata, fight, batch);
+                status, metadata, bestOf > 0 ? bestOf : null, fight, batch);
     }
 
     /** Fecha del evento en hora peninsular española, o null si no se puede interpretar. */
@@ -247,7 +254,14 @@ public class MatchEventProcessor {
         }
     }
 
-    private MatchStatus parseStatus(JsonNode competition) {
+    /** La NBA y la NFL se juegan por cuartos: su reloj en directo lleva el cuarto. */
+    private static boolean playsQuarters(Competition competition) {
+        if (competition == null || competition.getOwnerLeague() != null) return false;
+        Sport sport = Sport.ofExternalId(competition.getExternalId());
+        return sport == Sport.BASKETBALL || sport == Sport.AMERICAN_FOOTBALL;
+    }
+
+    private MatchStatus parseStatus(JsonNode competition, boolean quarters) {
         JsonNode type = competition.path("status").path("type");
         String name = type.path("name").asText("").toUpperCase(Locale.ROOT).replace("STATUS_", "");
         MatchStatusNormalized normalized = switch (name) {
@@ -260,7 +274,7 @@ public class MatchEventProcessor {
                     type.path("completed").asBoolean(false));
         };
         return new MatchStatus(normalized, normalized == MatchStatusNormalized.FINISHED,
-                competition.path("status").path("displayClock").asText(null));
+                MatchClock.of(competition, normalized, quarters));
     }
 
     private Competitor findCompetitor(JsonNode competitors, String homeAway) {
@@ -466,7 +480,7 @@ public class MatchEventProcessor {
     /** Separación máxima entre partidos de una misma jornada. */
     private static final long SAME_MATCHDAY_DAYS = 4;
     /** Más allá de este parón se da por empezada otra temporada y no se sigue numerando. */
-    private static final long NEW_SEASON_GAP_DAYS = 45;
+    private static final long NEW_SEASON_GAP_DAYS = 60;
 
     /**
      * Jornada de un partido de liga nuevo, siguiendo la numeración "Jornada N" que ya tenga la competición:
@@ -515,7 +529,8 @@ public class MatchEventProcessor {
     }
 
     private void upsertMatch(String eventId, Team home, Team away, Scores scores, int[] fairPlay,
-                             Instant date, MatchStatus status, MatchMetadata meta, JsonNode fight, Batch batch) {
+                             Instant date, MatchStatus status, MatchMetadata meta, Integer bestOf, JsonNode fight,
+                             Batch batch) {
         Match match = matchRepository.findByExternalId(eventId)
                 .orElseGet(() -> Match.builder().externalId(eventId).build());
         Team previousHome = match.getId() == null ? null : match.getHomeTeam();
@@ -552,6 +567,8 @@ public class MatchEventProcessor {
             String matchday = inferLeagueMatchday(batch.competition, date);
             if (matchday != null) match.setRound(matchday);
         }
+        // Series del LoL: al mejor de 1, 3 o 5 partidas.
+        if (bestOf != null) updated |= setIfChanged(match.getBestOf(), bestOf, match::setBestOf);
         boolean fairPlayChanged = setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay)
                 | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
         updated |= fairPlayChanged;

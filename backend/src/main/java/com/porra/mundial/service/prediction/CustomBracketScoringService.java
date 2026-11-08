@@ -79,6 +79,10 @@ public class CustomBracketScoringService {
                 Team winner = round.ties().get(tie).winner();
                 String pick = picks.get(tie);
                 if (pick == null || winner == null || !pick.equals(winner.getName())) continue;
+                if (round.series()) {
+                    total += scoreSeries(round, tie, pick, seriesGames(data, index, tie), rules, score);
+                    continue;
+                }
                 int points = DrawnKnockout.points(round.key(), rules);
                 total += points;
                 score.getLog().add(ParticipantScoreDTO.LogEntry.builder().stage("cuadro").amount(points)
@@ -90,6 +94,38 @@ public class CustomBracketScoringService {
         score.setR32(total);
         score.setTotal(total);
         return score;
+    }
+
+    /**
+     * Serie de la NBA acertada: los puntos de la ronda y, si además se acertó en cuántos partidos, el extra.
+     *
+     * @return puntos sumados
+     */
+    private static int scoreSeries(DrawnKnockout.Round round, int tie, String pick, Integer games,
+                                   ScoringRuleSet rules, ParticipantScoreDTO score) {
+        String title = DrawnKnockout.seriesTitle(round.key());
+        int points = DrawnKnockout.seriesPoints(round.key(), rules);
+        score.getLog().add(ParticipantScoreDTO.LogEntry.builder().stage("cuadro").amount(points)
+                .msg("final".equals(round.key()) ? "Campeón acertado: " + pick
+                        : title + ": acertado que gana " + pick)
+                .build());
+        int played = round.ties().get(tie).gamesPlayed();
+        int needed = round.bestOf() / 2 + 1;
+        int exact = DrawnKnockout.seriesExactPoints(round.key(), rules);
+        if (round.bestOf() > 1 && games != null && games == played && exact > 0) {
+            score.getLog().add(ParticipantScoreDTO.LogEntry.builder().stage("cuadro").amount(exact)
+                    .msg(title + ": serie exacta, " + pick + " gana " + needed + "-" + (played - needed))
+                    .build());
+            return points + exact;
+        }
+        return points;
+    }
+
+    private static Integer seriesGames(PredictionDataDTO data, int round, int tie) {
+        List<List<Integer>> games = data.getCustomSeriesGames();
+        if (games == null || round >= games.size() || games.get(round) == null) return null;
+        List<Integer> row = games.get(round);
+        return tie < row.size() ? row.get(tie) : null;
     }
 
     private int scoreGroups(PredictionDataDTO data, List<Match> all, Long competitionId,

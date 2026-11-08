@@ -213,6 +213,10 @@ public class CustomLockService {
                 if (state.pickLocked(round, index) && !Objects.equals(pick(old, round, index), pick(now, round, index))) {
                     throw BusinessException.conflict("Ese cruce ya ha empezado y no se puede cambiar");
                 }
+                if (state.pickLocked(round, index) && !Objects.equals(pick(saved == null ? null
+                        : saved.getCustomSeriesGames(), round, index), pick(incoming.getCustomSeriesGames(), round, index))) {
+                    throw BusinessException.conflict("Esa serie ya ha empezado y no se puede cambiar");
+                }
             }
         }
     }
@@ -243,13 +247,25 @@ public class CustomLockService {
             visible.add(row);
         }
         copy.setCustomRounds(visible);
+        if (data.getCustomSeriesGames() != null) {
+            List<List<Integer>> games = new ArrayList<>();
+            for (int round = 0; round < data.getCustomSeriesGames().size(); round++) {
+                List<Integer> row = data.getCustomSeriesGames().get(round);
+                List<Integer> shown = new ArrayList<>();
+                for (int index = 0; row != null && index < row.size(); index++) {
+                    shown.add(state.pickLocked(round, index) ? row.get(index) : null);
+                }
+                games.add(shown);
+            }
+            copy.setCustomSeriesGames(games);
+        }
         int last = rounds.size() - 1;
         copy.setChampion(last >= 0 && state.pickLocked(last, 0) ? data.getChampion() : null);
         return copy;
     }
 
-    private static String pick(List<List<String>> rounds, int round, int index) {
-        return round < rounds.size() && rounds.get(round) != null && index < rounds.get(round).size()
+    private static <T> T pick(List<List<T>> rounds, int round, int index) {
+        return rounds != null && round < rounds.size() && rounds.get(round) != null && index < rounds.get(round).size()
                 ? rounds.get(round).get(index) : null;
     }
 

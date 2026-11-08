@@ -86,6 +86,11 @@ export interface Competition {
   knockoutDraw?: boolean;
   /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
   tennis?: TennisInfo | null;
+  /**
+   * Por formato de cuadro, cuándo empieza lo que pronostica (ISO): desde entonces nadie podría enviar su
+   * predicción y la liga no se puede crear. Falta si se puede crear en cualquier momento.
+   */
+  bracketClosesAt?: Partial<Record<PoolFormat, string>>;
 }
 
 export interface Match {
@@ -140,7 +145,11 @@ export interface LeagueStanding {
   group?: string | null;
   rank: number;
   teamName: string;
+  /** Nombre corto para pantallas estrechas («Bills»); la NFL y la NBA lo traen. */
+  teamShortName?: string | null;
   teamLogo: string | null;
+  /** NFL: puesto en su conferencia para los playoffs (entran los 7 primeros). */
+  playoffSeed?: number | null;
   points: number;
   gamesPlayed: number;
   wins: number;
@@ -149,6 +158,10 @@ export interface LeagueStanding {
   goalDiff: number;
   goalsFor: number;
   goalsAgainst: number;
+  /** División del equipo en la NBA («Atlántico»…); null en las demás competiciones. */
+  division?: string | null;
+  /** Racha actual en la NBA («V3», «D1»); null si la competición no la da. */
+  streak?: string | null;
 }
 
 export interface TeamOdds {
@@ -499,6 +512,54 @@ export interface GrandPrixBoard {
   rules: { exactPosition: number; podium: number; pole: number; fastestLap: number };
 }
 
+/** Mundial de Fórmula 1 según ESPN. */
+export interface FormulaOneStandings {
+  season: string | null;
+  drivers: {
+    rank: number;
+    name: string;
+    shortName: string | null;
+    abbreviation: string | null;
+    country: string | null;
+    flagUrl: string | null;
+    team: string | null;
+    /** Hexadecimal sin almohadilla. */
+    teamColor: string | null;
+    points: number;
+  }[];
+  constructors: { rank: number; name: string; color: string | null; points: number }[];
+}
+
+/** Clasificación completa de una carrera de Fórmula 1. */
+export interface RaceClassification {
+  /** false si la carrera no ha acabado o ESPN aún no la ha publicado. */
+  available: boolean;
+  rows: RaceClassificationRow[];
+}
+
+export interface RaceClassificationRow {
+  position: number;
+  driverId: number | null;
+  name: string;
+  team: string | null;
+  /** Hexadecimal sin almohadilla. */
+  teamColor: string | null;
+  number: string | null;
+  /** Puesto de salida. */
+  grid: number | null;
+  laps: number | null;
+  /** Tiempo total del ganador. */
+  time: string | null;
+  /** Diferencia con el ganador de quien acaba en su misma vuelta («+0.799»). */
+  gap: string | null;
+  /** Vueltas perdidas de quien acaba doblado. */
+  lapsBehind: number | null;
+  status: 'FINISHED' | 'RETIRED' | 'DISQUALIFIED' | 'DID_NOT_START' | 'OTHER';
+  /** Puntos del Mundial en la carrera. */
+  points: number | null;
+  fastestLap: boolean;
+}
+
 export interface GrandPrixMemberPick {
   userId: number | null;
   name: string;
@@ -580,8 +641,13 @@ export interface MatchdayFixture {
   actualHomeScore: number | null;
   actualAwayScore: number | null;
   displayClock: string | null;
-  /** Tenis: sets que hay que ganar (2 o 3). Falta en el resto de deportes. */
+  /**
+   * Tenis: sets que hay que ganar (2 o 3). LoL: partidas que hay que ganar en una serie al mejor de tres
+   * o de cinco, para predecir su resultado. Falta en el resto.
+   */
   setsToWin?: number | null;
+  /** LoL: la serie es al mejor de 1, 3 o 5 partidas. Falta si no se sabe o no es LoL. */
+  bestOf?: number | null;
   /** Tenis: quién ha ganado, también tras una retirada o un W.O., que no tienen marcador. */
   winnerSign?: '1' | '2' | null;
   predHomeScore: number | null;
@@ -626,6 +692,8 @@ export interface FightInfo {
   /** 1 es la pelea estelar. */
   order: number | null;
   weightClass: string | null;
+  /** Título en juego como lo da ESPN («UFC Heavyweight Title»); null o ausente si no hay título. */
+  title?: string | null;
   scheduledRounds: number | null;
   homeRecord: string | null;
   awayRecord: string | null;
@@ -634,6 +702,8 @@ export interface FightInfo {
   resultDetail: string | null;
   resultRound: number | null;
   resultClock: string | null;
+  /** Tarjetas de los jueces de una decisión: «30-27 | 29-28 | 30-27». */
+  judgesScores?: string | null;
   /** '1' ganó la esquina roja (local), '2' la azul; null sin ganador. */
   winner: '1' | '2' | null;
 }

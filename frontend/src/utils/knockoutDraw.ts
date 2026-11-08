@@ -1,8 +1,12 @@
 import type { KnockoutRound, KnockoutTie } from '../services/api';
 import type { Match, PredictionData } from '../types/api';
+import { seriesLengths, seriesRoundTitle } from './nbaPlayoffs';
 
 /** Elecciones por ronda y cruce; null en los cruces sin elegir. */
 export type KnockoutPicks = (string | null)[][];
+
+/** En la NBA, en cuántos partidos se gana cada serie, alineado con las elecciones; null sin elegir. */
+export type SeriesGames = (number | null)[][];
 
 const TITLES: Record<string, string> = {
   playoff: 'Playoff',
@@ -13,7 +17,8 @@ const TITLES: Record<string, string> = {
   final: 'Final',
 };
 
-export const knockoutRoundTitle = (round: string) => TITLES[round] ?? round;
+export const knockoutRoundTitle = (round: string, series = false, short = false) =>
+  series ? seriesRoundTitle(round, short) : (TITLES[round] ?? round);
 
 /** Elecciones guardadas, alineadas con los cruces de cada ronda. */
 export function picksFromSaved(
@@ -28,15 +33,32 @@ export function picksFromSaved(
   );
 }
 
+/** Partidos elegidos guardados: solo en series a más de un partido y donde hay ganador elegido. */
+export function gamesFromSaved(
+  rounds: KnockoutRound[],
+  picks: KnockoutPicks,
+  saved: (number | null)[][] | undefined,
+): SeriesGames {
+  return rounds.map((round, index) =>
+    round.ties.map((_, position) => {
+      const games = saved?.[index]?.[position] ?? null;
+      if (games == null || (round.bestOf ?? 0) < 2 || !picks[index]?.[position]) return null;
+      return seriesLengths(round.bestOf ?? 0).includes(games) ? games : null;
+    }),
+  );
+}
+
 /**
  * Predicción lista para guardar: una lista por ronda con la elección de cada cruce (vacía si no se
  * eligió ninguno) y el campeón, que es el elegido en la final. Null si aún no hay ninguna elección.
+ * En la NBA lleva también en cuántos partidos se gana cada serie elegida.
  */
 export function knockoutPrediction(
   rounds: KnockoutRound[],
   picks: KnockoutPicks,
   userName: string,
   predictionName: string,
+  games: SeriesGames = [],
 ): PredictionData | null {
   const customRounds = rounds.map((round, index) => {
     const row = round.ties.map((_, position) => picks[index]?.[position] ?? null);
@@ -51,11 +73,19 @@ export function knockoutPrediction(
     last?.round === 'final' && customRounds.length === rounds.length
       ? (customRounds[rounds.length - 1][0] ?? null)
       : null;
+  const customSeriesGames = customRounds.map((row, index) =>
+    row.length === 0
+      ? []
+      : row.map((pick, position) => (pick ? (games[index]?.[position] ?? null) : null)),
+  );
   return {
     user: userName,
     prediction: predictionName.trim() || userName || 'Mi predicción',
     groups: {},
     customRounds,
+    ...(customSeriesGames.some((row) => row.some((value) => value != null))
+      ? { customSeriesGames }
+      : {}),
     r16: [],
     champion,
   };

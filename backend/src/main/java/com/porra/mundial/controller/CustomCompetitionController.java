@@ -11,6 +11,7 @@ import com.porra.mundial.service.prediction.CustomLockService;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.service.prediction.CustomCompetitionService;
 import com.porra.mundial.service.tournament.OfficialCompetitionLinkService;
+import com.porra.mundial.sports.EspnNbaDataProvider;
 import com.porra.mundial.util.AppTime;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
@@ -27,6 +28,7 @@ import java.util.List;
 public class CustomCompetitionController {
     private final CustomCompetitionService service;
     private final OfficialCompetitionLinkService linkService;
+    private final EspnNbaDataProvider nbaProvider;
 
     public record LinkOfficialRequest(@jakarta.validation.constraints.NotNull Long competitionId) {}
 
@@ -83,39 +85,53 @@ public class CustomCompetitionController {
     /** Estado del cierre; las fechas en hora de Madrid con su desfase, como el resto de la API. */
     public record LockStateResponse(String mode, int offsetMinutes, String lockDate, List<String> lockedGroups,
                                     List<List<Boolean>> lockedPicks, boolean anyLocked, boolean fullyLocked,
-                                    String nextLockAt, List<KnockoutRoundResponse> knockoutRounds) {
+                                    String nextLockAt, List<KnockoutRoundResponse> knockoutRounds,
+                                    String playoffsStart) {
         static LockStateResponse of(CustomLockService.LockState state) {
+            return of(state, null);
+        }
+
+        /** @param playoffsStart en la NBA sin series aún, cuándo empiezan los playoffs (el play-in) */
+        static LockStateResponse of(CustomLockService.LockState state, java.time.Instant playoffsStart) {
             return new LockStateResponse(state.mode().name(), state.offsetMinutes(),
                     MadridDateTimeSerializer.format(state.lockDate()), state.groups(), state.picks(),
                     state.anyLocked(), state.fullyLocked(), MadridDateTimeSerializer.format(state.nextLockAt()),
                     state.knockoutRounds() == null ? null
-                            : state.knockoutRounds().stream().map(KnockoutRoundResponse::of).toList());
+                            : state.knockoutRounds().stream().map(KnockoutRoundResponse::of).toList(),
+                    MadridDateTimeSerializer.format(playoffsStart));
         }
     }
 
     /**
      * Ronda de unas eliminatorias sorteadas ronda a ronda.
      *
-     * @param round        "playoff", "r32", "r16", "qf", "sf" o "final"
-     * @param drawn        ya se conocen todos sus cruces: se puede pronosticar
+     * @param round        "playoff", "r32", "r16", "qf", "sf" o "final" ("playin" en la NBA)
+     * @param drawn        ya se conocen todos sus cruces: se puede pronosticar (en la NBA, cada serie en
+     *                     cuanto tiene sus dos equipos)
      * @param expectedTies cruces que tiene la ronda, para pintar los que faltan por sortear
+     * @param bestOf       en la NBA, partidos máximos de cada serie (1 en el play-in, 7 en el resto); 0 en fútbol
      * @param ties         cruces en el orden en que se guardan las elecciones
      */
-    public record KnockoutRoundResponse(String round, boolean drawn, int expectedTies, List<KnockoutTieResponse> ties) {
+    public record KnockoutRoundResponse(String round, boolean drawn, int expectedTies, int bestOf,
+                                        List<KnockoutTieResponse> ties) {
         static KnockoutRoundResponse of(com.porra.mundial.service.prediction.DrawnKnockout.Round round) {
-            return new KnockoutRoundResponse(round.key(), round.drawn(), round.expectedTies(),
+            return new KnockoutRoundResponse(round.key(), round.drawn(), round.expectedTies(), round.bestOf(),
                     round.ties().stream().map(KnockoutTieResponse::of).toList());
         }
     }
 
     /**
      * Cruce: el local es el de la ida; {@code matchIds} son sus partidos por fecha y {@code winner}, quién
-     * pasa cuando ya se ha decidido.
+     * pasa cuando ya se ha decidido. En la NBA, {@code conference} es «E» o «W» (null en las Finales).
      */
-    public record KnockoutTieResponse(String home, String away, String winner, List<Long> matchIds) {
+    public record KnockoutTieResponse(String home, String away, String winner, List<Long> matchIds,
+                                      String conference) {
         static KnockoutTieResponse of(com.porra.mundial.service.prediction.DrawnKnockout.Tie tie) {
+            String home = tie.home() == null ? null : EspnNbaDataProvider.conference(tie.home().getExternalId());
+            String away = tie.away() == null ? null : EspnNbaDataProvider.conference(tie.away().getExternalId());
             return new KnockoutTieResponse(name(tie.home()), name(tie.away()), name(tie.winner()),
-                    tie.legs().stream().map(com.porra.mundial.model.Match::getId).toList());
+                    tie.legs().stream().map(com.porra.mundial.model.Match::getId).toList(),
+                    home != null && home.equals(away) ? home : null);
         }
 
         private static String name(com.porra.mundial.model.Team team) {
@@ -133,7 +149,13 @@ public class CustomCompetitionController {
 
     @GetMapping("/lock-state")
     public LockStateResponse lockState(@PathVariable Long leagueId, Principal principal) {
-        return LockStateResponse.of(service.lockState(leagueId, principal.getName()));
+        CustomLockService.LockState state = service.lockState(leagueId, principal.getName());
+        boolean noSeriesYet = state.knockoutRounds() != null
+                && state.knockoutRounds().stream().allMatch(round -> round.ties().isEmpty());
+        // Fuera de los playoffs la liga de la NBA espera a sus series: se dice cuándo empiezan.
+        java.time.Instant start = noSeriesYet && service.playsSeries(leagueId, principal.getName())
+                ? nbaProvider.nextPlayoffsStart() : null;
+        return LockStateResponse.of(state, start);
     }
 
     @PostMapping("/matches")

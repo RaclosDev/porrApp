@@ -82,3 +82,74 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* Playoffs de la NBA: título de la ronda, cabecera de conferencia y en cuántos partidos se gana la serie. */
+.knockout-round-title {
+  margin: 0;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.knockout-conference {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.knockout-series-games {
+  margin: 0;
+  padding: 8px 10px 10px;
+  border: 0;
+  border-top: 1px solid rgba(17, 24, 39, 0.12);
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.knockout-series-games legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.knockout-series-games.is-static {
+  padding: 6px 10px;
+}
+
+.knockout-series-games.is-hit {
+  color: #166534;
+  font-weight: 700;
+}
+
+.knockout-series-options {
+  clear: both;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.knockout-series-option {
+  min-height: 44px;
+  border: 1px solid rgba(17, 24, 39, 0.45);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.knockout-series-option.is-active {
+  background: var(--ink);
+  color: #fffdf7;
+  border-color: var(--ink);
+}
+
+.knockout-series-option:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}

@@ -20,10 +20,14 @@ import { useAppStore } from '../store/useAppStore';
 import type { Group, MatchRadar } from '../types/api';
 import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
 import { MATCH_KINDS, leagueKindOf, type LeagueKind } from './leagueKind';
+import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
 
 /** Competiciones en las que se predice el ganador, sin empate: la NFL, la NBA y el LoL. */
 const isWinnerOnlyCompetition = (externalId: string | null | undefined): boolean =>
-  externalId === 'nfl' || externalId === 'nba' || Boolean(externalId?.startsWith('lol.'));
+  externalId === 'nfl' ||
+  externalId === 'nba' ||
+  isNbaRegularSeason(externalId) ||
+  Boolean(externalId?.startsWith('lol.'));
 
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
 // se unan sin fricción con el tipo de cada consulta.

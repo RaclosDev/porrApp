@@ -6,10 +6,13 @@ import { queryKeys } from '../../../services/queryKeys';
 import { useCustomLock } from '../../../hooks/useCustomLock';
 import type { Group } from '../../../types/api';
 import { isMatchBasedFormat } from '../../../utils/poolFormat';
+import { isNbaCompetition } from '../../../utils/nbaPlayoffs';
 import { formatMatchDate, type SaveAction } from './customCompetition';
 import {
   BRACKET_LOCK_MODES,
   DRAWN_KNOCKOUT_LOCK_MODES,
+  FIGHT_NIGHT_LOCK_MODES,
+  SERIES_LOCK_MODES,
   LOCK_UNIT_MINUTES,
   matchdayLockModes,
   MAX_LOCK_OFFSET_MINUTES,
@@ -25,14 +28,21 @@ function describe(
   matchday: boolean,
   knockoutDraw = false,
   multiCompetition = false,
+  fightNights = false,
+  series = false,
+  competitionExternalId: string | null = null,
 ): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
   const margin = offsetMinutes ? ` · ${describeLockOffset(offsetMinutes)}` : '';
   const modes = matchday
-    ? matchdayLockModes(multiCompetition)
-    : knockoutDraw
-      ? DRAWN_KNOCKOUT_LOCK_MODES
-      : BRACKET_LOCK_MODES;
+    ? fightNights
+      ? FIGHT_NIGHT_LOCK_MODES
+      : matchdayLockModes(multiCompetition, competitionExternalId)
+    : series
+      ? SERIES_LOCK_MODES
+      : knockoutDraw
+        ? DRAWN_KNOCKOUT_LOCK_MODES
+        : BRACKET_LOCK_MODES;
   return `${modes.find((item) => item.value === mode)?.label ?? mode}${margin}`;
 }
 
@@ -55,6 +65,7 @@ export default function CustomLockCard({
   const queryClient = useQueryClient();
   // Superviviente también se pronostica partido a partido.
   const matchday = isMatchBasedFormat(group.poolFormat);
+  const series = Boolean(group.knockoutDraw) && isNbaCompetition(group.competitionExternalId);
   const lock = useCustomLock(group.id.toString());
   const current = lock.state;
   const [mode, setMode] = useState<CustomLockMode>('FIXED_DATE');
@@ -76,7 +87,12 @@ export default function CustomLockCard({
 
   const offsetMinutes = Math.max(0, Math.round(amount)) * LOCK_UNIT_MINUTES[unit];
   let modes = BRACKET_LOCK_MODES;
-  if (matchday) modes = matchdayLockModes(Boolean(group.multiCompetition));
+  const fightNights = group.formatType === 'EVENTS';
+  if (matchday)
+    modes = fightNights
+      ? FIGHT_NIGHT_LOCK_MODES
+      : matchdayLockModes(Boolean(group.multiCompetition), group.competitionExternalId);
+  else if (series) modes = SERIES_LOCK_MODES;
   else if (group.knockoutDraw) modes = DRAWN_KNOCKOUT_LOCK_MODES;
   else if (!allowProgressive) {
     modes = SINGLE_LOCK_MODES;
@@ -91,9 +107,20 @@ export default function CustomLockCard({
       true,
       false,
       Boolean(group.multiCompetition),
+      fightNights,
+      false,
+      group.competitionExternalId,
     );
   } else if (current && lock.configured) {
-    status = describe(current.mode, current.offsetMinutes, false, group.knockoutDraw);
+    status = describe(
+      current.mode,
+      current.offsetMinutes,
+      false,
+      group.knockoutDraw,
+      false,
+      false,
+      series,
+    );
     if (current.fullyLocked) status += ' · cerrado';
     else if (current.mode === 'FIXED_DATE' || current.mode === 'FIRST_MATCH') {
       status += current.lockDate ? ` · ${formatMatchDate(current.lockDate)}` : '';
