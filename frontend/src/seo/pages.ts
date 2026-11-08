@@ -18,7 +18,7 @@ interface ContentSection {
   paragraphs: string[];
 }
 
-interface FaqEntry {
+export interface FaqEntry {
   question: string;
   answer: string;
 }
@@ -76,6 +76,35 @@ export const LANDING_COPY = {
   closing:
     'Crea la liga, pasa el enlace y que hablen los resultados. Se instala en el móvil como una app.',
 } as const;
+
+/** Preguntas de la portada: van en su HTML prerenderizado y en sus datos estructurados (FAQPage). */
+export const HOME_FAQ: FaqEntry[] = [
+  {
+    question: '¿PorrApp es gratis?',
+    answer:
+      'Sí. Crear ligas, invitar a tus amigos y jugar es gratis, sin anuncios ni planes de pago. PorrApp no mueve dinero: si jugáis con bote, se gestiona fuera de la app.',
+  },
+  {
+    question: '¿De qué deportes puedo hacer una porra?',
+    answer:
+      'De fútbol (LaLiga, la Champions, la Premier, la Copa del Rey, el Mundial y otras ligas), Fórmula 1, UFC, NBA, NFL y tenis.',
+  },
+  {
+    question: '¿Hay que instalar algo?',
+    answer:
+      'No. Funciona en el navegador del móvil o del ordenador. Si quieres, puedes añadirla a la pantalla de inicio y se abre como una app.',
+  },
+  {
+    question: '¿Cómo entran mis amigos?',
+    answer:
+      'Les mandas el enlace de invitación de la liga, o el código si ya tienen cuenta. Entran con Google, con su email o con una llave de acceso.',
+  },
+  {
+    question: '¿Y si prefiero llevar la porra en Excel?',
+    answer:
+      'Tenemos una plantilla gratis con los puntos y la clasificación ya calculados. Aunque con PorrApp no tendrás que apuntar ningún resultado.',
+  },
+];
 
 const HOW_IT_WORKS_FAQ: FaqEntry[] = [
   {
@@ -693,6 +722,134 @@ export const CONTENT_PAGES: ContentPage[] = [
         question: '¿Hace falta instalar algo?',
         answer:
           'Depende de la app. PorrApp y La Porra funcionan en el navegador del móvil, sin instalar nada; Sabios hay que descargarla de Google Play o del App Store.',
+      },
+    ],
+  },
+  {
+    path: '/porra-oficina',
+    navLabel: 'Porra de oficina',
+    title: 'Porra de oficina con compañeros de trabajo, gratis · PorrApp',
+    description:
+      'Monta la porra de la oficina sin Excel ni correos: liga privada para el equipo, predicciones desde el móvil y clasificación automática. Gratis, sin instalar nada.',
+    h1: 'La porra de la oficina,',
+    h1Marked: 'sin el Excel compartido.',
+    lede: 'Cada temporada alguien se encarga de la porra del trabajo: recoge predicciones, apunta resultados y manda la clasificación. Con PorrApp eso se hace solo y tú también juegas.',
+    sections: [
+      {
+        heading: 'Montarla en cinco minutos',
+        paragraphs: [
+          'Crea una liga privada, elige la competición (LaLiga, la Champions, el Mundial, la F1…) y pega el enlace de invitación en el canal del equipo. Quien ya tenga cuenta puede entrar con el código de la liga.',
+          'Se juega desde el navegador del móvil o del ordenador, así que no hay que instalar nada en el ordenador del trabajo. Cada uno entra con Google, con su email o con una llave de acceso: nadie tiene que usar su cuenta personal si no quiere.',
+        ],
+      },
+      {
+        heading: 'Sin trabajo para quien la organiza',
+        paragraphs: [
+          'Los resultados reales llegan solos y los puntos se calculan al terminar cada partido. La clasificación general y la de cada jornada están siempre al día, sin mandar nada por correo.',
+          'Cada predicción se cierra a la hora del partido y nadie ve las de los demás hasta entonces, así que no hay discusiones sobre quién cambió qué.',
+        ],
+      },
+      {
+        heading: 'Para equipos de cualquier tamaño',
+        paragraphs: [
+          'No hay límite de jugadores ni de ligas: podéis tener una porra para toda la empresa y otra para cada departamento. El administrador gestiona los miembros y decide cuántos puntos vale cada acierto.',
+          'Si jugáis con bote, el administrador apunta quién ha pagado. El dinero se queda fuera de la app: PorrApp no cobra ni reparte nada.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: '¿Cuánto cuesta una porra de empresa?',
+        answer: 'Nada. PorrApp es gratis para cualquier liga, con los jugadores que queráis.',
+      },
+      {
+        question: '¿Pueden jugar compañeros que no tienen cuenta de Google?',
+        answer:
+          'Sí. Se pueden registrar con su email y una contraseña, o entrar con una llave de acceso.',
+      },
+    ],
+  },
+  {
+    path: '/porra-vs-quiniela',
+    navLabel: 'Porra o quiniela',
+    title: 'Porra o quiniela: diferencias y cuál hacer con amigos · PorrApp',
+    description:
+      'Qué diferencia hay entre una porra entre amigos y la quiniela oficial: cómo se juega, quién pone las reglas, cuánto cuesta y cuál conviene para tu grupo.',
+    h1: 'Porra o quiniela,',
+    h1Marked: 'en qué se parecen y en qué no.',
+    lede: 'Las dos van de acertar resultados de fútbol, pero son juegos distintos. La quiniela es un juego oficial con boleto y premios; la porra la montáis vosotros, con vuestras reglas.',
+    sections: [
+      {
+        heading: 'La quiniela',
+        paragraphs: [
+          'Es el juego oficial de Loterías del Estado: cada jornada hay un boleto con 15 partidos de LaLiga y Segunda, marcas 1, X o 2 en los catorce primeros y el resultado exacto en el Pleno al 15.',
+          'Cada boleto se paga, los partidos los elige Loterías y los premios dependen de cuánta gente acierta en toda España.',
+        ],
+      },
+      {
+        heading: 'La porra',
+        paragraphs: [
+          'Es un juego entre amigos, compañeros o familia. Vosotros elegís la competición, los partidos y cuántos puntos vale cada acierto: el resultado exacto, el signo o lo que decidáis.',
+          'Gana quien más puntos suma en la jornada o en la temporada, y el premio lo pone el grupo: un bote, una cena o simplemente presumir.',
+        ],
+      },
+      {
+        heading: 'Cuál conviene',
+        paragraphs: [
+          'Si queréis jugar a premios oficiales, la quiniela. Si lo que buscáis es pique con vuestro grupo toda la temporada, una porra: es gratis, sirve para cualquier competición y no solo para el fútbol.',
+          'En algunos países de Latinoamérica a la porra se la llama también quiniela o prode. Si te referías a eso, estás en el sitio correcto.',
+        ],
+      },
+      {
+        heading: 'Una porra sin trabajo',
+        paragraphs: [
+          'PorrApp lleva la porra por vosotros: carga los partidos, cierra cada predicción a la hora del partido, suma los puntos con los resultados reales y mantiene la clasificación. Si preferís llevarla a mano, tenemos una plantilla gratis en Excel.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: '¿Puedo hacer una quiniela con mis amigos en PorrApp?',
+        answer:
+          'Puedes hacer una porra a 1X2, que es lo más parecido: cada uno elige el signo de cada partido y el administrador decide cuánto vale cada acierto. No es la quiniela oficial ni tiene premios de Loterías.',
+      },
+      {
+        question: '¿La porra cuesta dinero?',
+        answer:
+          'En PorrApp no. Si vuestro grupo juega con bote, el dinero lo gestionáis vosotros fuera de la app.',
+      },
+    ],
+  },
+  {
+    path: '/porra-copa-del-rey',
+    navLabel: 'Porra de la Copa del Rey',
+    title: 'Porra de la Copa del Rey con amigos, ronda a ronda · PorrApp',
+    description:
+      'Haz una porra de la Copa del Rey con tus amigos: tras cada sorteo elegís quién pasa cada eliminatoria, hasta el campeón. Puntos y clasificación automáticos, gratis.',
+    h1: 'La porra de la Copa del Rey,',
+    h1Marked: 'eliminatoria a eliminatoria.',
+    lede: 'La Copa se juega a eliminatorias y se sortea ronda a ronda. Crea una liga privada, invita a tus amigos y, tras cada sorteo, elegid quién pasa cada cruce hasta la final.',
+    sections: [
+      {
+        heading: 'Cómo se juega',
+        paragraphs: [
+          'Cuando se sortea una ronda, aparecen sus cruces en tu liga y eliges qué equipo pasa en cada uno. Las predicciones de la ronda se cierran al empezar su primer partido.',
+          'En las eliminatorias a ida y vuelta eliges quién pasa la eliminatoria, no cada partido. Así seguís la Copa desde las primeras rondas hasta la final.',
+        ],
+      },
+      {
+        heading: 'Puntos y clasificación',
+        paragraphs: [
+          'Los resultados llegan solos y los puntos se suman cuando se decide cada cruce. Como la Copa es solo eliminatorias, no hay tabla de grupos: cuenta la clasificación de vuestra liga.',
+          'El administrador decide cuántos puntos vale cada acierto, y nadie ve las predicciones de los demás hasta que empieza la ronda.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: '¿Hay que acertar el resultado de cada partido?',
+        answer:
+          'No. En la Copa eliges quién pasa cada eliminatoria. Es más sencillo y se sigue bien aunque no veáis todos los partidos.',
       },
     ],
   },
