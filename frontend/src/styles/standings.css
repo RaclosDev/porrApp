@@ -448,3 +448,11 @@
     }
   }
 }
+
+@layer components {
+  /* Liga de varias competiciones: una pestaña por competición; en el móvil pasan de línea. */
+  .standings-competitions {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+}

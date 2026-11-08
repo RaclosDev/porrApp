@@ -9,6 +9,7 @@ import lombok.Data;
 import tools.jackson.databind.annotation.JsonSerialize;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * DTO para la respuesta de un Grupo.
@@ -54,6 +55,8 @@ public class LeagueResponseDTO {
     private String matchSelection;
     /** La liga junta partidos de varias competiciones oficiales (la de {@link #competitionId} es la principal). */
     private boolean multiCompetition;
+    /** En una liga de varias competiciones, cada una (la principal primero) para ver su tabla; null en las demás. */
+    private List<CompetitionRef> competitions;
     /** Tenis de varios torneos: ALL, GRAND_SLAMS o MASTERS_1000; null en una liga de un solo torneo. */
     private String tennisScope;
     /** Tenis de varios torneos: ATP, WTA o BOTH. */
@@ -118,6 +121,13 @@ public class LeagueResponseDTO {
             return "TOURNAMENT";
         }
         return competition.getFormatType();
+    }
+
+    /** Una de las competiciones de una liga que junta varias. */
+    public record CompetitionRef(Long id, String name, String externalId) {
+        public static CompetitionRef of(Competition competition) {
+            return new CompetitionRef(competition.getId(), competition.getName(), competition.getExternalId());
+        }
     }
 
     private static LeagueResponseDTOBuilder withEdition(LeagueResponseDTOBuilder builder, Edition edition) {

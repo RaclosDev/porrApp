@@ -325,7 +325,25 @@ public class LeagueService {
     @Transactional(readOnly = true)
     public LeagueResponseDTO toResponse(League league, boolean includeJoinCode) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null);
-        return LeagueResponseDTO.of(league, edition, includeJoinCode);
+        LeagueResponseDTO dto = LeagueResponseDTO.of(league, edition, includeJoinCode);
+        if (edition != null && edition.isMultiCompetition() && edition.getCompetition() != null
+                && edition.getId() != null) {
+            dto.setCompetitions(competitionsOf(edition));
+        }
+        return dto;
+    }
+
+    /** Las competiciones de una liga que junta varias: la principal primero y las demás por id. */
+    private List<LeagueResponseDTO.CompetitionRef> competitionsOf(Edition edition) {
+        Competition primary = edition.getCompetition();
+        List<LeagueResponseDTO.CompetitionRef> refs = new ArrayList<>();
+        refs.add(LeagueResponseDTO.CompetitionRef.of(primary));
+        competitionRepository.findByEditionId(edition.getId()).stream()
+                .filter(c -> !java.util.Objects.equals(c.getId(), primary.getId()))
+                .sorted(java.util.Comparator.comparing(Competition::getId))
+                .map(LeagueResponseDTO.CompetitionRef::of)
+                .forEach(refs::add);
+        return refs;
     }
 
     /**

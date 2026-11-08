@@ -52,13 +52,20 @@ function CompetitionTable() {
   // NFL: por divisiones (como la publica la liga) o por conferencias (la carrera a los playoffs).
   const [byConference, setByConference] = useState(false);
   const {
-    activeCompetitionId,
+    activeCompetitionId: leagueCompetitionId,
     activeGroupId,
     activeGroupCustomCompetition,
-    activeCompetitionName,
-    activeCompetitionExternalId,
+    activeGroupCompetitions: competitions,
+    activeCompetitionName: leagueCompetitionName,
+    activeCompetitionExternalId: leagueCompetitionExternalId,
     activeCompetitionKnockoutCup: knockoutCup,
   } = useAppContext();
+  // Liga de varias competiciones: se ve la tabla de una cada vez (la principal, al entrar).
+  const [pickedCompetitionId, setPickedCompetitionId] = useState<number | null>(null);
+  const picked = competitions.find((c) => c.id === pickedCompetitionId) ?? competitions[0] ?? null;
+  const activeCompetitionId = picked?.id ?? leagueCompetitionId;
+  const activeCompetitionName = picked?.name ?? leagueCompetitionName;
+  const activeCompetitionExternalId = picked?.externalId ?? leagueCompetitionExternalId;
 
   // La NFL no da puntos: se ordena por victorias y se cuentan puntos anotados, no goles.
   const winLoss = activeCompetitionExternalId === 'nfl';
@@ -98,6 +105,26 @@ function CompetitionTable() {
           <span className="standings-eyebrow">Clasificación</span>
           <h1 className="standings-title">{activeCompetitionName || 'Tabla de equipos'}</h1>
         </div>
+
+        {competitions.length > 1 && (
+          <div
+            className="standings-toggle standings-competitions"
+            role="group"
+            aria-label="Competición de la tabla"
+          >
+            {competitions.map((competition) => (
+              <button
+                key={competition.id}
+                type="button"
+                className={competition.id === activeCompetitionId ? 'is-active' : ''}
+                aria-pressed={competition.id === activeCompetitionId}
+                onClick={() => setPickedCompetitionId(competition.id)}
+              >
+                {competition.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {nflDivisions && (
           <div className="standings-toggle" role="group" aria-label="Agrupar la tabla">
