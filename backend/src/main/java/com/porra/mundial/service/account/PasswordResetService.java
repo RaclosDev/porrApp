@@ -8,7 +8,6 @@ import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.service.account.SessionService.SessionTokens;
 import com.porra.mundial.service.notification.EmailSender;
-import com.porra.mundial.service.notification.EmailSender.Email;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -92,7 +91,8 @@ public class PasswordResetService {
                 .createdAt(now)
                 .expiresAt(now.plus(TOKEN_TTL))
                 .build());
-        emailSender.send(resetEmail(user, publicBaseUrl + "/restablecer-contrasena#token=" + token));
+        emailSender.send(PasswordResetEmail.build(user.getGoogleEmail(), user.getParticipantName(),
+                publicBaseUrl + "/restablecer-contrasena#token=" + token, publicBaseUrl));
         log.info("Enlace para cambiar la contraseña enviado (usuario {}).", user.getId());
     }
 
@@ -117,31 +117,6 @@ public class PasswordResetService {
         passkeyRepository.deleteAllOfUser(user.getId());
         log.info("Contraseña cambiada con el enlace del correo (usuario {}).", user.getId());
         return sessionService.start(user);
-    }
-
-    private static Email resetEmail(UserAccount user, String link) {
-        String subject = "Cambia tu contraseña de PorrApp";
-        String text = """
-                Hola, %s:
-
-                Para poner una contraseña nueva en PorrApp, abre este enlace:
-                %s
-
-                Caduca en 30 minutos y solo sirve una vez. Si no lo has pedido tú, ignora este correo:
-                tu contraseña no cambia.
-                """.formatted(user.getParticipantName(), link);
-        String html = """
-                <p>Hola, %s:</p>
-                <p>Para poner una contraseña nueva en PorrApp, pulsa aquí:</p>
-                <p><a href="%s">Cambiar mi contraseña</a></p>
-                <p>Caduca en 30 minutos y solo sirve una vez. Si no lo has pedido tú, ignora este correo:
-                tu contraseña no cambia.</p>
-                """.formatted(escapeHtml(user.getParticipantName()), link);
-        return new Email(user.getGoogleEmail(), subject, text, html);
-    }
-
-    private static String escapeHtml(String value) {
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private static String newToken() {
