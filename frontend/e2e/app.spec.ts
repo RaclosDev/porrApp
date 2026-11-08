@@ -53,7 +53,7 @@ for (const viewport of [
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto('/');
       await expect(page.getByRole('heading', { level: 1 })).toContainText(
-        'La porra de toda la vida',
+        'La porra con tus amigos',
       );
 
       await page.getByRole('button', { name: 'Crear mi liga gratis', exact: true }).first().click();
@@ -94,7 +94,7 @@ for (const viewport of [
       await expect(page).toHaveURL('/');
       await expect(page.getByText('Modo demo:', { exact: true })).toHaveCount(0);
       await expect(page.getByRole('heading', { level: 1 })).toContainText(
-        'La porra de toda la vida',
+        'La porra con tus amigos',
       );
       expect(errors).toEqual([]);
     });
@@ -107,7 +107,7 @@ for (const viewport of [
 
       await page.goto('/');
       await expect(page.getByRole('heading', { level: 1 })).toContainText(
-        'La porra de toda la vida',
+        'La porra con tus amigos',
       );
       await expect(page.getByText('Modo demo:', { exact: true })).toHaveCount(0);
       await expect(page.getByRole('link', { name: 'Resultados' })).toHaveCount(0);
