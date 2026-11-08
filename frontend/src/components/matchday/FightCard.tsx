@@ -8,11 +8,12 @@ import {
 } from '../../utils/matchday';
 import {
   FIGHT_METHOD_LABELS,
+  boutBilling,
   fightOutcomes,
   segmentLabel,
   weightClassLabel,
 } from '../../utils/fights';
-import { FightBadge, FightResultLine } from '../fight/FightResult';
+import { FightBadge, FightJudgesLine, FightResultLine, FightTitleTag } from '../fight/FightResult';
 
 interface FightCardProps {
   fixture: MatchdayFixture;
@@ -108,7 +109,8 @@ export default function FightCard({
       </div>
 
       <p className="md-fight-meta">
-        <strong>{fight.order === 1 ? 'Pelea estelar' : segmentLabel(fight.segment)}</strong>
+        <strong>{boutBilling(fight) ?? segmentLabel(fight.segment)}</strong>
+        <FightTitleTag fight={fight} />
         {fight.weightClass && <span>{weightClassLabel(fight.weightClass)}</span>}
         {fight.scheduledRounds && <span>{fight.scheduledRounds} asaltos</span>}
       </p>
@@ -147,7 +149,8 @@ export default function FightCard({
       {sign && !cancelled && (
         <>
           <p className="md-fight-label" id={`fight-method-${fixture.matchId}`}>
-            Método <span className="md-fight-optional">(opcional, suma más)</span>
+            Método {/* Con la pelea cerrada ya no se elige: el aviso sobra. */}
+            {!locked && <span className="md-fight-optional">(opcional, suma más)</span>}
           </p>
           <div
             className="md-signs md-fight-options"
@@ -174,7 +177,7 @@ export default function FightCard({
           {finish && (
             <>
               <p className="md-fight-label" id={`fight-round-${fixture.matchId}`}>
-                Asalto <span className="md-fight-optional">(opcional)</span>
+                Asalto {!locked && <span className="md-fight-optional">(opcional)</span>}
               </p>
               <div
                 className="md-signs md-fight-options md-fight-rounds"
@@ -208,7 +211,12 @@ export default function FightCard({
       {cancelled || (fixture.awaitingTeams && !fixture.finished) ? (
         <p className="md-fight-result">{fixture.lockReason}</p>
       ) : (
-        fixture.finished && <FightResultLine fight={fight} className="md-fight-outcome" />
+        fixture.finished && (
+          <>
+            <FightResultLine fight={fight} className="md-fight-outcome" />
+            <FightJudgesLine fight={fight} />
+          </>
+        )
       )}
 
       {showPoints && (

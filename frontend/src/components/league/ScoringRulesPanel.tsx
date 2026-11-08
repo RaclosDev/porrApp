@@ -38,6 +38,7 @@ export default function ScoringRulesPanel({
     scoring.nbaSeries,
     winnerOnly,
     scoring.sport ?? null,
+    scoring.fights,
   );
   const current = (key: ScoringRuleKey) =>
     draft?.[key] ?? String(scoring.rules[key] ?? scoring.defaults[key]);
@@ -50,6 +51,12 @@ export default function ScoringRulesPanel({
             Number(current('survivorLives')) || 1,
             current('survivorDrawSurvives') === '1',
           )}
+        </p>
+      )}
+      {scoring.poolFormat === 'MATCH_DAY' && scoring.fights && (
+        <p className="scoring-row-hint">
+          Un empate o una pelea sin resultado no dan puntos a nadie. Una pelea cancelada no cuenta
+          y, si cambia un rival, la predicción de esa pelea se anula y se avisa.
         </p>
       )}
       {scoring.poolFormat === 'MATCH_DAY' && signOnly && !winnerOnly && (

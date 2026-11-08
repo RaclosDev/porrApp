@@ -6,6 +6,7 @@ import {
   leagueCompetitionIds,
 } from '../matchSelection/matchSelection';
 import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
+import { describeSegments } from '../../utils/fights';
 import { LeagueAvatar } from '../Avatar';
 import { describeLockOffset } from '../groups/custom/lockModes';
 import {
@@ -14,6 +15,7 @@ import {
   TENNIS_DRAW_LABELS,
   customScoringRules,
   formatCopy,
+  isFightNights,
   lockModesFor,
   lockOffsetMinutes,
   matchSelectionApplies,
@@ -22,6 +24,7 @@ import {
   type DraftContext,
   type LeagueDraft,
   type LeagueStepId,
+  EVENT_SERIES_LABELS,
 } from './leagueDraft';
 
 function describeLock(draft: LeagueDraft, ctx: DraftContext) {
@@ -81,9 +84,17 @@ export default function SummaryStep({
   const competitionNames = draft.matches.competitionIds.map(
     (id) => ctx.competitions.find((item) => item.id === id)?.name ?? '',
   );
-  const matchesText = isMultiCompetition(draft.matches)
-    ? `${selectionText} de ${describeCompetitions(competitionNames)}, por semanas`
-    : selectionText;
+  const fightNights = isFightNights(draft, ctx);
+  const chosenNight = calendar.data?.matches.find((match) =>
+    draft.matches.included.includes(match.id),
+  )?.round;
+  const matchesText = fightNights
+    ? draft.matches.mode === 'ALL'
+      ? `${draft.eventSeries ? EVENT_SERIES_LABELS[draft.eventSeries] : 'Todas'}, desde hoy`
+      : (chosenNight ?? 'Una sola velada')
+    : isMultiCompetition(draft.matches)
+      ? `${selectionText} de ${describeCompetitions(competitionNames)}, por semanas`
+      : selectionText;
   // Visibilidad no tiene paso: toda liga nueva es privada.
   const rows: { label: string; value: ReactNode; step: LeagueStepId | null }[] = [
     { label: 'Deporte', value: draft.sport ? SPORT_LABELS[draft.sport] : '', step: 'sport' },
@@ -109,7 +120,22 @@ export default function SummaryStep({
       step: 'format',
     },
     ...(picksMatches
-      ? [{ label: 'Partidos', value: matchesText, step: 'format' as LeagueStepId }]
+      ? [
+          {
+            label: fightNights ? 'Veladas' : 'Partidos',
+            value: matchesText,
+            step: 'format' as LeagueStepId,
+          },
+          ...(fightNights
+            ? [
+                {
+                  label: 'Peleas',
+                  value: describeSegments(draft.cardSegments),
+                  step: 'format' as LeagueStepId,
+                },
+              ]
+            : []),
+        ]
       : []),
     { label: 'Cierre', value: describeLock(draft, ctx), step: 'rules' },
     { label: 'Puntuación', value: describeScoring(draft, ctx), step: 'rules' },

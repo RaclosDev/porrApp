@@ -24,6 +24,9 @@ public class MatchdayFriendPredictionDTO {
     private Integer homeScore;
     private Integer awayScore;
     private String sign;
+    /** Pelea de la UFC: método y asalto elegidos. */
+    private String method;
+    private Integer round;
     private Integer pointsAwarded;
     private Boolean isExactScore;
     private Boolean isCorrectSign;

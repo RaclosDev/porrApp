@@ -28,4 +28,12 @@ public class MatchPredictionItemDTO {
     private Integer awayScore;
 
     private String sign; // "1", "X", "2"
+
+    /** Pelea de la UFC: método (KO_TKO, SUBMISSION o DECISION), opcional. */
+    private String method;
+
+    /** Pelea de la UFC: asalto, solo con KO_TKO o SUBMISSION. */
+    @Min(value = 1, message = "El asalto va del 1 al 5")
+    @Max(value = 5, message = "El asalto va del 1 al 5")
+    private Integer round;
 }
