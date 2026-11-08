@@ -105,4 +105,34 @@ class SpaPageControllerTest {
                 .andExpect(status().isMovedPermanently())
                 .andExpect(header().string("Location", "https://porrapp.app/porra-laliga?a=1"));
     }
+
+    @Test
+    void theOldDomainAndTheRailwayDomainRedirectKeepingThePath() throws Exception {
+        for (String host : new String[] {"porra.raclos.es", "PORRAPP-APP-PRODUCTION.up.railway.app"}) {
+            mockMvc.perform(get("/join/abc123").queryParam("x", "y").with(request -> {
+                        request.setServerName(host);
+                        return request;
+                    }))
+                    .andExpect(status().isMovedPermanently())
+                    .andExpect(header().string("Location", "https://porrapp.app/join/abc123?x=y"));
+        }
+    }
+
+    @Test
+    void theSearchConsoleFileIsNotRedirectedSoTheOldDomainStaysVerified() throws Exception {
+        mockMvc.perform(get("/google6878e4f5d48d5b8a.html").with(request -> {
+                    request.setServerName("porra.raclos.es");
+                    return request;
+                }))
+                .andExpect(header().doesNotExist("Location"));
+    }
+
+    @Test
+    void theCanonicalHostIsServedAsIs() throws Exception {
+        mockMvc.perform(get("/porra-laliga").with(request -> {
+                    request.setServerName("porrapp.app");
+                    return request;
+                }))
+                .andExpect(status().isOk());
+    }
 }

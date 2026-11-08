@@ -36,22 +36,22 @@ export interface ContentPage extends PageMeta {
 }
 
 export const HOME_META: PageMeta = {
-  title: 'PorrApp · Porras de fútbol gratis con tus amigos',
+  title: 'Porra con amigos gratis: fútbol, F1, UFC y más · PorrApp',
   description:
-    'Crea gratis tu porra de fútbol con amigos: predicciones de LaLiga, la Champions, la Premier y el Mundial, con los puntos y la clasificación al día.',
+    'Crea gratis una porra con tus amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos.',
 };
 
 /** Textos de la portada que también van en su HTML prerenderizado. */
 export const LANDING_COPY = {
-  h1: 'La porra de toda la vida,',
+  h1: 'La porra con tus amigos,',
   h1Marked: 'pero bien hecha.',
-  lede: 'Porras de fútbol gratis con tus amigos. Rellena el cuadro de la Champions o haz tus predicciones de LaLiga, la Premier y más, jornada a jornada. Los puntos se calculan solos con los resultados reales.',
+  lede: 'Porras gratis con tus amigos de fútbol, Fórmula 1, UFC, NBA, NFL y tenis. Predice LaLiga jornada a jornada, el podio de cada Gran Premio o el ganador de cada combate. Los puntos se calculan solos con los resultados reales.',
   heroNote: 'Entras con tu cuenta de Google. Sin descargas ni anuncios.',
   stepsTitle: 'Cómo se juega',
   steps: [
     {
       title: 'Crea tu liga',
-      text: 'Elige el formato: el cuadro de unas eliminatorias, como la Champions, o las jornadas de LaLiga, la Premier y otras competiciones.',
+      text: 'Elige el deporte y el formato: las jornadas de LaLiga o la Premier, el cuadro de unas eliminatorias, los Grandes Premios de la F1, las veladas de la UFC y más.',
     },
     {
       title: 'Invita con un enlace',
@@ -69,7 +69,7 @@ export const LANDING_COPY = {
   matchdayTitle: 'Jornadas',
   matchdayText:
     'Para LaLiga, la Premier, la Champions y otras ocho competiciones. Predices el signo (1X2) o el marcador exacto, según elija la liga, y cada partido se cierra solo cuando empieza.',
-  closingTitle: 'Tu grupo ya discute de fútbol.',
+  closingTitle: 'Tu grupo ya discute de deporte.',
   closingMarked: 'Que cuente para algo.',
   closing:
     'Crea la liga, pasa el enlace y que hablen los resultados. Se instala en el móvil como una app.',
@@ -262,6 +262,129 @@ export const CONTENT_PAGES: ContentPage[] = [
         paragraphs: [
           'La porra del Mundial 2026 ya está cerrada. En la demo puedes ver los cuadros de la liga pública y cómo quedó la clasificación.',
           'Mientras llega el próximo gran torneo, puedes seguir jugando con tus amigos en ligas por jornadas de LaLiga, la Premier o la Champions.',
+        ],
+      },
+    ],
+  },
+  {
+    path: '/porra-f1',
+    navLabel: 'Porra de F1',
+    title: 'Porra de F1 con amigos: podio, pole y vuelta rápida · PorrApp',
+    description:
+      'Monta una porra de F1 con tus amigos: predice el podio, la pole y la vuelta rápida de cada Gran Premio. Puntos y clasificación automáticos, gratis.',
+    h1: 'La porra de la F1,',
+    h1Marked: 'Gran Premio a Gran Premio.',
+    lede: 'Crea una liga privada de Fórmula 1, invita a tus amigos y predice cada carrera del Mundial: quién sube al podio, quién hace la pole y quién marca la vuelta rápida.',
+    sections: [
+      {
+        heading: 'Qué se predice',
+        paragraphs: [
+          'En cada Gran Premio eliges a los tres pilotos del podio en orden, al que saldrá desde la pole y al de la vuelta rápida. El administrador de la liga decide cuántos puntos vale cada acierto.',
+        ],
+      },
+      {
+        heading: 'Resultados y Mundial al día',
+        paragraphs: [
+          'Cuando termina la carrera llegan la clasificación completa y los puntos de tu liga. También tienes el Mundial de pilotos y el de constructores sin salir de la app.',
+        ],
+      },
+    ],
+  },
+  {
+    path: '/porra-ufc',
+    navLabel: 'Porra de la UFC',
+    title: 'Porra de la UFC con amigos: ganador, método y asalto · PorrApp',
+    description:
+      'Haz una porra de la UFC con tus amigos: predice quién gana cada combate, por KO, sumisión o decisión, y en qué asalto. Puntos y clasificación automáticos.',
+    h1: 'La porra de la UFC,',
+    h1Marked: 'combate a combate.',
+    lede: 'Noches de UFC con algo en juego: crea una liga privada, invita a tus amigos y predice cada pelea de la cartelera, de los preliminares al combate estelar.',
+    sections: [
+      {
+        heading: 'Ganador, método y asalto',
+        paragraphs: [
+          'En cada combate eliges al ganador y, si quieres arriesgar, cómo gana (KO/TKO, sumisión o decisión) y en qué asalto. Cuanto más afinas, más puntos.',
+          'Las predicciones se cierran al empezar la velada o, si la liga lo prefiere, por bloques: los preliminares y la cartelera principal, cada uno a su hora.',
+        ],
+      },
+      {
+        heading: 'Elige qué veladas seguís',
+        paragraphs: [
+          'La liga puede seguir todas las veladas de la UFC, solo los eventos numerados o solo las Fight Nights. Las carteleras y los resultados llegan solos.',
+        ],
+      },
+    ],
+  },
+  {
+    path: '/porra-nba',
+    navLabel: 'Porra de la NBA',
+    title: 'Porra de la NBA con amigos: temporada y playoffs · PorrApp',
+    description:
+      'Crea una porra de la NBA con tus amigos: predice los partidos de cada semana o las series de los playoffs, con puntos y clasificación automáticos.',
+    h1: 'Tu porra de la NBA,',
+    h1Marked: 'de octubre a junio.',
+    lede: 'Crea una liga privada de la NBA, invita a tus amigos y predice quién gana cada partido de la temporada regular o cada serie de los playoffs.',
+    sections: [
+      {
+        heading: 'Temporada regular',
+        paragraphs: [
+          'Los partidos se agrupan por semanas y se cierran a su hora. Si preferís algo más corto e intenso, está el modo superviviente: un equipo ganador por semana y sin repetir.',
+          'Tienes la clasificación de la NBA por conferencia y por división dentro de la app.',
+        ],
+      },
+      {
+        heading: 'Playoffs',
+        paragraphs: [
+          'En los playoffs predices quién gana cada serie y en cuántos partidos, desde el play-in hasta las Finales.',
+        ],
+      },
+    ],
+  },
+  {
+    path: '/porra-nfl',
+    navLabel: 'Porra de la NFL',
+    title: 'Porra de la NFL con amigos, semana a semana · PorrApp',
+    description:
+      'Monta una porra de la NFL con tus amigos: predice el ganador de cada partido de la semana o juega al superviviente. Clasificación automática y gratis.',
+    h1: 'La porra de la NFL,',
+    h1Marked: 'semana a semana.',
+    lede: 'Crea una liga privada de la NFL, invita a tus amigos y predice quién gana cada partido de la semana, del jueves al lunes por la noche.',
+    sections: [
+      {
+        heading: 'Cada semana, sus partidos',
+        paragraphs: [
+          'Los partidos llegan con sus horarios reales y se cierran a su hora. La app te dice qué equipos descansan esa semana.',
+          'Tienes la clasificación de la NFL por división y por conferencia, con el balance de cada equipo y los puestos de playoffs.',
+        ],
+      },
+      {
+        heading: 'Modo superviviente',
+        paragraphs: [
+          'Cada semana eliges un equipo que creas que va a ganar, sin repetir. Si pierde, pierdes una vida; el administrador decide cuántas tiene cada uno. El último en pie gana la liga.',
+        ],
+      },
+    ],
+  },
+  {
+    path: '/porra-tenis',
+    navLabel: 'Porra de tenis',
+    title: 'Porra de tenis con amigos: Grand Slams y Masters 1000 · PorrApp',
+    description:
+      'Haz una porra de tenis con tus amigos: predice quién gana cada partido de los Grand Slams, los Masters 1000 y las Finals, en el cuadro masculino y el femenino.',
+    h1: 'La porra de tenis,',
+    h1Marked: 'torneo a torneo.',
+    lede: 'Crea una liga privada de tenis, invita a tus amigos y predice los partidos de los grandes torneos de la ATP y la WTA, del Open de Australia a las Finals.',
+    sections: [
+      {
+        heading: 'Qué torneos',
+        paragraphs: [
+          'La liga puede seguir toda la temporada, solo los Grand Slams o solo los Masters 1000 y las Finals, con el cuadro masculino, el femenino o los dos.',
+        ],
+      },
+      {
+        heading: 'Qué se predice',
+        paragraphs: [
+          'En cada partido eliges quién gana y, si quieres, por cuántos sets. El cuadro del torneo se va completando con los resultados reales y tus predicciones.',
         ],
       },
     ],
