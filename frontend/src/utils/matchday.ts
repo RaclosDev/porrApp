@@ -79,13 +79,14 @@ export function displayRoundLabel(label: string): string {
 
 const LIVE_STATUSES = new Set(['LIVE', 'PAUSED', 'IN_PLAY', 'IN_PROGRESS']);
 
-/** El partido está en juego: lo marca el proveedor o ya ha empezado y no ha terminado. */
-export const isLiveFixture = (fixture: MatchdayFixture, now: number = Date.now()): boolean =>
-  !fixture.finished &&
-  (LIVE_STATUSES.has(fixture.status ?? '') ||
-    (fixture.matchDate != null && Date.parse(fixture.matchDate) <= now));
+/** El partido está en juego: solo si lo marca el proveedor (ESPN), nunca deducido por la hora. */
+export const isLiveFixture = (fixture: MatchdayFixture): boolean =>
+  !fixture.finished && LIVE_STATUSES.has((fixture.status ?? '').toUpperCase());
 
-/** Hay algún partido empezado y sin terminar. */
+/**
+ * Algún partido ya debería haber empezado y no ha terminado: se refresca a menudo para recibir su
+ * estado. No dice que esté en directo (eso es `isLiveFixture`).
+ */
 export const hasLiveMatch = (
   fixtures: MatchdayFixture[] | undefined,
   now: number = Date.now(),
@@ -295,7 +296,6 @@ export function filterFixtures(
   filter: StatusFilter,
   predictions: Draft,
   leagueLocked: boolean,
-  now: number = Date.now(),
 ): MatchdayFixture[] {
   if (filter === 'PENDING')
     return fixtures.filter((f) => isPendingFixture(f, predictions, leagueLocked));
@@ -303,8 +303,8 @@ export function filterFixtures(
   // Los partidos en juego van primero; el resto conserva su orden.
   const upcoming = fixtures.filter((f) => !f.finished);
   return [
-    ...upcoming.filter((f) => isLiveFixture(f, now)),
-    ...upcoming.filter((f) => !isLiveFixture(f, now)),
+    ...upcoming.filter((f) => isLiveFixture(f)),
+    ...upcoming.filter((f) => !isLiveFixture(f)),
   ];
 }
 

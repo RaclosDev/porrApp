@@ -13,8 +13,13 @@ import java.util.List;
 public interface CompetitionRepository extends JpaRepository<Competition, Long> {
     boolean existsByIdAndOwnerLeagueIsNotNull(Long id);
 
-    @Query("SELECT c.id FROM Competition c WHERE c.ownerLeague IS NOT NULL")
-    List<Long> findPrivateCompetitionIds();
+    /**
+     * Competiciones cuyos partidos no salen en los listados públicos: las privadas de una liga y las
+     * antiguas sin proveedor de datos ni liga dueña (nadie las sincroniza, así que sus partidos se
+     * quedan para siempre sin resultado ni estado final).
+     */
+    @Query("SELECT c.id FROM Competition c WHERE c.ownerLeague IS NOT NULL OR c.externalId IS NULL OR c.externalId = ''")
+    List<Long> findHiddenCompetitionIds();
     Optional<Competition> findByName(String name);
 
     Optional<Competition> findByExternalId(String externalId);

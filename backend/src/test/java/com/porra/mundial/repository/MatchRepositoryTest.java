@@ -110,6 +110,18 @@ class MatchRepositoryTest {
     }
 
     @Test
+    void hidesMatchesOfCompetitionsNobodySyncs() {
+        // Una competición antigua sin proveedor ni liga dueña: sus partidos se quedan sin resultado.
+        var legacy = em.persist(Competition.builder().name("La Liga").build());
+        Competition worldCup = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElseThrow();
+        em.flush();
+
+        assertThat(competitionRepository.findHiddenCompetitionIds())
+                .contains(legacy.getId())
+                .doesNotContain(worldCup.getId());
+    }
+
+    @Test
     void radarFiltersBeforeLimitingAndKeepsMissingTeams() {
         var competition = em.persist(Competition.builder().name("Radar test").build());
         var other = em.persist(Competition.builder().name("Other radar").build());
@@ -128,8 +140,14 @@ class MatchRepositoryTest {
                 .matchDate(now.plus(3, ChronoUnit.MINUTES)).build());
         var missingTeams = em.persist(Match.builder().competition(competition).status(null)
                 .matchDate(now.plus(4, ChronoUnit.MINUTES)).build());
-        var live = em.persist(Match.builder().competition(competition).status(MatchStatusNormalized.LIVE)
-                .finished(null).matchDate(now.minus(10, ChronoUnit.MINUTES)).build());
+        var rival = em.persist(Team.builder().name("Radar away").build());
+        var live = em.persist(Match.builder().competition(competition).homeTeam(home).awayTeam(rival)
+                .status(MatchStatusNormalized.LIVE).finished(null).matchDate(now.minus(10, ChronoUnit.MINUTES)).build());
+        // Sin rivales o con uno por definir no es un partido en juego, aunque el proveedor lo marque así.
+        em.persist(Match.builder().competition(competition).homeTeam(home).awayTeam(placeholder)
+                .status(MatchStatusNormalized.LIVE).matchDate(now.minus(5, ChronoUnit.MINUTES)).build());
+        em.persist(Match.builder().competition(competition).status(MatchStatusNormalized.LIVE)
+                .matchDate(now.minus(6, ChronoUnit.MINUTES)).build());
         var finished = em.persist(Match.builder().competition(competition).finished(true).matchDate(now).build());
         var undated = em.persist(Match.builder().competition(competition).finished(true).matchDate(null).build());
         em.flush(); em.clear();
@@ -142,7 +160,7 @@ class MatchRepositoryTest {
         assertThat(stats.getEntityLoadCount()).isLessThan(15);
         assertThat(matchRepository.findRadarLive(competition.getId(), now.minus(3, ChronoUnit.HOURS).minus(30, ChronoUnit.MINUTES), now.plus(20, ChronoUnit.MINUTES),
                 List.of(MatchStatusNormalized.SCHEDULED, MatchStatusNormalized.LIVE, MatchStatusNormalized.PAUSED)))
-                .extracting(Match::getId).containsExactly(missingTeams.getId(), live.getId());
+                .extracting(Match::getId).containsExactly(live.getId());
         // PostgreSQL's descending null ordering remains the same as the previous derived query.
         assertThat(matchRepository.findRadarLast(competition.getId(), PageRequest.of(0, 5)))
                 .extracting(Match::getId).containsExactly(undated.getId(), finished.getId());

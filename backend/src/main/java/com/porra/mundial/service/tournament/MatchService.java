@@ -29,10 +29,10 @@ public class MatchService {
         }
     }
 
-    /** Quita los partidos de competiciones privadas. */
+    /** Quita los partidos de competiciones privadas y de las antiguas que nadie sincroniza. */
     public List<Match> publicOnly(List<Match> matches) {
         if (matches == null || matches.isEmpty()) return List.of();
-        List<Long> privateIds = competitionRepository.findPrivateCompetitionIds();
+        List<Long> privateIds = competitionRepository.findHiddenCompetitionIds();
         if (privateIds == null || privateIds.isEmpty()) return matches;
         return matches.stream().filter(match -> match.getCompetition() == null
                 || !privateIds.contains(match.getCompetition().getId())).toList();

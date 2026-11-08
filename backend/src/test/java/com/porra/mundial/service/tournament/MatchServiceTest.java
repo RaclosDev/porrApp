@@ -39,7 +39,7 @@ class MatchServiceTest {
         Match privateMatch = Match.builder().id(1L).competition(Competition.builder().id(9L).build()).build();
         Match worldCup = Match.builder().id(2L).competition(Competition.builder().id(1L).build()).build();
         Match noCompetition = Match.builder().id(3L).build();
-        when(competitionRepository.findPrivateCompetitionIds()).thenReturn(List.of(9L));
+        when(competitionRepository.findHiddenCompetitionIds()).thenReturn(List.of(9L));
 
         assertThat(matchService.publicOnly(List.of(privateMatch, worldCup, noCompetition)))
                 .containsExactly(worldCup, noCompetition);

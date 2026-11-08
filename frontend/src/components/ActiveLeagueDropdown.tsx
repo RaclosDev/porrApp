@@ -27,7 +27,7 @@ export default function ActiveLeagueDropdown() {
     activeGroupId,
     activeGroupName,
     activeCompetitionName,
-    activeCompetitionFormatType,
+    activeGroupMultiCompetition,
     userGroups,
     changeGroup,
     isAuthenticated,
@@ -90,8 +90,12 @@ export default function ActiveLeagueDropdown() {
   const activeGroup = (userGroups || []).find((g) => String(g.id) === String(activeGroupId));
   const activeImageUrl = activeGroup?.imageUrl || null;
   const displayLeagueName = activeGroupName || 'Liga';
-  const displayCompName =
-    activeCompetitionName || (activeCompetitionFormatType === 'LEAGUE' ? 'Liga' : 'Mundial');
+  // Solo la competición real de la liga: sin liga (o sin dato) no se supone ninguna.
+  const displayCompName = !activeGroupId
+    ? 'Elige una de tus ligas'
+    : activeGroupMultiCompetition
+      ? 'Varias competiciones'
+      : activeCompetitionName || '';
 
   return (
     <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
@@ -101,7 +105,7 @@ export default function ActiveLeagueDropdown() {
         onClick={() => setIsOpen(!isOpen)}
         className="glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem]"
         aria-expanded={isOpen}
-        title={`Cambiar de liga (${displayLeagueName} · ${displayCompName})`}
+        title={`Cambiar de liga (${[displayLeagueName, displayCompName].filter(Boolean).join(' · ')})`}
       >
         <LeagueAvatar
           url={activeImageUrl}
@@ -161,7 +165,9 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {competitionLabel(g) || 'Mundial'} · {poolFormatShortLabel(g.poolFormat)}
+                          {[competitionLabel(g), poolFormatShortLabel(g.poolFormat)]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </span>
                       </div>
                     </div>

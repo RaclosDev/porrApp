@@ -1,4 +1,5 @@
 import Flag from '../Flag';
+import { isLiveMatch } from '../../utils/homeMatches';
 import { openStats } from '../../utils/navigation';
 import type { Match, MatchRadar } from '../../types/api';
 import InkStamp from '../InkStamp';
@@ -79,7 +80,7 @@ function LiveMatchesPanel({
     .filter((m) => !liveMatches.some((live) => live.id === m.id))
     .slice(0, maxNext);
   const hasLive = liveMatches && liveMatches.length > 0;
-  const isActuallyLive = hasLive && liveMatches.some((m) => new Date(m.date ?? 0) <= new Date());
+  const isActuallyLive = hasLive && liveMatches.some(isLiveMatch);
 
   if (!hasLive && nextMatches.length === 0) {
     return (

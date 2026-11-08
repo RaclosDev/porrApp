@@ -273,6 +273,8 @@ export interface Group {
   adminParticipantName: string | null;
   adminUserId: number | null;
   createdAt: string | null;
+  /** Cuándo se unió el usuario (solo en sus ligas, `/groups/mine`). */
+  joinedAt?: string | null;
   competitionId: number | null;
   customCompetition?: boolean;
   competitionExternalId?: string | null;

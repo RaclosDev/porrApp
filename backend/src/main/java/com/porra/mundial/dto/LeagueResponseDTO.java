@@ -25,6 +25,8 @@ public class LeagueResponseDTO {
     private String adminParticipantName;
     private Long adminUserId;
     private Instant createdAt;
+    /** Cuándo se unió el usuario (solo en sus ligas): elige su liga más reciente si sale de la activa. */
+    private Instant joinedAt;
     
     /** Identificador de la competición asociada a la edición activa. */
     private Long competitionId;

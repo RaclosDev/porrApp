@@ -27,7 +27,14 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                 AND (LOWER(a.name) IN ('por definir', 'tbd') OR LOWER(COALESCE(a.nameEn, '')) = 'tbd')))
             """;
 
+    /**
+     * En juego o a punto de empezar. Aquí sí hacen falta los dos rivales reales: un evento sin
+     * equipos (un cruce aún por definir) no se puede anunciar como partido en directo.
+     */
     @Query(RADAR_MATCHES + """
+              AND h IS NOT NULL AND a IS NOT NULL
+              AND LOWER(h.name) NOT IN ('por definir', 'tbd') AND LOWER(COALESCE(h.nameEn, '')) <> 'tbd'
+              AND LOWER(a.name) NOT IN ('por definir', 'tbd') AND LOWER(COALESCE(a.nameEn, '')) <> 'tbd'
               AND (m.finished = FALSE OR m.finished IS NULL)
               AND (m.status IS NULL OR m.status IN :statuses)
               AND m.matchDate > :past AND m.matchDate < :soon

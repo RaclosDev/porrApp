@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import CookieConsent from './components/layout/CookieConsent';
 import RouteHead from './components/layout/RouteHead';
+import { RequireLeague } from './components/NoLeagueState';
 import { CONTENT_PAGES } from './seo/pages';
 import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
@@ -66,7 +67,11 @@ const RootPage = () => {
   const handoffPending = useSessionHandoffPending();
 
   if (isAuthed) {
-    return <Home />;
+    return (
+      <RequireLeague title="Inicio" what="los partidos y el ranking">
+        <Home />
+      </RequireLeague>
+    );
   }
 
   return handoffPending ? <PageSkeleton /> : <Landing />;
@@ -103,7 +108,11 @@ const DemoPage = () => {
   }, [enterDemoMode]);
 
   // Reuse the same dashboard as a real session without impersonating anyone.
-  return <Home />;
+  return (
+    <RequireLeague title="Inicio" what="los partidos y el ranking">
+      <Home />
+    </RequireLeague>
+  );
 };
 
 const ProtectedRoute = ({
@@ -183,7 +192,9 @@ function App() {
                 path="/radar"
                 element={
                   <ProtectedRoute guestAllowed>
-                    <Radar />
+                    <RequireLeague title="Partidos" what="los partidos">
+                      <Radar />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -197,12 +208,21 @@ function App() {
               />
               {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
               <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
-              <Route path="/grupos" element={<Home defaultMode="groups" />} />
+              <Route
+                path="/grupos"
+                element={
+                  <RequireLeague title="Grupos" what="los grupos">
+                    <Home defaultMode="groups" />
+                  </RequireLeague>
+                }
+              />
               <Route
                 path="/stats"
                 element={
                   <ProtectedRoute guestAllowed>
-                    <Stats />
+                    <RequireLeague title="Estadísticas" what="las estadísticas">
+                      <Stats />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -210,7 +230,9 @@ function App() {
                 path="/search"
                 element={
                   <ProtectedRoute guestAllowed>
-                    <Search />
+                    <RequireLeague title="Buscar" what="las predicciones">
+                      <Search />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -230,12 +252,21 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/bracket" element={<OfficialBracket />} />
+              <Route
+                path="/bracket"
+                element={
+                  <RequireLeague title="Resultados" what="los resultados">
+                    <OfficialBracket />
+                  </RequireLeague>
+                }
+              />
               <Route
                 path="/tabla"
                 element={
                   <ProtectedRoute guestAllowed>
-                    <LeagueStandings />
+                    <RequireLeague title="Tabla" what="la tabla">
+                      <LeagueStandings />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -245,7 +276,9 @@ function App() {
                 path="/prediction"
                 element={
                   <ProtectedRoute>
-                    <Bracket />
+                    <RequireLeague title="Mi porra" what="las predicciones">
+                      <Bracket />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />
@@ -254,7 +287,9 @@ function App() {
                 path="/jornadas"
                 element={
                   <ProtectedRoute>
-                    <MatchdayPredictor />
+                    <RequireLeague title="Mi porra" what="las predicciones">
+                      <MatchdayPredictor />
+                    </RequireLeague>
                   </ProtectedRoute>
                 }
               />

@@ -239,16 +239,21 @@ describe('group tables', () => {
 describe('featuredSlot', () => {
   const next = { round: 'final', groupName: null, home: 'España', away: 'Brasil' } as Match;
 
-  it('highlights the teams of the next knockout match, live once it starts', () => {
-    const now = new Date('2026-07-19T20:00:00Z');
-    expect(featuredSlot({ ...next, date: '2026-07-20T19:00:00Z' }, 'España', 'final', now)).toEqual(
-      { isFeatured: true, isLive: false },
-    );
-    expect(featuredSlot({ ...next, date: '2026-07-19T19:00:00Z' }, 'Brasil', 'final', now)).toEqual(
-      { isFeatured: true, isLive: true },
-    );
-    expect(featuredSlot(next, 'Italia', 'final', now).isFeatured).toBe(false);
-    expect(featuredSlot(next, 'España', 0, now).isFeatured).toBe(false);
-    expect(featuredSlot(null, 'España', 'final', now).isFeatured).toBe(false);
+  it('highlights the teams of the next knockout match, live only when ESPN says so', () => {
+    // Ya pasada la hora, pero sin estado en directo: destacado, no «en directo».
+    expect(
+      featuredSlot(
+        { ...next, date: '2020-07-19T19:00:00Z', status: 'SCHEDULED' },
+        'España',
+        'final',
+      ),
+    ).toEqual({ isFeatured: true, isLive: false });
+    expect(featuredSlot({ ...next, status: 'LIVE' }, 'Brasil', 'final')).toEqual({
+      isFeatured: true,
+      isLive: true,
+    });
+    expect(featuredSlot(next, 'Italia', 'final').isFeatured).toBe(false);
+    expect(featuredSlot(next, 'España', 0).isFeatured).toBe(false);
+    expect(featuredSlot(null, 'España', 'final').isFeatured).toBe(false);
   });
 });
