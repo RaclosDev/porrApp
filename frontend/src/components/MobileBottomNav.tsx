@@ -13,12 +13,14 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
+import { isUfcCompetition } from '../utils/fightCard';
 
 /** Navegación inferior en móvil (hasta 768 px); el resalte se desliza a la pestaña activa. */
 export default function MobileBottomNav() {
   const {
     activeGroupPoolFormat,
     activeCompetitionFormatType,
+    activeCompetitionExternalId,
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
@@ -51,7 +53,11 @@ export default function MobileBottomNav() {
             { to: '/', label: 'Inicio', icon: Home, end: true },
             { to: '/jornadas', label: 'Jornadas', icon: Calendar },
             { to: '/ranking', label: 'Ranking', icon: Trophy },
-            { to: '/tabla', label: 'Tabla', icon: ListOrdered },
+            {
+              to: '/tabla',
+              label: isUfcCompetition(activeCompetitionExternalId) ? 'Cartelera' : 'Tabla',
+              icon: ListOrdered,
+            },
             { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
           ]
         : [

@@ -692,6 +692,14 @@ export interface MatchStats {
   /** null mientras el partido no ha terminado. */
   exactHits: number | null;
   signHits: number | null;
+  /** UFC: cuántos eligieron cada método, del más elegido al menos; vacío en el resto. */
+  methods?: MethodCount[];
+}
+
+/** Un método de victoria pronosticado en una pelea de la UFC y cuántos lo eligieron. */
+interface MethodCount {
+  method: string;
+  count: number;
 }
 
 /** Un miembro que ha pronosticado un signo. */

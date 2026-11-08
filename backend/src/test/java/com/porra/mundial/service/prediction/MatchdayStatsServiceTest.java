@@ -5,6 +5,7 @@ import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
+import com.porra.mundial.dto.MatchdayStatsDTO.MethodCount;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
 import com.porra.mundial.model.*;
 import com.porra.mundial.repository.EditionRepository;
@@ -184,6 +185,40 @@ class MatchdayStatsServiceTest {
         assertEquals(new ScoreCount(2, 1, 2), stats.topScores().get(0));
         // Empate a un voto: primero el de menos goles del local.
         assertEquals(new ScoreCount(0, 2, 1), stats.topScores().get(1));
+    }
+
+    @Test
+    @DisplayName("En una pelea de la UFC cuenta quién eligió a cada luchador y cada método")
+    void countsFightMethods() {
+        Match fight = match(6L, Instant.now().minus(1, ChronoUnit.HOURS), true, 1, 0);
+        MatchPrediction ko = signOnly(fight, "1");
+        ko.setPredictedMethod("KO_TKO");
+        ko.setPredictedRound(2);
+        MatchPrediction otherKo = signOnly(fight, "2");
+        otherKo.setPredictedMethod("KO_TKO");
+        MatchPrediction decision = signOnly(fight, "1");
+        decision.setPredictedMethod("DECISION");
+        MatchPrediction unknown = signOnly(fight, "1");
+        unknown.setPredictedMethod("DRAW");
+        when(matchPredictionRepository.findWithMatchByEditionId(100L)).thenReturn(List.of(
+                ko, otherKo, decision, unknown, signOnly(fight, "2")));
+
+        MatchStats stats = service.getStats(EMAIL, GROUP_ID).matches().get(0);
+
+        assertEquals(3, stats.homeWins());
+        assertEquals(2, stats.awayWins());
+        assertEquals(3, stats.signHits());
+        assertEquals(List.of(new MethodCount("KO_TKO", 2), new MethodCount("DECISION", 1)), stats.methods(),
+                "Solo cuentan los métodos que se pueden elegir, del más elegido al menos");
+    }
+
+    @Test
+    @DisplayName("Fuera de la UFC no hay métodos que contar")
+    void noMethodsOutsideUfc() {
+        Match finished = match(7L, Instant.now().minus(1, ChronoUnit.DAYS), true, 1, 0);
+        when(matchPredictionRepository.findWithMatchByEditionId(100L)).thenReturn(List.of(score(finished, 1, 0)));
+
+        assertTrue(service.getStats(EMAIL, GROUP_ID).matches().get(0).methods().isEmpty());
     }
 
     @Test
