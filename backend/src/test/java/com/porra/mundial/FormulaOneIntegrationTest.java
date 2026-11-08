@@ -58,6 +58,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Fórmula 1 de principio a fin con Postgres real y respuestas de ESPN simuladas. */
@@ -184,6 +191,65 @@ class FormulaOneIntegrationTest {
     }
 
     @Test
+    @DisplayName("Si falla la carga de la temporada al crear la liga, la siguiente pasada trae los Grandes Premios que quedan")
+    void seasonImportRetriedAfterFailedLeagueImport() throws Exception {
+        JsonNode season;
+        try (var input = getClass().getResourceAsStream("/espn/f1/season-2026.json")) {
+            season = json.readTree(input).path("events");
+        }
+        JsonNode saoPaulo = null;
+        for (JsonNode event : season) {
+            if (event.path("name").asText().contains("Paulo")) saoPaulo = event;
+        }
+        // Como en producción: la sincronización de cada 15 minutos solo ha guardado el Gran Premio en curso.
+        when(espn.currentEvents()).thenReturn(json.createArrayNode().add(saoPaulo));
+        formulaOneSyncService.syncCurrent(f1);
+
+        // ESPN falla justo al crear la liga: la carga de la temporada (en segundo plano) no guarda nada.
+        doThrow(new java.io.IOException("ESPN API returned HTTP 503")).when(espn).seasonEvents(anyInt());
+        UserAccount admin = user("Marta");
+        League league = leagueSetupService.create(NewLeague.of("Boxes", admin.getGoogleEmail(), f1.getId(),
+                PoolFormat.GRAND_PRIX), null);
+        verify(espn, timeout(10_000).atLeastOnce()).seasonEvents(anyInt());
+        assertThatThrownBy(() -> formulaOneSyncService.importSeason(f1)).isInstanceOf(java.io.IOException.class);
+        assertThat(grandPrixService.board(admin.getGoogleEmail(), league.getId()).grandsPrix())
+                .extracting(GrandPrixBoardDTO.GrandPrix::name)
+                .doesNotContain("GP de Las Vegas");
+
+        // ESPN vuelve: la siguiente pasada periódica carga la temporada que faltaba.
+        doReturn(season).when(espn).seasonEvents(anyInt());
+        formulaOneSyncService.sync(f1);
+
+        GrandPrixBoardDTO board = grandPrixService.board(admin.getGoogleEmail(), league.getId());
+        assertThat(board.grandsPrix()).hasSizeGreaterThanOrEqualTo(season.size());
+        assertThat(board.grandsPrix()).extracting(GrandPrixBoardDTO.GrandPrix::name)
+                .contains("GP de Australia", "GP de São Paulo", "GP de Las Vegas", "GP de Catar", "GP de Abu Dabi");
+        assertThat(board.grandsPrix()).filteredOn(gp -> gp.name().equals("GP de Australia")).singleElement()
+                .satisfies(gp -> {
+                    assertThat(gp.status()).isEqualTo("FINISHED");
+                    assertThat(gp.result().first()).isNotNull();
+                });
+
+        // Los que quedan se pueden predecir con la parrilla del último Gran Premio.
+        GrandPrixBoardDTO.GrandPrix abuDhabi = board.grandsPrix().stream()
+                .filter(gp -> gp.name().equals("GP de Abu Dabi")).findFirst().orElseThrow();
+        if (!abuDhabi.locked()) {
+            List<Long> grid = abuDhabi.gridIds();
+            assertThat(grid).hasSizeGreaterThanOrEqualTo(3);
+            grandPrixService.savePick(admin.getGoogleEmail(), league.getId(), abuDhabi.id(),
+                    new GrandPrixPickRequest(grid.get(0), grid.get(1), grid.get(2), grid.get(0), grid.get(1)));
+            assertThat(find(grandPrixService.board(admin.getGoogleEmail(), league.getId()), abuDhabi.id()).pick())
+                    .isEqualTo(new GrandPrixBoardDTO.Picks(grid.get(0), grid.get(1), grid.get(2), grid.get(0), grid.get(1)));
+        }
+
+        // Con la temporada ya cargada, la pasada siguiente vuelve a ser una sola consulta.
+        clearInvocations(espn);
+        formulaOneSyncService.sync(f1);
+        verify(espn).currentEvents();
+        verify(espn, never()).seasonEvents(anyInt());
+    }
+
+    @Test
     @DisplayName("La Fórmula 1 solo se juega por Grandes Premios, y ese modo solo existe en la Fórmula 1")
     void formatMatchesSport() {
         UserAccount admin = user("Luis");
@@ -201,7 +267,11 @@ class FormulaOneIntegrationTest {
     }
 
     private GrandPrixBoardDTO.GrandPrix find(GrandPrixBoardDTO board, Match gp) {
-        return board.grandsPrix().stream().filter(item -> item.id().equals(gp.getId())).findFirst().orElseThrow();
+        return find(board, gp.getId());
+    }
+
+    private GrandPrixBoardDTO.GrandPrix find(GrandPrixBoardDTO board, Long id) {
+        return board.grandsPrix().stream().filter(item -> item.id().equals(id)).findFirst().orElseThrow();
     }
 
     /** Un Gran Premio como lo da ESPN: clasificación en dos días y carrera en tres, o ya disputadas. */

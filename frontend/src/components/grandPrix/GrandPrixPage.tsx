@@ -95,6 +95,10 @@ export default function GrandPrixPage() {
         </p>
       )}
 
+      {board.data.grandsPrix.length > 0 && !next && (
+        <p className="gp-empty">No quedan Grandes Premios por disputar esta temporada.</p>
+      )}
+
       {next && (
         <>
           <h2 className="gp-section-title">Próximo Gran Premio</h2>
