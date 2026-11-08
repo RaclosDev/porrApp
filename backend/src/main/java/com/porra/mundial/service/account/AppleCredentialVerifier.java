@@ -9,6 +9,7 @@ import io.jsonwebtoken.security.Jwk;
 import io.jsonwebtoken.security.JwkSet;
 import io.jsonwebtoken.security.Jwks;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -48,6 +49,7 @@ public class AppleCredentialVerifier {
     private volatile Map<String, Key> keys = Map.of();
     private volatile Instant fetchedAt = Instant.EPOCH;
 
+    @Autowired
     public AppleCredentialVerifier(@Value("${apple.client.id:}") String clientId) {
         this(clientId, AppleCredentialVerifier::download);
     }
