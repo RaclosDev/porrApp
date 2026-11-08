@@ -133,7 +133,7 @@ class MemberJoinedNotifierTest {
         Map<String, Object> message = json.readValue(payload.getValue(), Map.class);
         assertThat(message).containsEntry("title", "Nuevo miembro en tu liga")
                 .containsEntry("body", "Pepe se ha unido a Los del barrio. Ya sois 4.")
-                .containsEntry("url", "/jornadas?group=5")
+                .containsEntry("url", "/?group=5")
                 .containsEntry("tag", "member-joined-5");
     }
 

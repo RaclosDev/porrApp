@@ -15,6 +15,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { Toaster } from 'react-hot-toast';
 import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
 import { useSessionHandoffPending } from './hooks/useSessionHandoffPending';
+import { useRequestedGroup } from './hooks/useRequestedGroup';
 import { hideSplash, isSplashVisible } from './services/splash';
 
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
@@ -68,15 +69,20 @@ const RootPage = () => {
   const isAuthed = isAuthenticated && Boolean(userName);
   const handoffPending = useSessionHandoffPending();
 
-  if (isAuthed) {
-    return (
-      <RequireLeague title="Inicio" what="los partidos y el ranking">
-        <Home />
-      </RequireLeague>
-    );
-  }
+  if (isAuthed) return <LeagueHome />;
 
   return handoffPending ? <PageSkeleton /> : <Landing />;
+};
+
+/** Inicio de la liga activa; los avisos llegan con ?group= de su liga (p. ej. «Nuevo miembro»). */
+const LeagueHome = () => {
+  const switchingGroup = useRequestedGroup(useAppContext());
+  if (switchingGroup) return <PageSkeleton />;
+  return (
+    <RequireLeague title="Inicio" what="los partidos y el ranking">
+      <Home />
+    </RequireLeague>
+  );
 };
 
 const DemoPredictionPage = () => {
