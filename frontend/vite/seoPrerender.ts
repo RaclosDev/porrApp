@@ -1,5 +1,6 @@
 import type { Plugin, Rolldown } from 'vite';
 import {
+  AFFILIATION_NOTICE,
   CONTENT_PAGES,
   HOME_FAQ,
   HOME_META,
@@ -10,6 +11,7 @@ import {
   type ContentPage,
   type FaqEntry,
   type PageMeta,
+  type PageScreens,
 } from '../src/seo/pages.ts';
 
 /**
@@ -84,8 +86,17 @@ const footerNav = () => {
   ];
   return `<nav aria-label="Porras de PorrApp"><ul>${links
     .map(([href, label]) => `<li><a href="${href}">${escapeHtml(label)}</a></li>`)
-    .join('')}</ul></nav>`;
+    .join('')}</ul></nav><p>${escapeHtml(AFFILIATION_NOTICE)}</p>`;
 };
+
+/** Mismos srcset y sizes que AppScreens: el navegador pide la misma imagen antes y después de montar. */
+const screensMarkup = (screens: PageScreens) =>
+  `<h2>${escapeHtml(screens.title)}</h2><ul>${screens.shots
+    .map(
+      (shot) =>
+        `<li><img src="${shot.src}-600.webp" srcset="${shot.src}-300.webp 300w, ${shot.src}-600.webp 600w" sizes="(min-width: 1024px) 260px, 64vw" width="600" height="1298" alt="${escapeHtml(shot.alt)}" loading="lazy" decoding="async"></li>`,
+    )
+    .join('')}</ul>`;
 
 const paragraphs = (texts: readonly string[]) =>
   texts.map((text) => `<p>${escapeHtml(text)}</p>`).join('');
@@ -126,6 +137,7 @@ const contentMarkup = (page: ContentPage) =>
   (page.download
     ? `<p><a href="${page.download.href}" download>${escapeHtml(page.download.label)}</a></p>`
     : `<p><a href="/demo">Ver una porra de ejemplo</a></p>`) +
+  (page.screens ? screensMarkup(page.screens) : '') +
   page.sections
     .map((section) => `<h2>${escapeHtml(section.heading)}</h2>${paragraphs(section.paragraphs)}`)
     .join('') +

@@ -8,6 +8,13 @@
 
 export const SITE_ORIGIN = 'https://porrapp.app';
 
+/**
+ * Uso nominativo de las marcas: las competiciones se nombran solo para identificarlas, sin sus logos
+ * ni sus colores. Va en el pie de todas las páginas públicas y en su HTML prerenderizado.
+ */
+export const AFFILIATION_NOTICE =
+  'PorrApp no está afiliada a LaLiga, la UEFA, la FIFA, la Premier League, la RFEF, la Fórmula 1, la UFC, la NBA, la NFL, la ATP ni la WTA, ni cuenta con su patrocinio. Sus nombres se usan solo para identificar cada competición.';
+
 export interface PageMeta {
   title: string;
   description: string;
@@ -23,6 +30,23 @@ export interface FaqEntry {
   answer: string;
 }
 
+/** Captura de la app en un móvil; `src` sin el sufijo de anchura (`-300.webp`, `-600.webp`). */
+interface AppScreen {
+  src: string;
+  alt: string;
+}
+
+/** Capturas de una liga de ejemplo de la competición, debajo del titular. */
+export interface PageScreens {
+  title: string;
+  shots: AppScreen[];
+}
+
+const appScreen = (slug: string, alt: string): AppScreen => ({
+  src: `/landing/porras/${slug}`,
+  alt,
+});
+
 export interface ContentPage extends PageMeta {
   path: string;
   /** Nombre corto para los enlaces entre páginas. */
@@ -33,6 +57,7 @@ export interface ContentPage extends PageMeta {
   lede: string;
   sections: ContentSection[];
   faq?: FaqEntry[];
+  screens?: PageScreens;
   /** Archivo que se descarga desde la página (la plantilla de Excel). */
   download?: { href: string; label: string };
 }
@@ -198,6 +223,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'Tu porra de LaLiga,',
     h1Marked: 'jornada a jornada.',
     lede: 'Crea una liga privada para la temporada de LaLiga, invita a tus amigos y predice cada partido, a 1X2 o a marcador exacto. Los puntos se suman solos cuando termina.',
+    screens: {
+      title: 'Así se ve una porra de LaLiga',
+      shots: [
+        appScreen(
+          'laliga-inicio',
+          'Inicio de una liga de LaLiga en PorrApp: resultados de la jornada 13 y los próximos partidos con su hora.',
+        ),
+        appScreen(
+          'laliga-jornada',
+          'Jornada 13 de LaLiga en PorrApp: cada partido con los botones 1, X y 2 y la predicción ya marcada.',
+        ),
+        appScreen(
+          'laliga-tabla',
+          'Clasificación de LaLiga dentro de PorrApp, con puntos y partidos jugados de cada equipo.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Toda la temporada',
@@ -243,6 +285,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'La porra de la Champions,',
     h1Marked: 'partido a partido.',
     lede: 'Martes y miércoles de Champions con algo más en juego: crea una liga privada, invita a tus amigos y predice cada partido de la UEFA Champions League.',
+    screens: {
+      title: 'Así se ve una porra de la Champions',
+      shots: [
+        appScreen(
+          'champions-inicio',
+          'Inicio de una liga de la Champions en PorrApp: resultados y próximos partidos de la fase de liga.',
+        ),
+        appScreen(
+          'champions-jornada',
+          'Jornada 5 de la fase de liga de la Champions en PorrApp, con la predicción 1X2 de cada partido.',
+        ),
+        appScreen(
+          'champions-tabla',
+          'Clasificación de la fase de liga de la Champions dentro de PorrApp.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'De la fase de liga a la final',
@@ -287,6 +346,20 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'Tu porra de la Premier,',
     h1Marked: 'sin hojas de cálculo.',
     lede: 'Crea una liga privada para la Premier League, invita a tus amigos y predice cada partido, a 1X2 o a marcador exacto. PorrApp se encarga de los resultados y los puntos.',
+    screens: {
+      title: 'Así se ve una porra de la Premier',
+      shots: [
+        appScreen(
+          'premier-inicio',
+          'Inicio de una liga de la Premier League en PorrApp: resultados de la jornada 12 y próximos partidos.',
+        ),
+        appScreen(
+          'premier-jornada',
+          'Jornada 12 de la Premier League en PorrApp, con la predicción 1X2 de cada partido.',
+        ),
+        appScreen('premier-tabla', 'Clasificación de la Premier League dentro de PorrApp.'),
+      ],
+    },
     sections: [
       {
         heading: 'Cada jornada, con su horario',
@@ -324,6 +397,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'La porra del Mundial,',
     h1Marked: 'con cuadro completo.',
     lede: 'En el Mundial no se predice partido a partido: se rellena el cuadro entero antes de que empiece, de la fase de grupos a la final, y se elige al máximo goleador.',
+    screens: {
+      title: 'Así se ve una porra del Mundial',
+      shots: [
+        appScreen(
+          'mundial-inicio',
+          'Inicio de la porra del Mundial 2026 en PorrApp: los últimos resultados, con la final España-Argentina.',
+        ),
+        appScreen(
+          'mundial-resultados',
+          'Cuadro del Mundial 2026 en PorrApp: semifinales y la gran final, con quién se clasifica y quién cae.',
+        ),
+        appScreen(
+          'mundial-grupos',
+          'Grupos del Mundial 2026 en PorrApp, con la tabla de cada grupo y qué selecciones pasan.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Cómo es el cuadro',
@@ -363,6 +453,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'La porra de la F1,',
     h1Marked: 'Gran Premio a Gran Premio.',
     lede: 'Crea una liga privada de Fórmula 1, invita a tus amigos y predice cada carrera del Mundial: quién sube al podio, quién hace la pole y quién marca la vuelta rápida.',
+    screens: {
+      title: 'Así se ve una porra de la F1',
+      shots: [
+        appScreen(
+          'f1-inicio',
+          'Próximo Gran Premio en una liga de Fórmula 1 de PorrApp: se elige el podio, la pole y la vuelta rápida.',
+        ),
+        appScreen(
+          'f1-carreras',
+          'Gran Premio ya disputado en PorrApp: el resultado al lado de tu predicción y los puntos que ha dado.',
+        ),
+        appScreen(
+          'f1-mundial',
+          'Mundial de pilotos de Fórmula 1 dentro de PorrApp, con puntos y diferencia con el líder.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Qué se predice',
@@ -400,6 +507,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'La porra de la UFC,',
     h1Marked: 'combate a combate.',
     lede: 'Noches de UFC con algo en juego: crea una liga privada, invita a tus amigos y predice cada pelea de la cartelera, de los preliminares al combate estelar.',
+    screens: {
+      title: 'Así se ve una porra de la UFC',
+      shots: [
+        appScreen(
+          'ufc-inicio',
+          'Inicio de una liga de la UFC en PorrApp: los combates de la velada, los terminados con cómo acabaron.',
+        ),
+        appScreen(
+          'ufc-jornada',
+          'Cartelera de una velada de la UFC en PorrApp: en cada combate se elige ganador y, si quieres, método.',
+        ),
+        appScreen(
+          'ufc-cartelera',
+          'Cartelera estelar de una velada en PorrApp, con tus aciertos, tus puntos y tu predicción de cada pelea.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Ganador, método y asalto',
@@ -438,6 +562,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'Tu porra de la NBA,',
     h1Marked: 'de octubre a junio.',
     lede: 'Crea una liga privada de la NBA, invita a tus amigos y predice quién gana cada partido de la temporada regular o cada serie de los playoffs.',
+    screens: {
+      title: 'Así se ve una porra de la NBA',
+      shots: [
+        appScreen(
+          'nba-inicio',
+          'Inicio de una liga de la NBA en PorrApp: resultados de la noche y los próximos partidos con su hora.',
+        ),
+        appScreen(
+          'nba-jornada',
+          'Semana 4 de la NBA en PorrApp: en cada partido se elige qué equipo gana.',
+        ),
+        appScreen(
+          'nba-tabla',
+          'Clasificación de la NBA por conferencias dentro de PorrApp, con victorias y derrotas.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Temporada regular',
@@ -476,6 +617,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'La porra de la NFL,',
     h1Marked: 'semana a semana.',
     lede: 'Crea una liga privada de la NFL, invita a tus amigos y predice quién gana cada partido de la semana, del jueves al lunes por la noche.',
+    screens: {
+      title: 'Así se ve una porra de la NFL',
+      shots: [
+        appScreen(
+          'nfl-inicio',
+          'Inicio de una liga de la NFL en PorrApp: resultado del jueves y los partidos del domingo.',
+        ),
+        appScreen(
+          'nfl-jornada',
+          'Semana 11 de la NFL en PorrApp: en cada partido se elige qué equipo gana.',
+        ),
+        appScreen(
+          'nfl-tabla',
+          'Clasificación de la NFL por divisiones dentro de PorrApp, con victorias, derrotas y puesto de playoffs.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Cada semana, sus partidos',
@@ -514,6 +672,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'La porra de tenis,',
     h1Marked: 'torneo a torneo.',
     lede: 'Crea una liga privada de tenis, invita a tus amigos y predice los partidos de los grandes torneos de la ATP y la WTA, del Open de Australia a las Finals.',
+    screens: {
+      title: 'Así se ve una porra de tenis',
+      shots: [
+        appScreen(
+          'tenis-inicio',
+          'Inicio de una liga de tenis en PorrApp: las semifinales del torneo y la clasificación de la liga.',
+        ),
+        appScreen(
+          'tenis-jornada',
+          'Semifinales de un torneo de tenis en PorrApp: se elige quién gana y, si quieres, el resultado en sets.',
+        ),
+        appScreen(
+          'tenis-cuadro',
+          'Cuadro de un torneo de tenis en PorrApp: cuartos de final con resultados y las semifinales.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Qué torneos',
@@ -829,6 +1004,19 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'La porra de la Copa del Rey,',
     h1Marked: 'eliminatoria a eliminatoria.',
     lede: 'La Copa se juega a eliminatorias y se sortea ronda a ronda. Crea una liga privada, invita a tus amigos y, tras cada sorteo, elegid quién pasa cada cruce hasta la final.',
+    screens: {
+      title: 'Así se ve una porra de la Copa del Rey',
+      shots: [
+        appScreen(
+          'copa-inicio',
+          'Inicio de una liga de la Copa del Rey en PorrApp: resultados y próximos partidos de octavos.',
+        ),
+        appScreen(
+          'copa-jornada',
+          'Octavos de final de la Copa del Rey en PorrApp, con la predicción 1X2 de cada eliminatoria.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Cómo se juega',
