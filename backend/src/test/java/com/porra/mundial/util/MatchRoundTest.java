@@ -51,4 +51,13 @@ class MatchRoundTest {
         assertThat(MatchRound.matches(octavos, "Octavos de final")).isTrue();
         assertThat(MatchRound.matches(octavos, "r16")).isTrue();
     }
+
+    @Test
+    void thePlayInOfTheLolWorldsHasASpanishLabel() {
+        com.porra.mundial.model.Match playIn = com.porra.mundial.model.Match.builder().round("playin").build();
+
+        assertThat(MatchRound.label(playIn)).isEqualTo("Play-in");
+        assertThat(MatchRound.matches(playIn, "Play-in")).isTrue();
+        assertThat(MatchRound.lookup("Play-in").names()).contains("playin");
+    }
 }

@@ -35,7 +35,7 @@ public final class MatchRound {
     private static final Map<String, String> KNOCKOUT_LABELS = Map.of(
             "playoff", "Playoff", "r32", "Dieciseisavos", "r16", "Octavos de final",
             "qf", "Cuartos de final", "sf", "Semifinales", "third", "Tercer puesto", "final", "Final",
-            "roundrobin", "Fase de grupos");
+            "roundrobin", "Fase de grupos", "playin", "Play-in");
 
     public static String label(Match match) {
         if (match.getGroupName() != null && !match.getGroupName().isBlank()) {

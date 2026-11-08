@@ -341,6 +341,8 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     usedTeams,
     handleSurvivorPick,
     fixtures,
+    activeRound,
+    roundFixtures,
     isLoading: matchdaysQuery.isLoading || fixturesQuery.isLoading,
     isError: fixturesQuery.isError,
     refetch: fixturesQuery.refetch,

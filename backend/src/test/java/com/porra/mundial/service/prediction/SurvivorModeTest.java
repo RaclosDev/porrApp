@@ -256,7 +256,17 @@ class SurvivorModeTest {
 
             BusinessException error = assertThrows(BusinessException.class, () -> save(501, "1"));
             assertTrue(error.getMessage().contains("Real Madrid"));
+            assertTrue(error.getMessage().endsWith(" en Jornada 4."), error.getMessage());
             verify(matchPredictionRepository, never()).save(any());
+        }
+
+        @Test
+        void inTheNflTheRepeatedTeamMessageSpeaksOfWeeks() {
+            Match week4 = played(401, "Semana 4", BETIS, MADRID, 0, 2, Instant.now().minus(5, ChronoUnit.DAYS));
+            existing(pick(prediction, week4, "2"));
+
+            BusinessException error = assertThrows(BusinessException.class, () -> save(501, "1"));
+            assertTrue(error.getMessage().endsWith(" en la Semana 4."), error.getMessage());
         }
 
         @Test
