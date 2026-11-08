@@ -58,6 +58,12 @@ describe('displayRoundLabel', () => {
     expect(displayRoundLabel('Jornada 3')).toBe('Jornada 3');
     expect(displayRoundLabel('Grupo A')).toBe('Grupo A');
   });
+
+  it('nombra en castellano las rondas de la Copa del Rey antes de dieciseisavos', () => {
+    expect(displayRoundLabel('qualifying')).toBe('Ronda previa');
+    expect(displayRoundLabel('round1')).toBe('Primera ronda');
+    expect(displayRoundLabel('round2')).toBe('Segunda ronda');
+  });
 });
 
 describe('roundLabelFor', () => {

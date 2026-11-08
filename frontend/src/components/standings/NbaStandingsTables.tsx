@@ -114,10 +114,8 @@ export default function NbaStandingsTables({ standings, showComplete, competitio
                           <span className="standings-team-name">
                             {row.teamShortName ? (
                               <>
-                                <span className="standings-team-long">{row.teamName}</span>
-                                <span className="standings-team-short" aria-hidden="true">
-                                  {row.teamShortName}
-                                </span>
+                                <span className="standings-team-full">{row.teamName}</span>
+                                <span className="standings-team-short">{row.teamShortName}</span>
                               </>
                             ) : (
                               row.teamName

@@ -308,6 +308,8 @@ public class TennisDataProvider implements SportsDataProvider {
                 .put("completed", finished);
         ObjectNode status = objectMapper.createObjectNode();
         status.set("type", statusType);
+        String scoreLine = scoreLine(match, finished ? name : null);
+        if (scoreLine != null) status.put("displayClock", scoreLine);
 
         ArrayNode competitors = objectMapper.createArrayNode();
         for (JsonNode competitor : match.path("competitors")) {
@@ -330,6 +332,51 @@ public class TennisDataProvider implements SportsDataProvider {
         event.putArray("competitions").add(competition);
         event.putObject("season").put("slug", roundSlug);
         return event;
+    }
+
+    /**
+     * Juegos de cada set, del primer jugador y del segundo, con los puntos del tie-break del que lo pierde
+     * («6-4 3-6 7-6(5)»), y cómo acabó si no fue un partido completo: {@code RET} (retirada), {@code WO}
+     * (W.O.), {@code DEF} (descalificación) o {@code ABD} (suspendido). Se guarda en {@code display_clock}:
+     * en directo da el marcador del set en juego y, terminado, el resultado completo. Null sin nada que contar.
+     *
+     * @param finishedStatus estado de ESPN si el partido ha terminado; null si no
+     */
+    static String scoreLine(JsonNode match, String finishedStatus) {
+        JsonNode home = null;
+        JsonNode away = null;
+        for (JsonNode competitor : match.path("competitors")) {
+            String side = competitor.path("homeAway").asText(competitor.path("order").asInt() == 1 ? "home" : "away");
+            if ("home".equals(side)) home = competitor;
+            else away = competitor;
+        }
+        StringBuilder line = new StringBuilder();
+        if (home != null && away != null) {
+            JsonNode homeSets = home.path("linescores");
+            JsonNode awaySets = away.path("linescores");
+            for (int i = 0; i < Math.min(homeSets.size(), awaySets.size()); i++) {
+                JsonNode h = homeSets.get(i);
+                JsonNode a = awaySets.get(i);
+                if (!h.path("value").isNumber() || !a.path("value").isNumber()) break;
+                if (!line.isEmpty()) line.append(' ');
+                line.append(h.path("value").asInt()).append('-').append(a.path("value").asInt());
+                if (h.path("tiebreak").isNumber() && a.path("tiebreak").isNumber()) {
+                    line.append('(').append(Math.min(h.path("tiebreak").asInt(), a.path("tiebreak").asInt())).append(')');
+                }
+            }
+        }
+        String ending = finishedStatus == null ? null : switch (finishedStatus) {
+            case "STATUS_RETIRED" -> "RET";
+            case "STATUS_WALKOVER" -> "WO";
+            case "STATUS_DEFAULT", "STATUS_DEFAULTED" -> "DEF";
+            case "STATUS_ABANDONED" -> "ABD";
+            default -> null;
+        };
+        if (ending != null) {
+            if (!line.isEmpty()) line.append(' ');
+            line.append(ending);
+        }
+        return line.isEmpty() ? null : line.toString();
     }
 
     private static int setsWon(JsonNode competitor) {

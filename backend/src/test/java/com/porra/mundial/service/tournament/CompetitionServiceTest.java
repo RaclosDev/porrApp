@@ -229,6 +229,45 @@ class CompetitionServiceTest {
     }
 
     @Test
+    void theNflTableGoesByDivisionWithShortNamesAndPlayoffSeeds() throws Exception {
+        when(competitions.findById(6L)).thenReturn(Optional.of(
+                Competition.builder().id(6L).externalId("nfl").build()));
+        when(espn.fetchStandings("nfl")).thenReturn(json("""
+                {"children": [
+                  {"name": "National Football Conference", "children": [
+                    {"name": "NFC North", "standings": {"entries": [
+                      {"team": {"displayName": "Minnesota Vikings", "shortDisplayName": "Vikings"},
+                        "stats": [{"name": "wins", "value": 6}, {"name": "losses", "value": 1}, {"name": "playoffSeed", "value": 2}]}
+                    ]}}
+                  ]},
+                  {"name": "American Football Conference", "children": [
+                    {"name": "AFC West", "standings": {"entries": [
+                      {"team": {"displayName": "Denver Broncos"}, "stats": [{"name": "wins", "value": 6}, {"name": "losses", "value": 2}]}
+                    ]}},
+                    {"name": "AFC East", "standings": {"entries": [
+                      {"team": {"displayName": "New York Jets"}, "stats": [{"name": "wins", "value": 2}, {"name": "losses", "value": 6},
+                        {"name": "playoffSeed", "value": 12}]},
+                      {"team": {"displayName": "Buffalo Bills", "shortDisplayName": "Bills"}, "stats": [{"name": "wins", "value": 6},
+                        {"name": "losses", "value": 1}, {"name": "playoffSeed", "value": 1}, {"name": "pointsFor", "value": 233}]}
+                    ]}}
+                  ]}
+                ]}"""));
+
+        List<LeagueStandingDTO> table = service.getStandings(6L);
+
+        assertThat(table).extracting(LeagueStandingDTO::getGroup)
+                .containsExactly("AFC Este", "AFC Este", "AFC Oeste", "NFC Norte");
+        assertThat(table).extracting(LeagueStandingDTO::getTeamName)
+                .containsExactly("Buffalo Bills", "New York Jets", "Denver Broncos", "Minnesota Vikings");
+        assertThat(table).extracting(LeagueStandingDTO::getRank).containsExactly(1, 2, 1, 1);
+        assertThat(table.get(0).getTeamShortName()).isEqualTo("Bills");
+        assertThat(table.get(0).getPlayoffSeed()).isEqualTo(1);
+        assertThat(table.get(0).getGoalsFor()).isEqualTo(233);
+        assertThat(table.get(2).getPlayoffSeed()).isNull();
+        verifyNoInteractions(matches);
+    }
+
+    @Test
     void aKnockoutCupHasNoTable() throws Exception {
         when(competitions.findById(7L)).thenReturn(Optional.of(Competition.builder().id(7L)
                 .externalId("esp.copa_del_rey").formatType("TOURNAMENT").build()));

@@ -5,6 +5,7 @@ import {
   driverLabel,
   gridDrivers,
   pickError,
+  placeLabel,
   samePick,
   splitGrandsPrix,
 } from '../../components/grandPrix/grandPrix';
@@ -40,19 +41,27 @@ const driver = (id: number, name: string, team: string | null): RaceDriver => ({
 });
 
 describe('Grandes Premios', () => {
-  it('separa el próximo, los siguientes y los disputados, del más reciente al más antiguo', () => {
+  it('separa el que está en juego, el próximo abierto, los siguientes y los disputados', () => {
     const list = [
       gp({ id: 1, status: 'FINISHED', raceAt: '2026-10-25T20:00:00Z' }),
       gp({ id: 2, status: 'CANCELLED', raceAt: '2026-04-12T15:00:00Z' }),
       gp({ id: 3, status: 'FINISHED', raceAt: '2026-11-01T20:00:00Z' }),
       gp({ id: 4, status: 'LIVE', locked: true }),
       gp({ id: 5 }),
+      gp({ id: 6 }),
     ];
-    const { next, upcoming, done } = splitGrandsPrix(list);
-    expect(next?.id).toBe(4);
-    expect(upcoming.map((item) => item.id)).toEqual([5]);
+    const { live, next, upcoming, done } = splitGrandsPrix(list);
+    expect(live.map((item) => item.id)).toEqual([4]);
+    expect(next?.id).toBe(5);
+    expect(upcoming.map((item) => item.id)).toEqual([6]);
     expect(done.map((item) => item.id)).toEqual([3, 1, 2]);
     expect(splitGrandsPrix([]).next).toBeNull();
+  });
+
+  it('no repite la ciudad cuando coincide con el país', () => {
+    expect(placeLabel({ city: 'São Paulo', country: 'Brasil' })).toBe('São Paulo, Brasil');
+    expect(placeLabel({ city: 'Singapur', country: 'Singapur' })).toBe('Singapur');
+    expect(placeLabel({ city: null, country: 'Mónaco' })).toBe('Mónaco');
   });
 
   it('pide el podio completo sin repetir piloto y la pole; la vuelta rápida es opcional', () => {

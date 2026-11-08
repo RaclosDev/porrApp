@@ -113,3 +113,55 @@ it('shows the LoL phases with their win-loss record and points to Jornadas for t
   expect(screen.queryByRole('button', { name: 'Completa' })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Jornadas' })).toHaveAttribute('href', '/jornadas');
 });
+it('shows the NFL by division with records and playoff seeds, and by conference with the playoff line', async () => {
+  vi.mocked(useAppContext).mockReturnValue(
+    appContext({
+      activeCompetitionId: 14,
+      activeCompetitionName: 'NFL',
+      activeCompetitionExternalId: 'nfl',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'matchday',
+    }),
+  );
+  const team = (
+    name: string,
+    group: string,
+    rank: number,
+    seed: number,
+    wins: number,
+    losses: number,
+    ties = 0,
+  ) => ({
+    ...row,
+    group,
+    rank,
+    teamName: name,
+    teamShortName: name.split(' ').pop(),
+    playoffSeed: seed,
+    points: wins,
+    wins,
+    losses,
+    ties,
+    gamesPlayed: wins + losses + ties,
+  });
+  vi.mocked(fetchCompetitionStandings).mockResolvedValue([
+    team('Buffalo Bills', 'AFC Este', 1, 1, 6, 1),
+    team('New York Jets', 'AFC Este', 2, 12, 2, 6),
+    ...Array.from({ length: 7 }, (_, i) => team(`AFC Team${i}`, 'AFC Oeste', i + 1, i + 2, 5, 3)),
+    team('New York Giants', 'NFC Este', 1, 3, 4, 2, 1),
+  ]);
+  const { container } = setup();
+  expect(await screen.findByRole('heading', { name: 'AFC Este' })).toBeVisible();
+  expect(screen.getByText('4-2-1')).toBeVisible();
+  expect(screen.getByText('.643')).toBeVisible();
+  expect(screen.getByLabelText('Puesto 1 para los playoffs')).toBeVisible();
+  // Fuera de los playoffs no lleva número.
+  expect(screen.queryByLabelText('Puesto 12 para los playoffs')).not.toBeInTheDocument();
+  expect(screen.getByText('Bills')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Conferencias' }));
+  expect(screen.getByRole('heading', { name: 'AFC' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'NFC' })).toBeVisible();
+  expect(container.querySelectorAll('.is-playoff-cutline')).toHaveLength(1);
+  expect(screen.getByText(/entran los 7 primeros/)).toBeVisible();
+});

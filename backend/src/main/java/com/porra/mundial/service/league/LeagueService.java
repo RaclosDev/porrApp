@@ -120,14 +120,19 @@ public class LeagueService {
             if (comp.drawsKnockoutRounds() && poolFormat == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
                 throw BusinessException.badRequest("Los cruces de esta competición se sortean ronda a ronda: elige Solo eliminatorias");
             }
-            // De la NBA solo se pronostican los playoffs, serie a serie.
-            if (comp.playsSeries() && poolFormat != com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY) {
-                throw BusinessException.badRequest("De la NBA se pronostican los playoffs: elige el modo Playoffs");
-            }
             // La temporada regular de la NBA no tiene cuadro: se juega partido a partido.
             if (com.porra.mundial.sports.EspnNbaDataProvider.isRegularSeason(comp.getExternalId())
                     && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)) {
                 throw BusinessException.badRequest("La temporada regular de la NBA se juega partido a partido: elige Por semanas o Superviviente");
+            }
+            // Una liga regular (LaLiga, Premier, NFL…) no tiene cuadro: el asistente ya no lo ofrece.
+            if ("LEAGUE".equalsIgnoreCase(comp.getFormatType()) && !comp.isWorldCup() && !comp.drawsKnockoutRounds()
+                    && !poolFormat.isMatchBased() && poolFormat != com.porra.mundial.model.PoolFormat.GRAND_PRIX) {
+                throw BusinessException.badRequest("Esta competición se juega por jornadas: no tiene cuadro que rellenar");
+            }
+            // De la NBA solo se pronostican los playoffs, serie a serie.
+            if (comp.playsSeries() && poolFormat != com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY) {
+                throw BusinessException.badRequest("De la NBA se pronostican los playoffs: elige el modo Playoffs");
             }
             if (com.porra.mundial.model.Sport.isTennis(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
                 throw BusinessException.badRequest("Los torneos de tenis se juegan partido a partido");

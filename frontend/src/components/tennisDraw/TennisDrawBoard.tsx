@@ -18,6 +18,7 @@ import {
   type DrawSlot,
   type DrawView,
 } from '../../utils/tennisDraw';
+import { parseTennisScore, tennisEndingLabel } from '../../utils/tennisScore';
 
 const EMPTY: MatchdayFixture[] = [];
 
@@ -67,10 +68,16 @@ function MatchCard({ slot, view }: { slot: DrawSlot; view: DrawView }) {
     );
   }
   const live = isLiveFixture(fixture);
+  // Los juegos de cada set (también en directo) y, si no se jugó entero, cómo acabó.
+  const score = parseTennisScore(fixture.displayClock);
+  const ending = tennisEndingLabel(score);
+  const games = view === 'results' && score && score.sets.length > 0 ? score.sets : null;
   const note = fixture.finished
-    ? fixture.winnerSign && fixture.actualHomeScore == null
-      ? 'Terminado sin completar'
-      : 'Terminado'
+    ? ending
+      ? `Terminado · ${ending}`
+      : fixture.winnerSign && fixture.actualHomeScore == null && !score
+        ? 'Terminado sin completar'
+        : 'Terminado'
     : live
       ? 'En juego'
       : formatMatchDate(fixture.matchDate);
@@ -110,7 +117,22 @@ function MatchCard({ slot, view }: { slot: DrawSlot; view: DrawView }) {
                 <>
                   {state.outcome && <span className="sr-only">{PICK_LABELS[state.outcome]}</span>}
                   {view === 'results' && state.advances && <span className="sr-only"> · pasa</span>}
-                  {sets != null && <span className="knockout-tie-goals">{sets}</span>}
+                  {games ? (
+                    <span className="tennis-draw-games">
+                      {games.map((set, index) => {
+                        const own = side === 'home' ? set.home : set.away;
+                        const rival = side === 'home' ? set.away : set.home;
+                        return (
+                          <span key={index} className={own > rival ? 'is-won' : undefined}>
+                            {own}
+                            {set.tiebreak != null && own < rival && <sup>{set.tiebreak}</sup>}
+                          </span>
+                        );
+                      })}
+                    </span>
+                  ) : (
+                    sets != null && <span className="knockout-tie-goals">{sets}</span>
+                  )}
                 </>
               }
             />

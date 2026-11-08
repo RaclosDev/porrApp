@@ -240,39 +240,37 @@ public class CompetitionService {
         }
     }
 
+    /** Divisiones de la NFL en el orden de la liga, con su nombre en español. */
+    private static final List<String> NFL_DIVISIONS = List.of("East", "North", "South", "West");
+    private static final Map<String, String> NFL_DIVISION_NAMES = Map.of(
+            "East", "Este", "North", "Norte", "South", "Sur", "West", "Oeste");
+
     /**
-     * La NFL en una sola tabla: ESPN la da por conferencias (AFC y NFC) y sin partidos jugados ni puntos.
-     * Se ordena como la liga, por porcentaje de victorias (el empate vale media), y luego por diferencia y
-     * puntos a favor. Los puntos de la tabla son las victorias: en la NFL no hay otros.
+     * La tabla de la NFL por divisiones («AFC Este»…«NFC Oeste»), como la publica la liga: ESPN la da así con
+     * {@code level=3}, cada división ya ordenada con los desempates de la NFL. Dentro de cada una se reordena
+     * solo por porcentaje de victorias (el empate vale media) si ESPN no lo hubiera hecho. Cada fila lleva el
+     * nombre corto («Bills») y su puesto en la conferencia para los playoffs. Si ESPN no da divisiones (las
+     * conferencias solas), queda una tabla única por porcentaje de victorias. Los puntos son las victorias.
      */
     static List<LeagueStandingDTO> parseNflStandings(JsonNode root) {
         List<LeagueStandingDTO> standings = new ArrayList<>();
         if (root == null) return standings;
-        List<JsonNode> groups = new ArrayList<>();
-        if (root.path("children").size() > 0) root.path("children").forEach(groups::add);
-        else groups.add(root);
-        for (JsonNode group : groups) {
-            for (JsonNode entry : group.path("standings").path("entries")) {
-                Map<String, Integer> stats = new HashMap<>();
-                for (JsonNode stat : entry.path("stats")) {
-                    stats.put(stat.path("name").asText(""), stat.path("value").asInt(0));
-                }
-                int wins = stats.getOrDefault("wins", 0);
-                int losses = stats.getOrDefault("losses", 0);
-                int ties = stats.getOrDefault("ties", 0);
-                standings.add(LeagueStandingDTO.builder()
-                        .teamName(entry.path("team").path("displayName").asText(entry.path("team").path("name").asText("Equipo")))
-                        .teamLogo(entry.path("team").path("logos").path(0).path("href").asText(null))
-                        .points(wins)
-                        .gamesPlayed(wins + losses + ties)
-                        .wins(wins)
-                        .ties(ties)
-                        .losses(losses)
-                        .goalDiff(stats.getOrDefault("pointDifferential", 0))
-                        .goalsFor(stats.getOrDefault("pointsFor", 0))
-                        .goalsAgainst(stats.getOrDefault("pointsAgainst", 0))
-                        .build());
+        List<JsonNode> tables = new ArrayList<>();
+        collectNflTables(root, tables);
+        boolean divisions = !tables.isEmpty() && tables.stream().allMatch(table -> nflDivision(table) != null);
+        if (divisions) {
+            tables.sort(Comparator.comparing(table -> nflDivisionOrder(table.path("name").asText(""))));
+            for (JsonNode table : tables) {
+                List<LeagueStandingDTO> rows = new ArrayList<>();
+                for (JsonNode entry : table.path("standings").path("entries")) rows.add(nflRow(entry, nflDivision(table)));
+                rows.sort(Comparator.comparingDouble(CompetitionService::winShare).reversed());
+                for (int i = 0; i < rows.size(); i++) rows.get(i).setRank(i + 1);
+                standings.addAll(rows);
             }
+            return standings;
+        }
+        for (JsonNode table : tables) {
+            for (JsonNode entry : table.path("standings").path("entries")) standings.add(nflRow(entry, null));
         }
         standings.sort(Comparator.comparingDouble(CompetitionService::winShare).reversed()
                 .thenComparing(Comparator.comparingInt(LeagueStandingDTO::getGoalDiff).reversed())
@@ -366,6 +364,56 @@ public class CompetitionService {
         String value = espn == null ? "" : espn.trim().toUpperCase(Locale.ROOT);
         if (!value.matches("[WL]\\d+")) return null;
         return (value.charAt(0) == 'W' ? "V" : "D") + value.substring(1);
+    }
+
+    /** Tablas con equipos de la respuesta de ESPN: las divisiones o, sin ellas, las conferencias. */
+    private static void collectNflTables(JsonNode node, List<JsonNode> tables) {
+        if (node.path("standings").path("entries").size() > 0) {
+            tables.add(node);
+            return;
+        }
+        for (JsonNode child : node.path("children")) collectNflTables(child, tables);
+    }
+
+    /** «AFC East» → «AFC Este»; null si la tabla no es una división de la NFL. */
+    static String nflDivision(JsonNode table) {
+        String[] parts = table.path("name").asText("").trim().split("\\s+");
+        if (parts.length != 2 || !(parts[0].equals("AFC") || parts[0].equals("NFC"))) return null;
+        String division = NFL_DIVISION_NAMES.get(parts[1]);
+        return division == null ? null : parts[0] + " " + division;
+    }
+
+    private static int nflDivisionOrder(String name) {
+        String[] parts = name.trim().split("\\s+");
+        int conference = parts[0].equals("AFC") ? 0 : 1;
+        return conference * NFL_DIVISIONS.size() + NFL_DIVISIONS.indexOf(parts[parts.length - 1]);
+    }
+
+    private static LeagueStandingDTO nflRow(JsonNode entry, String division) {
+        Map<String, Integer> stats = new HashMap<>();
+        for (JsonNode stat : entry.path("stats")) {
+            stats.put(stat.path("name").asText(""), stat.path("value").asInt(0));
+        }
+        int wins = stats.getOrDefault("wins", 0);
+        int losses = stats.getOrDefault("losses", 0);
+        int ties = stats.getOrDefault("ties", 0);
+        int seed = stats.getOrDefault("playoffSeed", 0);
+        JsonNode team = entry.path("team");
+        return LeagueStandingDTO.builder()
+                .group(division)
+                .teamName(team.path("displayName").asText(team.path("name").asText("Equipo")))
+                .teamShortName(team.path("shortDisplayName").asText(null))
+                .teamLogo(team.path("logos").path(0).path("href").asText(null))
+                .playoffSeed(seed > 0 ? seed : null)
+                .points(wins)
+                .gamesPlayed(wins + losses + ties)
+                .wins(wins)
+                .ties(ties)
+                .losses(losses)
+                .goalDiff(stats.getOrDefault("pointDifferential", 0))
+                .goalsFor(stats.getOrDefault("pointsFor", 0))
+                .goalsAgainst(stats.getOrDefault("pointsAgainst", 0))
+                .build();
     }
 
     private static double winShare(LeagueStandingDTO row) {

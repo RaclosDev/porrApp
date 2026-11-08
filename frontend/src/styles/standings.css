@@ -228,6 +228,31 @@
     white-space: nowrap;
   }
 
+  .standings-team-short {
+    display: none;
+  }
+
+  /* NFL: puesto para los playoffs junto al equipo. */
+  .standings-seed {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+
+  /* NFL por conferencias: raya bajo el último puesto de playoffs. */
+  .standings-row.is-playoff-cutline {
+    border-bottom: 2px dashed var(--accent-cyan);
+  }
+
   .standings-table.is-complete .standings-team-cell {
     min-width: 180px;
     padding-left: 8px;
@@ -383,10 +408,6 @@
     min-width: 520px;
   }
 
-  .standings-team-short {
-    display: none;
-  }
-
   /* Tabla de la NBA: columnas de números fijas; el resto del ancho es para el equipo. */
   .standings-nba-pos-column {
     width: 52px;
@@ -440,19 +461,6 @@
       margin: 10px 10px 0;
     }
 
-    .standings-team-long {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
-    }
-
-    .standings-team-short {
-      display: inline;
-    }
-
     .standings-nba-pos-column {
       width: 38px;
     }
@@ -467,6 +475,15 @@
 
     .standings-table {
       font-size: 0.82rem;
+    }
+
+    /* «Los Angeles…» no distingue a los Rams de los Chargers: en el móvil, el nombre corto. */
+    .standings-team-full {
+      display: none;
+    }
+
+    .standings-team-short {
+      display: inline;
     }
 
     .standings-table th {
