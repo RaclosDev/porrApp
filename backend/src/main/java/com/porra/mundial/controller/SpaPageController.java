@@ -30,7 +30,8 @@ public class SpaPageController {
     /** Páginas públicas con contenido propio, las únicas que se pueden indexar. */
     public static final Set<String> INDEXABLE = Set.of(
             "/", "/como-funciona", "/porra-laliga", "/porra-champions", "/porra-premier-league",
-            "/porra-mundial", "/privacidad", "/aviso-legal");
+            "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
+            "/privacidad", "/aviso-legal");
 
     /** Pantallas de la app: existen, pero no tienen sentido en un buscador. */
     public static final Set<String> APP = Set.of(
@@ -43,7 +44,8 @@ public class SpaPageController {
 
     @GetMapping({
             "/", "/como-funciona", "/porra-laliga", "/porra-champions", "/porra-premier-league",
-            "/porra-mundial", "/privacidad", "/aviso-legal",
+            "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
+            "/privacidad", "/aviso-legal",
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/bracket", "/tabla", "/prediction", "/jornadas"})
     public ResponseEntity<Resource> page(HttpServletRequest request) {
