@@ -419,6 +419,9 @@ export function formatUnavailableReason(
   ) {
     return 'Este torneo no tiene fase de grupos: elige Solo eliminatorias.';
   }
+  if (!isMatchBasedFormat(format) && competition?.externalId === 'nfl') {
+    return 'Los playoffs ya entran en Por semanas, ronda a ronda hasta la Super Bowl.';
+  }
   if (
     !isMatchBasedFormat(format) &&
     competition?.formatType === 'LEAGUE' &&
@@ -445,7 +448,10 @@ export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOpt
   if (draft.poolFormat == null || draft.poolFormat === 'GRAND_PRIX') return [];
   if (draft.poolFormat === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHT_LOCK_MODES;
   if (isMatchBasedFormat(draft.poolFormat))
-    return matchdayLockModes(isMultiCompetition(draft.matches));
+    return matchdayLockModes(
+      isMultiCompetition(draft.matches),
+      selectedCompetition(draft, ctx)?.externalId === 'nfl',
+    );
   if (isNbaDraft(draft, ctx)) return SERIES_LOCK_MODES;
   if (isKnockoutDraw(draft, ctx)) return DRAWN_KNOCKOUT_LOCK_MODES;
   return allowsProgressiveLock(draft, ctx) ? BRACKET_LOCK_MODES : SINGLE_LOCK_MODES;

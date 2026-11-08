@@ -18,6 +18,7 @@ import com.porra.mundial.scoring.ScoringRuleSet;
 import com.porra.mundial.scoring.LolSeriesScoring;
 import com.porra.mundial.scoring.TennisScoring;
 import com.porra.mundial.util.MatchRound;
+import com.porra.mundial.sports.NflSchedule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -609,8 +610,10 @@ public class MatchPredictionService {
             }
             Team used = SurvivorRules.pickedTeam(other);
             if (used != null && Objects.equals(used.getId(), team.getId())) {
-                throw BusinessException.conflict(String.format("Ya elegiste a %s en %s.", team.getName(),
-                        MatchRound.label(otherMatch)));
+                String usedRound = MatchRound.label(otherMatch);
+                // NFL: «en la Semana 9» / «en la Ronda divisional»; en el fútbol, «en Jornada 9».
+                String at = NflSchedule.isRoundLabel(usedRound) ? "la " + usedRound : usedRound;
+                throw BusinessException.conflict(String.format("Ya elegiste a %s en %s.", team.getName(), at));
             }
         }
     }
