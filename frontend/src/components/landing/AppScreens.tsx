@@ -11,7 +11,7 @@ interface AppScreensProps {
 }
 
 /**
- * Capturas de una liga de ejemplo dentro de marcos de móvil. En escritorio van en abanico; en móvil,
+ * Capturas de la app con partidos reales dentro de marcos de móvil. En escritorio van en abanico; en móvil,
  * en una fila que se desliza de lado. Llevan anchura y altura fijas para no mover la página al cargar.
  */
 export default function AppScreens({ screens }: AppScreensProps) {
@@ -44,7 +44,7 @@ export default function AppScreens({ screens }: AppScreensProps) {
         </ul>
       </div>
       <p className="text-center text-sm text-[#94a3b8] mt-2">
-        Capturas de PorrApp con datos de ejemplo.
+        Capturas reales de PorrApp; los participantes de la liga son de ejemplo.
       </p>
     </section>
   );

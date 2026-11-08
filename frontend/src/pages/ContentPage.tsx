@@ -15,7 +15,7 @@ interface ContentPageProps {
  * papel que la portada, pero sin datos en vivo: su texto sale de seo/pages.ts, el mismo que lleva
  * su HTML prerenderizado. La primera sección va en cartel, como el titular de la portada, y el
  * resto en texto sobre la pared para que la página no sea una fila de tarjetas iguales. Las páginas de
- * cada competición enseñan debajo del titular capturas de una liga de ejemplo.
+ * cada competición enseñan debajo del titular capturas de la app con partidos reales.
  */
 export default function ContentPage({ page }: ContentPageProps) {
   const openLogin = openSignupToCreateLeague;
