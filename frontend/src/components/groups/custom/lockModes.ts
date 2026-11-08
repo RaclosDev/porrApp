@@ -80,9 +80,27 @@ export const FIGHT_NIGHT_LOCK_MODES: LockModeOption[] = [
   },
 ];
 
-/** Cierres de una liga por jornadas: con varias competiciones, la jornada es la semana. */
-export const matchdayLockModes = (multiCompetition: boolean) =>
-  multiCompetition ? MULTI_COMPETITION_LOCK_MODES : MATCHDAY_LOCK_MODES;
+/** Temporada regular de la NBA: sus jornadas son las semanas oficiales, de lunes a domingo. */
+const NBA_WEEK_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((item) =>
+  item.value === 'PER_ROUND'
+    ? {
+        ...item,
+        label: 'Por semanas',
+        hint: 'Toda la semana, de lunes a domingo, se cierra al empezar su primer partido, o antes si pones margen.',
+      }
+    : item,
+);
+
+/**
+ * Cierres de una liga por jornadas: con varias competiciones, la jornada es la semana; en la temporada
+ * regular de la NBA, también.
+ */
+export const matchdayLockModes = (multiCompetition: boolean, nbaWeeks = false) =>
+  multiCompetition
+    ? MULTI_COMPETITION_LOCK_MODES
+    : nbaWeeks
+      ? NBA_WEEK_LOCK_MODES
+      : MATCHDAY_LOCK_MODES;
 
 /** Los modos que solo aceptan cerrar todo a la vez, sin rondas ni partidos. */
 /** Eliminatorias sorteadas ronda a ronda: las rondas siguientes aún no tienen cruces, no se cierra todo a la vez. */

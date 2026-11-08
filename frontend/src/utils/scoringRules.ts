@@ -55,7 +55,7 @@ const FIGHTS: ScoringSection = {
   ],
 };
 
-/** NFL: se predice quién gana, sin marcador ni empate. */
+/** NFL y NBA: se predice quién gana, sin marcador ni empate. */
 const WINNER_MATCHDAY: ScoringSection = {
   id: 'matches',
   title: 'Cada partido',
@@ -63,7 +63,7 @@ const WINNER_MATCHDAY: ScoringSection = {
     {
       key: 'correctSignPoints',
       label: 'Ganador acertado',
-      hint: 'Aciertas quién gana el partido. Si acaba en empate, no suma nadie.',
+      hint: 'Aciertas quién gana el partido. En la NFL, si acaba en empate, no suma nadie.',
     },
   ],
 };

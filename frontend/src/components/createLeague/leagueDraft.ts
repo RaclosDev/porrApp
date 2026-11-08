@@ -450,7 +450,10 @@ export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOpt
   if (draft.poolFormat == null || draft.poolFormat === 'GRAND_PRIX') return [];
   if (draft.poolFormat === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHT_LOCK_MODES;
   if (isMatchBasedFormat(draft.poolFormat))
-    return matchdayLockModes(isMultiCompetition(draft.matches));
+    return matchdayLockModes(
+      isMultiCompetition(draft.matches),
+      isNbaRegularSeason(selectedCompetition(draft, ctx)?.externalId),
+    );
   if (isNbaDraft(draft, ctx)) return SERIES_LOCK_MODES;
   if (isKnockoutDraw(draft, ctx)) return DRAWN_KNOCKOUT_LOCK_MODES;
   return allowsProgressiveLock(draft, ctx) ? BRACKET_LOCK_MODES : SINGLE_LOCK_MODES;

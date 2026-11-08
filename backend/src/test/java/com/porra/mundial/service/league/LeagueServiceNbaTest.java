@@ -71,11 +71,15 @@ class LeagueServiceNbaTest {
     }
 
     @Test
-    @DisplayName("De la NBA solo se juegan los playoffs")
+    @DisplayName("Los playoffs de la NBA solo se juegan en modo Playoffs, y el error lleva a la temporada regular")
     void nbaRejectsOtherFormats() {
         BusinessException error = assertThrows(BusinessException.class, () -> service.createLeague(
                 NewLeague.of("Jornadas", EMAIL, 15L, PoolFormat.MATCH_DAY)));
-        assertTrue(error.getMessage().contains("playoffs"));
+        assertTrue(error.getMessage().contains("Temporada regular"));
+
+        BusinessException bracket = assertThrows(BusinessException.class, () -> service.createLeague(
+                NewLeague.of("Cuadro", EMAIL, 15L, PoolFormat.FULL_BRACKET)));
+        assertTrue(bracket.getMessage().contains("serie a serie"));
     }
 
     @Test

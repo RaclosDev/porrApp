@@ -6,7 +6,7 @@ import { queryKeys } from '../../../services/queryKeys';
 import { useCustomLock } from '../../../hooks/useCustomLock';
 import type { Group } from '../../../types/api';
 import { isMatchBasedFormat } from '../../../utils/poolFormat';
-import { isNbaCompetition } from '../../../utils/nbaPlayoffs';
+import { isNbaCompetition, isNbaRegularSeason } from '../../../utils/nbaPlayoffs';
 import { formatMatchDate, type SaveAction } from './customCompetition';
 import {
   BRACKET_LOCK_MODES,
@@ -30,13 +30,14 @@ function describe(
   multiCompetition = false,
   fightNights = false,
   series = false,
+  nbaWeeks = false,
 ): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
   const margin = offsetMinutes ? ` · ${describeLockOffset(offsetMinutes)}` : '';
   const modes = matchday
     ? fightNights
       ? FIGHT_NIGHT_LOCK_MODES
-      : matchdayLockModes(multiCompetition)
+      : matchdayLockModes(multiCompetition, nbaWeeks)
     : series
       ? SERIES_LOCK_MODES
       : knockoutDraw
@@ -65,6 +66,7 @@ export default function CustomLockCard({
   // Superviviente también se pronostica partido a partido.
   const matchday = isMatchBasedFormat(group.poolFormat);
   const series = Boolean(group.knockoutDraw) && isNbaCompetition(group.competitionExternalId);
+  const nbaWeeks = isNbaRegularSeason(group.competitionExternalId);
   const lock = useCustomLock(group.id.toString());
   const current = lock.state;
   const [mode, setMode] = useState<CustomLockMode>('FIXED_DATE');
@@ -90,7 +92,7 @@ export default function CustomLockCard({
   if (matchday)
     modes = fightNights
       ? FIGHT_NIGHT_LOCK_MODES
-      : matchdayLockModes(Boolean(group.multiCompetition));
+      : matchdayLockModes(Boolean(group.multiCompetition), nbaWeeks);
   else if (series) modes = SERIES_LOCK_MODES;
   else if (group.knockoutDraw) modes = DRAWN_KNOCKOUT_LOCK_MODES;
   else if (!allowProgressive) {
@@ -107,6 +109,8 @@ export default function CustomLockCard({
       false,
       Boolean(group.multiCompetition),
       fightNights,
+      false,
+      nbaWeeks,
     );
   } else if (current && lock.configured) {
     status = describe(

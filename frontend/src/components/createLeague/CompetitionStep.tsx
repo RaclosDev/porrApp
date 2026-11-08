@@ -27,7 +27,10 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
     {
       id: 'tournaments',
       title: 'Con cuadro',
-      hint: 'Torneos con eliminatorias: también se pueden jugar por jornadas.',
+      hint:
+        draft.sport === 'BASKETBALL'
+          ? 'Eliminatorias al mejor de siete: se pronostica serie a serie.'
+          : 'Torneos con eliminatorias: también se pueden jugar por jornadas.',
       items: official.filter((item) => item.formatType === 'TOURNAMENT'),
     },
     {

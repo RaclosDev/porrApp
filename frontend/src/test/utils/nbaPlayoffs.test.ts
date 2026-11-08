@@ -164,4 +164,13 @@ describe('crear una liga de la temporada regular de la NBA', () => {
     expect(formatCopy('MATCH_DAY', chosen, ctx).text).toMatch(/Copa NBA/);
     expect(formatCopy('SURVIVOR', chosen, ctx).text).toMatch(/sin repetir equipo/);
   });
+
+  it('cierra por semanas, no por jornadas', () => {
+    const weekly = { ...chosen, poolFormat: 'MATCH_DAY' as const };
+    expect(lockModesFor(weekly, ctx).map((mode) => mode.label)).toEqual([
+      'Cada partido',
+      'Por días',
+      'Por semanas',
+    ]);
+  });
 });
