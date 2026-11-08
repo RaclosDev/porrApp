@@ -8,6 +8,7 @@ import com.porra.mundial.config.SecurityConfig;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.service.account.PasswordAuthService;
+import com.porra.mundial.service.account.PasswordResetService;
 import com.porra.mundial.service.account.SessionService.SessionTokens;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -44,6 +46,9 @@ class AuthPasswordControllerTest {
 
     @MockitoBean
     private PasswordAuthService passwordAuthService;
+
+    @MockitoBean
+    private PasswordResetService passwordResetService;
 
     @MockitoBean
     private JwtUtil jwtUtil;
@@ -93,5 +98,25 @@ class AuthPasswordControllerTest {
                         .contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isForbidden());
         verifyNoInteractions(passwordAuthService);
+    }
+
+    @Test
+    void askingForTheResetLinkAnswersTheSameWhateverTheEmail() throws Exception {
+        mockMvc.perform(post("/api/auth/password/reset-request").header(HttpHeaders.ORIGIN, APP_ORIGIN)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"nadie@test.com\"}"))
+                .andExpect(status().isAccepted());
+        verify(passwordResetService).requestReset("nadie@test.com");
+    }
+
+    @Test
+    void theResetLinkSetsTheNewPasswordAndOpensASession() throws Exception {
+        when(passwordResetService.reset("token-del-correo", "clave-nueva-larga")).thenReturn(tokens());
+
+        mockMvc.perform(post("/api/auth/password/reset").header(HttpHeaders.ORIGIN, APP_ORIGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"token-del-correo\",\"password\":\"clave-nueva-larga\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("access-9"))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("refresh-9")));
     }
 }

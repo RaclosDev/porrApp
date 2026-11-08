@@ -32,6 +32,7 @@ const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
 const MatchdayPredictor = React.lazy(() => import('./pages/MatchdayPredictor'));
 const LeagueStandings = React.lazy(() => import('./pages/LeagueStandings'));
 const Legal = React.lazy(() => import('./pages/Legal'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 const ContentPage = React.lazy(() => import('./pages/ContentPage'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
@@ -183,6 +184,7 @@ function App() {
               <Route path="/linkedin" element={<LinkedInEntry />} />
               <Route path="/privacidad" element={<Legal kind="privacy" />} />
               <Route path="/aviso-legal" element={<Legal kind="legal" />} />
+              <Route path="/restablecer-contrasena" element={<ResetPassword />} />
               {CONTENT_PAGES.map((page) => (
                 <Route key={page.path} path={page.path} element={<ContentPage page={page} />} />
               ))}

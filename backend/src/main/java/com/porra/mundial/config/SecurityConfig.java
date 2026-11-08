@@ -72,8 +72,9 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
-                // Registro e inicio de sesión con email y contraseña.
-                .requestMatchers(HttpMethod.POST, "/api/auth/password/register", "/api/auth/password/login").permitAll()
+                // Registro e inicio de sesión con email y contraseña, y recuperarla por correo.
+                .requestMatchers(HttpMethod.POST, "/api/auth/password/register", "/api/auth/password/login",
+                        "/api/auth/password/reset-request", "/api/auth/password/reset").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/apple/login").permitAll()
                 // Entrar con una llave de acceso: la propia firma de la llave autentica.
                 .requestMatchers(HttpMethod.POST, "/api/auth/passkeys/login", "/api/auth/passkeys/login/options").permitAll()

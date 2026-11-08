@@ -6,6 +6,7 @@ import {
   loginWithPasskey,
   loginWithPassword,
   registerWithPassword,
+  requestPasswordReset,
   setAuthToken,
   startPasskeyLogin,
 } from '../../services/api';
@@ -21,6 +22,8 @@ vi.mock('../../services/api', () => ({
   loginWithPasskey: vi.fn(),
   loginWithPassword: vi.fn(),
   registerWithPassword: vi.fn(),
+  requestPasswordReset: vi.fn(),
+  resetPassword: vi.fn(),
   setAuthToken: vi.fn(),
 }));
 
@@ -144,6 +147,34 @@ it('does not send a password that is too short when registering', () => {
 
   expect(screen.getByRole('alert')).toHaveTextContent('al menos 8 caracteres');
   expect(registerWithPassword).not.toHaveBeenCalled();
+});
+
+it('asks for the reset link with the email already typed and says the same whatever the account', async () => {
+  vi.mocked(requestPasswordReset).mockResolvedValue({ message: 'ok' });
+  openEmailForm();
+
+  fill(' marta@test.com ', '');
+  fireEvent.click(screen.getByRole('button', { name: '¿Has olvidado la contraseña?' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Mandar enlace' }));
+
+  expect(await screen.findByRole('status')).toHaveTextContent('te llegará un enlace');
+  expect(requestPasswordReset).toHaveBeenCalledWith('marta@test.com');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
+  expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+});
+
+it('shows why the reset link could not be sent', async () => {
+  vi.mocked(requestPasswordReset).mockRejectedValue(
+    new Error('Ahora mismo no se puede recuperar la contraseña por correo.'),
+  );
+  openEmailForm();
+
+  fireEvent.click(screen.getByRole('button', { name: '¿Has olvidado la contraseña?' }));
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'marta@test.com' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Mandar enlace' }));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('no se puede recuperar');
 });
 
 it('shows the server error next to the form when the password is wrong', async () => {

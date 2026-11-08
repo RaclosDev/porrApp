@@ -417,6 +417,10 @@ export const ROUTE_META: Record<string, PageMeta> = {
   '/radar': { title: 'Radar · PorrApp', description: HOME_META.description },
   '/tabla': { title: 'Tabla de la liga · PorrApp', description: HOME_META.description },
   '/grupos': { title: 'Grupos · PorrApp', description: HOME_META.description },
+  '/restablecer-contrasena': {
+    title: 'Nueva contraseña · PorrApp',
+    description: HOME_META.description,
+  },
 };
 
 /** Páginas que pueden aparecer en los buscadores y van al sitemap. */
@@ -443,6 +447,7 @@ export const APP_PATHS = [
   '/tabla',
   '/prediction',
   '/jornadas',
+  '/restablecer-contrasena',
 ];
 
 export const metaForPath = (path: string): PageMeta =>

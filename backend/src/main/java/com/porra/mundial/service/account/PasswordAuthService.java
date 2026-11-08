@@ -19,8 +19,9 @@ import java.util.regex.Pattern;
 /**
  * Registro e inicio de sesión con email y contraseña, para quien no quiere entrar con Google.
  * <p>
- * El email no se verifica (no hay envío de correos): si después alguien entra con Google con ese
- * email, la cuenta pasa a Google y la contraseña se borra (ver {@link AuthService}).
+ * El email no se verifica al registrarse: si después alguien entra con Google con ese email, la
+ * cuenta pasa a Google y la contraseña se borra (ver {@link AuthService}). Quien olvida la
+ * contraseña la cambia con un enlace que le llega a ese email ({@link PasswordResetService}).
  * </p>
  */
 @Service
@@ -46,13 +47,7 @@ public class PasswordAuthService {
     @Transactional
     public SessionTokens register(String rawEmail, String password) {
         String email = normalizeEmail(rawEmail);
-        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La contraseña debe tener al menos " + MIN_PASSWORD_LENGTH + " caracteres.");
-        }
-        if (tooLong(password)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña es demasiado larga.");
-        }
+        validateNewPassword(password);
         if (userAccountRepository.existsByGoogleEmailIgnoreCase(email)) {
             throw alreadyRegistered();
         }
@@ -60,7 +55,7 @@ public class PasswordAuthService {
         try {
             user = userAccountRepository.saveAndFlush(UserAccount.builder()
                     .googleEmail(email)
-                    .passwordHash(ENCODER.encode(password))
+                    .passwordHash(hashPassword(password))
                     .participantName(uniqueParticipantName(email))
                     .build());
         } catch (DataIntegrityViolationException e) {
@@ -93,6 +88,22 @@ public class PasswordAuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Escribe un email válido.");
         }
         return email;
+    }
+
+    /** 400 si la contraseña nueva es demasiado corta o larga. */
+    static void validateNewPassword(String password) {
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La contraseña debe tener al menos " + MIN_PASSWORD_LENGTH + " caracteres.");
+        }
+        if (tooLong(password)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña es demasiado larga.");
+        }
+    }
+
+    /** Hash BCrypt de una contraseña ya validada. */
+    static String hashPassword(String password) {
+        return ENCODER.encode(password);
     }
 
     private static boolean tooLong(String password) {

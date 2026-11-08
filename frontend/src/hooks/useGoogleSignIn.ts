@@ -7,6 +7,7 @@ import {
   loginWithPasskey,
   loginWithPassword,
   registerWithPassword,
+  resetPassword,
   setAuthToken,
   startPasskeyLogin,
 } from '../services/api';
@@ -141,5 +142,20 @@ export function useEmailSignIn({ navigateAfterLogin = true } = {}) {
         ? await registerWithPassword(email, password)
         : await loginWithPassword(email, password);
     completeSignIn(data, navigate, navigateAfterLogin);
+  };
+}
+
+/**
+ * Pone la contraseña nueva con el enlace del correo y entra: a la invitación pendiente si la hay
+ * o a la portada.
+ */
+export function usePasswordReset() {
+  const navigate = useNavigate();
+
+  return async (token: string, password: string): Promise<void> => {
+    const data = await resetPassword(token, password);
+    completeSignIn(data, navigate, false);
+    const pendingCode = localStorage.getItem('pendingJoinCode');
+    navigate(pendingCode ? `/join/${encodeURIComponent(pendingCode)}` : '/', { replace: true });
   };
 }
