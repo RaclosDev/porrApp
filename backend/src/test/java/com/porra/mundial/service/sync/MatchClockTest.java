@@ -44,6 +44,11 @@ class MatchClockTest {
     }
 
     @Test
+    void halftimeSaysDescansoInFootballToo() {
+        assertThat(MatchClock.of(competition("STATUS_HALFTIME", "HT", "45'", 1), PAUSED, false)).isEqualTo("Descanso");
+    }
+
+    @Test
     void namesEveryQuarterAndOvertime() {
         assertThat(MatchClock.period(1)).isEqualTo("1.er cuarto");
         assertThat(MatchClock.period(2)).isEqualTo("2.º cuarto");

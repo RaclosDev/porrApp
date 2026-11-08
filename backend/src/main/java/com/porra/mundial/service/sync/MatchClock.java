@@ -11,7 +11,8 @@ import java.util.regex.Pattern;
  * Texto del reloj de un partido ({@code matches.display_clock}) a partir del estado de ESPN.
  * <ul>
  *   <li>En juego, en la NBA y la NFL lleva el cuarto («3.er cuarto · 5:00», «Prórroga · 2:11»): el
- *       reloj solo («5:00») no dice en qué parte va el partido. En el resto, el de ESPN («67'»).</li>
+ *       reloj solo («5:00») no dice en qué parte va el partido. En el resto, el de ESPN («67'»). En el
+ *       descanso, «Descanso» en todos los deportes.</li>
  *   <li>Terminado, guarda cómo acabó más allá del marcador, para enseñarlo junto al resultado:
  *       {@code OT} o {@code 2OT} (prórrogas de la NBA y la NFL), {@code AET} (fútbol tras la prórroga) o
  *       {@code PEN 4-2} (penaltis, local-visitante). Sin nada de eso, el reloj de ESPN.</li>
@@ -38,10 +39,11 @@ final class MatchClock {
             String finish = finish(competition, status);
             return finish != null ? finish : clock;
         }
+        // El descanso (HALFTIME) se dice tal cual: el reloj parado («45'», «0:00») no lo explica.
+        if (normalized == MatchStatusNormalized.PAUSED) return "Descanso";
         if (quarters && normalized != null && normalized.isLive()) {
             int period = status.path("period").asInt(0);
             if (period <= 0) return clock;
-            if (normalized == MatchStatusNormalized.PAUSED) return "Descanso";
             String part = period(period);
             return clock == null || clock.isBlank() ? part : part + " · " + clock;
         }

@@ -515,4 +515,45 @@ class MatchPredictionServiceTest {
         assertEquals("AMERICAN_FOOTBALL",
                 matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null).get(0).getSport());
     }
+    @Test
+    @DisplayName("Un partido con un rival por definir está cerrado hasta conocer los dos equipos y se abre al rellenarlos")
+    void matchesAwaitingATeamStayLockedUntilBothAreKnown() {
+        Competition lol = Competition.builder().id(2L).externalId("lol.worlds").build();
+        edition.setCompetition(lol);
+        futureMatch.setCompetition(lol);
+        futureMatch.setRound("final");
+        futureMatch.setAwayTeam(Team.builder().id(9L).name(Team.PLACEHOLDER_NAME).build());
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
+        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch));
+
+        MatchdayFixturePredictionDTO tbd = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null).get(0);
+        assertTrue(tbd.isLocked());
+        assertTrue(tbd.isAwaitingTeams());
+        assertEquals("Se abre cuando se conozcan los dos equipos", tbd.getLockReason());
+        BusinessException rejected = assertThrows(BusinessException.class, () -> matchPredictionService.saveMatchdayPredictions(
+                "player@test.com", 10L, List.of(MatchPredictionItemDTO.builder().matchId(101L).sign("1").build())));
+        assertTrue(rejected.getMessage().contains("Se abre cuando se conozcan los dos equipos"));
+        verify(matchPredictionRepository, never()).save(any(MatchPrediction.class));
+
+        // La sincronización rellena el rival: el partido se abre sin hacer nada más.
+        futureMatch.setAwayTeam(Team.builder().id(2L).name("T1").build());
+        MatchdayFixturePredictionDTO known = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null).get(0);
+        assertFalse(known.isLocked());
+        assertFalse(known.isAwaitingTeams());
+        assertEquals(1, matchPredictionService.saveMatchdayPredictions("player@test.com", 10L,
+                List.of(MatchPredictionItemDTO.builder().matchId(101L).sign("1").build())));
+    }
+
+    @Test
+    @DisplayName("En tenis y UFC el motivo habla de jugadores y luchadores")
+    void awaitingReasonNamesPlayersOrFighters() {
+        Match tennis = Match.builder().competition(Competition.builder().externalId("tennis.atp.australian-open").build()).build();
+        Match ufc = Match.builder().competition(Competition.builder().externalId("mma.ufc").build()).build();
+        assertTrue(MatchdayLock.awaitingTeams(tennis), "Sin jugadores todavía");
+        assertEquals("Se abre cuando se conozcan los dos jugadores", MatchdayLock.awaitingTeamsReason(tennis));
+        assertEquals("Se abre cuando se conozcan los dos luchadores", MatchdayLock.awaitingTeamsReason(ufc));
+    }
 }

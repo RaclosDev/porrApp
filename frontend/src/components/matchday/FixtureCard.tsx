@@ -7,6 +7,7 @@ import {
   resultNote,
   formatMatchDate,
   isLiveFixture,
+  liveLabel,
   tennisLoserSets,
   tennisPick,
   tennisPickedLoserSets,
@@ -119,8 +120,10 @@ export default function FixtureCard({
             <span className="md-badge is-live">
               {tennisSets && home != null && away != null
                 ? `En juego · ${home}-${away}`
-                : 'En juego'}
+                : liveLabel(fixture.displayClock)}
             </span>
+          ) : fixture.awaitingTeams ? (
+            <span className="md-badge is-pending">Por definir</span>
           ) : locked ? (
             <span className="md-badge is-locked" title={fixture.lockReason ?? undefined}>
               Cerrado
@@ -141,6 +144,11 @@ export default function FixtureCard({
           </div>
         ))}
       </div>
+      {fixture.awaitingTeams && !fixture.finished && (
+        <p className="md-match-note">
+          {fixture.lockReason ?? 'Se abre cuando se conozcan los dos equipos'}
+        </p>
+      )}
 
       {tennisSets && onTennisPick ? (
         <TennisPick

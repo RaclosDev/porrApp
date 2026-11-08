@@ -588,6 +588,8 @@ export interface MatchdayFixture {
   fight?: FightInfo | null;
   locked: boolean;
   lockReason: string | null;
+  /** Aún falta un rival («Por definir»): cerrado hasta que se conozcan los dos. */
+  awaitingTeams?: boolean;
   /** Cuándo se cierra el pronóstico; puede ser antes de que empiece el partido. */
   lockAt?: string | null;
   pointsAwarded: number | null;

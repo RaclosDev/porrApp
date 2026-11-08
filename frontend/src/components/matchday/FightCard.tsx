@@ -95,6 +95,8 @@ export default function FightCard({
             <span className="md-badge is-finished">Final</span>
           ) : isLiveFixture(fixture) ? (
             <span className="md-badge is-live">En juego</span>
+          ) : fixture.awaitingTeams ? (
+            <span className="md-badge is-pending">Por definir</span>
           ) : locked ? (
             <span className="md-badge is-locked" title={fixture.lockReason ?? undefined}>
               Cerrado
@@ -203,7 +205,7 @@ export default function FightCard({
         </>
       )}
 
-      {cancelled ? (
+      {cancelled || (fixture.awaitingTeams && !fixture.finished) ? (
         <p className="md-fight-result">{fixture.lockReason}</p>
       ) : (
         fixture.finished && <FightResultLine fight={fight} className="md-fight-outcome" />

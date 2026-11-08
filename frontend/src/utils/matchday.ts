@@ -61,6 +61,17 @@ export const finishedLabel = (displayClock: string | null | undefined): string =
   return note ? `Final · ${note}` : 'Final';
 };
 
+/**
+ * Etiqueta de un partido en juego con el reloj que manda el servidor (`MatchClock`): el cuarto en la NBA y
+ * la NFL («En juego · 3.er cuarto · 5:00»), el minuto en fútbol («En juego · 67'») o «Descanso». Sin reloj,
+ * «En juego».
+ */
+export const liveLabel = (displayClock: string | null | undefined): string => {
+  const clock = displayClock?.trim() ?? '';
+  if (!clock || resultNote(clock)) return 'En juego';
+  return clock === 'Descanso' ? clock : `En juego · ${clock}`;
+};
+
 export const EMPTY_PREDICTION: DraftPrediction = { homeScore: '', awayScore: '', sign: '' };
 
 /** Jornada visible de un partido; es la misma etiqueta que usa el backend (`MatchRound.label`). */

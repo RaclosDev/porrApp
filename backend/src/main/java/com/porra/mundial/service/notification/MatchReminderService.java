@@ -153,7 +153,7 @@ public class MatchReminderService {
             }
             Map<Long, Instant> locks = MatchdayLock.lockTimes(edition, candidates, calendar);
             List<Match> due = candidates.stream()
-                    .filter(m -> isPredictable(m) && locks.containsKey(m.getId()))
+                    .filter(m -> isPredictable(m, PoolFormat.isRaceBased(edition.getPoolFormat())) && locks.containsKey(m.getId()))
                     .filter(m -> locks.get(m.getId()).isAfter(now) && !locks.get(m.getId()).isAfter(horizon))
                     .toList();
             // Solo se avisa de los partidos que entran en la liga.
@@ -186,10 +186,10 @@ public class MatchReminderService {
         return pending;
     }
 
-    private static boolean isPredictable(Match match) {
+    /** Un Gran Premio no tiene equipos; un partido, mientras le falte un rival, aún no se puede predecir. */
+    private static boolean isPredictable(Match match, boolean race) {
         if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) return false;
-        return !(match.getHomeTeam() != null && match.getAwayTeam() != null
-                && Team.isPlaceholder(match.getHomeTeam()) && Team.isPlaceholder(match.getAwayTeam()));
+        return race || !MatchdayLock.awaitingTeams(match);
     }
 
     /** Aviso con título, texto y la jornada a la que lleva al pulsarlo. */

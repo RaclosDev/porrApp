@@ -1,6 +1,8 @@
 package com.porra.mundial.service.league;
 
+import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.model.League;
+import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.service.prediction.CustomCompetitionService;
 import com.porra.mundial.service.prediction.MatchSelectionService;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +28,15 @@ public class LeagueSetupService {
         // Repetir la creación (doble clic o reintento) devuelve la liga sin volver a configurarla.
         boolean repeated = request.creationKey() != null
                 && leagueService.findCreatedWithKey(request.adminEmail(), request.creationKey()).isPresent();
+        if (setup != null && setup.lockDate() != null && setup.lockMode() != PredictionLockMode.FIXED_DATE) {
+            throw BusinessException.badRequest("La fecha de cierre (lockDate) solo vale con lockMode FIXED_DATE");
+        }
         League league = leagueService.createLeague(request);
-        if (repeated || setup == null || setup.isEmpty()) {
+        if (repeated) return league;
+        if (setup == null || setup.lockMode() == null) {
+            customCompetitionService.applyDefaultLock(league.getId());
+        }
+        if (setup == null || setup.isEmpty()) {
             return league;
         }
 

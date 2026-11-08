@@ -211,6 +211,18 @@
     color: var(--miss);
   }
 
+  /* Le falta un rival: no está cerrado por la hora, sino a la espera de los dos equipos. */
+  .md-badge.is-pending {
+    background: rgba(17, 24, 39, 0.08);
+    color: var(--text-muted);
+  }
+
+  .md-match-note {
+    margin: 8px 0 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
   .md-badge.is-open {
     background: rgba(11, 95, 116, 0.15);
     color: var(--accent-cyan);

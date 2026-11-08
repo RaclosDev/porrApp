@@ -175,6 +175,30 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
+    void fixedDateNeedsTheDate() {
+        bracketEdition();
+        BusinessException missing = assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId,
+                "admin@example.com", com.porra.mundial.model.PredictionLockMode.FIXED_DATE, null, null));
+        assertEquals(400, missing.getStatus().value());
+        assertTrue(missing.getMessage().contains("hace falta la fecha de cierre"));
+    }
+
+    @Test
+    void aNewBracketWithoutLockFollowsItsFirstMatch() {
+        Edition edition = bracketEdition();
+        edition.setLockMode(com.porra.mundial.model.PredictionLockMode.FIRST_MATCH);
+        Instant lock = Instant.now().plus(5, ChronoUnit.DAYS);
+        when(lockService.firstMatchLock(edition)).thenReturn(lock);
+
+        service.applyDefaultLock(leagueId);
+        assertEquals(lock, edition.getLockDate());
+
+        // Si la competición ya ha empezado, ese cierre ya habría pasado: hay que elegir otro.
+        when(lockService.firstMatchLock(edition)).thenReturn(Instant.now().minus(1, ChronoUnit.DAYS));
+        assertThrows(BusinessException.class, () -> service.applyDefaultLock(leagueId));
+    }
+
+    @Test
     void rejectsMarginsOutsideZeroToThirtyDays() {
         Edition edition = bracketEdition();
         assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId, "admin@example.com",
