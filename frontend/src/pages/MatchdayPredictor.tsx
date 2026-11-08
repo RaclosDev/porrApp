@@ -5,6 +5,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 import MatchdayHeader from '../components/matchday/MatchdayHeader';
+import NflByeTeams from '../components/matchday/NflByeTeams';
 import RoundSelector from '../components/matchday/RoundSelector';
 import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
@@ -79,7 +80,16 @@ function useRequestedGroup({
  * empezar y muestra los puntos obtenidos.
  */
 function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext> }) {
-  const { activeGroupId, activeGroupName, activeGroupIsLocked } = context;
+  const {
+    activeGroupId,
+    activeGroupName,
+    activeGroupIsLocked,
+    activeCompetitionId,
+    activeCompetitionExternalId,
+    activeGroupPicksMatches,
+  } = context;
+  // Los descansos solo se deducen si la liga lleva todos los partidos de la semana.
+  const nflWeeks = activeCompetitionExternalId === 'nfl' && !activeGroupPicksMatches;
   const md = useMatchdayPredictor(context);
   const voters = useMatchVoters(
     activeGroupId,
@@ -102,7 +112,9 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         onRetry={md.retrySave}
       />
 
-      {md.isSurvivor && <SurvivorStatusBar status={md.survivor} />}
+      {md.isSurvivor && (
+        <SurvivorStatusBar status={md.survivor} weeks={activeCompetitionExternalId === 'nfl'} />
+      )}
 
       {md.availableRounds.length > 0 && (
         <RoundSelector
@@ -110,6 +122,14 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
           selected={md.selectedRound}
           index={md.roundIndex}
           onSelect={md.setSelectedRound}
+        />
+      )}
+
+      {nflWeeks && (
+        <NflByeTeams
+          competitionId={activeCompetitionId}
+          round={md.activeRound}
+          fixtures={md.roundFixtures}
         />
       )}
 

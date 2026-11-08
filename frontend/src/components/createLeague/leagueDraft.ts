@@ -107,7 +107,7 @@ export const TENNIS_DRAW_LABELS: Record<TennisDraw, string> = {
 export const TENNIS_SCOPE_LABELS: Record<TennisScope, string> = {
   ALL: 'Todos los torneos',
   GRAND_SLAMS: 'Solo los Grand Slams',
-  MASTERS_1000: 'Solo los Masters 1000 y las ATP Finals',
+  MASTERS_1000: 'Solo los Masters 1000, WTA 1000 y Finals',
 };
 
 /** Tenis con varios torneos: los cuadros que sigue, por circuito. */
@@ -359,13 +359,29 @@ const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
   },
 };
 
+/** Por jornadas y superviviente en el LoL: series sin empate, al mejor de 1, 3 o 5 partidas. */
+const LOL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string }>> = {
+  MATCH_DAY: {
+    title: 'Por jornadas',
+    text: 'En cada jornada predices quién gana cada serie y, si te atreves, el resultado (2-1, 3-0…). Cada acierto suma y gana quien más puntos lleve al final.',
+  },
+  SURVIVOR: {
+    title: 'Superviviente',
+    text: 'En cada jornada eliges un equipo que gane su serie, sin repetir equipo. Si pierde, o si no eliges, quedas fuera; la liga puede dar vidas extra. Gana quien aguante más jornadas.',
+  },
+};
+
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
   if (format === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHTS_COPY;
   if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)) return KNOCKOUT_DRAW_COPY;
-  return (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) || FORMAT_COPY[format];
+  return (
+    (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) ||
+    (draft.sport === 'LEAGUE_OF_LEGENDS' && LOL_FORMAT_COPY[format]) ||
+    FORMAT_COPY[format]
+  );
 }
 
 /** Por qué un formato no se puede elegir con esta competición, o null si se puede. */
@@ -403,6 +419,9 @@ export function formatUnavailableReason(
   ) {
     return 'Este torneo no tiene fase de grupos: elige Solo eliminatorias.';
   }
+  if (!isMatchBasedFormat(format) && competition?.externalId === 'nfl') {
+    return 'Los playoffs ya entran en Por semanas, ronda a ronda hasta la Super Bowl.';
+  }
   if (
     !isMatchBasedFormat(format) &&
     competition?.formatType === 'LEAGUE' &&
@@ -429,7 +448,10 @@ export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOpt
   if (draft.poolFormat == null || draft.poolFormat === 'GRAND_PRIX') return [];
   if (draft.poolFormat === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHT_LOCK_MODES;
   if (isMatchBasedFormat(draft.poolFormat))
-    return matchdayLockModes(isMultiCompetition(draft.matches));
+    return matchdayLockModes(
+      isMultiCompetition(draft.matches),
+      selectedCompetition(draft, ctx)?.externalId === 'nfl',
+    );
   if (isNbaDraft(draft, ctx)) return SERIES_LOCK_MODES;
   if (isKnockoutDraw(draft, ctx)) return DRAWN_KNOCKOUT_LOCK_MODES;
   return allowsProgressiveLock(draft, ctx) ? BRACKET_LOCK_MODES : SINGLE_LOCK_MODES;
