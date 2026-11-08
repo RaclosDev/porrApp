@@ -198,19 +198,12 @@ export default function CreateLeague() {
 
   return (
     <section className="view-section active create-league">
+      {/* Unirse con código va por su lado (selector de liga y Mis ligas): aquí solo se crea. */}
       <header className="create-league-header">
-        <div>
-          <h1 className="m-0 poster-title text-[1.8rem] text-white">Crear liga</h1>
-          <p className="create-league-progress">
-            Paso {current + 1} de {LEAGUE_STEPS.length}
-          </p>
-        </div>
-        {/* Solo al empezar: quien venía a unirse se da cuenta aquí, no a mitad del asistente. */}
-        {current === 0 && (
-          <Link to="/mis-ligas?unirse" className="create-league-link is-dark">
-            Tengo un código
-          </Link>
-        )}
+        <h1 className="m-0 poster-title text-[1.8rem] text-white">Crear liga</h1>
+        <p className="create-league-progress">
+          Paso {current + 1} de {LEAGUE_STEPS.length}
+        </p>
       </header>
 
       <WizardSteps current={current} reachable={reachable} onSelect={goTo} />
