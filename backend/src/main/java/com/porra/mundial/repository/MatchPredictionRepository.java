@@ -64,4 +64,16 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
             + " WHERE mp.prediction.edition.id = :editionId AND mp.match.id IN :matchIds")
     List<Object[]> findPredictedUserMatchPairs(@Param("editionId") Long editionId,
                                                @Param("matchIds") Collection<Long> matchIds);
+
+    /** Número de predicciones de cada partido en una edición: (id del partido, cuántas). */
+    @Query("SELECT mp.match.id, COUNT(mp) FROM MatchPrediction mp WHERE mp.prediction.edition.id = :editionId"
+            + " GROUP BY mp.match.id")
+    List<Object[]> countByMatchForEdition(@Param("editionId") Long editionId);
+
+    /** Borra las predicciones de una edición sobre los partidos indicados. */
+    @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true)
+    @Query("DELETE FROM MatchPrediction mp WHERE mp.match.id IN :matchIds"
+            + " AND mp.prediction.id IN (SELECT p.id FROM Prediction p WHERE p.edition.id = :editionId)")
+    int deleteByEditionIdAndMatchIdIn(@Param("editionId") Long editionId,
+                                      @Param("matchIds") Collection<Long> matchIds);
 }

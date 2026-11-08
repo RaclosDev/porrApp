@@ -26,6 +26,8 @@ public class MatchdayFixturePredictionDTO {
     private Instant matchDate;
     private String round;
     private String groupName;
+    /** Competición del partido, solo en las ligas que juntan varias. */
+    private String competitionName;
     private Boolean finished;
     private String status;
     private Integer actualHomeScore;

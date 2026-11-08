@@ -72,6 +72,7 @@ export default function FixtureCard({
 
   return (
     <div className={`md-match${locked ? ' is-locked' : ''}`}>
+      {fixture.competitionName && <p className="md-match-competition">{fixture.competitionName}</p>}
       <div className="md-match-top">
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays size={12} aria-hidden="true" />

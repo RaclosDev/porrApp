@@ -264,6 +264,79 @@ export interface Group {
   isLocked: boolean | null;
   rules: string | null;
   imageUrl: string | null;
+  /** Liga por jornadas: entran todos los partidos de la competición o solo los elegidos. */
+  matchSelection?: MatchSelectionMode | null;
+  /** Junta partidos de varias competiciones (la de `competitionId` es la principal); sus jornadas son semanas. */
+  multiCompetition?: boolean;
+}
+
+type MatchSelectionMode = 'ALL' | 'CUSTOM';
+
+/** Partido del calendario al elegir los de una liga. */
+export interface SelectableMatch {
+  id: number;
+  /** Jornada como la agrupa la liga ("Jornada 12", "Grupo A", "Semana 2026-11-02"…). */
+  round: string;
+  /** Competición del partido. */
+  competitionId: number | null;
+  date: string | null;
+  homeTeamId: number | null;
+  home: string;
+  homeLogo: string | null;
+  awayTeamId: number | null;
+  away: string;
+  awayLogo: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  /** Entra ahora en la liga. */
+  selected: boolean;
+  /** Ya no admite predicciones. */
+  closed: boolean;
+  /** Cerrado y con predicciones: se queda en la liga para no cambiar la clasificación. */
+  locked: boolean;
+  /** Predicciones de la liga sobre este partido. */
+  predictions: number;
+}
+
+export interface SelectableTeam {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+}
+
+/** Selección de partidos de una liga, o el calendario de una competición al crearla. */
+/** Competición de la que una liga toma partidos. */
+interface SelectableCompetition {
+  id: number;
+  name: string;
+  externalId: string | null;
+  /** Tiene partidos cerrados con predicciones en la liga: no se puede quitar. */
+  locked: boolean;
+}
+
+export interface MatchSelectionView {
+  mode: MatchSelectionMode;
+  /** Competiciones de la liga, la principal primero; con más de una, sus jornadas son semanas. */
+  competitionIds: number[];
+  competitions: SelectableCompetition[];
+  teamIds: number[];
+  includedMatchIds: number[];
+  excludedMatchIds: number[];
+  teams: SelectableTeam[];
+  matches: SelectableMatch[];
+  /** Predicciones borradas al guardar (de partidos abiertos que se han quitado). */
+  removedPredictions: number;
+  /** Partidos que se pidió quitar pero se quedan: ya cerrados y con predicciones. */
+  keptMatches: number;
+}
+
+export interface MatchSelectionRequest {
+  mode: MatchSelectionMode;
+  /** Competiciones de la liga, con la principal; sin ellas, las que ya tenía. */
+  competitionIds?: number[];
+  teamIds?: number[];
+  includedMatchIds?: number[];
+  excludedMatchIds?: number[];
 }
 
 /** Puntos por cada acierto; los nombres son los del backend (`ScoringRuleSet`). */
@@ -343,6 +416,8 @@ export interface MatchdayFixture {
   matchDate: string | null;
   round: string | null;
   groupName: string | null;
+  /** Competición del partido, solo en las ligas que juntan varias. */
+  competitionName?: string | null;
   finished: boolean | null;
   status: string | null;
   actualHomeScore: number | null;

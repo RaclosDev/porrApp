@@ -128,6 +128,16 @@ describe('borrador de liga', () => {
       'PER_DAY',
       'PER_ROUND',
     ]);
+    // Con varias competiciones la jornada es la semana.
+    const multi = draftWith({ competitionId: 1, poolFormat: 'MATCH_DAY' });
+    const weekly = lockModesFor(
+      { ...multi, matches: { ...multi.matches, competitionIds: [1, 2] } },
+      ctx,
+    );
+    expect(weekly.find((mode) => mode.value === 'PER_ROUND')?.label).toBe('Por semanas');
+    expect(lockModesFor(multi, ctx).find((mode) => mode.value === 'PER_ROUND')?.label).toBe(
+      'Por jornadas',
+    );
   });
 
   it('no deja elegir una competición terminada ni un cuadro completo sin grupos', () => {
@@ -257,5 +267,36 @@ describe('borrador de liga', () => {
     expect(readStoredDraft()).toEqual(emptyDraft());
     localStorage.setItem('createLeagueDraft', JSON.stringify({ poolFormat: 'OTRO', name: 7 }));
     expect(readStoredDraft()).toEqual(emptyDraft());
+  });
+
+  it('elige partidos solo por jornadas en una oficial y los olvida al cambiar de competición', () => {
+    const teams = {
+      mode: 'TEAMS' as const,
+      teamIds: [7],
+      included: [],
+      excluded: [31],
+      competitionIds: [],
+    };
+    const draft = draftWith({ sport: 'FOOTBALL', competitionId: 1, poolFormat: 'MATCH_DAY' });
+    const picked = normalizeDraft({ ...draft, matches: teams }, ctx);
+    expect(picked.matches).toEqual(teams);
+    expect(buildCreateRequest({ ...picked, name: 'Peña' }, ctx).matchSelection).toEqual({
+      mode: 'CUSTOM',
+      teamIds: [7],
+      includedMatchIds: [],
+      excludedMatchIds: [31],
+    });
+
+    // Sin equipos no se puede seguir; con todos los partidos no se manda nada.
+    expect(
+      validateStep('format', { ...picked, matches: { ...teams, teamIds: [] } }, ctx),
+    ).toHaveProperty('matches', 'Elige al menos un equipo.');
+    expect(buildCreateRequest({ ...draft, name: 'Peña' }, ctx)).not.toHaveProperty(
+      'matchSelection',
+    );
+
+    // Otra competición o superviviente: vuelven a entrar todos.
+    expect(normalizeDraft({ ...picked, competitionId: 2 }, ctx).matches.mode).toBe('ALL');
+    expect(normalizeDraft({ ...picked, poolFormat: 'SURVIVOR' }, ctx).matches.mode).toBe('ALL');
   });
 });

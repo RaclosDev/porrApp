@@ -35,17 +35,14 @@ public final class MatchdayLock {
     /**
      * Cierre de cada partido de {@code matches}; los que no tienen fecha no aparecen.
      *
-     * @param calendar todos los partidos de la competición si el modo agrupa partidos; si no, basta con
+     * @param calendar todos los partidos de la liga (su competición o los elegidos) si el modo agrupa
+     *                 partidos; si no, basta con
      *                 los mismos {@code matches}
      */
     public static Map<Long, Instant> lockTimes(Edition edition, List<Match> matches, List<Match> calendar) {
         PredictionLockMode mode = mode(edition);
         int offset = edition == null ? 0 : Math.max(0, edition.getLockOffsetMinutes());
-        Function<Match, Object> key = switch (mode) {
-            case PER_DAY -> match -> AppTime.day(match.getMatchDate());
-            case PER_ROUND -> MatchRound::label;
-            default -> Match::getId;
-        };
+        Function<Match, Object> key = groupKey(edition);
         Map<Object, Instant> first = new HashMap<>();
         for (Match match : mode == PredictionLockMode.PER_MATCH ? matches : calendar) {
             if (match.getMatchDate() == null) continue;
@@ -62,12 +59,26 @@ public final class MatchdayLock {
         return locks;
     }
 
+    /**
+     * Grupo de partidos que se cierran juntos: el mismo partido, el mismo día o la misma jornada (la de
+     * la liga: en una que junta varias competiciones, la semana).
+     */
+    public static Function<Match, Object> groupKey(Edition edition) {
+        return switch (mode(edition)) {
+            case PER_DAY -> match -> AppTime.day(match.getMatchDate());
+            case PER_ROUND -> match -> MatchRound.label(edition, match);
+            default -> Match::getId;
+        };
+    }
+
     /** Motivo del cierre de un partido cuyo plazo ya ha pasado. */
     public static String reason(Edition edition, Match match, Instant now) {
         if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) return "El partido ya ha comenzado";
         return switch (mode(edition)) {
             case PER_DAY -> "Las predicciones de este día ya están cerradas";
-            case PER_ROUND -> "Las predicciones de esta jornada ya están cerradas";
+            case PER_ROUND -> edition != null && edition.isMultiCompetition()
+                    ? "Las predicciones de esta semana ya están cerradas"
+                    : "Las predicciones de esta jornada ya están cerradas";
             default -> "El plazo de predicción de este partido ha terminado";
         };
     }

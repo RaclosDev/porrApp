@@ -2,6 +2,7 @@ package com.porra.mundial.service.league;
 
 import com.porra.mundial.model.League;
 import com.porra.mundial.service.prediction.CustomCompetitionService;
+import com.porra.mundial.service.prediction.MatchSelectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ public class LeagueSetupService {
     private final LeagueService leagueService;
     private final LeagueScoringService leagueScoringService;
     private final CustomCompetitionService customCompetitionService;
+    private final MatchSelectionService matchSelectionService;
 
     @Transactional
     public League create(NewLeague request, LeagueSetup setup) {
@@ -41,6 +43,9 @@ public class LeagueSetupService {
         if (setup.lockMode() != null) {
             customCompetitionService.setLockConfig(id, email, setup.lockMode(), setup.lockOffsetMinutes(),
                     setup.lockDate());
+        }
+        if (setup.matchSelection() != null) {
+            matchSelectionService.update(id, email, setup.matchSelection());
         }
         return league;
     }

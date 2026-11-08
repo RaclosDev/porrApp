@@ -11,7 +11,7 @@ import {
   BRACKET_LOCK_MODES,
   DRAWN_KNOCKOUT_LOCK_MODES,
   LOCK_UNIT_MINUTES,
-  MATCHDAY_LOCK_MODES,
+  matchdayLockModes,
   MAX_LOCK_OFFSET_MINUTES,
   SINGLE_LOCK_MODES,
   describeLockOffset,
@@ -24,11 +24,12 @@ function describe(
   offsetMinutes: number,
   matchday: boolean,
   knockoutDraw = false,
+  multiCompetition = false,
 ): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
   const margin = offsetMinutes ? ` · ${describeLockOffset(offsetMinutes)}` : '';
   const modes = matchday
-    ? MATCHDAY_LOCK_MODES
+    ? matchdayLockModes(multiCompetition)
     : knockoutDraw
       ? DRAWN_KNOCKOUT_LOCK_MODES
       : BRACKET_LOCK_MODES;
@@ -75,7 +76,7 @@ export default function CustomLockCard({
 
   const offsetMinutes = Math.max(0, Math.round(amount)) * LOCK_UNIT_MINUTES[unit];
   let modes = BRACKET_LOCK_MODES;
-  if (matchday) modes = MATCHDAY_LOCK_MODES;
+  if (matchday) modes = matchdayLockModes(Boolean(group.multiCompetition));
   else if (group.knockoutDraw) modes = DRAWN_KNOCKOUT_LOCK_MODES;
   else if (!allowProgressive) {
     modes = SINGLE_LOCK_MODES;
@@ -84,7 +85,13 @@ export default function CustomLockCard({
 
   let status = 'Sin fijar';
   if (current && matchday) {
-    status = describe(current.mode, current.offsetMinutes, true);
+    status = describe(
+      current.mode,
+      current.offsetMinutes,
+      true,
+      false,
+      Boolean(group.multiCompetition),
+    );
   } else if (current && lock.configured) {
     status = describe(current.mode, current.offsetMinutes, false, group.knockoutDraw);
     if (current.fullyLocked) status += ' · cerrado';
