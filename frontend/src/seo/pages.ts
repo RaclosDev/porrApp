@@ -113,6 +113,10 @@ const HOW_IT_WORKS_FAQ: FaqEntry[] = [
   },
 ];
 
+/** Respuesta común de las páginas por deporte. */
+const FREE_ANSWER =
+  'Nada. Crear la liga, invitar a tus amigos y jugar es gratis, y no hay que instalar nada: funciona en el navegador del móvil. PorrApp no mueve dinero; si jugáis con bote, se gestiona fuera de la app.';
+
 export const CONTENT_PAGES: ContentPage[] = [
   {
     path: '/como-funciona',
@@ -185,6 +189,19 @@ export const CONTENT_PAGES: ContentPage[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: '¿Cómo se hace una porra de LaLiga con amigos?',
+        answer:
+          'Creas una liga privada de LaLiga, mandas el enlace de invitación por WhatsApp y cada uno hace sus predicciones de la jornada desde el móvil. Los resultados reales y los puntos llegan solos.',
+      },
+      {
+        question: '¿Se predice el 1X2 o el resultado exacto?',
+        answer:
+          'Lo elige la liga: el signo de cada partido (1X2) o el marcador exacto. El administrador decide además cuántos puntos vale cada acierto.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
+    ],
   },
   {
     path: '/porra-champions',
@@ -216,6 +233,19 @@ export const CONTENT_PAGES: ContentPage[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: '¿Cómo se hace una porra de la Champions con amigos?',
+        answer:
+          'Creas una liga privada de la Champions League, invitas a tus amigos con un enlace y cada uno predice los partidos desde el móvil. Los resultados y la clasificación se actualizan solos.',
+      },
+      {
+        question: '¿Entran las eliminatorias y la final?',
+        answer:
+          'Sí. Los partidos llegan desde la fase de liga hasta la final, cada uno con su horario real, y cada predicción se cierra cuando empieza el partido.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
+    ],
   },
   {
     path: '/porra-premier-league',
@@ -239,6 +269,19 @@ export const CONTENT_PAGES: ContentPage[] = [
           'PorrApp también tiene LaLiga, la Serie A, la Bundesliga, la Ligue 1 y otras competiciones. Puedes estar en varias ligas a la vez y cada una lleva su clasificación.',
         ],
       },
+    ],
+    faq: [
+      {
+        question: '¿Cómo se hace una porra de la Premier League con amigos?',
+        answer:
+          'Creas una liga privada de la Premier, invitas a tus amigos con un enlace y cada uno predice los partidos de la jornada, a 1X2 o a marcador exacto. Los puntos se calculan solos.',
+      },
+      {
+        question: '¿Podemos jugar a la vez la Premier y LaLiga?',
+        answer:
+          'Sí. Con el mismo grupo podéis tener una liga para cada competición, y cada una lleva su propia clasificación.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
     ],
   },
   {
@@ -266,6 +309,19 @@ export const CONTENT_PAGES: ContentPage[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: '¿Cómo funciona la porra del Mundial?',
+        answer:
+          'Antes de que empiece el torneo ordenas los grupos, rellenas las eliminatorias hasta el campeón y eliges al máximo goleador. Los puntos llegan con cada partido que se juega.',
+      },
+      {
+        question: '¿Hasta cuándo se puede cambiar el cuadro?',
+        answer:
+          'Hasta el inicio del torneo. A partir de ahí el cuadro queda cerrado y se puntúa con los resultados reales.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
+    ],
   },
   {
     path: '/porra-f1',
@@ -289,6 +345,19 @@ export const CONTENT_PAGES: ContentPage[] = [
           'Cuando termina la carrera llegan la clasificación completa y los puntos de tu liga. También tienes el Mundial de pilotos y el de constructores sin salir de la app.',
         ],
       },
+    ],
+    faq: [
+      {
+        question: '¿Qué se predice en la porra de F1?',
+        answer:
+          'En cada Gran Premio, los tres pilotos del podio en orden, el que hace la pole y el de la vuelta rápida.',
+      },
+      {
+        question: '¿Cómo se reparten los puntos?',
+        answer:
+          'El administrador de la liga decide cuánto vale cada acierto. Cuando termina la carrera llegan los resultados y la clasificación de la liga se actualiza sola.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
     ],
   },
   {
@@ -315,6 +384,19 @@ export const CONTENT_PAGES: ContentPage[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: '¿Qué se predice en la porra de la UFC?',
+        answer:
+          'El ganador de cada combate y, si quieres arriesgar, cómo gana (KO/TKO, sumisión o decisión) y en qué asalto. Cuanto más afinas, más puntos.',
+      },
+      {
+        question: '¿Cuándo se cierran las predicciones?',
+        answer:
+          'Al empezar la velada o, si la liga lo prefiere, por bloques: los preliminares y la cartelera principal, cada uno a su hora.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
+    ],
   },
   {
     path: '/porra-nba',
@@ -339,6 +421,19 @@ export const CONTENT_PAGES: ContentPage[] = [
           'En los playoffs predices quién gana cada serie y en cuántos partidos, desde el play-in hasta las Finales.',
         ],
       },
+    ],
+    faq: [
+      {
+        question: '¿Qué se predice en la porra de la NBA?',
+        answer:
+          'En la temporada regular, quién gana cada partido de la semana. En los playoffs, quién gana cada serie y en cuántos partidos.',
+      },
+      {
+        question: '¿Qué es el modo superviviente?',
+        answer:
+          'Cada semana eliges un equipo que creas que va a ganar, sin repetir equipo en toda la porra. Es una forma más corta e intensa de jugar la temporada.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
     ],
   },
   {
@@ -365,6 +460,19 @@ export const CONTENT_PAGES: ContentPage[] = [
         ],
       },
     ],
+    faq: [
+      {
+        question: '¿Qué se predice en la porra de la NFL?',
+        answer:
+          'Quién gana cada partido de la semana, del jueves al lunes por la noche. Cada partido se cierra a su hora.',
+      },
+      {
+        question: '¿Cómo funciona el modo superviviente?',
+        answer:
+          'Cada semana eliges un equipo que creas que va a ganar, sin repetir. Si pierde, pierdes una vida; el administrador decide cuántas tiene cada uno. El último en pie gana.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
+    ],
   },
   {
     path: '/porra-tenis',
@@ -388,6 +496,19 @@ export const CONTENT_PAGES: ContentPage[] = [
           'En cada partido eliges quién gana y, si quieres, por cuántos sets. El cuadro del torneo se va completando con los resultados reales y tus predicciones.',
         ],
       },
+    ],
+    faq: [
+      {
+        question: '¿Qué torneos entran en la porra de tenis?',
+        answer:
+          'La liga puede seguir toda la temporada, solo los Grand Slams o solo los Masters 1000 y las Finals, con el cuadro masculino, el femenino o los dos.',
+      },
+      {
+        question: '¿Qué se predice en cada partido?',
+        answer:
+          'Quién gana y, si quieres, por cuántos sets. El cuadro del torneo se va completando con los resultados reales.',
+      },
+      { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
     ],
   },
 ];
