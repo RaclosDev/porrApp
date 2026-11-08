@@ -153,25 +153,28 @@ function MatchCard({
               />
             </span>
             <span className="home-match-name">{home}</span>
-            {outcomes && <FightBadge outcome={outcomes.home} size="sm" />}
           </div>
           {voterStack(voters?.home ?? [], twoWay ? home : '1')}
         </div>
         <div className="home-match-side">
-          <div
-            className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
-          >
-            {hasScore
-              ? `${match.home_score} - ${match.away_score}`
-              : outcomes
-                ? 'Final'
-                : formatKickOff(match.date)}
+          {/* UFC: la W y la L junto a «Final», siempre en el mismo sitio sea cual sea el nombre. */}
+          <div className="home-match-result">
+            {outcomes && <FightBadge outcome={outcomes.home} size="sm" />}
+            <div
+              className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
+            >
+              {hasScore
+                ? `${match.home_score} - ${match.away_score}`
+                : outcomes
+                  ? 'Final'
+                  : formatKickOff(match.date)}
+            </div>
+            {outcomes && <FightBadge outcome={outcomes.away} size="sm" />}
           </div>
           {voterStack(twoWay ? [] : (voters?.draw ?? []), 'X')}
         </div>
         <div className="home-match-side away">
           <div className="home-match-team away">
-            {outcomes && <FightBadge outcome={outcomes.away} size="sm" />}
             <span className="home-match-name">{away}</span>
             <span className="home-match-crest">
               <Flag
