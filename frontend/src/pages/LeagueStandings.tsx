@@ -12,6 +12,7 @@ import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
 import FormulaOneStandings from '../components/grandPrix/FormulaOneStandings';
 import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
+import { standingsZones, zoneOf } from '../utils/standingsZones';
 import {
   formatWinShare,
   hasNflDivisions,
@@ -93,6 +94,10 @@ export function CompetitionTable() {
   const nflDivisions = winLoss && hasNflDivisions(rows);
   const conferences = nflDivisions && byConference;
   const groups = conferences ? nflConferenceTables(rows) : groupStandings(rows);
+  // Las zonas (octavos, playoff, descenso…) son de una tabla única, no de grupos.
+  const zones =
+    groups.length === 1 && !groups[0].title ? standingsZones(activeCompetitionExternalId) : [];
+  const tableSize = groups[0]?.rows.length ?? 0;
 
   return (
     <section className="standings-page paper-panel album-sheet">
@@ -229,14 +234,17 @@ export function CompetitionTable() {
                         row.playoffSeed <= NFL_PLAYOFF_SPOTS
                           ? row.playoffSeed
                           : null;
+                      const zone = zoneOf(zones, row.rank, tableSize);
 
                       return (
                         <tr
                           key={`${row.rank}-${row.teamName}`}
                           className={`standings-row${cutline ? ' is-playoff-cutline' : ''}`}
+                          data-zone={zone?.tone}
                         >
-                          <td className="standings-rank-cell">
+                          <td className="standings-rank-cell" title={zone?.label}>
                             <span className={`standings-rank${podium}`}>{row.rank}</span>
+                            {zone && <span className="sr-only">{`, ${zone.label}`}</span>}
                           </td>
 
                           <td
@@ -345,6 +353,16 @@ export function CompetitionTable() {
               </div>
             </div>
           ))}
+
+          {zones.length > 0 && (
+            <ul className="standings-zones" aria-label="Zonas de la tabla">
+              {zones.map((zone) => (
+                <li key={zone.label} data-zone={zone.tone}>
+                  {zone.label}
+                </li>
+              ))}
+            </ul>
+          )}
 
           {lol ? (
             <div className="standings-legend">
