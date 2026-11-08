@@ -333,4 +333,19 @@ class LeagueServiceTest {
         verify(editionRepository).save(argThat(edition ->
                 edition.getLockMode() == com.porra.mundial.model.PredictionLockMode.PER_ROUND));
     }
+
+    @Test
+    void tennisIsPlayedMatchByMatchWithTennisScoring() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition rolandGarros = Competition.builder().id(6L).externalId("tennis.atp.172").formatType("TOURNAMENT").build();
+        when(competitionRepository.findById(6L)).thenReturn(Optional.of(rolandGarros));
+        lenient().when(leagueRepository.save(any(League.class))).thenReturn(league);
+
+        assertThrows(BusinessException.class, () -> leagueService.createLeague(NewLeague.of("RG", "admin@test.com", 6L,
+                com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY)));
+
+        leagueService.createLeague(NewLeague.of("RG", "admin@test.com", 6L, com.porra.mundial.model.PoolFormat.MATCH_DAY));
+        verify(editionRepository).save(argThat(edition -> com.porra.mundial.scoring.ScoringRuleSet.defaultTennis().toJson()
+                .equals(edition.getScoringRulesJson())));
+    }
 }

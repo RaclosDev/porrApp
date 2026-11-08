@@ -6,6 +6,10 @@ import {
   allowsDraw,
   formatMatchDate,
   isLiveFixture,
+  tennisLoserSets,
+  tennisPick,
+  tennisPickedLoserSets,
+  tennisPickedSign,
   type DraftPrediction,
   type MatchSign,
 } from '../../utils/matchday';
@@ -23,6 +27,8 @@ interface FixtureCardProps {
   onShowVoters?: (fixture: MatchdayFixture) => void;
   /** Liga superviviente: se elige un equipo que gane en vez de un signo 1X2. */
   survivor?: SurvivorOptions;
+  /** Tenis: se elige quién gana y, si se quiere, los sets. */
+  onTennisPick?: (matchId: number, prediction: DraftPrediction) => void;
 }
 
 export interface SurvivorOptions {
@@ -48,7 +54,9 @@ export default function FixtureCard({
   voters,
   onShowVoters,
   survivor,
+  onTennisPick,
 }: FixtureCardProps) {
+  const tennisSets = onTennisPick && fixture.setsToWin ? fixture.setsToWin : null;
   const inputDisabled = locked;
   const teams = [
     { side: 'home', team: fixture.homeTeam, logo: fixture.homeTeamLogo },
@@ -59,13 +67,15 @@ export default function FixtureCard({
   const scored = points != null && points > 0;
   const { actualHomeScore: home, actualAwayScore: away } = fixture;
   const resultSign: MatchSign | null =
-    fixture.finished && home != null && away != null
-      ? home > away
-        ? '1'
-        : home === away
-          ? 'X'
-          : '2'
-      : null;
+    tennisSets && fixture.finished && fixture.winnerSign
+      ? fixture.winnerSign
+      : fixture.finished && home != null && away != null
+        ? home > away
+          ? '1'
+          : home === away
+            ? 'X'
+            : '2'
+        : null;
   const inPlay = fixture.status === 'LIVE' || fixture.status === 'PAUSED';
   const winnerOnly = !allowsDraw(fixture.sport);
   // Terminado sin predicción: también se dice que no suma, para que cada partido cerrado tenga su balance.
@@ -97,10 +107,18 @@ export default function FixtureCard({
           </button>
           {fixture.finished ? (
             <span className="md-badge is-finished">
-              Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
+              {home != null && away != null
+                ? `Final ${home} - ${away}`
+                : tennisSets
+                  ? 'Final · retirada o W.O.'
+                  : 'Final'}
             </span>
           ) : isLiveFixture(fixture) ? (
-            <span className="md-badge is-live">En juego</span>
+            <span className="md-badge is-live">
+              {tennisSets && home != null && away != null
+                ? `En juego · ${home}-${away}`
+                : 'En juego'}
+            </span>
           ) : locked ? (
             <span className="md-badge is-locked" title={fixture.lockReason ?? undefined}>
               Cerrado
@@ -122,7 +140,16 @@ export default function FixtureCard({
         ))}
       </div>
 
-      {survivor ? (
+      {tennisSets && onTennisPick ? (
+        <TennisPick
+          fixture={fixture}
+          setsToWin={tennisSets}
+          prediction={prediction}
+          resultSign={resultSign}
+          locked={inputDisabled}
+          onPick={(next) => onTennisPick(fixture.matchId, next)}
+        />
+      ) : survivor ? (
         <SurvivorPick
           fixture={fixture}
           sign={prediction.sign}
@@ -186,6 +213,87 @@ export default function FixtureCard({
         </div>
       )}
     </div>
+  );
+}
+
+interface TennisPickProps {
+  fixture: MatchdayFixture;
+  setsToWin: number;
+  prediction: DraftPrediction;
+  resultSign: MatchSign | null;
+  locked: boolean;
+  onPick: (prediction: DraftPrediction) => void;
+}
+
+/**
+ * Tenis: un botón por jugador para elegir quién gana y, debajo, los sets (opcionales). Volver a
+ * pulsar los sets elegidos los quita y deja solo el ganador.
+ */
+function TennisPick({
+  fixture,
+  setsToWin,
+  prediction,
+  resultSign,
+  locked,
+  onPick,
+}: TennisPickProps) {
+  const sign = tennisPickedSign(prediction);
+  const loserSets = tennisPickedLoserSets(prediction);
+  const sides = [
+    { s: '1' as const, player: fixture.homeTeam },
+    { s: '2' as const, player: fixture.awayTeam },
+  ];
+  const { actualHomeScore: home, actualAwayScore: away } = fixture;
+  const resultLoserSets =
+    fixture.finished && home != null && away != null ? Math.min(home, away) : null;
+  const winnerName = sign === '1' ? fixture.homeTeam : sign === '2' ? fixture.awayTeam : null;
+  return (
+    <>
+      <div
+        className="md-signs md-survivor"
+        role="group"
+        aria-label={`Quién gana: ${fixture.homeTeam} o ${fixture.awayTeam}`}
+      >
+        {sides.map(({ s, player }) => {
+          const isSelected = sign === s;
+          const isResult = resultSign === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              disabled={locked}
+              onClick={() => onPick(tennisPick(s, setsToWin, isSelected ? loserSets : null))}
+              className={`md-sign-btn md-survivor-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
+              aria-pressed={isSelected}
+            >
+              <span className="md-survivor-team">Gana {player}</span>
+            </button>
+          );
+        })}
+      </div>
+      {sign && winnerName && (
+        <div className="md-sets" role="group" aria-label={`En cuántos sets gana ${winnerName}`}>
+          <span className="md-sets-label">Sets</span>
+          {tennisLoserSets(setsToWin).map((lost) => {
+            const isSelected = loserSets === lost;
+            const isResult = resultSign === sign && resultLoserSets === lost;
+            return (
+              <button
+                key={lost}
+                type="button"
+                disabled={locked}
+                onClick={() => onPick(tennisPick(sign, setsToWin, isSelected ? null : lost))}
+                className={`md-sign-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}`}
+                aria-pressed={isSelected}
+                aria-label={`${winnerName} gana ${setsToWin}-${lost}`}
+              >
+                {setsToWin}-{lost}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
 

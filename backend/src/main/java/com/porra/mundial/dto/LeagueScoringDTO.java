@@ -16,7 +16,8 @@ import com.porra.mundial.scoring.ScoringRuleSet;
  * @param defaults   reglas por defecto
  * @param knockoutDraw eliminatorias sorteadas ronda a ronda: los puntos son por eliminatoria acertada en cada ronda
  * @param nbaSeries  playoffs de la NBA: puntos por serie acertada y extra por acertar en cuántos partidos
- * @param sport      deporte de la competición principal ({@code Sport}): en la NFL se acierta el ganador, sin empate
+ * @param sport      deporte de la competición principal ({@code Sport}): en la NFL se acierta el ganador, sin
+ *                   empate; en tenis el ganador de cada ronda y los sets
  */
 public record LeagueScoringDTO(
         String poolFormat,
@@ -35,13 +36,14 @@ public record LeagueScoringDTO(
     }
 
     public static LeagueScoringDTO of(Edition edition, boolean editable) {
+        boolean tennis = com.porra.mundial.model.Sport.isTennis(edition.getCompetition());
         return new LeagueScoringDTO(
                 edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null,
                 edition.isPichichi(),
                 editable,
                 ScoringRuleSet.MAX_POINTS,
                 ScoringRuleSet.forEdition(edition),
-                ScoringRuleSet.defaultWorldCup2026(),
+                tennis ? ScoringRuleSet.defaultTennis() : ScoringRuleSet.defaultWorldCup2026(),
                 com.porra.mundial.service.prediction.DrawnKnockout.applies(edition),
                 com.porra.mundial.service.prediction.DrawnKnockout.applies(edition)
                         && com.porra.mundial.service.prediction.DrawnKnockout.playsSeries(edition),

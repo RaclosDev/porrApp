@@ -9,12 +9,14 @@ import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.LolEsportsDataProvider;
+import com.porra.mundial.sports.TennisDataProvider;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -30,6 +32,7 @@ public class CompetitionService {
     private final CompetitionRepository competitionRepository;
     private final MatchRepository matchRepository;
     private final EspnSportsDataProvider espnSportsDataProvider;
+    private final TennisDataProvider tennisDataProvider;
 
     private static long count(Object value) {
         return value instanceof Number number ? number.longValue() : 0;
@@ -45,11 +48,31 @@ public class CompetitionService {
         for (Object[] row : matchRepository.calendarStatsByCompetition()) {
             stats.put((Long) row[0], new CompetitionDTO.CalendarStats(count(row[1]), count(row[2]), count(row[3])));
         }
-        return competitionRepository.findAll().stream()
+        Instant now = Instant.now();
+        List<Competition> syncable = competitionRepository.findAll().stream()
                 .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
                 .sorted(Comparator.comparing(Competition::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(c -> CompetitionDTO.of(c, stats.get(c.getId())))
                 .toList();
+        // Las fechas de cada torneo de tenis son una consulta a ESPN (en caché): se piden a la vez.
+        Map<Long, java.util.Optional<CompetitionDTO.TennisDates>> tennis = syncable.parallelStream()
+                .filter(c -> tennisDataProvider.supports(c.getExternalId()))
+                .collect(java.util.stream.Collectors.toConcurrentMap(Competition::getId,
+                        c -> java.util.Optional.ofNullable(tennisDates(c))));
+        return syncable.stream()
+                .map(c -> CompetitionDTO.of(c, stats.get(c.getId()),
+                        tennis.getOrDefault(c.getId(), java.util.Optional.empty()).orElse(null), now))
+                .toList();
+    }
+
+    /** Fechas de la edición actual de un torneo de tenis; null si no lo es o ESPN no responde. */
+    private CompetitionDTO.TennisDates tennisDates(Competition competition) {
+        try {
+            TennisDataProvider.Edition edition = tennisDataProvider.currentEdition(competition.getExternalId());
+            return edition == null ? null : new CompetitionDTO.TennisDates(edition.start(), edition.end());
+        } catch (Exception e) {
+            log.warn("No se pudieron leer las fechas de {} en ESPN: {}", competition.getName(), e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -66,7 +89,8 @@ public class CompetitionService {
 
         List<LeagueStandingDTO> standings = new ArrayList<>();
         if (competition.getExternalId() != null && !competition.getExternalId().isBlank()
-                && !LolEsportsDataProvider.isLolCompetition(competition.getExternalId())) {
+                && !LolEsportsDataProvider.isLolCompetition(competition.getExternalId())
+                && !tennisDataProvider.supports(competition.getExternalId())) {
             try {
                 standings = parseEspnStandings(espnSportsDataProvider.fetchStandings(competition.getExternalId()));
             } catch (Exception e) {

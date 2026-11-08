@@ -9,10 +9,11 @@ import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
 import { LeagueAvatar } from '../Avatar';
 import { describeLockOffset } from '../groups/custom/lockModes';
 import {
-  formatCopy,
   LEAGUE_STEPS,
   SPORT_LABELS,
+  TENNIS_DRAW_LABELS,
   customScoringRules,
+  formatCopy,
   lockModesFor,
   lockOffsetMinutes,
   matchSelectionApplies,
@@ -87,9 +88,20 @@ export default function SummaryStep({
     { label: 'Deporte', value: draft.sport ? SPORT_LABELS[draft.sport] : '', step: 'sport' },
     {
       label: 'Competición',
-      value: draft.custom ? `${draft.customName.trim()} (personalizada)` : competition?.name,
+      value: draft.custom
+        ? `${draft.customName.trim()} (personalizada)`
+        : (competition?.tennis?.tournament ?? competition?.name),
       step: 'competition',
     },
+    ...(competition?.tennis && !draft.custom
+      ? [
+          {
+            label: 'Cuadro',
+            value: TENNIS_DRAW_LABELS[draft.tennisDraw],
+            step: 'competition' as LeagueStepId,
+          },
+        ]
+      : []),
     {
       label: 'Modo de juego',
       value: draft.poolFormat ? formatCopy(draft.poolFormat, draft, ctx).title : '',

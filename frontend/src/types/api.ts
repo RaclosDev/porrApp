@@ -44,7 +44,23 @@ export interface UserPreferences {
 // --- Competiciones y partidos ---
 
 /** Deporte de una competición oficial (`Sport` en el servidor). */
-export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS' | 'BASKETBALL' | 'AMERICAN_FOOTBALL';
+export type Sport =
+  'FOOTBALL' | 'LEAGUE_OF_LEGENDS' | 'BASKETBALL' | 'AMERICAN_FOOTBALL' | 'TENNIS';
+
+/** Cuadro de un torneo de tenis (`CompetitionDTO.TennisInfo` en el servidor). */
+export interface TennisInfo {
+  /** Id del torneo en ESPN: los dos cuadros de un torneo lo comparten. */
+  tournamentId: number;
+  /** Nombre del torneo, sin el cuadro. */
+  tournament: string;
+  level: 'GRAND_SLAM' | 'MASTERS_1000' | 'FINALS';
+  draw: 'MEN' | 'WOMEN';
+  /** Sets que hay que ganar: 3 en los Grand Slams masculinos, 2 en el resto. */
+  setsToWin: number;
+  /** Fechas de la edición actual (la que se juega o la próxima); null si ESPN no la tiene. */
+  startDate: string | null;
+  endDate: string | null;
+}
 
 export interface Competition {
   id: number;
@@ -59,6 +75,8 @@ export interface Competition {
   groupStage?: boolean | null;
   /** Sus eliminatorias se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda. */
   knockoutDraw?: boolean;
+  /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
+  tennis?: TennisInfo | null;
 }
 
 export interface Match {
@@ -382,7 +400,10 @@ export type ScoringRuleKey = keyof ScoringRules;
 /** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */
 export interface LeagueScoring {
   matchSignOnly?: boolean;
-  /** Deporte de la competición de la liga: en la NFL se puntúa el ganador, sin empate. */
+  /**
+   * Deporte de la competición de la liga: en la NFL se puntúa el ganador, sin empate; en tenis, el
+   * ganador de cada ronda y los sets.
+   */
   sport?: Sport | null;
   /** Eliminatorias sorteadas ronda a ronda: se puntúa cada cruce acertado según su ronda. */
   knockoutDraw?: boolean;
@@ -443,6 +464,10 @@ export interface MatchdayFixture {
   actualHomeScore: number | null;
   actualAwayScore: number | null;
   displayClock: string | null;
+  /** Tenis: sets que hay que ganar (2 o 3). Falta en el resto de deportes. */
+  setsToWin?: number | null;
+  /** Tenis: quién ha ganado, también tras una retirada o un W.O., que no tienen marcador. */
+  winnerSign?: '1' | '2' | null;
   predHomeScore: number | null;
   predAwayScore: number | null;
   predSign: string | null;
