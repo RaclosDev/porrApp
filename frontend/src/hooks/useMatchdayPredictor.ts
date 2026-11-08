@@ -31,6 +31,7 @@ import {
   roundLabelFor,
   roundsFromFixtures,
   roundsFromMatchdays,
+  sortFightCard,
   withSign,
   withoutSaved,
   type Draft,
@@ -222,7 +223,10 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const predictionFor = (matchId: number) => localPredictions[matchId] || EMPTY_PREDICTION;
 
   const roundFixtures = useMemo(
-    () => (activeRound ? fixtures.filter((f) => roundLabelFor(f) === activeRound) : fixtures),
+    () =>
+      sortFightCard(
+        activeRound ? fixtures.filter((f) => roundLabelFor(f) === activeRound) : fixtures,
+      ),
     [fixtures, activeRound],
   );
 
@@ -264,6 +268,16 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
       return;
     }
     updatePrediction(matchId, withSign(sign));
+    saveDraft();
+  };
+
+  /** Pelea de la UFC: ganador, método y asalto se guardan al momento, como un signo. */
+  const handleFightPick = (matchId: number, pick: DraftPrediction) => {
+    if (!isAuthenticated) {
+      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      return;
+    }
+    updatePrediction(matchId, pick);
     saveDraft();
   };
 
@@ -347,6 +361,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     displayedFixtures,
     predictionFor,
     handleQuickSign,
+    handleFightPick,
     handleTennisPick,
     retrySave: saveDraft,
     saveStatus,

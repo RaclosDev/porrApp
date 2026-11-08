@@ -14,6 +14,7 @@ import {
   TENNIS_DRAW_LABELS,
   customScoringRules,
   formatCopy,
+  isFightNights,
   lockModesFor,
   lockOffsetMinutes,
   matchSelectionApplies,
@@ -81,9 +82,17 @@ export default function SummaryStep({
   const competitionNames = draft.matches.competitionIds.map(
     (id) => ctx.competitions.find((item) => item.id === id)?.name ?? '',
   );
-  const matchesText = isMultiCompetition(draft.matches)
-    ? `${selectionText} de ${describeCompetitions(competitionNames)}, por semanas`
-    : selectionText;
+  const fightNights = isFightNights(draft, ctx);
+  const chosenNight = calendar.data?.matches.find((match) =>
+    draft.matches.included.includes(match.id),
+  )?.round;
+  const matchesText = fightNights
+    ? draft.matches.mode === 'ALL'
+      ? 'Todas, desde hoy'
+      : (chosenNight ?? 'Una sola velada')
+    : isMultiCompetition(draft.matches)
+      ? `${selectionText} de ${describeCompetitions(competitionNames)}, por semanas`
+      : selectionText;
   // Visibilidad no tiene paso: toda liga nueva es privada.
   const rows: { label: string; value: ReactNode; step: LeagueStepId | null }[] = [
     { label: 'Deporte', value: draft.sport ? SPORT_LABELS[draft.sport] : '', step: 'sport' },
@@ -109,7 +118,13 @@ export default function SummaryStep({
       step: 'format',
     },
     ...(picksMatches
-      ? [{ label: 'Partidos', value: matchesText, step: 'format' as LeagueStepId }]
+      ? [
+          {
+            label: fightNights ? 'Veladas' : 'Partidos',
+            value: matchesText,
+            step: 'format' as LeagueStepId,
+          },
+        ]
       : []),
     { label: 'Cierre', value: describeLock(draft, ctx), step: 'rules' },
     { label: 'Puntuación', value: describeScoring(draft, ctx), step: 'rules' },

@@ -63,6 +63,23 @@ const MULTI_COMPETITION_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((
     : item,
 );
 
+/**
+ * Ligas de la UFC. ESPN da la hora de cada bloque de la cartelera (preliminares y estelar), no la de
+ * cada pelea: por defecto se cierra toda la velada al empezar, igual para todos.
+ */
+export const FIGHT_NIGHT_LOCK_MODES: LockModeOption[] = [
+  {
+    value: 'PER_ROUND',
+    label: 'Al empezar la velada',
+    hint: 'Todas las peleas se cierran cuando empiezan los primeros preliminares, o antes si pones margen.',
+  },
+  {
+    value: 'PER_MATCH',
+    label: 'Por bloques',
+    hint: 'Cada pelea se cierra al empezar su bloque: preliminares o cartelera estelar.',
+  },
+];
+
 /** Cierres de una liga por jornadas: con varias competiciones, la jornada es la semana. */
 export const matchdayLockModes = (multiCompetition: boolean) =>
   multiCompetition ? MULTI_COMPETITION_LOCK_MODES : MATCHDAY_LOCK_MODES;

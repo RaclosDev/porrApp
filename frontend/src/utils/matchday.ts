@@ -3,6 +3,7 @@
  * de pronósticos. Sin React ni red, para poder probarla aparte.
  */
 import type {
+  FightMethod,
   MatchdayFixture,
   MatchdayPoints,
   MatchdayPredictionInput,
@@ -14,6 +15,10 @@ export interface DraftPrediction {
   homeScore: string;
   awayScore: string;
   sign: string;
+  /** Pelea de la UFC: método elegido ('' o ausente si no). */
+  method?: string;
+  /** Pelea de la UFC: asalto elegido, como texto ('' o ausente si no). */
+  round?: string;
 }
 
 /** Pronósticos en edición por id de partido. */
@@ -24,9 +29,9 @@ export type MatchSign = '1' | 'X' | '2';
 /** `UPCOMING`: todos los que no han terminado; `PENDING`: abiertos y sin pronóstico. */
 export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
 
-/** Si se puede predecir el empate: en la NFL (`AMERICAN_FOOTBALL`) y en el tenis se elige quién gana. */
+/** Si se puede predecir el empate: en la NFL (`AMERICAN_FOOTBALL`), el tenis y la UFC (`MMA`) se elige quién gana. */
 export const allowsDraw = (sport: string | null | undefined): boolean =>
-  sport !== 'AMERICAN_FOOTBALL' && sport !== 'TENNIS';
+  sport !== 'AMERICAN_FOOTBALL' && sport !== 'TENNIS' && sport !== 'MMA';
 
 export const EMPTY_PREDICTION: DraftPrediction = { homeScore: '', awayScore: '', sign: '' };
 
@@ -181,15 +186,55 @@ export function mergeDraftWithServer(fixtures: MatchdayFixture[], draft: Draft):
     const d = draft[f.matchId];
     const useDraft = !f.locked && Boolean(d) && typeof d === 'object';
     if (!useDraft) delete kept[f.matchId];
-    predictions[f.matchId] = useDraft
+    const base = useDraft
       ? { homeScore: d.homeScore ?? '', awayScore: d.awayScore ?? '', sign: d.sign || '' }
       : {
           homeScore: scoreText(f.predHomeScore),
           awayScore: scoreText(f.predAwayScore),
           sign: f.predSign || '',
         };
+    predictions[f.matchId] = f.fight
+      ? {
+          ...base,
+          method: useDraft ? d.method || '' : f.predMethod || '',
+          round: useDraft ? d.round || '' : scoreText(f.predRound ?? null),
+        }
+      : base;
   });
   return { predictions, draft: kept };
+}
+
+/**
+ * Predicción de una pelea: quién gana ('1' o '2') y, si se quiere, el método y el asalto. El asalto
+ * solo se guarda con un KO/TKO o una sumisión.
+ */
+export const withFightPick = (
+  sign: '1' | '2',
+  method: FightMethod | '' = '',
+  round = '',
+): DraftPrediction => ({
+  homeScore: '',
+  awayScore: '',
+  sign,
+  method,
+  round: method === 'KO_TKO' || method === 'SUBMISSION' ? round : '',
+});
+
+/** Bloques de la cartelera, de la estelar a los preliminares tempranos. */
+const SEGMENT_RANK: Record<string, number> = { MAIN: 0, PRELIMS: 1, EARLY_PRELIMS: 2 };
+
+/** Peleas en el orden de la cartelera: la estelar arriba; las canceladas, al final. */
+export function sortFightCard(fixtures: MatchdayFixture[]): MatchdayFixture[] {
+  if (!fixtures.some((f) => f.fight)) return fixtures;
+  const rank = (f: MatchdayFixture) => [
+    f.status === 'CANCELLED' ? 1 : 0,
+    SEGMENT_RANK[f.fight?.segment ?? ''] ?? 3,
+    f.fight?.order ?? 99,
+  ];
+  return [...fixtures].sort((a, b) => {
+    const [x, y] = [rank(a), rank(b)];
+    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  });
 }
 
 /** Elige un signo 1X2. El pronóstico es solo de signo: se descarta cualquier marcador anterior. */
@@ -255,12 +300,17 @@ export function buildSubmission(fixtures: MatchdayFixture[], draft: Draft): Subm
       return;
     }
     if (!hasPrediction(pred)) return;
-    items.push({
+    const item: MatchdayPredictionInput = {
       matchId,
       homeScore: pred.homeScore !== '' ? parseInt(pred.homeScore, 10) : null,
       awayScore: pred.awayScore !== '' ? parseInt(pred.awayScore, 10) : null,
       sign: pred.sign || null,
-    });
+    };
+    if (fixture.fight) {
+      item.method = (pred.method || null) as FightMethod | null;
+      item.round = pred.round ? parseInt(pred.round, 10) : null;
+    }
+    items.push(item);
   });
   if (incomplete) return { kind: 'incomplete' };
   return items.length ? { kind: 'ready', items } : { kind: 'empty' };
@@ -278,7 +328,9 @@ export function withoutSaved(draft: Draft, saved: MatchdayPredictionInput[]): Dr
     const same =
       (current.sign || null) === item.sign &&
       (current.homeScore === '' ? null : parseInt(current.homeScore, 10)) === item.homeScore &&
-      (current.awayScore === '' ? null : parseInt(current.awayScore, 10)) === item.awayScore;
+      (current.awayScore === '' ? null : parseInt(current.awayScore, 10)) === item.awayScore &&
+      (current.method || null) === (item.method ?? null) &&
+      (current.round ? parseInt(current.round, 10) : null) === (item.round ?? null);
     if (same) delete rest[item.matchId];
   });
   return rest;

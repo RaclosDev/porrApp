@@ -8,6 +8,7 @@ import MatchdayHeader from '../components/matchday/MatchdayHeader';
 import RoundSelector from '../components/matchday/RoundSelector';
 import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
+import FightCard from '../components/matchday/FightCard';
 import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
@@ -123,28 +124,39 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       )}
 
       <div className="flex flex-col gap-3.5">
-        {md.displayedFixtures.map((fixture) => (
-          <FixtureCard
-            key={fixture.matchId}
-            fixture={fixture}
-            prediction={md.predictionFor(fixture.matchId)}
-            locked={fixture.locked || activeGroupIsLocked}
-            onQuickSign={md.handleQuickSign}
-            onTennisPick={md.handleTennisPick}
-            onShowFriends={md.setSelectedMatchForFriends}
-            voters={voters.get(fixture.matchId)}
-            onShowVoters={md.setSelectedMatchForFriends}
-            survivor={
-              md.isSurvivor
-                ? {
-                    usedTeams: md.usedTeams,
-                    eliminated: Boolean(md.survivor?.eliminated),
-                    onPick: md.handleSurvivorPick,
-                  }
-                : undefined
-            }
-          />
-        ))}
+        {md.displayedFixtures.map((fixture) =>
+          fixture.fight ? (
+            <FightCard
+              key={fixture.matchId}
+              fixture={fixture}
+              prediction={md.predictionFor(fixture.matchId)}
+              locked={fixture.locked || activeGroupIsLocked}
+              onPick={md.handleFightPick}
+              onShowFriends={md.setSelectedMatchForFriends}
+            />
+          ) : (
+            <FixtureCard
+              key={fixture.matchId}
+              fixture={fixture}
+              prediction={md.predictionFor(fixture.matchId)}
+              locked={fixture.locked || activeGroupIsLocked}
+              onQuickSign={md.handleQuickSign}
+              onTennisPick={md.handleTennisPick}
+              onShowFriends={md.setSelectedMatchForFriends}
+              voters={voters.get(fixture.matchId)}
+              onShowVoters={md.setSelectedMatchForFriends}
+              survivor={
+                md.isSurvivor
+                  ? {
+                      usedTeams: md.usedTeams,
+                      eliminated: Boolean(md.survivor?.eliminated),
+                      onPick: md.handleSurvivorPick,
+                    }
+                  : undefined
+              }
+            />
+          ),
+        )}
       </div>
 
       <MatchFriendsPredictionsModal

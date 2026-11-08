@@ -1,5 +1,11 @@
 package com.porra.mundial.service.prediction;
 
+import com.porra.mundial.dto.FightInfoDTO;
+import com.porra.mundial.model.Fight;
+import com.porra.mundial.model.FightMethod;
+import com.porra.mundial.model.Sport;
+import com.porra.mundial.repository.FightRepository;
+import com.porra.mundial.scoring.FightScoring;
 import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.MatchPredictionItemDTO;
 import com.porra.mundial.dto.MatchdayFixturePredictionDTO;
@@ -35,6 +41,7 @@ public class MatchPredictionService {
     private final MatchScoringCalculator matchScoringCalculator;
     private final ScoreInvalidationService scoreInvalidationService;
     private final MatchSelectionService matchSelectionService;
+    private final FightRepository fightRepository;
 
     /**
      * Devuelve los partidos del calendario junto con los pronósticos del usuario y su estado de bloqueo.
@@ -123,6 +130,7 @@ public class MatchPredictionService {
         }
 
         ScoringRuleSet rules = ScoringRuleSet.forEdition(edition);
+        Map<Long, Fight> fights = fightsOf(matches);
 
         Instant now = Instant.now();
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, matches,
@@ -132,6 +140,7 @@ public class MatchPredictionService {
 
         for (Match match : matches) {
             MatchPrediction mp = predictionMap.get(match.getId());
+            Fight fight = fights.get(match.getId());
 
             boolean isLocked = false;
             String lockReason = "Abierto";
@@ -144,7 +153,8 @@ public class MatchPredictionService {
                 lockReason = "El partido ya ha finalizado";
             } else if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) {
                 isLocked = true;
-                lockReason = "El estado del partido no admite predicciones";
+                lockReason = fight != null && match.getStatus() == com.porra.mundial.model.MatchStatusNormalized.CANCELLED
+                        ? "Pelea cancelada: no puntúa" : "El estado del partido no admite predicciones";
             } else if (lockTimes.containsKey(match.getId()) && !lockTimes.get(match.getId()).isAfter(now)) {
                 isLocked = true;
                 lockReason = MatchdayLock.reason(edition, match, now);
@@ -164,11 +174,13 @@ public class MatchPredictionService {
                 // Si el partido está terminado o tiene marcador oficial y no se había evaluado
                 if (TennisScoring.applies(match) ? TennisScoring.decided(match)
                         : hasScorableResult(match) && match.getHomeScore() != null && match.getAwayScore() != null) {
-                    MatchScoreResult scoreResult = scorePrediction(mp, match, rules);
-                    pointsAwarded = scoreResult.totalPoints();
-                    isExact = scoreResult.exactScore();
-                    isCorrectSign = scoreResult.correctSign();
-                    scoringDetails = scoreResult.explanation();
+                    MatchScoreResult scoreResult = scorePrediction(mp, match, fight, rules);
+                    if (scoreResult != null) {
+                        pointsAwarded = scoreResult.totalPoints();
+                        isExact = scoreResult.exactScore();
+                        isCorrectSign = scoreResult.correctSign();
+                        scoringDetails = scoreResult.explanation();
+                    }
                 }
             }
 
@@ -199,6 +211,9 @@ public class MatchPredictionService {
                     .predHomeScore(mp != null ? mp.getHomeScore() : null)
                     .predAwayScore(mp != null ? mp.getAwayScore() : null)
                     .predSign(mp != null ? mp.getPredictionSign() : null)
+                    .predMethod(mp != null ? mp.getPredictedMethod() : null)
+                    .predRound(mp != null ? mp.getPredictedRound() : null)
+                    .fight(FightInfoDTO.of(fight, match))
                     .locked(isLocked)
                     .lockAt(lockTimes.get(match.getId()))
                     .lockReason(lockReason)
@@ -357,6 +372,18 @@ public class MatchPredictionService {
                         match.getAwayTeam() != null ? match.getAwayTeam().getName() : "Visitante"));
             }
 
+            if (Sport.isMma(match.getCompetition())) {
+                Fight fight = fightRepository.findById(match.getId()).orElse(null);
+                MatchPrediction saved = existingByMatchId.computeIfAbsent(match.getId(), id -> MatchPrediction.builder()
+                        .prediction(prediction)
+                        .match(match)
+                        .build());
+                applyFightPick(saved, item, fight);
+                matchPredictionRepository.save(saved);
+                savedCount++;
+                continue;
+            }
+
             // Calcular signo automáticamente si no se especifica explícitamente pero hay goles
             String sign = item.getSign();
             if ((item.getHomeScore() == null) != (item.getAwayScore() == null)) {
@@ -415,16 +442,24 @@ public class MatchPredictionService {
     @Transactional
     public void evaluatePredictionsForMatch(Match match) {
         if (match == null || !hasScorableResult(match) || match.getId() == null) return;
+        // La sincronización lo guarda fuera de esta sesión: su competición (perezosa) no se podría leer.
+        if (match.getCompetition() != null && !org.hibernate.Hibernate.isInitialized(match.getCompetition())) {
+            match = matchRepository.findById(match.getId()).orElse(match);
+        }
         invalidateSurvivorEditions(match);
         // En tenis solo puntúa el partido terminado; una retirada o un W.O. tienen ganador sin marcador.
         if (TennisScoring.applies(match) ? !TennisScoring.decided(match)
                 : match.getHomeScore() == null || match.getAwayScore() == null) return;
 
         List<MatchPrediction> predictions = matchPredictionRepository.findByMatchId(match.getId());
+        // El partido puede llegar sin sesión (sincronización): se mira por su id si es una pelea.
+        Fight fight = predictions.isEmpty() ? null : fightRepository.findById(match.getId()).orElse(null);
         Set<Prediction> affectedPredictions = new HashSet<>();
         for (MatchPrediction mp : predictions) {
             ScoringRuleSet rules = ScoringRuleSet.forEdition(mp.getPrediction() != null ? mp.getPrediction().getEdition() : null);
-            applyScore(mp, scorePrediction(mp, match, rules));
+            MatchScoreResult result = scorePrediction(mp, match, fight, rules);
+            if (result == null) continue;
+            applyScore(mp, result);
             matchPredictionRepository.save(mp);
 
             if (mp.getPrediction() != null) {
@@ -470,14 +505,19 @@ public class MatchPredictionService {
         if (edition == null || edition.getId() == null) return 0;
         ScoringRuleSet rules = ScoringRuleSet.forEdition(edition);
         List<MatchPrediction> rescored = new ArrayList<>();
-        for (MatchPrediction mp : matchPredictionRepository.findWithMatchByPredictionEditionId(edition.getId())) {
+        List<MatchPrediction> all = matchPredictionRepository.findWithMatchByPredictionEditionId(edition.getId());
+        Map<Long, Fight> fights = Sport.isMma(edition.getCompetition())
+                ? fightsOf(all.stream().map(MatchPrediction::getMatch).filter(Objects::nonNull).toList()) : Map.of();
+        for (MatchPrediction mp : all) {
             Match match = mp.getMatch();
             if (match == null || !Boolean.TRUE.equals(match.getFinished())
                     || (TennisScoring.applies(match) ? !TennisScoring.decided(match)
                             : match.getHomeScore() == null || match.getAwayScore() == null)) {
                 continue;
             }
-            applyScore(mp, scorePrediction(mp, match, rules));
+            MatchScoreResult result = scorePrediction(mp, match, fights.get(match.getId()), rules);
+            if (result == null) continue;
+            applyScore(mp, result);
             rescored.add(mp);
         }
         matchPredictionRepository.saveAll(rescored);
@@ -560,6 +600,62 @@ public class MatchPredictionService {
     private static boolean isSurvivor(MatchPrediction prediction) {
         return prediction.getPrediction() != null && prediction.getPrediction().getEdition() != null
                 && prediction.getPrediction().getEdition().getPoolFormat() == PoolFormat.SURVIVOR;
+    }
+
+    /** Datos de pelea de los partidos de la UFC de la lista, por id de partido. */
+    private Map<Long, Fight> fightsOf(List<Match> matches) {
+        List<Long> ids = matches.stream()
+                .filter(m -> m.getId() != null && Sport.isMma(m.getCompetition()))
+                .map(Match::getId)
+                .toList();
+        if (ids.isEmpty()) return Map.of();
+        return fightRepository.findByMatchIdIn(ids).stream().collect(Collectors.toMap(Fight::getMatchId, f -> f));
+    }
+
+    /**
+     * Predicción de una pelea: el ganador ("1" esquina roja, "2" azul) y, si se quiere, el método y el asalto.
+     * El asalto solo vale con un KO/TKO o una sumisión y dentro de los asaltos previstos.
+     */
+    static void applyFightPick(MatchPrediction prediction, MatchPredictionItemDTO item, Fight fight) {
+        String sign = item.getSign() == null ? "" : item.getSign().trim();
+        if (!Set.of("1", "2").contains(sign) || item.getHomeScore() != null || item.getAwayScore() != null) {
+            throw BusinessException.badRequest("En una pelea se elige quién gana: 1 o 2, sin marcador.");
+        }
+        FightMethod method = null;
+        if (item.getMethod() != null && !item.getMethod().isBlank()) {
+            method = FightMethod.predicted(item.getMethod());
+            if (method == null) {
+                throw BusinessException.badRequest("El método tiene que ser KO/TKO, sumisión o decisión.");
+            }
+        }
+        Integer round = item.getRound();
+        if (round != null) {
+            int scheduled = fight != null && fight.getScheduledRounds() != null ? fight.getScheduledRounds() : 5;
+            if (method == null || !method.finish()) {
+                throw BusinessException.badRequest("El asalto solo se elige con un KO/TKO o una sumisión.");
+            }
+            if (round < 1 || round > scheduled) {
+                throw BusinessException.badRequest(String.format("Esta pelea es a %d asaltos.", scheduled));
+            }
+        }
+        prediction.setHomeScore(null);
+        prediction.setAwayScore(null);
+        prediction.setPredictionSign(sign);
+        prediction.setPredictedMethod(method != null ? method.name() : null);
+        prediction.setPredictedRound(round);
+        prediction.setPointsAwarded(null);
+        prediction.setIsExactScore(null);
+        prediction.setIsCorrectSign(null);
+        prediction.setScoringDetails(null);
+    }
+
+    /** Puntos de una predicción; null si es una pelea que aún no ha acabado. */
+    private MatchScoreResult scorePrediction(MatchPrediction prediction, Match match, Fight fight, ScoringRuleSet rules) {
+        if (fight != null) {
+            return FightScoring.score(prediction.getPredictionSign(), prediction.getPredictedMethod(),
+                    prediction.getPredictedRound(), match, fight, rules);
+        }
+        return scorePrediction(prediction, match, rules);
     }
 
     private MatchScoreResult scorePrediction(MatchPrediction prediction, Match match, ScoringRuleSet rules) {
@@ -660,6 +756,8 @@ public class MatchPredictionService {
                     builder.homeScore(mp.getHomeScore())
                             .awayScore(mp.getAwayScore())
                             .sign(mp.getPredictionSign())
+                            .method(mp.getPredictedMethod())
+                            .round(mp.getPredictedRound())
                             .pointsAwarded(mp.getPointsAwarded())
                             .isExactScore(mp.getIsExactScore())
                             .isCorrectSign(mp.getIsCorrectSign())

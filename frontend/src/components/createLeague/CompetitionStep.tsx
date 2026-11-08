@@ -28,7 +28,13 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
       id: 'tournaments',
       title: 'Con cuadro',
       hint: 'Torneos con eliminatorias: también se pueden jugar por jornadas.',
-      items: official.filter((item) => item.formatType !== 'LEAGUE'),
+      items: official.filter((item) => item.formatType === 'TOURNAMENT'),
+    },
+    {
+      id: 'events',
+      title: 'Por veladas',
+      hint: 'Cada velada es una cartelera de peleas: numeradas y Fight Night.',
+      items: official.filter((item) => item.formatType === 'EVENTS'),
     },
   ].filter((group) => group.items.length > 0);
 

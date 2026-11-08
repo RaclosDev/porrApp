@@ -13,6 +13,7 @@ import { isNbaCompetition } from '../../utils/nbaPlayoffs';
 import {
   BRACKET_LOCK_MODES,
   DRAWN_KNOCKOUT_LOCK_MODES,
+  FIGHT_NIGHT_LOCK_MODES,
   LOCK_UNIT_MINUTES,
   matchdayLockModes,
   MAX_LOCK_OFFSET_MINUTES,
@@ -55,6 +56,7 @@ export const SPORT_LABELS: Record<SportChoice, string> = {
   BASKETBALL: 'Baloncesto',
   AMERICAN_FOOTBALL: 'Fútbol americano',
   TENNIS: 'Tenis',
+  MMA: 'UFC',
   OTHER: 'Otro deporte',
 };
 
@@ -63,15 +65,17 @@ const competitionSport = (competition: Competition): Sport =>
   competition.sport ??
   (competition.externalId?.startsWith('lol.')
     ? 'LEAGUE_OF_LEGENDS'
-    : competition.externalId === 'f1'
-      ? 'FORMULA_1'
-      : isNbaCompetition(competition.externalId)
-        ? 'BASKETBALL'
-        : competition.externalId === 'nfl'
-          ? 'AMERICAN_FOOTBALL'
-          : competition.externalId?.startsWith('tennis.')
-            ? 'TENNIS'
-            : 'FOOTBALL');
+    : competition.externalId?.startsWith('mma.')
+      ? 'MMA'
+      : competition.externalId === 'f1'
+        ? 'FORMULA_1'
+        : isNbaCompetition(competition.externalId)
+          ? 'BASKETBALL'
+          : competition.externalId === 'nfl'
+            ? 'AMERICAN_FOOTBALL'
+            : competition.externalId?.startsWith('tennis.')
+              ? 'TENNIS'
+              : 'FOOTBALL');
 
 /** Cuadro de un torneo de tenis que entra en la liga. */
 export type TennisDraw = 'MEN' | 'WOMEN' | 'BOTH';
@@ -235,6 +239,16 @@ const KNOCKOUT_DRAW_COPY = {
   text: 'Tras cada sorteo eliges quién pasa cada eliminatoria, ronda a ronda hasta el campeón. En las de ida y vuelta cuenta quién pasa, no cada partido.',
 };
 
+/** Por veladas (la UFC): en cada velada se predice cada pelea. */
+const FIGHT_NIGHTS_COPY = {
+  title: 'Por veladas',
+  text: 'En cada velada predices quién gana cada pelea y, si quieres, cómo acaba (KO/TKO, sumisión o decisión) y en qué asalto. Cada acierto suma.',
+};
+
+/** La competición elegida se juega por veladas (la UFC), no por jornadas. */
+export const isFightNights = (draft: LeagueDraft, ctx: DraftContext) =>
+  selectedCompetition(draft, ctx)?.formatType === 'EVENTS';
+
 /** Playoffs de la NBA: series del play-in a las Finales. */
 const NBA_PLAYOFFS_COPY = {
   title: 'Playoffs',
@@ -263,6 +277,7 @@ const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
 
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
+  if (format === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHTS_COPY;
   if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)) return KNOCKOUT_DRAW_COPY;
@@ -283,6 +298,9 @@ export function formatUnavailableReason(
     return 'Necesita una competición oficial: los resultados llegan solos y así se sabe quién cae.';
   }
   const competition = selectedCompetition(draft, ctx);
+  if (competition?.formatType === 'EVENTS' && format !== 'MATCH_DAY') {
+    return 'La UFC se juega velada a velada: elige Por veladas.';
+  }
   const formulaOne = competition?.formatType === 'RACE';
   if (format === 'GRAND_PRIX' && !formulaOne) return 'Solo para la Fórmula 1.';
   if (format !== 'GRAND_PRIX' && formulaOne) {
@@ -322,6 +340,7 @@ const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
 export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOption[] {
   // Cada Gran Premio se cierra al empezar su clasificación: no hay nada que elegir.
   if (draft.poolFormat == null || draft.poolFormat === 'GRAND_PRIX') return [];
+  if (draft.poolFormat === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHT_LOCK_MODES;
   if (isMatchBasedFormat(draft.poolFormat))
     return matchdayLockModes(isMultiCompetition(draft.matches));
   if (isNbaDraft(draft, ctx)) return SERIES_LOCK_MODES;
@@ -336,6 +355,7 @@ export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOpt
 function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode | null {
   const modes = lockModesFor(draft, ctx);
   if (modes.length === 0) return null;
+  if (draft.poolFormat === 'MATCH_DAY' && isFightNights(draft, ctx)) return 'PER_ROUND';
   if (isMatchBasedFormat(draft.poolFormat) || isNbaDraft(draft, ctx)) return 'PER_MATCH';
   return modes.some((item) => item.value === 'PER_ROUND') ? 'PER_ROUND' : 'FIRST_MATCH';
 }
@@ -484,7 +504,10 @@ export function validateStep(
   if (step === 'format' && !draft.poolFormat) {
     errors.poolFormat = 'Elige cómo se juega la liga.';
   } else if (step === 'format' && matchSelectionApplies(draft, ctx)) {
-    const problem = selectionError(draft.matches);
+    const problem =
+      isFightNights(draft, ctx) && draft.matches.mode !== 'ALL' && !draft.matches.included.length
+        ? 'Elige una velada.'
+        : selectionError(draft.matches);
     if (problem) errors.matches = problem;
   }
   if (step === 'rules') {
@@ -619,6 +642,7 @@ export function readStoredDraft(): LeagueDraft {
           'BASKETBALL',
           'AMERICAN_FOOTBALL',
           'TENNIS',
+          'MMA',
           'OTHER',
         ].includes(value as string),
       ),

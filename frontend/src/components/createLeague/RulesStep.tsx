@@ -6,6 +6,7 @@ import type { LockUnit } from '../groups/custom/lockModes';
 import {
   FIELD_IDS,
   errorId,
+  isFightNights,
   isKnockoutDraw,
   isNbaDraft,
   lockModesFor,
@@ -69,9 +70,13 @@ function LockSection({ draft, update, errors, ctx }: StepProps) {
       ) : (
         <div className="create-league-field">
           <label htmlFor={FIELD_IDS.lockAmount}>
-            {draft.lockMode === 'PER_MATCH'
-              ? 'Margen antes del partido'
-              : 'Margen antes del primer partido'}
+            {isFightNights(draft, ctx)
+              ? draft.lockMode === 'PER_MATCH'
+                ? 'Margen antes de cada bloque'
+                : 'Margen antes de la velada'
+              : draft.lockMode === 'PER_MATCH'
+                ? 'Margen antes del partido'
+                : 'Margen antes del primer partido'}
           </label>
           <div className="create-league-inline">
             <input
@@ -119,6 +124,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
     poolFormat: draft.poolFormat,
     pichichi: draft.pichichi,
     knockoutDraw: isKnockoutDraw(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
+    fights: isFightNights(draft, ctx),
     nbaSeries: isNbaDraft(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
     sport: draft.sport === 'OTHER' ? null : draft.sport,
     editable: draft.customScoring,
