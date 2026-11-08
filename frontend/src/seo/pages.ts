@@ -9,11 +9,12 @@
 export const SITE_ORIGIN = 'https://porrapp.app';
 
 /**
- * Uso nominativo de las marcas: las competiciones se nombran solo para identificarlas, sin sus logos
- * ni sus colores. Va en el pie de todas las páginas públicas y en su HTML prerenderizado.
+ * Uso nominativo de las marcas: competiciones, equipos y deportistas se nombran y se ven en las
+ * capturas de la app solo para identificarlos. Va en el pie de todas las páginas públicas y en su
+ * HTML prerenderizado.
  */
 export const AFFILIATION_NOTICE =
-  'PorrApp no está afiliada a LaLiga, la UEFA, la FIFA, la Premier League, la RFEF, la Fórmula 1, la UFC, la NBA, la NFL, la ATP ni la WTA, ni cuenta con su patrocinio. Sus nombres se usan solo para identificar cada competición.';
+  'PorrApp no está afiliada a LaLiga, la UEFA, la FIFA, la Premier League, la RFEF, la Fórmula 1, la UFC, la NBA, la NFL, la ATP ni la WTA, ni cuenta con su patrocinio. Los nombres, escudos e imágenes de competiciones, equipos y deportistas pertenecen a sus titulares y se muestran solo para identificarlos.';
 
 export interface PageMeta {
   title: string;
@@ -36,7 +37,7 @@ interface AppScreen {
   alt: string;
 }
 
-/** Capturas de una liga de ejemplo de la competición, debajo del titular. */
+/** Capturas de la app con partidos reales de la competición, debajo del titular. */
 export interface PageScreens {
   title: string;
   shots: AppScreen[];
@@ -228,15 +229,15 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'laliga-inicio',
-          'Inicio de una liga de LaLiga en PorrApp: resultados de la jornada 13 y los próximos partidos con su hora.',
+          'Inicio de una liga de LaLiga en PorrApp: resultados de la jornada 12, como el Valencia 0-3 Real Madrid, con el escudo de cada equipo.',
         ),
         appScreen(
           'laliga-jornada',
-          'Jornada 13 de LaLiga en PorrApp: cada partido con los botones 1, X y 2 y la predicción ya marcada.',
+          'Jornada 12 de LaLiga en PorrApp: Real Sociedad-Rayo Vallecano y los demás partidos abiertos, con los botones 1, X y 2.',
         ),
         appScreen(
           'laliga-tabla',
-          'Clasificación de LaLiga dentro de PorrApp, con puntos y partidos jugados de cada equipo.',
+          'Clasificación de LaLiga dentro de PorrApp, con Barcelona y Real Madrid arriba y los puntos de cada equipo.',
         ),
       ],
     },
@@ -290,15 +291,15 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'champions-inicio',
-          'Inicio de una liga de la Champions en PorrApp: resultados y próximos partidos de la fase de liga.',
+          'Inicio de una liga de la Champions en PorrApp: resultados de la fase de liga, como el Barcelona 3-0 Aston Villa.',
         ),
         appScreen(
           'champions-jornada',
-          'Jornada 5 de la fase de liga de la Champions en PorrApp, con la predicción 1X2 de cada partido.',
+          'Partidos de la fase de liga de la Champions en PorrApp, como AEK-Real Madrid, con la predicción 1X2 de cada uno.',
         ),
         appScreen(
           'champions-tabla',
-          'Clasificación de la fase de liga de la Champions dentro de PorrApp.',
+          'Clasificación de la fase de liga de la Champions dentro de PorrApp, con el escudo y los puntos de cada equipo.',
         ),
       ],
     },
@@ -351,13 +352,16 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'premier-inicio',
-          'Inicio de una liga de la Premier League en PorrApp: resultados de la jornada 12 y próximos partidos.',
+          'Inicio de una liga de la Premier League en PorrApp: resultados de la jornada 10, como el Everton 3-1 Coventry City.',
         ),
         appScreen(
           'premier-jornada',
-          'Jornada 12 de la Premier League en PorrApp, con la predicción 1X2 de cada partido.',
+          'Jornada 10 de la Premier League en PorrApp: Crystal Palace-Liverpool y el resto, con la predicción 1X2 de cada partido.',
         ),
-        appScreen('premier-tabla', 'Clasificación de la Premier League dentro de PorrApp.'),
+        appScreen(
+          'premier-tabla',
+          'Clasificación de la Premier League dentro de PorrApp, con el Arsenal líder.',
+        ),
       ],
     },
     sections: [
@@ -458,15 +462,15 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'f1-inicio',
-          'Próximo Gran Premio en una liga de Fórmula 1 de PorrApp: se elige el podio, la pole y la vuelta rápida.',
+          'Próximo Gran Premio en una liga de Fórmula 1 de PorrApp: en Las Vegas se elige el podio, la pole y la vuelta rápida.',
         ),
         appScreen(
           'f1-carreras',
-          'Gran Premio ya disputado en PorrApp: el resultado al lado de tu predicción y los puntos que ha dado.',
+          'GP de São Paulo ya disputado en PorrApp: el resultado real al lado de tu predicción y los puntos que ha dado.',
         ),
         appScreen(
           'f1-mundial',
-          'Mundial de pilotos de Fórmula 1 dentro de PorrApp, con puntos y diferencia con el líder.',
+          'Mundial de pilotos de Fórmula 1 dentro de PorrApp, con Kimi Antonelli líder y la diferencia de puntos de cada piloto.',
         ),
       ],
     },
@@ -512,15 +516,15 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'ufc-inicio',
-          'Inicio de una liga de la UFC en PorrApp: los combates de la velada, los terminados con cómo acabaron.',
+          'Inicio de una liga de la UFC en PorrApp: los combates de la velada Cortes Acosta vs. Walker con la foto de cada luchador.',
         ),
         appScreen(
           'ufc-jornada',
-          'Cartelera de una velada de la UFC en PorrApp: en cada combate se elige ganador y, si quieres, método.',
+          'Velada de la UFC en PorrApp: en cada combate, como Cortes Acosta contra Walker, se elige ganador y, si quieres, método.',
         ),
         appScreen(
           'ufc-cartelera',
-          'Cartelera estelar de una velada en PorrApp, con tus aciertos, tus puntos y tu predicción de cada pelea.',
+          'Cartelera estelar de una velada de la UFC en PorrApp, con tus aciertos, tus puntos y tu predicción de cada pelea.',
         ),
       ],
     },
@@ -567,11 +571,11 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'nba-inicio',
-          'Inicio de una liga de la NBA en PorrApp: resultados de la noche y los próximos partidos con su hora.',
+          'Inicio de una liga de la NBA en PorrApp: resultados de la semana, como el Pacers 102-114 Nuggets, con el escudo de cada equipo.',
         ),
         appScreen(
           'nba-jornada',
-          'Semana 4 de la NBA en PorrApp: en cada partido se elige qué equipo gana.',
+          'Semana 3 de la NBA en PorrApp: en cada partido, como Pistons-Lakers, se elige qué equipo gana.',
         ),
         appScreen(
           'nba-tabla',
@@ -622,11 +626,11 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'nfl-inicio',
-          'Inicio de una liga de la NFL en PorrApp: resultado del jueves y los partidos del domingo.',
+          'Inicio de una liga de la NFL en PorrApp: resultados de la semana 9, como el Ravens 10-33 Jaguars.',
         ),
         appScreen(
           'nfl-jornada',
-          'Semana 11 de la NFL en PorrApp: en cada partido se elige qué equipo gana.',
+          'Semana 9 de la NFL en PorrApp: en cada partido, como Chargers-Texans, se elige qué equipo gana.',
         ),
         appScreen(
           'nfl-tabla',
@@ -677,15 +681,15 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'tenis-inicio',
-          'Inicio de una liga de tenis en PorrApp: las semifinales del torneo y la clasificación de la liga.',
+          'Inicio de una liga de tenis en PorrApp: las semifinales del Masters de París y la clasificación de la liga.',
         ),
         appScreen(
           'tenis-jornada',
-          'Semifinales de un torneo de tenis en PorrApp: se elige quién gana y, si quieres, el resultado en sets.',
+          'Semifinales del Masters de París en PorrApp: en Van Assche-Shelton se elige quién gana y, si quieres, los sets.',
         ),
         appScreen(
           'tenis-cuadro',
-          'Cuadro de un torneo de tenis en PorrApp: cuartos de final con resultados y las semifinales.',
+          'Cuadro del Masters de París en PorrApp: octavos y cuartos de final con el resultado en sets de cada partido.',
         ),
       ],
     },
@@ -1009,11 +1013,11 @@ export const CONTENT_PAGES: ContentPage[] = [
       shots: [
         appScreen(
           'copa-inicio',
-          'Inicio de una liga de la Copa del Rey en PorrApp: resultados y próximos partidos de octavos.',
+          'Inicio de una liga de la Copa del Rey en PorrApp: los partidos de la primera eliminatoria con su hora.',
         ),
         appScreen(
           'copa-jornada',
-          'Octavos de final de la Copa del Rey en PorrApp, con la predicción 1X2 de cada eliminatoria.',
+          'Primera eliminatoria de la Copa del Rey en PorrApp, con la predicción 1X2 de cada partido.',
         ),
       ],
     },
