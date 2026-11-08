@@ -9,6 +9,7 @@ import {
 } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import { computeCustomGroupTables } from '../utils/customBracket';
+import { isUfcCompetition } from '../utils/fightCard';
 import { KNOCKOUT_ROUNDS, computeSwissStandings } from '../utils/officialTournament';
 import { normalizeCountryName } from '../utils/constants';
 import {
@@ -92,7 +93,10 @@ export function useLeagueHomeData(): LeagueHomeData {
     activeGroupKnockoutDraw,
     activeGroupPicksMatches,
     activeGroupMultiCompetition,
+    activeCompetitionExternalId,
   } = useAppContext();
+  // En la UFC no hay tabla de equipos (los «equipos» son luchadores): su tabla es la cartelera.
+  const ufc = isUfcCompetition(activeCompetitionExternalId);
   // En unas eliminatorias (Champions…) la fase de liga no se pronostica: la portada enseña los cruces.
   const allGames = useMemo(
     () =>
@@ -127,7 +131,8 @@ export function useLeagueHomeData(): LeagueHomeData {
         ? fetchCustomStandings(groupId)
         : fetchCompetitionStandings(activeCompetitionId),
     // Con partidos de varias competiciones, la tabla de una sola no dice nada de la liga.
-    enabled: format === 'matchday' && Boolean(activeCompetitionId) && !activeGroupMultiCompetition,
+    enabled:
+      format === 'matchday' && Boolean(activeCompetitionId) && !activeGroupMultiCompetition && !ufc,
     staleTime: 120_000,
   });
   const { data: customTeams, isLoading: loadingCustomTeams } = useQuery({

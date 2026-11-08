@@ -6,6 +6,8 @@ interface MainNavProps {
   isMatchDayLeague: boolean;
   /** Liga de Fórmula 1: su inicio son los Grandes Premios. */
   isGrandPrixLeague?: boolean;
+  /** Liga de la UFC: su tabla es la cartelera de la velada. */
+  isUfcLeague?: boolean;
   isNavLocked: boolean;
   /** La liga es del Mundial: la única con pestaña de fase de grupos. */
   showGroups?: boolean;
@@ -18,6 +20,7 @@ export default function MainNav({
   isDemo,
   isMatchDayLeague,
   isGrandPrixLeague = false,
+  isUfcLeague = false,
   isNavLocked,
   showGroups = false,
   formatPending = false,
@@ -140,7 +143,7 @@ export default function MainNav({
               onFocus={() => prefetchRoute('/tabla')}
               className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
             >
-              Tabla
+              {isUfcLeague ? 'Cartelera' : 'Tabla'}
             </NavLink>
             <NavLink
               to="/mis-ligas"

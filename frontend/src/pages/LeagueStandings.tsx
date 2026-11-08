@@ -7,6 +7,8 @@ import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings, fetchCustomStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
+import { isUfcCompetition } from '../utils/fightCard';
+import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 
 export default function LeagueStandings() {
   const [showComplete, setShowComplete] = useState(false);
@@ -18,12 +20,15 @@ export default function LeagueStandings() {
     activeCompetitionName,
     activeCompetitionFormatType,
     activeGroupPoolFormat,
+    activeCompetitionExternalId,
     loadingGroup,
     groupError,
   } = useAppContext();
 
   const isMatchDay =
     isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
+  // En la UFC no hay clasificación de equipos: la tabla es la cartelera de cada velada.
+  const isUfc = isUfcCompetition(activeCompetitionExternalId);
 
   const {
     data: standings,
@@ -36,12 +41,13 @@ export default function LeagueStandings() {
       activeGroupCustomCompetition && activeGroupId
         ? fetchCustomStandings(Number(activeGroupId))
         : fetchCompetitionStandings(activeCompetitionId),
-    enabled: Boolean(activeCompetitionId && isMatchDay),
+    enabled: Boolean(activeCompetitionId && isMatchDay && !isUfc),
     staleTime: 120_000,
   });
 
   if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (isGrandPrixFormat(activeGroupPoolFormat)) return <Navigate to="/" replace />;
+  if (isUfc && isMatchDay) return <UfcCardBoard />;
   if (activeCompetitionFormatType && !isMatchDay) {
     return <Navigate to="/bracket" replace />;
   }
