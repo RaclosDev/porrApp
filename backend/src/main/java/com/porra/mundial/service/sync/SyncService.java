@@ -274,13 +274,14 @@ public class SyncService {
     }
 
     /**
-     * Fórmula 1: el Gran Premio en curso o el siguiente, en una consulta. La pasada en directo no lo
-     * mira: un Gran Premio se puntúa entero al acabar la carrera, no hay marcador que seguir.
+     * Fórmula 1: el Gran Premio en curso o el siguiente, en una consulta, y la temporada entera si aún
+     * no está cargada (por ejemplo, si falló la carga al crear la liga). La pasada en directo no lo mira:
+     * un Gran Premio se puntúa entero al acabar la carrera, no hay marcador que seguir.
      */
     private CompetitionSync syncFormulaOne(Competition competition, boolean liveOnly) {
         if (liveOnly) return new CompetitionSync(competition.getName(), STATUS_SUCCESS, 0, 0, null, false, 0);
         try {
-            var result = formulaOneSyncService.syncCurrent(competition);
+            var result = formulaOneSyncService.sync(competition);
             return new CompetitionSync(competition.getName(), STATUS_SUCCESS, result.updated(), 0, null, false, 0);
         } catch (Exception e) {
             log.warn("Falló la sincronización de {}: {}", competition.getName(), e.getMessage());
