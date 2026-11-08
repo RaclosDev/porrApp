@@ -68,6 +68,7 @@ public class DataInitializer implements CommandLineRunner {
         seedCompetitionIfMissing("Premier League", "eng.1", "LEAGUE");
         seedCompetitionIfMissing("Worlds de League of Legends", "lol.worlds", "TOURNAMENT");
         seedCompetitionIfMissing("UFC", UfcDataProvider.COMPETITION_ID, Competition.EVENTS_FORMAT);
+        seedCompetitionIfMissing("NBA", Competition.NBA_EXTERNAL_ID, "TOURNAMENT");
 
         seedWorldCupTeamsIfMissing();
 

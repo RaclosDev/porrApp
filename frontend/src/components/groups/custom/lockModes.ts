@@ -99,6 +99,20 @@ export const DRAWN_KNOCKOUT_LOCK_MODES: LockModeOption[] = [
   },
 ];
 
+/** Playoffs de la NBA: cada serie se abre al conocerse sus dos equipos y se cierra al empezar. */
+export const SERIES_LOCK_MODES: LockModeOption[] = [
+  {
+    value: 'PER_MATCH',
+    label: 'Por series',
+    hint: 'Cada serie se cierra al empezar su primer partido. Las demás se pueden cambiar hasta entonces.',
+  },
+  {
+    value: 'PER_ROUND',
+    label: 'Por rondas',
+    hint: 'Todas las series de una ronda se cierran al empezar la primera.',
+  },
+];
+
 export const SINGLE_LOCK_MODES = BRACKET_LOCK_MODES.filter(
   (item) => item.value === 'FIXED_DATE' || item.value === 'FIRST_MATCH',
 );

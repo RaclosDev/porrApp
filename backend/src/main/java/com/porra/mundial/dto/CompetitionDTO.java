@@ -30,7 +30,8 @@ public record CompetitionDTO(Long id, String name, String externalId, String for
         return new CompetitionDTO(competition.getId(), competition.getName(),
                 competition.getExternalId(), competition.getFormatType(),
                 Sport.ofExternalId(competition.getExternalId()),
-                imported && calendar.unfinished() == 0,
+                // La NBA vuelve cada año: con los últimos playoffs ya jugados se espera a los siguientes.
+                imported && calendar.unfinished() == 0 && !competition.playsSeries(),
                 imported ? calendar.groupMatches() > 0 : null,
                 competition.drawsKnockoutRounds());
     }

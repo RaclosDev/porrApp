@@ -73,7 +73,7 @@ describe('liga de la UFC en el asistente', () => {
 
   it('puntúa ganador, método y asalto en vez del 1X2', () => {
     expect(
-      scoringSections('MATCH_DAY', false, false, false, true).map((section) => section.id),
+      scoringSections('MATCH_DAY', false, false, false, false, true).map((section) => section.id),
     ).toEqual(['fights']);
     expect(scoringSections('MATCH_DAY', false).map((section) => section.id)).toEqual(['matches']);
   });
