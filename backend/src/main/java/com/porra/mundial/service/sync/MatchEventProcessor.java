@@ -1,5 +1,6 @@
 package com.porra.mundial.service.sync;
 
+import com.porra.mundial.sports.NflSchedule;
 import com.porra.mundial.service.prediction.MatchPredictionService;
 import com.porra.mundial.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -210,6 +211,9 @@ public class MatchEventProcessor {
         Team awayTeam = resolveTeam(away, cache, batch);
         // Huecos del calendario sin ningún rival conocido: no se guardan.
         if (Team.isPlaceholder(homeTeam) && Team.isPlaceholder(awayTeam)) return;
+        boolean nfl = batch.competition != null && NflSchedule.isNfl(batch.competition.getExternalId());
+        // Pretemporada y Pro Bowl no se pronostican.
+        if (nfl && NflSchedule.isExcluded(event)) return;
 
         MatchStatus status = parseStatus(competition);
         Scores scores = parseScores(competition, home, away, homeTeam, awayTeam, status);
@@ -217,7 +221,9 @@ public class MatchEventProcessor {
         JsonNode fight = event.path("ufc").isObject() ? event.path("ufc") : null;
         MatchMetadata metadata = fight != null
                 ? new MatchMetadata(null, fight.path("eventName").asText(null))
-                : parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
+                : nfl
+                        ? new MatchMetadata(null, NflSchedule.roundLabel(event))
+                        : parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fight != null ? new int[]{0, 0} : fairPlayPoints(competition, home, away, homeTeam, awayTeam);
 
         upsertMatch(eventId, homeTeam, awayTeam, scores, fairPlay, parseDate(event.path("date").asText(null)),

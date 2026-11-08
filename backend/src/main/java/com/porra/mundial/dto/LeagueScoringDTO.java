@@ -1,6 +1,7 @@
 package com.porra.mundial.dto;
 
 import com.porra.mundial.model.Edition;
+import com.porra.mundial.model.Sport;
 import com.porra.mundial.scoring.ScoringRuleSet;
 
 /**
@@ -15,6 +16,7 @@ import com.porra.mundial.scoring.ScoringRuleSet;
  * @param defaults   reglas por defecto
  * @param knockoutDraw eliminatorias sorteadas ronda a ronda: los puntos son por eliminatoria acertada en cada ronda
  * @param fights     liga de la UFC: se puntúan el ganador, el método y el asalto de cada pelea
+ * @param sport      deporte de la competición principal ({@code Sport}): en la NFL se acierta el ganador, sin empate
  */
 public record LeagueScoringDTO(
         String poolFormat,
@@ -24,7 +26,8 @@ public record LeagueScoringDTO(
         ScoringRuleSet rules,
         ScoringRuleSet defaults,
         boolean knockoutDraw,
-        boolean fights) {
+        boolean fights,
+        String sport) {
 
     @com.fasterxml.jackson.annotation.JsonProperty("matchSignOnly")
     public boolean matchSignOnly() {
@@ -40,6 +43,8 @@ public record LeagueScoringDTO(
                 ScoringRuleSet.forEdition(edition),
                 ScoringRuleSet.defaultWorldCup2026(),
                 com.porra.mundial.service.prediction.DrawnKnockout.applies(edition),
-                com.porra.mundial.model.Sport.isMma(edition.getCompetition()));
+                Sport.isMma(edition.getCompetition()),
+                edition.getCompetition() != null
+                        ? Sport.ofExternalId(edition.getCompetition().getExternalId()).name() : null);
     }
 }

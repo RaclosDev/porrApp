@@ -490,4 +490,29 @@ class MatchPredictionServiceTest {
         assertFalse(result.get(1).isHasPredicted());
         verify(matchPredictionRepository, never()).findByMatchId(any());
     }
+
+    @Test
+    @DisplayName("En la NFL se predice el ganador: la X (o un marcador empatado) se rechaza y el partido lleva su deporte")
+    void nflMatchesDoNotAcceptADraw() {
+        Competition nfl = Competition.builder().id(2L).externalId("nfl").build();
+        edition.setCompetition(nfl);
+        futureMatch.setCompetition(nfl);
+        futureMatch.setRound("Semana 10");
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
+        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch));
+
+        BusinessException draw = assertThrows(BusinessException.class, () -> matchPredictionService.saveMatchdayPredictions(
+                "player@test.com", 10L, List.of(MatchPredictionItemDTO.builder().matchId(101L).sign("X").build())));
+        assertTrue(draw.getMessage().contains("no hay empate"));
+        assertThrows(BusinessException.class, () -> matchPredictionService.saveMatchdayPredictions("player@test.com", 10L,
+                List.of(MatchPredictionItemDTO.builder().matchId(101L).homeScore(20).awayScore(20).build())));
+
+        assertEquals(1, matchPredictionService.saveMatchdayPredictions("player@test.com", 10L,
+                List.of(MatchPredictionItemDTO.builder().matchId(101L).sign("2").build())));
+        assertEquals("AMERICAN_FOOTBALL",
+                matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null).get(0).getSport());
+    }
 }

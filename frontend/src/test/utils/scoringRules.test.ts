@@ -12,6 +12,12 @@ const keysOf = (format: Parameters<typeof scoringSections>[0], pichichi: boolean
   scoringSections(format, pichichi).flatMap((section) => section.fields.map((field) => field.key));
 
 describe('scoringRules', () => {
+  it('en la NFL cada partido solo puntúa el ganador', () => {
+    expect(
+      scoringSections('MATCH_DAY', false, false, true).flatMap((s) => s.fields.map((f) => f.key)),
+    ).toEqual(['correctSignPoints']);
+  });
+
   it('cada formato muestra sus reglas', () => {
     expect(keysOf('MATCH_DAY', true)).toEqual([
       'exactScorePoints',
@@ -31,7 +37,7 @@ describe('scoringRules', () => {
     const shown = new Set([
       ...keysOf('FULL_BRACKET', true),
       ...keysOf('MATCH_DAY', true),
-      ...scoringSections('MATCH_DAY', false, false, true).flatMap((section) =>
+      ...scoringSections('MATCH_DAY', false, false, false, true).flatMap((section) =>
         section.fields.map((field) => field.key),
       ),
       ...keysOf('SURVIVOR', false),

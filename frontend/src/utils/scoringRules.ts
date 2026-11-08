@@ -55,6 +55,19 @@ const FIGHTS: ScoringSection = {
   ],
 };
 
+/** NFL: se predice quién gana, sin marcador ni empate. */
+const WINNER_MATCHDAY: ScoringSection = {
+  id: 'matches',
+  title: 'Cada partido',
+  fields: [
+    {
+      key: 'correctSignPoints',
+      label: 'Ganador acertado',
+      hint: 'Aciertas quién gana el partido. Si acaba en empate, no suma nadie.',
+    },
+  ],
+};
+
 const GROUPS: ScoringSection = {
   id: 'groups',
   title: 'Fase de grupos',
@@ -171,15 +184,17 @@ const DRAWN_KNOCKOUTS: ScoringSection = {
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
  * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
- * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi.
+ * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi. En la NFL
+ * (`winnerOnly`) cada partido puntúa solo el ganador.
  */
 export function scoringSections(
   format: PoolFormat | null,
   pichichi: boolean,
   knockoutDraw = false,
+  winnerOnly = false,
   fights = false,
 ): ScoringSection[] {
-  if (format === 'MATCH_DAY') return [fights ? FIGHTS : MATCHDAY];
+  if (format === 'MATCH_DAY') return [fights ? FIGHTS : winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];

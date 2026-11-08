@@ -232,6 +232,7 @@ export default function LeagueHomeDashboard() {
     userId,
     isAuthenticated,
     activeGroupPoolFormat,
+    activeGroupWinnerOnly,
     loading: loadingOfficialData,
     loadingLeaderboard,
   } = useAppContext();
@@ -253,7 +254,7 @@ export default function LeagueHomeDashboard() {
     activeGroupId,
     matches.items.map((match) => match.id).filter(Boolean),
   );
-  const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY';
+  const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY' || activeGroupWinnerOnly;
   // Quién ya ha hecho su predicción en la jornada: solo las ligas por jornadas y solo el quién.
   const participants = useRoundParticipants(
     activeGroupId,

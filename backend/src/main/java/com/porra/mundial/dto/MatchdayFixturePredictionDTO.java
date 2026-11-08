@@ -28,6 +28,8 @@ public class MatchdayFixturePredictionDTO {
     private String groupName;
     /** Competición del partido, solo en las ligas que juntan varias. */
     private String competitionName;
+    /** Deporte del partido ({@code Sport}): en los que no admiten empate no se ofrece la X. */
+    private String sport;
     private Boolean finished;
     private String status;
     private Integer actualHomeScore;

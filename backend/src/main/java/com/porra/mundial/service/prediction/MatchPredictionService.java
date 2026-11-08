@@ -197,6 +197,8 @@ public class MatchPredictionService {
                     .groupName(multiCompetition ? null : match.getGroupName())
                     .competitionName(multiCompetition && match.getCompetition() != null
                             ? match.getCompetition().getName() : null)
+                    .sport(match.getCompetition() != null
+                            ? Sport.ofExternalId(match.getCompetition().getExternalId()).name() : null)
                     .finished(match.getFinished())
                     .status(match.getStatus() != null ? match.getStatus().name() : null)
                     .actualHomeScore(match.getHomeScore())
@@ -389,6 +391,9 @@ public class MatchPredictionService {
             }
             if (!Set.of("1", "X", "2").contains(sign == null ? "" : sign)) {
                 throw BusinessException.badRequest("La predicción debe incluir un marcador completo o un signo 1, X o 2.");
+            }
+            if ("X".equals(sign) && !Sport.allowsDraws(match)) {
+                throw BusinessException.badRequest("En este deporte se predice quién gana: no hay empate.");
             }
             if (survivor) {
                 if (item.getHomeScore() != null || "X".equals(sign)) {

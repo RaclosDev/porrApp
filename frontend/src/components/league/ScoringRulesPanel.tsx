@@ -1,5 +1,6 @@
 import type { LeagueScoring, ScoringRuleKey } from '../../types/api';
 import { scoringFieldError, scoringSections, type ScoringDraft } from '../../utils/scoringRules';
+import { allowsDraw } from '../../utils/matchday';
 
 /** Cómo se juega superviviente con las vidas y la regla del empate de esta liga. */
 function survivorRules(lives: number, drawSurvives: boolean) {
@@ -28,10 +29,12 @@ export default function ScoringRulesPanel({
 }) {
   const editing = Boolean(draft && onChange);
   const signOnly = scoring.matchSignOnly ?? true;
+  const winnerOnly = !allowsDraw(scoring.sport);
   const sections = scoringSections(
     scoring.poolFormat,
     scoring.pichichi,
     scoring.knockoutDraw,
+    winnerOnly,
     scoring.fights,
   );
   const current = (key: ScoringRuleKey) =>
@@ -53,7 +56,7 @@ export default function ScoringRulesPanel({
           y, si cambia un rival, la predicción de esa pelea se anula y se avisa.
         </p>
       )}
-      {scoring.poolFormat === 'MATCH_DAY' && signOnly && !scoring.fights && (
+      {scoring.poolFormat === 'MATCH_DAY' && signOnly && !winnerOnly && (
         <p className="scoring-row-hint">
           Provisionalmente solo puntúa el signo 1X2. El resultado exacto y la diferencia de goles
           están pausados; sus valores se conservan para reactivarlos más adelante.
