@@ -300,6 +300,23 @@ class CustomCompetitionServiceTest {
     }
 
     @Test
+    void aFixedDeadlineCannotFallAfterTheFirstMatchOfAnOfficialBracket() {
+        League league = competition.getOwnerLeague();
+        Edition edition = Edition.builder().league(league).competition(competition)
+                .poolFormat(com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY).build();
+        when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(edition));
+        Instant firstMatch = Instant.parse("2099-11-03T22:00:00Z");
+        when(lockService.bracketClosesAt(edition)).thenReturn(firstMatch);
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.setLockConfig(leagueId,
+                "admin@example.com", PredictionLockMode.FIXED_DATE, 0, firstMatch.plus(1, ChronoUnit.HOURS)));
+        assertTrue(error.getMessage().contains("anterior al primer cruce (3/11/2099 23:00)"), error.getMessage());
+
+        service.setLockConfig(leagueId, "admin@example.com", PredictionLockMode.FIXED_DATE, 0, firstMatch);
+        assertEquals(firstMatch, edition.getLockDate());
+    }
+
+    @Test
     void resultUpdatesMatchAndInvalidatesScores() {
         Team home = Team.builder().name("Azules").competition(competition).build();
         Team away = Team.builder().name("Rojos").competition(competition).build();
