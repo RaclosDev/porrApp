@@ -75,7 +75,7 @@ function LeagueImageField({ draft, update }: Pick<StepProps, 'draft' | 'update'>
           )}
         </div>
         <p id="cl-image-hint" className="create-league-hint">
-          Opcional. JPG, PNG o WebP; se recorta en cuadrado. Sin imagen, la liga lleva su inicial.
+          Opcional. JPG, PNG o WebP.
         </p>
         {error && (
           <p className="create-league-error" role="alert">
@@ -99,7 +99,7 @@ export default function IdentityStep({ draft, update, errors }: StepProps) {
           value={draft.name}
           maxLength={NAME_MAX}
           autoComplete="off"
-          placeholder="Ej.: Amigos del barrio, Porra de la oficina"
+          placeholder="Ej.: Porra de la oficina"
           onChange={(event) => update({ name: event.target.value })}
           aria-invalid={Boolean(errors.name)}
           aria-describedby={['cl-name-count', errors.name ? errorId(FIELD_IDS.name) : '']
@@ -116,11 +116,12 @@ export default function IdentityStep({ draft, update, errors }: StepProps) {
         <LeagueImageField draft={draft} update={update} />
       </StepSection>
 
-      <StepSection id="cl-rules-section" title="Normas de la liga">
+      <StepSection id="cl-rules-section" title="Normas">
         <div className="create-league-field">
           <label htmlFor={FIELD_IDS.rules} className="create-league-hint">
-            Opcional. Plazos, desempates o premios; las ven todos los participantes.
-            {draft.entryFee && ' Apunta aquí cuánto es la cuota y cómo se paga.'}
+            {draft.entryFee
+              ? 'Opcional. Cuota, cómo se paga y premios.'
+              : 'Opcional. Premios, desempates o plazos.'}
           </label>
           <textarea
             id={FIELD_IDS.rules}
@@ -128,7 +129,7 @@ export default function IdentityStep({ draft, update, errors }: StepProps) {
             value={draft.rules}
             maxLength={RULES_MAX}
             rows={5}
-            placeholder="Ej.: Cuota de 10 € por Bizum a Ana antes del primer partido. Premios: 60 % al primero, 30 % al segundo y 10 % al tercero."
+            placeholder="Ej.: 10 € por Bizum a Ana. 60 % al primero, 30 % al segundo, 10 % al tercero."
             onChange={(event) => update({ rules: event.target.value })}
             aria-invalid={Boolean(errors.rules)}
             aria-describedby={errors.rules ? errorId(FIELD_IDS.rules) : undefined}

@@ -23,7 +23,8 @@ describe('paso de la competición del asistente', () => {
       />,
     );
 
-    expect(screen.getByText('Gran Premio a Gran Premio')).toBeInTheDocument();
+    // Un solo grupo: su título sobra.
+    expect(screen.queryByText('Gran Premio a Gran Premio')).not.toBeInTheDocument();
     expect(screen.queryByText('LaLiga')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('radio', { name: /Fórmula 1/ }));
     expect(update).toHaveBeenCalledWith({ custom: false, competitionId: 46 });

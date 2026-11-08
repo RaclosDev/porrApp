@@ -189,7 +189,7 @@ describe('CustomCompetitionEditor', () => {
     setup();
 
     expect(
-      await screen.findByText(/Puedes cambiar el criterio aunque ya haya predicciones/),
+      await screen.findByText(/Si retrasas el cierre, lo cerrado se vuelve a abrir/),
     ).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('radio', { name: 'Por partidos' }));
     fireEvent.change(screen.getByLabelText('Margen antes del partido'), { target: { value: '2' } });

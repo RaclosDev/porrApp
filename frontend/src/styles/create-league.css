@@ -10,21 +10,8 @@
     padding-bottom: 32px;
   }
 
-  /* En móvil los enlaces van siempre bajo el título: así no saltan al aparecer «Empezar de nuevo». */
   .create-league-header {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
     margin-bottom: 10px;
-  }
-
-  @media (min-width: 640px) {
-    .create-league-header {
-      flex-direction: row;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 16px;
-    }
   }
 
   .create-league-progress {
@@ -32,12 +19,6 @@
     color: var(--text-muted);
     font-size: 0.85rem;
     font-weight: 600;
-  }
-
-  .create-league-header-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 14px;
   }
 
   .create-league-link {
@@ -54,10 +35,6 @@
     text-decoration: underline;
     text-underline-offset: 3px;
     cursor: pointer;
-  }
-
-  .create-league-link.is-dark {
-    color: var(--accent-text);
   }
 
   .create-league-link:focus-visible {
@@ -232,6 +209,20 @@
     gap: 8px;
   }
 
+  /* Opciones de una palabra (el deporte): dos por fila en el móvil; la que lleva texto, a lo ancho. */
+  .create-league-options.is-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  }
+
+  .create-league-options.is-tiles .create-league-option {
+    gap: 10px;
+    padding-inline: 12px;
+  }
+
+  .create-league-options.is-tiles .create-league-option:not(.is-compact) {
+    grid-column: 1 / -1;
+  }
+
   .create-league-options.is-row {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
     margin-bottom: 12px;
@@ -249,6 +240,14 @@
     color: var(--ink);
     cursor: pointer;
     transition: border-color 0.15s ease;
+  }
+
+  .create-league-option.is-compact {
+    align-items: center;
+  }
+
+  .create-league-option.is-compact input {
+    margin-top: 0;
   }
 
   .create-league-option:hover {
@@ -482,6 +481,12 @@
     gap: 10px;
     padding-top: 16px;
     border-top: 1.5px solid var(--ink);
+  }
+
+  /* Empezar de nuevo: secundario, bajo los botones de avanzar. */
+  .create-league-restart {
+    align-self: center;
+    margin-top: -10px;
   }
 
   .create-league-nav-btn {

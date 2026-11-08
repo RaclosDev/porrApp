@@ -11,22 +11,22 @@ export const BRACKET_LOCK_MODES: LockModeOption[] = [
   {
     value: 'FIXED_DATE',
     label: 'En una fecha fija',
-    hint: 'Todas las predicciones se cierran a la vez en la fecha que elijas.',
+    hint: 'Todo se cierra a la vez en la fecha que elijas.',
   },
   {
     value: 'FIRST_MATCH',
     label: 'Al empezar el primer partido',
-    hint: 'Todo se cierra a la vez cuando empieza el primer partido, o antes si pones margen. Sigue al calendario aunque cambies partidos.',
+    hint: 'Todo se cierra a la vez con el primer partido.',
   },
   {
     value: 'PER_ROUND',
     label: 'Por rondas',
-    hint: 'Cada grupo y cada ronda del cuadro se cierran al empezar su primer partido. El resto se puede cambiar hasta entonces.',
+    hint: 'Cada grupo y cada ronda se cierran al empezar su primer partido.',
   },
   {
     value: 'PER_MATCH',
     label: 'Por partidos',
-    hint: 'Cada cruce se cierra al empezar ese partido; cada grupo, al empezar su primer partido.',
+    hint: 'Cada cruce se cierra al empezar; cada grupo, con su primer partido.',
   },
 ];
 
@@ -35,17 +35,17 @@ const MATCHDAY_LOCK_MODES: LockModeOption[] = [
   {
     value: 'PER_MATCH',
     label: 'Cada partido',
-    hint: 'Cada partido se cierra al empezar, o antes si pones margen.',
+    hint: 'Cada partido se cierra al empezar.',
   },
   {
     value: 'PER_DAY',
     label: 'Por días',
-    hint: 'Todos los partidos de un mismo día se cierran al empezar el primero de ese día. Con 1 día de margen, se cierran la víspera.',
+    hint: 'Los partidos de cada día se cierran con el primero del día.',
   },
   {
     value: 'PER_ROUND',
     label: 'Por jornadas',
-    hint: 'Toda la jornada se cierra al empezar su primer partido, o antes si pones margen.',
+    hint: 'Toda la jornada se cierra con su primer partido.',
   },
 ];
 
@@ -58,7 +58,7 @@ const MULTI_COMPETITION_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((
     ? {
         ...item,
         label: 'Por semanas',
-        hint: 'Toda la semana, de lunes a domingo, se cierra al empezar su primer partido, sea de la competición que sea, o antes si pones margen.',
+        hint: 'Toda la semana, de lunes a domingo, se cierra con su primer partido.',
       }
     : item,
 );
@@ -71,12 +71,12 @@ export const FIGHT_NIGHT_LOCK_MODES: LockModeOption[] = [
   {
     value: 'PER_ROUND',
     label: 'Al empezar la velada',
-    hint: 'Todas las peleas se cierran cuando empiezan los primeros preliminares, o antes si pones margen.',
+    hint: 'Todas las peleas se cierran al empezar los preliminares.',
   },
   {
     value: 'PER_MATCH',
     label: 'Por bloques',
-    hint: 'Cada pelea se cierra al empezar su bloque: preliminares o cartelera estelar.',
+    hint: 'Cada pelea se cierra al empezar su bloque: preliminares o estelar.',
   },
 ];
 
@@ -86,7 +86,7 @@ const NBA_WEEK_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((item) =>
     ? {
         ...item,
         label: 'Por semanas',
-        hint: 'Toda la semana, de lunes a domingo, se cierra al empezar su primer partido, o antes si pones margen.',
+        hint: 'Toda la semana, de lunes a domingo, se cierra con su primer partido.',
       }
     : item,
 );
@@ -97,7 +97,7 @@ const NFL_WEEK_LOCK_MODES: LockModeOption[] = MATCHDAY_LOCK_MODES.map((item) =>
     ? {
         ...item,
         label: 'Por semanas',
-        hint: 'Toda la semana, del jueves al lunes, se cierra al empezar su primer partido, o antes si pones margen.',
+        hint: 'Toda la semana, de jueves a lunes, se cierra con su primer partido.',
       }
     : item,
 );
@@ -138,7 +138,7 @@ export const SERIES_LOCK_MODES: LockModeOption[] = [
   {
     value: 'PER_MATCH',
     label: 'Por series',
-    hint: 'Cada serie se cierra al empezar su primer partido. Las demás se pueden cambiar hasta entonces.',
+    hint: 'Cada serie se cierra al empezar su primer partido.',
   },
   {
     value: 'PER_ROUND',

@@ -34,7 +34,7 @@ for (const width of [390, 1440]) {
     await page.goto('/grupos');
     await page.getByRole('button', { name: 'Reglas', exact: true }).click();
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByText(/Provisionalmente solo puntúa el signo 1X2/)).toBeVisible();
+    await expect(dialog.getByText(/Por ahora solo puntúa el 1X2/)).toBeVisible();
     await expect(dialog.getByText('Pausado', { exact: true })).toHaveCount(2);
     await expect(dialog.getByText('Signo 1X2', { exact: true })).toBeVisible();
     expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(

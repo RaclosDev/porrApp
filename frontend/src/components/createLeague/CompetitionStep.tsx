@@ -25,34 +25,26 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
     {
       id: 'leagues',
       title: weeks ? 'Por semanas' : 'Por jornadas',
-      hint: basketball
-        ? 'Se juega semana a semana, de octubre a abril.'
-        : weeks
-          ? 'Se juega semana a semana, de septiembre a la Super Bowl.'
-          : 'Se juegan jornada a jornada durante la temporada.',
       items: official.filter((item) => item.formatType === 'LEAGUE'),
     },
     {
       id: 'tournaments',
-      title: 'Con cuadro',
-      hint: basketball
-        ? 'Eliminatorias al mejor de siete: se pronostica serie a serie.'
-        : 'Torneos con eliminatorias: también se pueden jugar por jornadas.',
+      title: basketball ? 'Playoffs' : 'Con cuadro',
       items: official.filter((item) => item.formatType === 'TOURNAMENT'),
     },
     {
       id: 'events',
       title: 'Por veladas',
-      hint: 'Cada velada es una cartelera de peleas: numeradas y Fight Night.',
       items: official.filter((item) => item.formatType === 'EVENTS'),
     },
     {
       id: 'races',
       title: 'Gran Premio a Gran Premio',
-      hint: 'En cada Gran Premio se predicen el podio, la pole y la vuelta rápida.',
       items: official.filter((item) => item.formatType === 'RACE'),
     },
   ].filter((group) => group.items.length > 0);
+  // Con un solo grupo y sin competición propia (la F1, la UFC), su título sobra.
+  const showTitles = groups.length > 1 || allowsCustomCompetition(draft.sport);
 
   const nameField = (
     <div className="create-league-field">
@@ -76,17 +68,7 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
     return <TennisTournamentPicker draft={draft} update={update} errors={errors} ctx={ctx} />;
   }
 
-  if (draft.sport === 'OTHER') {
-    return (
-      <>
-        <p className="create-league-hint">
-          Tu competición será personalizada: después de crear la liga añades tú los equipos, los
-          partidos y los resultados.
-        </p>
-        {nameField}
-      </>
-    );
-  }
+  if (draft.sport === 'OTHER') return nameField;
 
   return (
     <>
@@ -98,8 +80,7 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
         <legend className="sr-only">Competición</legend>
         {groups.map((group) => (
           <div key={group.id} className="create-league-group">
-            <h3 className="create-league-section-title">{group.title}</h3>
-            <p className="create-league-hint">{group.hint}</p>
+            {showTitles && <h3 className="create-league-section-title">{group.title}</h3>}
             <div className="create-league-options">
               {group.items.map((competition) => (
                 <OptionCard
@@ -125,7 +106,7 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
                 checked={draft.custom}
                 onChange={() => update({ custom: true })}
                 title="Competición personalizada"
-                description="El torneo del barrio, de la oficina o del pueblo. Después de crear la liga añades tú los equipos, los partidos y los resultados."
+                description="Tú pones los equipos, los partidos y los resultados."
               />
             </div>
           </div>

@@ -70,12 +70,13 @@ export default function ActiveLeagueDropdown() {
     return <span className="chrome-placeholder w-50 h-11" aria-hidden="true" />;
   }
 
+  // Sin ligas va a Mis ligas, que ofrece crear y unirse; el asistente de crear liga solo crea.
   if (isAuthenticated && (!userGroups || userGroups.length === 0)) {
     return (
       <button
         type="button"
         id="btn-active-league-dropdown"
-        onClick={() => navigate('/crear-liga')}
+        onClick={() => navigate('/mis-ligas')}
         className="glass-btn flex items-center gap-1.5 py-1 px-2.5 min-h-11 rounded-[10px] border-dashed cursor-pointer text-[0.82rem]"
         title="Crear o unirse a una liga"
       >
@@ -184,18 +185,27 @@ export default function ActiveLeagueDropdown() {
             )}
           </div>
 
-          <div className="border-t border-t-line pt-1.5 mt-1">
-            <button
-              className="glass-btn w-full py-2 px-2.5 rounded-[8px] border-dashed text-[0.82rem] cursor-pointer flex items-center justify-center gap-1.5"
-              type="button"
-              onClick={() => {
-                setIsOpen(false);
-                // Sin sesión, Mis ligas pide iniciarla antes de crear o unirse.
-                navigate(isAuthenticated ? '/crear-liga' : '/mis-ligas');
-              }}
-            >
-              <span>Crear o unirse a una liga</span>
-            </button>
+          {/* Sin sesión, Mis ligas pide iniciarla antes de crear o unirse. */}
+          <div className="border-t border-t-line pt-1.5 mt-1 grid grid-cols-2 gap-1.5">
+            {[
+              { label: 'Crear liga', to: isAuthenticated ? '/crear-liga' : '/mis-ligas' },
+              {
+                label: 'Unirse con código',
+                to: isAuthenticated ? '/mis-ligas?unirse' : '/mis-ligas',
+              },
+            ].map(({ label, to }) => (
+              <button
+                key={label}
+                className="glass-btn py-2 px-2.5 rounded-[8px] border-dashed text-[0.82rem] cursor-pointer flex items-center justify-center"
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate(to);
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       )}

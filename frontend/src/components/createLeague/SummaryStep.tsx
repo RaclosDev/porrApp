@@ -53,7 +53,7 @@ function describeScoring(draft: LeagueDraft, ctx: DraftContext) {
       rules?.survivorDrawSurvives === 1 ? 'el empate salva' : 'el empate elimina',
     ].join(', ');
   }
-  const base = rules ? 'Personalizada' : 'La de siempre';
+  const base = rules ? 'Personalizada' : 'Por defecto';
   return pichichiApplies(draft, ctx) && draft.pichichi ? `${base}, con pichichi` : base;
 }
 
