@@ -20,6 +20,9 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long>,
     @Override
     Optional<UserAccount> findByGoogleEmail(String googleEmail);
 
+    /** Si el email ya es de alguna cuenta, sin distinguir mayúsculas. */
+    boolean existsByGoogleEmailIgnoreCase(String googleEmail);
+
     Optional<UserAccount> findByParticipantName(String participantName);
 
     /** Cuentas sin iniciar ni refrescar sesión desde {@code cutoff}. */

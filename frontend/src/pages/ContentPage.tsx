@@ -31,7 +31,7 @@ export default function ContentPage({ page }: ContentPageProps) {
         <p className="text-[#1f2937] text-lg max-w-160 leading-snug">{page.lede}</p>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
-            Crear mi liga con Google
+            Crear mi liga
           </button>
           <Link to="/demo" className="landing-btn">
             Ver una porra de ejemplo

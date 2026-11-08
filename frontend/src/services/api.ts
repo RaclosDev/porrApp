@@ -14,6 +14,8 @@ export {
   loginWithGoogle,
   startPasskeyLogin,
   loginWithPasskey,
+  loginWithPassword,
+  registerWithPassword,
 } from './http';
 export * from './endpoints/tournament';
 export * from './endpoints/predictions';

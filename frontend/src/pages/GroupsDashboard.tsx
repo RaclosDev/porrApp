@@ -6,6 +6,7 @@ import LeagueRulesModal from '../components/LeagueRulesModal';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import type { CredentialResponse } from '@react-oauth/google';
 import GoogleSignInButton from '../components/GoogleSignInButton';
+import EmailSignInForm from '../components/EmailSignInForm';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
 import GroupCard from '../components/groups/GroupCard';
@@ -105,6 +106,9 @@ export default function GroupsDashboard() {
             shape="rectangular"
             text="continue_with"
           />
+        </div>
+        <div className="mt-5">
+          <EmailSignInForm />
         </div>
       </div>
     );

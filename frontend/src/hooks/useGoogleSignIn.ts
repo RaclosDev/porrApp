@@ -4,6 +4,8 @@ import type { CredentialResponse } from '@react-oauth/google';
 import {
   loginWithGoogle,
   loginWithPasskey,
+  loginWithPassword,
+  registerWithPassword,
   setAuthToken,
   startPasskeyLogin,
 } from '../services/api';
@@ -14,7 +16,7 @@ import { getPasskey, isPasskeyCancel } from '../utils/webauthn';
 import { markPasskeyPromptAnswered } from '../utils/passkeyPrompt';
 
 /**
- * Tras un inicio de sesión correcto (con Google o con llave de acceso): guarda el access token,
+ * Tras un inicio de sesión correcto (con Google, contraseña o llave de acceso): guarda el access token,
  * rellena el store y lleva a "Mis ligas" si el usuario aún no ha elegido ninguna.
  */
 function completeSignIn(
@@ -89,5 +91,23 @@ export function usePasskeySignIn({ navigateAfterLogin = true } = {}) {
       }
       return false;
     }
+  };
+}
+
+export type EmailSignInMode = 'login' | 'register';
+
+/**
+ * Entra o crea una cuenta con email y contraseña, sin Google. Si falla lanza el error con el
+ * mensaje del servidor, para que el formulario lo muestre junto a los campos.
+ */
+export function useEmailSignIn({ navigateAfterLogin = true } = {}) {
+  const navigate = useNavigate();
+
+  return async (mode: EmailSignInMode, email: string, password: string): Promise<void> => {
+    const data =
+      mode === 'register'
+        ? await registerWithPassword(email, password)
+        : await loginWithPassword(email, password);
+    completeSignIn(data, navigate, navigateAfterLogin);
   };
 }

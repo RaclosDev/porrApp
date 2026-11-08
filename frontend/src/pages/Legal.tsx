@@ -52,9 +52,13 @@ function PrivacyContent() {
       <h2>Qué datos tratamos</h2>
       <ul>
         <li>
-          De tu cuenta de Google: email e identificador de cuenta. Tu nombre de Google solo se usa
-          para proponerte el nombre público al registrarte y no se guarda. Nunca recibimos tu
-          contraseña.
+          Si entras con Google: email e identificador de tu cuenta de Google. Tu nombre de Google
+          solo se usa para proponerte el nombre público al registrarte y no se guarda. Nunca
+          recibimos tu contraseña de Google.
+        </li>
+        <li>
+          Si te registras con email: tu email y un resumen cifrado (hash) de tu contraseña, del que
+          no se puede sacar la contraseña.
         </li>
         <li>El nombre público y la foto de perfil que elijas.</li>
         <li>

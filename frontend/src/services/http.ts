@@ -365,6 +365,15 @@ export function loginWithGoogle(credential: string): Promise<LoginResponse> {
   return login('/auth/google/login', { credential }, 'Error al iniciar sesión con Google');
 }
 
+/** Crea una cuenta con email y contraseña, sin Google, y guarda el access token. */
+export function registerWithPassword(email: string, password: string): Promise<LoginResponse> {
+  return login('/auth/password/register', { email, password }, 'No se ha podido crear la cuenta');
+}
+
+/** Inicia sesión con email y contraseña y guarda el access token. */
+export function loginWithPassword(email: string, password: string): Promise<LoginResponse> {
+  return login('/auth/password/login', { email, password }, 'No se ha podido iniciar sesión');
+}
 /** Reto para entrar con una llave de acceso: el dispositivo ofrecerá las que tenga guardadas. */
 export function startPasskeyLogin(): Promise<{ requestId: string; options: BrowserOptions }> {
   return request(
