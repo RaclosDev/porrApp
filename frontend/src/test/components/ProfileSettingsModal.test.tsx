@@ -18,14 +18,12 @@ vi.mock('../../services/api', () => ({
   startPasskeyRegistration: vi.fn(),
   finishPasskeyRegistration: vi.fn(),
   deletePasskey: vi.fn(),
-  fetchPushConfig: vi
-    .fn()
-    .mockResolvedValue({
-      publicKey: null,
-      remindersEnabled: true,
-      memberJoinedEnabled: true,
-      matchdayFinishedEnabled: true,
-    }),
+  fetchPushConfig: vi.fn().mockResolvedValue({
+    publicKey: null,
+    remindersEnabled: true,
+    memberJoinedEnabled: true,
+    matchdayFinishedEnabled: true,
+  }),
   setPushPreferences: vi.fn(),
 }));
 
