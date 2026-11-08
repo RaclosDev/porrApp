@@ -129,6 +129,8 @@ interface CustomLockState {
   nextLockAt: string | null;
   /** Eliminatorias sorteadas ronda a ronda: sus rondas y cruces; null en el resto. */
   knockoutRounds?: KnockoutRound[] | null;
+  /** Playoffs de la NBA aún sin series: cuándo empiezan (el play-in), si se sabe. */
+  playoffsStart?: string | null;
 }
 
 /** Cruce de unas eliminatorias sorteadas: el local es el de la ida; `winner`, quién pasa. */
@@ -138,6 +140,8 @@ export interface KnockoutTie {
   winner: string | null;
   /** Sus partidos (ida y vuelta, o uno solo), por fecha. */
   matchIds: number[];
+  /** En la NBA, la conferencia de la serie: «E» o «W» (null en las Finales). */
+  conference?: string | null;
 }
 
 /** Ronda de unas eliminatorias sorteadas ronda a ronda («playoff», «r16», «qf», «sf», «final»…). */
@@ -146,6 +150,8 @@ export interface KnockoutRound {
   /** Ya se conocen todos sus cruces: se puede pronosticar. */
   drawn: boolean;
   expectedTies: number;
+  /** En la NBA, partidos máximos de cada serie (1 en el play-in, 7 en el resto); 0 en fútbol. */
+  bestOf?: number;
   ties: KnockoutTie[];
 }
 

@@ -36,7 +36,26 @@ const MATCHDAY: ScoringSection = {
   ],
 };
 
-/** NFL: se predice quién gana, sin marcador ni empate. */
+/** UFC: cada pelea suma por el ganador y, encima, por el método y el asalto. */
+const FIGHTS: ScoringSection = {
+  id: 'fights',
+  title: 'Cada pelea',
+  fields: [
+    { key: 'fightWinnerPoints', label: 'Ganador', hint: 'Aciertas quién gana la pelea.' },
+    {
+      key: 'fightMethodPoints',
+      label: 'Método',
+      hint: 'Se suma al ganador si aciertas cómo acaba: KO/TKO, sumisión o decisión.',
+    },
+    {
+      key: 'fightRoundPoints',
+      label: 'Asalto',
+      hint: 'Se suma si además aciertas el asalto de un KO/TKO o una sumisión.',
+    },
+  ],
+};
+
+/** NFL y NBA: se predice quién gana, sin marcador ni empate. */
 const WINNER_MATCHDAY: ScoringSection = {
   id: 'matches',
   title: 'Cada partido',
@@ -44,7 +63,25 @@ const WINNER_MATCHDAY: ScoringSection = {
     {
       key: 'correctSignPoints',
       label: 'Ganador acertado',
-      hint: 'Aciertas quién gana el partido. Si acaba en empate, no suma nadie.',
+      hint: 'Aciertas quién gana el partido. En la NFL, si acaba en empate, no suma nadie.',
+    },
+  ],
+};
+
+/** LoL: se predice quién gana cada serie y, al mejor de tres o de cinco, también su resultado. */
+const LOL_MATCHDAY: ScoringSection = {
+  id: 'matches',
+  title: 'Cada serie',
+  fields: [
+    {
+      key: 'correctSignPoints',
+      label: 'Ganador acertado',
+      hint: 'Aciertas quién gana la serie.',
+    },
+    {
+      key: 'exactScorePoints',
+      label: 'Resultado de la serie',
+      hint: 'Aciertas además el resultado (3-1) de una serie al mejor de tres o de cinco. Vale esto en vez del ganador.',
     },
   ],
 };
@@ -128,6 +165,35 @@ const SURVIVOR: ScoringSection = {
   ],
 };
 
+/** Superviviente sin empates (las series del LoL siempre las gana alguien): sin la regla del empate. */
+const SURVIVOR_NO_DRAWS: ScoringSection = {
+  ...SURVIVOR,
+  fields: SURVIVOR.fields.filter((field) => field.key !== 'survivorDrawSurvives'),
+};
+
+const GRAND_PRIX: ScoringSection = {
+  id: 'grandPrix',
+  title: 'Cada Gran Premio',
+  fields: [
+    {
+      key: 'f1ExactPositionPoints',
+      label: 'Puesto exacto del podio',
+      hint: 'Por cada piloto que aciertas en su puesto: 1.º, 2.º o 3.º.',
+    },
+    {
+      key: 'f1PodiumPoints',
+      label: 'En el podio, otro puesto',
+      hint: 'Por cada piloto de tu podio que sube, pero en otro puesto.',
+    },
+    { key: 'f1PolePoints', label: 'Pole', hint: 'Aciertas quién sale primero.' },
+    {
+      key: 'f1FastestLapPoints',
+      label: 'Vuelta rápida',
+      hint: 'Aciertas quién hace la vuelta más rápida de la carrera.',
+    },
+  ],
+};
+
 /** Límites de las reglas que no son puntos: vidas de 1 a 10 y el empate como 0 o 1. */
 const RANGES: Partial<Record<ScoringRuleKey, [number, number]>> = {
   survivorLives: [1, 10],
@@ -170,7 +236,7 @@ const TENNIS: ScoringSection = {
     {
       key: 'roundOf16Points',
       label: 'Octavos',
-      hint: 'Aciertas quién gana un partido de octavos (o de la fase de grupos de las ATP Finals).',
+      hint: 'Aciertas quién gana un partido de octavos (o de la fase de grupos de las ATP Finals y las WTA Finals).',
     },
     {
       key: 'quarterFinalPoints',
@@ -255,10 +321,14 @@ export function scoringSections(
   nbaSeries = false,
   winnerOnly = false,
   sport: Sport | null = null,
+  fights = false,
 ): ScoringSection[] {
   if (sport === 'TENNIS') return [TENNIS];
-  if (format === 'MATCH_DAY') return [winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
+  if (format === 'MATCH_DAY' && sport === 'LEAGUE_OF_LEGENDS') return [LOL_MATCHDAY];
+  if (format === 'MATCH_DAY') return [fights ? FIGHTS : winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
+  if (format === 'SURVIVOR' && sport === 'LEAGUE_OF_LEGENDS') return [SURVIVOR_NO_DRAWS];
   if (format === 'SURVIVOR') return [SURVIVOR];
+  if (format === 'GRAND_PRIX') return [GRAND_PRIX];
   if (nbaSeries) return [NBA_SERIES, NBA_EXACT];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
@@ -287,6 +357,13 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   survivorRoundPoints: 1,
   survivorLives: 1,
   survivorDrawSurvives: 0,
+  fightWinnerPoints: 3,
+  fightMethodPoints: 2,
+  fightRoundPoints: 2,
+  f1ExactPositionPoints: 10,
+  f1PodiumPoints: 4,
+  f1PolePoints: 5,
+  f1FastestLapPoints: 3,
   nbaPlayInPoints: 5,
   nbaFirstRoundPoints: 10,
   nbaConferenceSemifinalPoints: 20,

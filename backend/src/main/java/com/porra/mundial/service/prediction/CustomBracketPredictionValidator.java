@@ -149,6 +149,35 @@ public class CustomBracketPredictionValidator {
         if (!java.util.Objects.equals(champion, finalPick)) {
             throw invalid("El campeón no coincide con el elegido en la final");
         }
+        validateSeriesGames(rounds, picks, data.getCustomSeriesGames());
+    }
+
+    /**
+     * En cuántos partidos se gana cada serie de la NBA: de 4 a 7, solo en series al mejor de 7 y donde se
+     * ha elegido ganador. En fútbol y en el play-in no se elige.
+     */
+    private void validateSeriesGames(List<DrawnKnockout.Round> rounds, List<List<String>> picks,
+                                     List<List<Integer>> games) {
+        if (games == null) return;
+        if (games.size() > picks.size()) throw invalid("Hay resultados de series sin ganador elegido");
+        for (int index = 0; index < games.size(); index++) {
+            List<Integer> row = games.get(index);
+            if (row == null || row.stream().allMatch(java.util.Objects::isNull)) continue;
+            DrawnKnockout.Round round = rounds.get(index);
+            List<String> winners = picks.get(index);
+            if (round.bestOf() < 2 || winners == null || row.size() != winners.size()) {
+                throw invalid("En " + DrawnKnockout.seriesTitle(round.key()) + " no se elige el resultado de la serie");
+            }
+            int needed = round.bestOf() / 2 + 1;
+            for (int tie = 0; tie < row.size(); tie++) {
+                Integer count = row.get(tie);
+                if (count == null) continue;
+                if (winners.get(tie) == null) throw invalid("Elige primero quién gana la serie");
+                if (count < needed || count > round.bestOf()) {
+                    throw invalid("Una serie se gana en " + needed + " a " + round.bestOf() + " partidos");
+                }
+            }
+        }
     }
 
     private BusinessException invalid(String reason) {
