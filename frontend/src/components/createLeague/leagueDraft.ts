@@ -107,7 +107,7 @@ export const TENNIS_DRAW_LABELS: Record<TennisDraw, string> = {
 export const TENNIS_SCOPE_LABELS: Record<TennisScope, string> = {
   ALL: 'Todos los torneos',
   GRAND_SLAMS: 'Solo los Grand Slams',
-  MASTERS_1000: 'Solo los Masters 1000 y las ATP Finals',
+  MASTERS_1000: 'Solo los Masters 1000, WTA 1000 y Finals',
 };
 
 /** Tenis con varios torneos: los cuadros que sigue, por circuito. */

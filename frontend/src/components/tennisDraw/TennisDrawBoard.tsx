@@ -323,7 +323,7 @@ export default function TennisDrawBoard() {
           <p className="standings-empty-title">El cuadro aún no está publicado.</p>
           <p className="standings-empty-copy">
             Los partidos aparecerán aquí en cuanto ESPN publique el cuadro del torneo: desde octavos
-            o, en las ATP Finals, desde la fase de grupos.
+            o, en las ATP Finals y las WTA Finals, desde la fase de grupos.
           </p>
         </div>
       ) : (

@@ -236,7 +236,7 @@ const TENNIS: ScoringSection = {
     {
       key: 'roundOf16Points',
       label: 'Octavos',
-      hint: 'Aciertas quién gana un partido de octavos (o de la fase de grupos de las ATP Finals).',
+      hint: 'Aciertas quién gana un partido de octavos (o de la fase de grupos de las ATP Finals y las WTA Finals).',
     },
     {
       key: 'quarterFinalPoints',
