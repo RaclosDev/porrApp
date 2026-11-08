@@ -115,6 +115,41 @@ describe('borrador de liga', () => {
     ).toBeNull();
   });
 
+  it('no ofrece un cuadro cuyas eliminatorias ya han empezado y lo cambia por jornadas', () => {
+    const started = {
+      competitions: [
+        competition({
+          id: 4,
+          name: 'Worlds',
+          externalId: 'lol.worlds',
+          formatType: 'TOURNAMENT',
+          sport: 'LEAGUE_OF_LEGENDS',
+          groupStage: true,
+          bracketClosesAt: {
+            KNOCKOUTS_ONLY: '2020-10-29T08:00:00Z',
+            FULL_BRACKET: '2020-10-10T08:00:00Z',
+          },
+        }),
+      ],
+    };
+    const draft = { ...emptyDraft(), sport: 'LEAGUE_OF_LEGENDS' as const, competitionId: 4 };
+    expect(formatUnavailableReason('KNOCKOUTS_ONLY', draft, started)).toMatch(
+      /eliminatorias ya han empezado/,
+    );
+    expect(formatUnavailableReason('FULL_BRACKET', draft, started)).toMatch(/ya ha empezado/);
+    expect(formatUnavailableReason('MATCH_DAY', draft, started)).toBeNull();
+    expect(normalizeDraft({ ...draft, poolFormat: 'KNOCKOUTS_ONLY' }, started).poolFormat).not.toBe(
+      'KNOCKOUTS_ONLY',
+    );
+
+    const later = {
+      competitions: [
+        { ...started.competitions[0], bracketClosesAt: { KNOCKOUTS_ONLY: '2999-01-01T00:00:00Z' } },
+      ],
+    };
+    expect(formatUnavailableReason('KNOCKOUTS_ONLY', draft, later)).toBeNull();
+  });
+
   it('al cambiar de competición quita el formato y el pichichi que ya no encajan', () => {
     // El pichichi se juega con los goleadores del Mundial: solo en su cuadro.
     const tournament = draftWith({

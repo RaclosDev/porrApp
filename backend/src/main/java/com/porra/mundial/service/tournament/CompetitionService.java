@@ -6,8 +6,10 @@ import com.porra.mundial.dto.LeagueStandingDTO;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Sport;
 import com.porra.mundial.model.Match;
+import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.service.prediction.PredictableBracket;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.NflSchedule;
@@ -63,8 +65,26 @@ public class CompetitionService {
                         c -> java.util.Optional.ofNullable(tennisDates(c))));
         return syncable.stream()
                 .map(c -> CompetitionDTO.of(c, stats.get(c.getId()),
-                        tennis.getOrDefault(c.getId(), java.util.Optional.empty()).orElse(null), now))
+                        tennis.getOrDefault(c.getId(), java.util.Optional.empty()).orElse(null), now,
+                        bracketClosesAt(c)))
                 .toList();
+    }
+
+    /**
+     * Cuándo deja de poder crearse cada liga de cuadro de un torneo con cuadro propio. Va como fecha y no
+     * como «ya cerrado» para que la lista en caché siga valiendo cuando llegue ese momento.
+     */
+    private Map<PoolFormat, Instant> bracketClosesAt(Competition competition) {
+        if (!competition.hasOwnBracket() || competition.drawsKnockoutRounds() || Sport.isTennis(competition)) {
+            return Map.of();
+        }
+        List<Match> all = matchRepository.findByCompetitionId(competition.getId());
+        Map<PoolFormat, Instant> closes = new java.util.EnumMap<>(PoolFormat.class);
+        for (PoolFormat format : List.of(PoolFormat.FULL_BRACKET, PoolFormat.KNOCKOUTS_ONLY)) {
+            Instant at = PredictableBracket.predictionsCloseAt(competition, format, all);
+            if (at != null) closes.put(format, at);
+        }
+        return closes;
     }
 
     /** Fechas de la edición actual de un torneo de tenis; null si no lo es o ESPN no responde. */

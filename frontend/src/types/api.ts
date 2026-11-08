@@ -86,6 +86,11 @@ export interface Competition {
   knockoutDraw?: boolean;
   /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
   tennis?: TennisInfo | null;
+  /**
+   * Por formato de cuadro, cuándo empieza lo que pronostica (ISO): desde entonces nadie podría enviar su
+   * predicción y la liga no se puede crear. Falta si se puede crear en cualquier momento.
+   */
+  bracketClosesAt?: Partial<Record<PoolFormat, string>>;
 }
 
 export interface Match {
