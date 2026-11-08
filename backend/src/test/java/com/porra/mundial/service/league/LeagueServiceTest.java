@@ -7,6 +7,7 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Edition;
 import com.porra.mundial.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -236,6 +237,21 @@ class LeagueServiceTest {
     }
 
     @Test
+    void aRegularLeagueHasNoBracketToFillIn() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition laLiga = Competition.builder().id(3L).externalId("esp.1").formatType("LEAGUE").build();
+        when(competitionRepository.findById(3L)).thenReturn(Optional.of(laLiga));
+
+        for (var format : java.util.List.of(com.porra.mundial.model.PoolFormat.FULL_BRACKET,
+                com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY)) {
+            BusinessException error = assertThrows(BusinessException.class, () -> leagueService.createLeague(
+                    NewLeague.of("LaLiga", "admin@test.com", 3L, format)));
+            assertEquals("Esta competición se juega por jornadas: no tiene cuadro que rellenar", error.getMessage());
+        }
+        verify(leagueRepository, org.mockito.Mockito.never()).save(any(League.class));
+    }
+
+    @Test
     @DisplayName("updateLeague rechaza si el nombre está vacío")
     void updateGroup_ThrowsIfEmpty() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
@@ -355,6 +371,34 @@ class LeagueServiceTest {
     }
 
     @Test
+    @DisplayName("Una liga de varias competiciones lista cada una, la principal primero, para ver su tabla")
+    void multiCompetitionLeagueListsItsCompetitions() {
+        Competition laliga = Competition.builder().id(2L).name("LaLiga").externalId("esp.1").build();
+        Competition premier = Competition.builder().id(4L).name("Premier League").externalId("eng.1").build();
+        Competition champions = Competition.builder().id(3L).name("Champions League").externalId("uefa.champions").build();
+        Edition edition = Edition.builder().id(7L).competition(laliga).multiCompetition(true).build();
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(competitionRepository.findByEditionId(7L)).thenReturn(List.of(premier, laliga, champions));
+
+        var dto = leagueService.toResponse(league, true);
+
+        assertEquals(List.of("esp.1", "uefa.champions", "eng.1"),
+                dto.getCompetitions().stream().map(c -> c.externalId()).toList());
+        assertEquals("Champions League", dto.getCompetitions().get(1).name());
+    }
+
+    @Test
+    @DisplayName("Una liga de una sola competición no lista competiciones")
+    void singleCompetitionLeagueListsNone() {
+        Competition laliga = Competition.builder().id(2L).name("LaLiga").externalId("esp.1").build();
+        Edition edition = Edition.builder().id(7L).competition(laliga).build();
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+
+        assertNull(leagueService.toResponse(league, true).getCompetitions());
+        verify(competitionRepository, never()).findByEditionId(any());
+    }
+
+    @Test
     void championsKnockoutsCloseRoundByRoundAndRejectTheFullBracket() {
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
         Competition champions = Competition.builder().id(5L).externalId("uefa.champions").formatType("LEAGUE").build();
@@ -383,5 +427,25 @@ class LeagueServiceTest {
         leagueService.createLeague(NewLeague.of("RG", "admin@test.com", 6L, com.porra.mundial.model.PoolFormat.MATCH_DAY));
         verify(editionRepository).save(argThat(edition -> com.porra.mundial.scoring.ScoringRuleSet.defaultTennis().toJson()
                 .equals(edition.getScoringRulesJson())));
+    }
+
+    @Test
+    void aBracketLeagueCannotBeCreatedOnceTheKnockoutsHaveStarted() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition worlds = Competition.builder().id(19L).externalId("lol.worlds").formatType("TOURNAMENT").build();
+        when(competitionRepository.findById(19L)).thenReturn(Optional.of(worlds));
+        lenient().when(leagueRepository.save(any(League.class))).thenReturn(league);
+        com.porra.mundial.model.Match quarter = com.porra.mundial.model.Match.builder().id(1L).competition(worlds)
+                .round("qf").homeTeam(com.porra.mundial.model.Team.builder().id(1L).name("T1").build())
+                .awayTeam(com.porra.mundial.model.Team.builder().id(2L).name("GEN").build())
+                .matchDate(java.time.Instant.now().minusSeconds(3600)).build();
+        when(matchRepository.findByCompetitionId(19L)).thenReturn(List.of(quarter));
+
+        BusinessException error = assertThrows(BusinessException.class, () -> leagueService.createLeague(
+                NewLeague.of("Worlds", "admin@test.com", 19L, com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY)));
+        assertTrue(error.getMessage().contains("ya han empezado"));
+
+        leagueService.createLeague(NewLeague.of("Worlds", "admin@test.com", 19L, com.porra.mundial.model.PoolFormat.MATCH_DAY));
+        verify(editionRepository).save(any());
     }
 }

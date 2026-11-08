@@ -32,4 +32,9 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
      */
     @Query("SELECT c.id FROM Competition c WHERE c.externalId = :externalId")
     Optional<Long> findIdByExternalId(@Param("externalId") String externalId);
+
+    /** Competiciones enlazadas a una edición que junta varias. */
+    @Query("SELECT c FROM Competition c WHERE c.id IN "
+            + "(SELECT ec.id.competitionId FROM EditionCompetition ec WHERE ec.id.editionId = :editionId)")
+    List<Competition> findByEditionId(@Param("editionId") Long editionId);
 }

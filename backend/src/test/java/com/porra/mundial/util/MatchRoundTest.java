@@ -60,4 +60,14 @@ class MatchRoundTest {
         assertThat(MatchRound.matches(playIn, "Play-in")).isTrue();
         assertThat(MatchRound.lookup("Play-in").names()).contains("playin");
     }
+    @Test
+    void theEarlyRoundsOfTheCopaDelReyHaveASpanishLabel() {
+        com.porra.mundial.model.Match first = com.porra.mundial.model.Match.builder().round("round1").build();
+        com.porra.mundial.model.Match previous = com.porra.mundial.model.Match.builder().round("qualifying").build();
+
+        assertThat(MatchRound.label(first)).isEqualTo("Primera ronda");
+        assertThat(MatchRound.label(previous)).isEqualTo("Ronda previa");
+        assertThat(MatchRound.matches(first, "Primera ronda")).isTrue();
+        assertThat(MatchRound.lookup("Primera ronda").names()).contains("round1");
+    }
 }

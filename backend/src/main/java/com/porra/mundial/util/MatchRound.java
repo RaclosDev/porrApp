@@ -32,10 +32,13 @@ public final class MatchRound {
     private static final Pattern NUMBERED_MATCHDAY = Pattern.compile("(?i)(?:jornada|semana)\\s+(\\d{1,4})");
 
     /** Nombre visible de las rondas eliminatorias (las de la Champions también se juegan por jornadas). */
-    private static final Map<String, String> KNOCKOUT_LABELS = Map.of(
-            "playoff", "Playoff", "r32", "Dieciseisavos", "r16", "Octavos de final",
-            "qf", "Cuartos de final", "sf", "Semifinales", "third", "Tercer puesto", "final", "Final",
-            "roundrobin", "Fase de grupos", "playin", "Play-in");
+    private static final Map<String, String> KNOCKOUT_LABELS = Map.ofEntries(
+            Map.entry("playoff", "Playoff"), Map.entry("r32", "Dieciseisavos"), Map.entry("r16", "Octavos de final"),
+            Map.entry("qf", "Cuartos de final"), Map.entry("sf", "Semifinales"), Map.entry("third", "Tercer puesto"),
+            Map.entry("final", "Final"), Map.entry("roundrobin", "Fase de grupos"), Map.entry("playin", "Play-in"),
+            // Rondas de la Copa del Rey antes de dieciseisavos.
+            Map.entry("qualifying", "Ronda previa"), Map.entry("round1", "Primera ronda"),
+            Map.entry("round2", "Segunda ronda"));
 
     public static String label(Match match) {
         if (match.getGroupName() != null && !match.getGroupName().isBlank()) {
