@@ -103,11 +103,24 @@
 .tennis-draw-table th,
 .tennis-draw-table td {
   text-align: center;
+  white-space: nowrap;
+}
+
+/* La tabla tiene columnas fijas: las cifras, estrechas, y el jugador se lleva el resto. Con columnas
+   iguales, su bandera quedaba sola en una línea encima del nombre. */
+.tennis-draw-table th:nth-child(3),
+.tennis-draw-table th:nth-child(4) {
+  width: 2.5rem;
+}
+
+.tennis-draw-table th:nth-child(5) {
+  width: 3.5rem;
 }
 
 .tennis-draw-table th:nth-child(2),
 .tennis-draw-table td:nth-child(2) {
   text-align: left;
+  white-space: normal;
 }
 
 .tennis-draw-table tr.is-qualified td {
@@ -118,10 +131,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
 
 .tennis-draw-player img {
+  flex-shrink: 0;
   border-radius: 2px;
   object-fit: cover;
 }
