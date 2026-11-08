@@ -32,9 +32,20 @@ public class UserAccount {
     @Column(name = "google_sub", unique = true)
     private String googleSub;
 
-    /** El email verificado de Google de la persona (Ej: raclo@gmail.com). Se actualiza si cambia en Google. */
+    /**
+     * Email de la cuenta (Ej: raclo@gmail.com): el verificado de Google, que se actualiza si cambia
+     * en Google, o el que dio al registrarse con contraseña. El nombre es histórico.
+     */
     @Column(nullable = false, unique = true)
     private String googleEmail;
+
+    /**
+     * Hash BCrypt de la contraseña de quien se registró con email y contraseña; null en las
+     * cuentas de Google. Ese email no está verificado: si luego entra Google con él, la cuenta
+     * pasa a Google y la contraseña se borra.
+     */
+    @Column(name = "password_hash", length = 100)
+    private String passwordHash;
 
     /** Ya no se rellena (minimización de datos); la columna se mantiene por compatibilidad. */
     private String googleName;

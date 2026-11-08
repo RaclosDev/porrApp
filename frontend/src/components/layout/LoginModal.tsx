@@ -1,5 +1,6 @@
 import type { CredentialResponse } from '@react-oauth/google';
 import GoogleSignInButton from '../GoogleSignInButton';
+import EmailSignInForm from '../EmailSignInForm';
 import toast from 'react-hot-toast';
 import { Link, type NavigateFunction } from 'react-router-dom';
 import { useRef, useState } from 'react';
@@ -17,7 +18,7 @@ interface LoginModalProps {
   showMyPredictionModal: boolean;
 }
 
-/** Diálogo para iniciar sesión con Google o con una llave de acceso, o probar la demo. */
+/** Diálogo para iniciar sesión con Google, email y contraseña o llave de acceso, o probar la demo. */
 export default function LoginModal({
   exitDemoMode,
   handleGoogleSuccess,
@@ -55,7 +56,7 @@ export default function LoginModal({
         </h3>
         <div>
           <p className="mb-7.5 text-[1rem] text-muted leading-[1.5]">
-            Inicia sesión con Google para ver tus ligas y rellenar tu porra.
+            Inicia sesión con Google o con tu email para ver tus ligas y rellenar tu porra.
           </p>
           <div className="flex justify-center mb-5">
             {/* El diálogo siempre está montado: el SDK de Google solo se carga al abrirlo. */}
@@ -68,6 +69,9 @@ export default function LoginModal({
                 text="continue_with"
               />
             )}
+          </div>
+          <div className="mb-5">
+            <EmailSignInForm onSignedIn={() => setShowMyPredictionModal(false)} />
           </div>
           {passkeysSupported() && (
             <div className="flex flex-col items-center gap-1.5 mb-5">

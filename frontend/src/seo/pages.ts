@@ -46,7 +46,7 @@ export const LANDING_COPY = {
   h1: 'La porra con tus amigos,',
   h1Marked: 'pero bien hecha.',
   lede: 'Porras gratis con tus amigos de fútbol, Fórmula 1, UFC, NBA, NFL y tenis. Predice LaLiga jornada a jornada, el podio de cada Gran Premio o el ganador de cada combate. Los puntos se calculan solos con los resultados reales.',
-  heroNote: 'Entras con tu cuenta de Google. Sin descargas ni anuncios.',
+  heroNote: 'Entras con Google o con tu email. Sin descargas ni anuncios.',
   stepsTitle: 'Cómo se juega',
   steps: [
     {
@@ -55,7 +55,7 @@ export const LANDING_COPY = {
     },
     {
       title: 'Invita con un enlace',
-      text: 'Pásalo por el grupo. Tus amigos lo abren, entran con su cuenta de Google y ya están dentro.',
+      text: 'Pásalo por el grupo. Tus amigos lo abren, entran con Google o con su email y ya están dentro.',
     },
     {
       title: 'Predice y compite',
@@ -99,7 +99,7 @@ const HOW_IT_WORKS_FAQ: FaqEntry[] = [
   {
     question: '¿Cómo invito a mis amigos?',
     answer:
-      'Cada liga tiene un enlace de invitación. Lo mandas por WhatsApp o donde queráis, tus amigos lo abren, entran con su cuenta de Google y ya están dentro.',
+      'Cada liga tiene un enlace de invitación. Lo mandas por WhatsApp o donde queráis, tus amigos lo abren, entran con Google o con su email y ya están dentro.',
   },
   {
     question: '¿Hay que instalar algo?',
@@ -127,14 +127,14 @@ export const CONTENT_PAGES: ContentPage[] = [
       {
         heading: 'Crea la liga',
         paragraphs: [
-          'Entra con tu cuenta de Google y crea una liga privada. Eliges la competición (LaLiga, la Premier, la Champions y otras) y el formato: predicciones jornada a jornada o el cuadro de unas eliminatorias.',
+          'Entra con Google o con tu email y crea una liga privada. Eliges la competición (LaLiga, la Premier, la Champions y otras) y el formato: predicciones jornada a jornada o el cuadro de unas eliminatorias.',
           'Quien crea la liga es su administrador: puede cambiar los puntos de cada acierto, gestionar a los miembros y apuntar quién ha pagado si jugáis con bote.',
         ],
       },
       {
         heading: 'Invita a tus amigos',
         paragraphs: [
-          'Comparte el enlace de invitación por WhatsApp o por donde soléis hablar. Al abrirlo, cada uno entra con Google y queda unido a la liga.',
+          'Comparte el enlace de invitación por WhatsApp o por donde soléis hablar. Al abrirlo, cada uno entra con Google o con su email y queda unido a la liga.',
         ],
       },
       {

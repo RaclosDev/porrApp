@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { CredentialResponse } from '@react-oauth/google';
 import GoogleSignInButton from './GoogleSignInButton';
+import EmailSignInForm from './EmailSignInForm';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
@@ -112,8 +113,8 @@ export default function JoinRedirect() {
             ) : (
               <>
                 <p className="m-0">
-                  Continúa con Google para unirte a esta liga. Después te llevaremos directamente a
-                  tu porra.
+                  Continúa con Google o con tu email para unirte a esta liga. Después te llevaremos
+                  directamente a tu porra.
                 </p>
                 <div className="flex justify-center">
                   <GoogleSignInButton
@@ -126,6 +127,11 @@ export default function JoinRedirect() {
                     text="continue_with"
                   />
                 </div>
+                <EmailSignInForm
+                  initialMode="register"
+                  navigateAfterLogin={false}
+                  onSignedIn={() => accept()}
+                />
               </>
             )}
           </>

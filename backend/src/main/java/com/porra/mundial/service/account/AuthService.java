@@ -1,6 +1,8 @@
 package com.porra.mundial.service.account;
 
 import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.repository.PasskeyRepository;
+import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.UserAccountRepository;
 import com.porra.mundial.service.account.GoogleCredentialVerifier.GoogleIdentity;
 import com.porra.mundial.service.account.SessionService.SessionTokens;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -30,6 +33,8 @@ public class AuthService {
     private final UserAccountRepository userAccountRepository;
     private final GoogleCredentialVerifier googleCredentialVerifier;
     private final SessionService sessionService;
+    private final RefreshTokenFamilyRepository refreshTokenFamilyRepository;
+    private final PasskeyRepository passkeyRepository;
 
     @Transactional
     public SessionTokens loginWithGoogle(String credential) {
@@ -59,11 +64,26 @@ public class AuthService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "Este email ya está asociado a otra cuenta de Google. Escribe al administrador de la porra.");
             }
+            if (user.getPasswordHash() != null) {
+                claimPasswordAccount(user);
+            }
             user.setGoogleSub(google.subject());
             return user;
         }
 
         return register(google);
+    }
+
+    /**
+     * Google demuestra que el email es de quien entra; el registro con contraseña no lo comprobó.
+     * Para que nadie conserve una cuenta creada con un email ajeno, la cuenta pasa a Google: se
+     * borra la contraseña, se cierran sus sesiones y se quitan sus llaves de acceso.
+     */
+    private void claimPasswordAccount(UserAccount user) {
+        log.info("El usuario {} se registró con contraseña y ahora entra con Google: la cuenta pasa a Google.", user.getId());
+        user.setPasswordHash(null);
+        refreshTokenFamilyRepository.revokeAllOfUser(user.getId(), Instant.now());
+        passkeyRepository.deleteAllOfUser(user.getId());
     }
 
     /** Si la cuenta de Google ha cambiado de email, guarda el nuevo salvo que ya sea de otro usuario. */
