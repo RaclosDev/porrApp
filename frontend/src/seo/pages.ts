@@ -33,6 +33,8 @@ export interface ContentPage extends PageMeta {
   lede: string;
   sections: ContentSection[];
   faq?: FaqEntry[];
+  /** Archivo que se descarga desde la página (la plantilla de Excel). */
+  download?: { href: string; label: string };
 }
 
 export const HOME_META: PageMeta = {
@@ -509,6 +511,189 @@ export const CONTENT_PAGES: ContentPage[] = [
           'Quién gana y, si quieres, por cuántos sets. El cuadro del torneo se va completando con los resultados reales.',
       },
       { question: '¿Cuánto cuesta?', answer: FREE_ANSWER },
+    ],
+  },
+  {
+    path: '/plantilla-porra-excel',
+    navLabel: 'Plantilla de porra en Excel',
+    title: 'Plantilla de porra en Excel gratis para tus amigos · PorrApp',
+    description:
+      'Descarga gratis una plantilla de porra en Excel o Google Sheets: predicciones por partido, puntos automáticos por resultado exacto y por signo, y clasificación.',
+    h1: 'Plantilla de porra en Excel,',
+    h1Marked: 'gratis.',
+    lede: 'Una hoja lista para tu porra de LaLiga, la Champions o el Mundial: apuntas los partidos, cada uno pone su predicción y los puntos y la clasificación se calculan solos.',
+    download: {
+      href: '/plantillas/plantilla-porra-amigos.xlsx',
+      label: 'Descargar la plantilla (.xlsx)',
+    },
+    sections: [
+      {
+        heading: 'Qué trae la plantilla',
+        paragraphs: [
+          'Una pestaña «Porra» con los partidos (jornada, local, visitante y resultado) y tres columnas por jugador: goles del local, goles del visitante y los puntos de ese partido. Caben ocho jugadores y doscientos partidos.',
+          'Una pestaña «Puntos» donde decidís cuánto vale acertar el resultado exacto y cuánto acertar el signo (1X2). Por defecto, 3 y 1.',
+          'Una pestaña «Clasificación» que suma los puntos de cada jugador y le da su puesto.',
+        ],
+      },
+      {
+        heading: 'Cómo se usa',
+        paragraphs: [
+          'Escribe los nombres de los jugadores en la primera fila y los partidos de la jornada. Antes de cada partido, cada uno rellena su predicción. Cuando acabe, escribe el resultado real: los puntos aparecen solos.',
+          'Funciona en Excel, en LibreOffice y en Google Sheets: súbela a Google Drive y ábrela con Hojas de cálculo para compartirla con el grupo.',
+        ],
+      },
+      {
+        heading: 'Lo que una hoja de cálculo no hace',
+        paragraphs: [
+          'Alguien tiene que apuntar cada resultado, y cualquiera con acceso a la hoja puede cambiar su predicción con el partido empezado o ver las de los demás antes de decidir la suya.',
+          'PorrApp hace lo mismo sin trabajo: los resultados reales llegan solos, cada predicción se cierra a la hora del partido y nadie ve las de los demás hasta que empieza. Es gratis y no hay que instalar nada.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: '¿La plantilla es gratis?',
+        answer: 'Sí. Descárgala, cópiala y cámbiala como quieras. No pide registro ni datos.',
+      },
+      {
+        question: '¿Puedo usarla para el Mundial o la Champions?',
+        answer:
+          'Sí: sirve para cualquier competición de partidos, solo cambia los equipos. Para rellenar el cuadro entero del Mundial, PorrApp tiene un modo de cuadro con eliminatorias y pichichi.',
+      },
+      {
+        question: '¿Y si somos más de ocho?',
+        answer:
+          'Copia las tres columnas del último jugador a la derecha y añade su fila en «Clasificación». O crea la porra en PorrApp, donde no hay límite de jugadores.',
+      },
+    ],
+  },
+  {
+    path: '/alternativa-laporra',
+    navLabel: 'Alternativa a La Porra',
+    title: 'Alternativa gratis a La Porra (laporra.app), sin planes · PorrApp',
+    description:
+      'PorrApp frente a La Porra (laporra.app): qué comparten, en qué se diferencian en precio, deportes y formatos, y cuándo conviene cada una. Comparación honesta.',
+    h1: 'Una alternativa a La Porra,',
+    h1Marked: 'sin planes de pago.',
+    lede: 'La Porra (laporra.app) es una buena app para hacer porras con amigos. Si buscas otra opción, esto es lo que cambia con PorrApp, contado sin trampas. Datos de La Porra consultados en su web el 8 de noviembre de 2026.',
+    sections: [
+      {
+        heading: 'En resumen',
+        paragraphs: [
+          'Las dos son webs gratis para hacer porras privadas con amigos, con cierre automático al empezar cada partido y clasificación que se calcula sola.',
+          'La Porra cubre más deportes (también MotoGP y golf) y calcula quién pone el bote cada jornada, pero su plan gratis llega a 3 porras a la vez y 100 miembros por porra; para más hay un plan Pro de 4,99 € al mes o uno de pago único de 99 €.',
+          'PorrApp no tiene planes de pago: todo es gratis y sin anuncios. Además tiene formatos propios, como el cuadro completo del Mundial, el superviviente o la porra de la UFC con método y asalto.',
+        ],
+      },
+      {
+        heading: 'Precio',
+        paragraphs: [
+          'La Porra: gratis hasta 3 porras a la vez y 100 miembros por porra. Pro, 4,99 € al mes: porras ilimitadas y hasta 500 miembros. Lifetime, 99 € en un pago.',
+          'PorrApp: gratis, sin planes ni tarjeta. Puedes estar en todas las ligas que quieras.',
+        ],
+      },
+      {
+        heading: 'Deportes y formatos',
+        paragraphs: [
+          'La Porra: fútbol (LaLiga, Champions, Premier, Copa del Rey…), F1, MotoGP, NBA, tenis, UFC, golf y NFL. En fútbol puntúa por resultado exacto, diferencia de goles y tendencia.',
+          'PorrApp: LaLiga, la Champions, la Premier, la Copa del Rey y el Mundial; F1 (podio, pole y vuelta rápida), UFC (ganador, método y asalto), NBA, NFL y tenis. Puedes predecir jornada a jornada, rellenar el cuadro entero de unas eliminatorias con su pichichi o jugar al superviviente.',
+        ],
+      },
+      {
+        heading: 'Bote y reglas',
+        paragraphs: [
+          'Ninguna de las dos mueve dinero. La Porra calcula cuánto pone cada uno y quién se lleva el bote; en PorrApp el administrador apunta quién ha pagado y el reparto lo decidís vosotros.',
+          'En PorrApp el administrador elige cuántos puntos vale cada acierto y, si cambia las reglas a mitad de temporada, los partidos ya jugados se vuelven a puntuar.',
+        ],
+      },
+      {
+        heading: 'Cuándo elegir cada una',
+        paragraphs: [
+          'Elige La Porra si queréis MotoGP o golf, o si os viene bien que la app calcule el bote jornada a jornada.',
+          'Elige PorrApp si no queréis límites ni planes de pago, si tenéis varias porras o un grupo grande, o si os gustan los formatos de cuadro, superviviente o UFC. Puedes entrar con Google, con tu email o con una llave de acceso.',
+        ],
+      },
+      {
+        heading: 'Cómo pasar tu porra a PorrApp',
+        paragraphs: [
+          'Crea la liga con la misma competición y las mismas reglas de puntos, y manda el enlace de invitación al grupo. Si estáis a mitad de temporada, empezad desde la próxima jornada.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: '¿PorrApp es gratis de verdad?',
+        answer:
+          'Sí. No hay plan de pago, ni anuncios, ni límite de ligas. PorrApp no mueve dinero: si jugáis con bote, se gestiona fuera de la app.',
+      },
+      {
+        question: '¿Puedo usar las dos a la vez?',
+        answer:
+          'Claro. Muchos grupos prueban con una jornada antes de cambiar. Las cuentas son independientes.',
+      },
+    ],
+  },
+  {
+    path: '/mejores-apps-porra',
+    navLabel: 'Mejores apps para hacer una porra',
+    title: 'Mejores apps para hacer una porra con amigos (2026) · PorrApp',
+    description:
+      'Las mejores formas de hacer una porra con amigos en 2026: PorrApp, La Porra, Sabios, una hoja de Excel o WhatsApp. Precio, deportes y para quién es cada una.',
+    h1: 'Las mejores apps para hacer una porra',
+    h1Marked: 'con amigos.',
+    lede: 'Hay varias maneras de montar la porra de tu grupo, de una hoja de cálculo a una app hecha para ello. Esta es nuestra comparación. Sí, PorrApp es nuestra, así que contamos también cuándo te conviene otra. Datos consultados el 8 de noviembre de 2026.',
+    sections: [
+      {
+        heading: 'PorrApp',
+        paragraphs: [
+          'Web gratis, sin planes de pago ni anuncios, y no hay que instalar nada. Fútbol (LaLiga, Champions, Premier, Copa del Rey, Mundial), F1, UFC, NBA, NFL y tenis, con formatos por jornada, cuadro de eliminatorias y superviviente.',
+          'Las predicciones se cierran a la hora de cada partido y nadie ve las de los demás hasta entonces. Para grupos que quieren todo gratis y sin límites.',
+        ],
+      },
+      {
+        heading: 'La Porra (laporra.app)',
+        paragraphs: [
+          'Web con muchos deportes, también MotoGP y golf, y una calculadora de bote que dice quién pone cada jornada. Gratis hasta 3 porras a la vez y 100 miembros por porra; el plan Pro cuesta 4,99 € al mes.',
+          'Para grupos que siguen MotoGP o golf, o que quieren que la app lleve las cuentas del bote.',
+        ],
+      },
+      {
+        heading: 'Sabios (sabiosporra.com)',
+        paragraphs: [
+          'App para iOS y Android centrada en LaLiga y la Champions, con extras de juego como comodines que duplican puntos y potenciadores. Gratis hasta 5 miembros por liga; los planes PRO (9,99 €) y PLATINUM (14,99 €) se pagan una vez por liga y temporada.',
+          'Para peñas pequeñas de fútbol que quieren una app nativa con más elementos de juego.',
+        ],
+      },
+      {
+        heading: 'Una hoja de Excel o de Google Sheets',
+        paragraphs: [
+          'Gratis y a tu medida, pero alguien tiene que apuntar cada resultado y nada impide cambiar una predicción con el partido empezado. Si os va este formato, tenemos una plantilla gratis con los puntos y la clasificación ya calculados.',
+        ],
+      },
+      {
+        heading: 'El grupo de WhatsApp',
+        paragraphs: [
+          'Lo más rápido para una porra de un solo partido: cada uno escribe su resultado y listo. Para una temporada entera se vuelve imposible de llevar.',
+        ],
+      },
+      {
+        heading: 'Y los fantasy',
+        paragraphs: [
+          'Biwenger, Comunio o LaLiga Fantasy son otro juego: fichas jugadores y gestionas una plantilla. Si lo que queréis es predecir resultados, una porra es más sencilla.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: '¿Cuál es la mejor app para hacer una porra gratis?',
+        answer:
+          'Si queréis todo gratis y sin límites, PorrApp. Si os bastan 3 porras y 100 miembros por porra, el plan gratis de La Porra también vale. Sabios es gratis hasta 5 miembros por liga.',
+      },
+      {
+        question: '¿Hace falta instalar algo?',
+        answer:
+          'Depende de la app. PorrApp y La Porra funcionan en el navegador del móvil, sin instalar nada; Sabios hay que descargarla de Google Play o del App Store.',
+      },
     ],
   },
 ];
