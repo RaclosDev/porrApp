@@ -14,6 +14,7 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
 import { isUfcCompetition } from '../utils/fightCard';
+import { isTennisCompetition } from '../utils/tennisDraw';
 
 /** Navegación inferior en móvil (hasta 768 px); el resalte se desliza a la pestaña activa. */
 export default function MobileBottomNav() {
@@ -57,7 +58,11 @@ export default function MobileBottomNav() {
             { to: '/ranking', label: 'Ranking', icon: Trophy },
             {
               to: '/tabla',
-              label: isUfcCompetition(activeCompetitionExternalId) ? 'Cartelera' : 'Tabla',
+              label: isUfcCompetition(activeCompetitionExternalId)
+                ? 'Cartelera'
+                : isTennisCompetition(activeCompetitionExternalId)
+                  ? 'Cuadro'
+                  : 'Tabla',
               icon: ListOrdered,
             },
             { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },

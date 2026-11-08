@@ -12,6 +12,7 @@ import FightCard from '../components/matchday/FightCard';
 import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
+import { isTennisCompetition } from '../utils/tennisDraw';
 
 function MatchdayPredictor() {
   const context = useAppContext();
@@ -119,7 +120,10 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       )}
       {!md.isLoading && !md.isError && md.fixtures.length === 0 && (
         <div className="paper-panel album-sheet landing-tape text-center p-10 text-muted rounded-[12px]">
-          No hay partidos programados para esta competición o jornada.
+          {isTennisCompetition(context.activeCompetitionExternalId) &&
+          md.availableRounds.length === 0
+            ? 'El cuadro aún no está publicado: los partidos aparecerán aquí en cuanto ESPN lo publique.'
+            : 'No hay partidos programados para esta competición o jornada.'}
         </div>
       )}
 

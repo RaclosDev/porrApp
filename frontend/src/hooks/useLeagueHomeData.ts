@@ -10,6 +10,7 @@ import {
 import { queryKeys } from '../services/queryKeys';
 import { computeCustomGroupTables } from '../utils/customBracket';
 import { isUfcCompetition } from '../utils/fightCard';
+import { isTennisCompetition } from '../utils/tennisDraw';
 import { KNOCKOUT_ROUNDS, computeSwissStandings } from '../utils/officialTournament';
 import { normalizeCountryName } from '../utils/constants';
 import {
@@ -97,6 +98,8 @@ export function useLeagueHomeData(): LeagueHomeData {
   } = useAppContext();
   // En la UFC no hay tabla de equipos (los «equipos» son luchadores): su tabla es la cartelera.
   const ufc = isUfcCompetition(activeCompetitionExternalId);
+  // En el tenis, igual: su tabla es el cuadro del torneo.
+  const tennis = isTennisCompetition(activeCompetitionExternalId);
   // En unas eliminatorias (Champions…) la fase de liga no se pronostica: la portada enseña los cruces.
   const allGames = useMemo(
     () =>
@@ -132,7 +135,11 @@ export function useLeagueHomeData(): LeagueHomeData {
         : fetchCompetitionStandings(activeCompetitionId),
     // Con partidos de varias competiciones, la tabla de una sola no dice nada de la liga.
     enabled:
-      format === 'matchday' && Boolean(activeCompetitionId) && !activeGroupMultiCompetition && !ufc,
+      format === 'matchday' &&
+      Boolean(activeCompetitionId) &&
+      !activeGroupMultiCompetition &&
+      !ufc &&
+      !tennis,
     staleTime: 120_000,
   });
   const { data: customTeams, isLoading: loadingCustomTeams } = useQuery({
@@ -165,9 +172,12 @@ export function useLeagueHomeData(): LeagueHomeData {
           to: '/jornadas',
           action: 'hacer tu predicción',
           allTo: ownMatches ? '/jornadas' : '/radar',
-          empty: ownMatches
-            ? 'Esta liga aún no tiene partidos por jugar.'
-            : 'No hay partidos programados para esta jornada.',
+          empty:
+            tennis && !round
+              ? 'El cuadro aún no está publicado: los partidos aparecerán en cuanto ESPN lo publique.'
+              : ownMatches
+                ? 'Esta liga aún no tiene partidos por jugar.'
+                : 'No hay partidos programados para esta jornada.',
         },
         standings:
           !activeGroupMultiCompetition && leagueStandings?.length
@@ -259,6 +269,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     customTeams,
     activeGroupKnockoutDraw,
     activeGroupMultiCompetition,
+    tennis,
   ]);
 
   return useMemo(() => ({ ...data, loading }), [data, loading]);
