@@ -1,12 +1,14 @@
 import type { Plugin, Rolldown } from 'vite';
 import {
   CONTENT_PAGES,
+  HOME_FAQ,
   HOME_META,
   INDEXABLE_PATHS,
   LANDING_COPY,
   ROUTE_META,
   SITE_ORIGIN,
   type ContentPage,
+  type FaqEntry,
   type PageMeta,
 } from '../src/seo/pages.ts';
 
@@ -88,6 +90,21 @@ const footerNav = () => {
 const paragraphs = (texts: readonly string[]) =>
   texts.map((text) => `<p>${escapeHtml(text)}</p>`).join('');
 
+const faqMarkup = (faq: readonly FaqEntry[]) =>
+  `<h2>Preguntas frecuentes</h2><dl>${faq
+    .map((entry) => `<dt>${escapeHtml(entry.question)}</dt><dd>${escapeHtml(entry.answer)}</dd>`)
+    .join('')}</dl>`;
+
+const faqStructuredData = (faq: readonly FaqEntry[], url: string) => ({
+  '@type': 'FAQPage',
+  url,
+  mainEntity: faq.map((entry) => ({
+    '@type': 'Question',
+    name: entry.question,
+    acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+  })),
+});
+
 const landingMarkup = () =>
   `<main><h1>${escapeHtml(`${LANDING_COPY.h1} ${LANDING_COPY.h1Marked}`)}</h1>` +
   paragraphs([LANDING_COPY.lede, LANDING_COPY.heroNote]) +
@@ -100,6 +117,7 @@ const landingMarkup = () =>
   `<h3>${escapeHtml(LANDING_COPY.matchdayTitle)}</h3>${paragraphs([LANDING_COPY.matchdayText])}` +
   `<h2>${escapeHtml(`${LANDING_COPY.closingTitle} ${LANDING_COPY.closingMarked}`)}</h2>` +
   paragraphs([LANDING_COPY.closing]) +
+  faqMarkup(HOME_FAQ) +
   `</main>${footerNav()}`;
 
 const contentMarkup = (page: ContentPage) =>
@@ -111,13 +129,7 @@ const contentMarkup = (page: ContentPage) =>
   page.sections
     .map((section) => `<h2>${escapeHtml(section.heading)}</h2>${paragraphs(section.paragraphs)}`)
     .join('') +
-  (page.faq
-    ? `<h2>Preguntas frecuentes</h2><dl>${page.faq
-        .map(
-          (entry) => `<dt>${escapeHtml(entry.question)}</dt><dd>${escapeHtml(entry.answer)}</dd>`,
-        )
-        .join('')}</dl>`
-    : '') +
+  (page.faq ? faqMarkup(page.faq) : '') +
   `</main>${footerNav()}`;
 
 const contentStructuredData = (page: ContentPage) => {
@@ -132,15 +144,7 @@ const contentStructuredData = (page: ContentPage) => {
     },
   ];
   if (page.faq) {
-    graph.push({
-      '@type': 'FAQPage',
-      url,
-      mainEntity: page.faq.map((entry) => ({
-        '@type': 'Question',
-        name: entry.question,
-        acceptedAnswer: { '@type': 'Answer', text: entry.answer },
-      })),
-    });
+    graph.push(faqStructuredData(page.faq, url));
   }
   return jsonLd({ '@context': 'https://schema.org', '@graph': graph });
 };
@@ -192,7 +196,16 @@ export default function seoPrerender(): Plugin {
       // La portada: sin canonical, porque este mismo HTML es el que reciben las pantallas de la
       // app sin HTML propio (ver RouteHead).
       index.source = withRoot(
-        withHead(shell, HOME_META, null, modulePreloads(bundle, shell, '/src/pages/Landing.tsx')),
+        withHead(
+          shell,
+          HOME_META,
+          null,
+          modulePreloads(bundle, shell, '/src/pages/Landing.tsx') +
+            jsonLd({
+              '@context': 'https://schema.org',
+              ...faqStructuredData(HOME_FAQ, `${SITE_ORIGIN}/`),
+            }),
+        ),
         landingMarkup(),
       );
 
