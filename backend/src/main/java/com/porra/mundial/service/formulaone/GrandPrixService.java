@@ -189,6 +189,13 @@ public class GrandPrixService {
         return picks;
     }
 
+    /** Comprueba que la liga es de Fórmula 1 y que el usuario puede verla. */
+    @Transactional(readOnly = true)
+    public void assertGrandPrixLeague(String email, Long groupId) {
+        grandPrixEdition(groupId);
+        leagueService.assertCanView(groupId, email);
+    }
+
     private Edition grandPrixEdition(Long groupId) {
         if (groupId == null) throw BusinessException.badRequest("Falta la liga");
         Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE")

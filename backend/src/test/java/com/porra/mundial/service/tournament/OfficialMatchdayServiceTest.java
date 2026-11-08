@@ -182,4 +182,40 @@ class OfficialMatchdayServiceTest {
 
         assertThat(rounds).containsKey(leaguePhase).doesNotContainKey(playoff);
     }
+    @Test
+    void anOfficialCalendarThatMatchesFewMatchesDoesNotCoverTheSeason() {
+        // Champions: todos los horarios tienen varios partidos, así que no se relaciona ningún equipo.
+        Instant kickoff = AppTime.fromLocal(LocalDateTime.of(2026, 9, 15, 21, 0));
+        OfficialMatchdayService.Assignment assignment = OfficialMatchdayService.assignMatchdays(
+                List.of(match(0, 1, kickoff), match(2, 3, kickoff)),
+                List.of(fixture(0, 1, kickoff, 1), fixture(2, 3, kickoff, 1)));
+
+        assertThat(assignment.coversSeason()).isFalse();
+    }
+
+    @Test
+    void anOfficialCalendarThatMatchesMostMatchesCoversTheSeason() {
+        Instant saturday = AppTime.fromLocal(LocalDateTime.of(2026, 8, 15, 18, 0));
+        Instant sunday = saturday.plus(1, ChronoUnit.DAYS);
+        Instant nextSaturday = saturday.plus(7, ChronoUnit.DAYS);
+        Instant nextSunday = sunday.plus(7, ChronoUnit.DAYS);
+        OfficialMatchdayService.Assignment assignment = OfficialMatchdayService.assignMatchdays(
+                List.of(match(0, 1, saturday), match(2, 3, sunday), match(1, 0, nextSaturday), match(3, 2, nextSunday)),
+                List.of(fixture(0, 1, saturday, 1), fixture(2, 3, sunday, 1),
+                        fixture(1, 0, nextSaturday, 2), fixture(3, 2, nextSunday, 2)));
+
+        assertThat(assignment.coversSeason()).isTrue();
+    }
+
+    @Test
+    void aWorldCupBreakDoesNotStartANewSeason() {
+        // La MLS de 2026 paró 52 días por el Mundial: los partidos de antes siguen siendo de la temporada.
+        Instant spring = AppTime.fromLocal(LocalDateTime.of(2026, 5, 23, 20, 0));
+        Match beforeBreak = match(0, 1, spring);
+        Match afterBreak = match(1, 0, spring.plus(52, ChronoUnit.DAYS));
+
+        Map<Match, Integer> rounds = OfficialMatchdayService.inferMatchdays(List.of(afterBreak, beforeBreak));
+
+        assertThat(rounds).containsEntry(beforeBreak, 1).containsEntry(afterBreak, 2);
+    }
 }

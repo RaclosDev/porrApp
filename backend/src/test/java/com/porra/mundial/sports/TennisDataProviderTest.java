@@ -134,6 +134,10 @@ class TennisDataProviderTest {
                 .findFirst().orElseThrow();
     }
 
+    private static String clock(JsonNode event) {
+        return event.path("competitions").get(0).path("status").path("displayClock").asText(null);
+    }
+
     private static JsonNode competitor(JsonNode event, String homeAway) {
         return StreamSupport.stream(event.path("competitions").get(0).path("competitors").spliterator(), false)
                 .filter(node -> homeAway.equals(node.path("homeAway").asText()))
@@ -175,10 +179,36 @@ class TennisDataProviderTest {
     }
 
     @Test
+    void theGamesOfEachSetGoInTheClockWithTheTiebreakOfItsLoser() throws Exception {
+        JsonNode events = provider.fetchScoreboardEvents(PARIS, "2026");
+
+        assertEquals("3-6 4-6", clock(byId(events, "186503")), "Fils, el primero, pierde");
+        assertEquals("7-6(10) 5-7 3-6", clock(byId(events, "186492")));
+        assertEquals("3-6 6-4 7-6(5)", clock(byId(events, "186497")));
+        assertTrue(byId(events, "186507").path("competitions").get(0).path("status").path("displayClock")
+                .isMissingNode(), "La final por jugar no tiene marcador");
+    }
+
+    @Test
+    void aRetirementKeepsTheGamesPlayedAndSaysHowItEnded() throws Exception {
+        JsonNode match = JSON.readTree("""
+                {"competitors": [
+                  {"homeAway": "home", "linescores": [{"value": 6}, {"value": 2}]},
+                  {"homeAway": "away", "linescores": [{"value": 4}, {"value": 1}]}]}""");
+
+        assertEquals("6-4 2-1 RET", TennisDataProvider.scoreLine(match, "STATUS_RETIRED"));
+        assertEquals("6-4 2-1", TennisDataProvider.scoreLine(match, null), "En directo, solo los juegos");
+        assertEquals("WO", TennisDataProvider.scoreLine(JSON.readTree("{\"competitors\": []}"),
+                "STATUS_WALKOVER"));
+        assertNull(TennisDataProvider.scoreLine(JSON.readTree("{\"competitors\": []}"), "STATUS_FINAL"));
+    }
+
+    @Test
     void aWalkoverHasAWinnerButNoScore() throws Exception {
         JsonNode match = byId(provider.fetchScoreboardEvents(PARIS, "2026"), "186502");
 
         JsonNode status = match.path("competitions").get(0).path("status").path("type");
+        assertEquals("WO", clock(match));
         assertEquals("STATUS_FINAL", status.path("name").asText());
         assertTrue(competitor(match, "away").path("winner").asBoolean(), "Alcaraz pasa por W.O.");
         assertTrue(competitor(match, "away").path("score").isMissingNode());

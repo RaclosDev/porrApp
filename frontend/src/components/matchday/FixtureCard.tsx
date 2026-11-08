@@ -15,6 +15,7 @@ import {
   type DraftPrediction,
   type MatchSign,
 } from '../../utils/matchday';
+import { parseTennisScore, tennisEndingLabel } from '../../utils/tennisScore';
 
 interface FixtureCardProps {
   fixture: MatchdayFixture;
@@ -79,8 +80,13 @@ export default function FixtureCard({
             : '2'
         : null;
   const inPlay = fixture.status === 'LIVE' || fixture.status === 'PAUSED';
+  const series = fixture.sport === 'LEAGUE_OF_LEGENDS';
   const winnerOnly = !allowsDraw(fixture.sport);
   const note = fixture.finished ? resultNote(fixture.displayClock) : null;
+  // Tenis: los juegos de cada set y, si no se jugó entero, cómo acabó (retirada, W.O.).
+  const tennisScore = tennisSets && !series ? parseTennisScore(fixture.displayClock) : null;
+  const tennisEnding = tennisEndingLabel(tennisScore);
+  const tennisGames = tennisScore && tennisScore.sets.length > 0 ? tennisScore.sets : null;
   // Terminado sin predicción: también se dice que no suma, para que cada partido cerrado tenga su balance.
   // En superviviente solo se juega un partido por jornada: los demás no tienen balance que mostrar.
   const showPoints = survivor
@@ -94,6 +100,9 @@ export default function FixtureCard({
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays size={12} aria-hidden="true" />
           {formatMatchDate(fixture.matchDate)}
+          {fixture.bestOf != null && fixture.bestOf > 0 && (
+            <span className="md-best-of">Al mejor de {fixture.bestOf}</span>
+          )}
           {!locked && fixture.lockAt && fixture.lockAt !== fixture.matchDate && (
             <span className="md-lock-at">· Cierra {formatMatchDate(fixture.lockAt)}</span>
           )}
@@ -110,17 +119,23 @@ export default function FixtureCard({
           </button>
           {fixture.finished ? (
             <span className="md-badge is-finished">
-              {home != null && away != null
-                ? `Final ${home} - ${away}${note ? ` · ${note}` : ''}`
-                : tennisSets
-                  ? 'Final · retirada o W.O.'
-                  : 'Final'}
+              {tennisScore
+                ? tennisEnding
+                  ? `Final · ${tennisEnding}`
+                  : 'Final'
+                : home != null && away != null
+                  ? `Final ${home} - ${away}${note ? ` · ${note}` : ''}`
+                  : tennisSets && !series
+                    ? 'Final · retirada o W.O.'
+                    : 'Final'}
             </span>
           ) : isLiveFixture(fixture) ? (
             <span className="md-badge is-live">
-              {tennisSets && home != null && away != null
-                ? `En juego · ${home}-${away}`
-                : liveLabel(fixture.displayClock)}
+              {tennisGames
+                ? 'En juego'
+                : tennisSets && home != null && away != null
+                  ? `En juego · ${home}-${away}`
+                  : liveLabel(fixture.displayClock)}
             </span>
           ) : fixture.awaitingTeams ? (
             <span className="md-badge is-pending">Por definir</span>
@@ -140,7 +155,29 @@ export default function FixtureCard({
             <span className="md-crest">
               <Flag team={team} logo={logo} style={CREST_STYLE} />
             </span>
-            <span className="md-team-name">{team}</span>
+            <span
+              className={`md-team-name${
+                tennisSets && resultSign && resultSign !== (side === 'home' ? '1' : '2')
+                  ? ' is-loser'
+                  : ''
+              }`}
+            >
+              {team}
+            </span>
+            {tennisGames && (
+              <span className="md-set-games" aria-label={`Juegos de ${team} por set`}>
+                {tennisGames.map((set, index) => {
+                  const own = side === 'home' ? set.home : set.away;
+                  const rival = side === 'home' ? set.away : set.home;
+                  return (
+                    <span key={index} className={`md-set-game${own > rival ? ' is-won' : ''}`}>
+                      {own}
+                      {set.tiebreak != null && own < rival && <sup>{set.tiebreak}</sup>}
+                    </span>
+                  );
+                })}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -154,6 +191,7 @@ export default function FixtureCard({
         <TennisPick
           fixture={fixture}
           setsToWin={tennisSets}
+          unit={series ? 'Partidas' : 'Sets'}
           prediction={prediction}
           resultSign={resultSign}
           locked={inputDisabled}
@@ -229,6 +267,8 @@ export default function FixtureCard({
 interface TennisPickProps {
   fixture: MatchdayFixture;
   setsToWin: number;
+  /** Qué se cuenta: los sets del tenis o las partidas de una serie del LoL. */
+  unit: 'Sets' | 'Partidas';
   prediction: DraftPrediction;
   resultSign: MatchSign | null;
   locked: boolean;
@@ -236,12 +276,13 @@ interface TennisPickProps {
 }
 
 /**
- * Tenis: un botón por jugador para elegir quién gana y, debajo, los sets (opcionales). Volver a
- * pulsar los sets elegidos los quita y deja solo el ganador.
+ * Tenis y series del LoL: un botón por jugador o equipo para elegir quién gana y, debajo, los sets o
+ * las partidas (opcionales). Volver a pulsar el resultado elegido lo quita y deja solo el ganador.
  */
 function TennisPick({
   fixture,
   setsToWin,
+  unit,
   prediction,
   resultSign,
   locked,
@@ -282,8 +323,16 @@ function TennisPick({
         })}
       </div>
       {sign && winnerName && (
-        <div className="md-sets" role="group" aria-label={`En cuántos sets gana ${winnerName}`}>
-          <span className="md-sets-label">Sets</span>
+        <div
+          className="md-sets"
+          role="group"
+          aria-label={
+            unit === 'Sets'
+              ? `En cuántos sets gana ${winnerName}`
+              : `Con qué resultado gana ${winnerName} la serie`
+          }
+        >
+          <span className="md-sets-label">{unit}</span>
           {tennisLoserSets(setsToWin).map((lost) => {
             const isSelected = loserSets === lost;
             const isResult = resultSign === sign && resultLoserSets === lost;
