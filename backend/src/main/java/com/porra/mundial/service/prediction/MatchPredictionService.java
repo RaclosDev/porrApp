@@ -355,7 +355,8 @@ public class MatchPredictionService {
                 throw BusinessException.badRequest("El partido no pertenece a la competición de esta liga.");
             }
             if (selection != null && !selection.contains(match) || !EventSeries.includes(series, match.getRound())
-                    || !CardSegment.includes(segments, fightSegments.get(match.getId()))) {
+                    || !CardSegment.includes(segments, fightSegments.get(match.getId()))
+                    || !MatchSelectionService.inTennisWindow(edition, match)) {
                 throw BusinessException.badRequest("Ese partido no entra en esta liga.");
             }
 

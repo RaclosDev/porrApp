@@ -13,6 +13,7 @@ import {
   LEAGUE_STEPS,
   SPORT_LABELS,
   TENNIS_DRAW_LABELS,
+  TENNIS_SCOPE_LABELS,
   customScoringRules,
   formatCopy,
   isFightNights,
@@ -102,7 +103,9 @@ export default function SummaryStep({
       label: 'Competición',
       value: draft.custom
         ? `${draft.customName.trim()} (personalizada)`
-        : (competition?.tennis?.tournament ?? competition?.name),
+        : competition?.tennis && draft.tennisScope
+          ? `${TENNIS_SCOPE_LABELS[draft.tennisScope]}, desde hoy`
+          : (competition?.tennis?.tournament ?? competition?.name),
       step: 'competition',
     },
     ...(competition?.tennis && !draft.custom

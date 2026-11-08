@@ -2,6 +2,7 @@ package com.porra.mundial.service.sync;
 
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.service.prediction.MatchSelectionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -31,6 +32,7 @@ public class SeasonCalendarRefresher {
     private final CompetitionRepository competitionRepository;
     private final CompetitionImportService importService;
     private final CacheManager cacheManager;
+    private final MatchSelectionService matchSelectionService;
 
     @Scheduled(cron = "0 0 5 * * *", zone = "Europe/Madrid")
     @SchedulerLock(name = "seasonCalendar", lockAtMostFor = "PT2H", lockAtLeastFor = "PT5M")
@@ -51,6 +53,14 @@ public class SeasonCalendarRefresher {
                 // Una competición que falla (ESPN caído, temporada sin publicar) no frena al resto.
                 log.warn("Barrida diaria: no se pudo cargar {}: {}", competition.getName(), error.getMessage());
             }
+        }
+        try {
+            // Las ligas de tenis de varios torneos suman los cuadros nuevos de su alcance.
+            int added = matchSelectionService.syncTennisScopes();
+            if (added > 0) log.info("Barrida diaria: {} cuadros de tenis nuevos en ligas de varios torneos", added);
+        } catch (Exception error) {
+            log.warn("Barrida diaria: no se pudieron poner al día las ligas de tenis de varios torneos: {}",
+                    error.getMessage());
         }
         for (String name : CACHES) {
             var cache = cacheManager.getCache(name);
