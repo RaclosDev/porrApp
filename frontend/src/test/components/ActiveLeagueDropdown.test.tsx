@@ -82,4 +82,21 @@ describe('ActiveLeagueDropdown Component', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(button).toHaveAttribute('aria-expanded', 'false');
   });
+
+  it('separa crear liga de unirse con código', () => {
+    render(
+      <MemoryRouter>
+        <ActiveLeagueDropdown />
+      </MemoryRouter>,
+    );
+    const toggle = screen.getByRole('button', { name: /Peña Madridista/i });
+
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole('button', { name: 'Crear liga' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/crear-liga');
+
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole('button', { name: 'Unirse con código' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/mis-ligas?unirse');
+  });
 });

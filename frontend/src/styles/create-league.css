@@ -10,21 +10,8 @@
     padding-bottom: 32px;
   }
 
-  /* En móvil «Tengo un código» va bajo el título; en escritorio, a su derecha. */
   .create-league-header {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
     margin-bottom: 10px;
-  }
-
-  @media (min-width: 640px) {
-    .create-league-header {
-      flex-direction: row;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 16px;
-    }
   }
 
   .create-league-progress {
@@ -48,10 +35,6 @@
     text-decoration: underline;
     text-underline-offset: 3px;
     cursor: pointer;
-  }
-
-  .create-league-link.is-dark {
-    color: var(--accent-text);
   }
 
   .create-league-link:focus-visible {
