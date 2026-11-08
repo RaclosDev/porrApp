@@ -145,7 +145,7 @@ export interface LeagueStanding {
   group?: string | null;
   rank: number;
   teamName: string;
-  /** Nombre corto para pantallas estrechas («Bills»); solo la NFL lo trae. */
+  /** Nombre corto para pantallas estrechas («Bills»); la NFL y la NBA lo traen. */
   teamShortName?: string | null;
   teamLogo: string | null;
   /** NFL: puesto en su conferencia para los playoffs (entran los 7 primeros). */
@@ -158,6 +158,10 @@ export interface LeagueStanding {
   goalDiff: number;
   goalsFor: number;
   goalsAgainst: number;
+  /** División del equipo en la NBA («Atlántico»…); null en las demás competiciones. */
+  division?: string | null;
+  /** Racha actual en la NBA («V3», «D1»); null si la competición no la da. */
+  streak?: string | null;
 }
 
 export interface TeamOdds {

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { hasShownScore, isLiveMatch, upcomingMatches } from '../../utils/homeMatches';
+import {
+  currentRoundMatches,
+  hasShownScore,
+  isLiveMatch,
+  upcomingMatches,
+} from '../../utils/homeMatches';
 import { game } from '../fixtures';
 
 const NOW = Date.parse('2026-11-08T12:00:00Z');
@@ -73,5 +78,34 @@ describe('upcomingMatches', () => {
     );
     expect(finished).toBe(false);
     expect(matches.map((m) => m.id)).toEqual([3, 4]);
+  });
+});
+
+describe('currentRoundMatches', () => {
+  const week = (played: number, total: number) =>
+    Array.from({ length: total }, (_, i) =>
+      game({
+        id: i + 1,
+        home: `Local ${i}`,
+        away: `Visitante ${i}`,
+        round: 'Semana 3',
+        date: new Date(Date.parse('2026-11-02T00:00:00Z') + i * 3_600_000).toISOString(),
+        finished: i < played,
+        status: i < played ? 'FINISHED' : 'SCHEDULED',
+      }),
+    );
+
+  it('una jornada normal va entera', () => {
+    expect(currentRoundMatches(week(5, 10)).matches).toHaveLength(10);
+  });
+
+  it('de una semana de la NBA enseña los últimos resultados y los siguientes partidos', () => {
+    const { round, matches } = currentRoundMatches(week(46, 54));
+    expect(round).toBe('Semana 3');
+    expect(matches.map((m) => m.id)).toEqual([44, 45, 46, 47, 48, 49, 50, 51, 52, 53]);
+  });
+
+  it('con la semana recién empezada, desde el primer partido', () => {
+    expect(currentRoundMatches(week(0, 50)).matches.map((m) => m.id)[0]).toBe(1);
   });
 });

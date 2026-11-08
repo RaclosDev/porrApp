@@ -25,7 +25,9 @@ public enum Sport {
         if (id.startsWith("mma.")) return MMA;
         if (Competition.FORMULA_ONE_EXTERNAL_ID.equals(id)) return FORMULA_1;
         if (id.startsWith("tennis.")) return TENNIS;
-        if (Competition.NBA_EXTERNAL_ID.equals(id)) return BASKETBALL;
+        if (Competition.NBA_EXTERNAL_ID.equals(id) || Competition.NBA_REGULAR_SEASON_EXTERNAL_ID.equals(id)) {
+            return BASKETBALL;
+        }
         if (NflSchedule.EXTERNAL_ID.equals(id)) return AMERICAN_FOOTBALL;
         return FOOTBALL;
     }

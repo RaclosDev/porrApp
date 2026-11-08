@@ -17,21 +17,26 @@ const NAME = 'cl-competition';
  */
 export default function CompetitionStep({ draft, update, errors, ctx }: StepProps) {
   const official = competitionsOfSport(ctx, draft.sport);
-  // La NFL no tiene jornadas: tiene semanas, de septiembre a la Super Bowl.
-  const weeks = draft.sport === 'AMERICAN_FOOTBALL';
+  // La NFL y la NBA no tienen jornadas: tienen semanas.
+  const basketball = draft.sport === 'BASKETBALL';
+  const weeks = draft.sport === 'AMERICAN_FOOTBALL' || basketball;
   const groups = [
     {
       id: 'leagues',
       title: weeks ? 'Por semanas' : 'Por jornadas',
-      hint: weeks
-        ? 'Se juega semana a semana, de septiembre a la Super Bowl.'
-        : 'Se juegan jornada a jornada durante la temporada.',
+      hint: basketball
+        ? 'Se juega semana a semana, de octubre a abril.'
+        : weeks
+          ? 'Se juega semana a semana, de septiembre a la Super Bowl.'
+          : 'Se juegan jornada a jornada durante la temporada.',
       items: official.filter((item) => item.formatType === 'LEAGUE'),
     },
     {
       id: 'tournaments',
       title: 'Con cuadro',
-      hint: 'Torneos con eliminatorias: también se pueden jugar por jornadas.',
+      hint: basketball
+        ? 'Eliminatorias al mejor de siete: se pronostica serie a serie.'
+        : 'Torneos con eliminatorias: también se pueden jugar por jornadas.',
       items: official.filter((item) => item.formatType === 'TOURNAMENT'),
     },
     {

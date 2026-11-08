@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { KnockoutRound } from '../../services/api';
 import type { Competition, Match } from '../../types/api';
 import { gamesFromSaved, knockoutPrediction, knockoutRoundTitle } from '../../utils/knockoutDraw';
-import { isNbaCompetition, seriesLengths, seriesScore, seriesWins } from '../../utils/nbaPlayoffs';
+import {
+  isNbaCompetition,
+  isNbaRegularSeason,
+  seriesLengths,
+  seriesScore,
+  seriesWins,
+} from '../../utils/nbaPlayoffs';
 import {
   emptyDraft,
   formatCopy,
@@ -129,5 +135,42 @@ describe('crear una liga de la NBA', () => {
     ]);
     // Un modo de fútbol que ya no aplica se quita.
     expect(normalizeDraft({ ...chosen, poolFormat: 'MATCH_DAY' }, ctx).poolFormat).toBeNull();
+  });
+});
+
+describe('crear una liga de la temporada regular de la NBA', () => {
+  const season: Competition = {
+    id: 43,
+    name: 'NBA · Temporada regular',
+    externalId: 'nba.regular',
+    formatType: 'LEAGUE',
+    finished: false,
+  };
+  const ctx = { competitions: [season] };
+  const chosen = { ...emptyDraft(), sport: 'BASKETBALL' as const, competitionId: 43 };
+
+  it('es baloncesto aunque el servidor no mande el deporte', () => {
+    expect(sportChoices(ctx)).toEqual(['BASKETBALL', 'OTHER']);
+    expect(isNbaRegularSeason('nba.regular')).toBe(true);
+    expect(isNbaRegularSeason('nba')).toBe(false);
+  });
+
+  it('se juega por semanas o en superviviente, y manda el cuadro a los playoffs', () => {
+    expect(formatUnavailableReason('MATCH_DAY', chosen, ctx)).toBeNull();
+    expect(formatUnavailableReason('SURVIVOR', chosen, ctx)).toBeNull();
+    expect(formatUnavailableReason('KNOCKOUTS_ONLY', chosen, ctx)).toMatch(/NBA · Playoffs/);
+    expect(formatUnavailableReason('FULL_BRACKET', chosen, ctx)).toMatch(/partido a partido/);
+    expect(formatCopy('MATCH_DAY', chosen, ctx).title).toBe('Por semanas');
+    expect(formatCopy('MATCH_DAY', chosen, ctx).text).toMatch(/Copa NBA/);
+    expect(formatCopy('SURVIVOR', chosen, ctx).text).toMatch(/sin repetir equipo/);
+  });
+
+  it('cierra por semanas, no por jornadas', () => {
+    const weekly = { ...chosen, poolFormat: 'MATCH_DAY' as const };
+    expect(lockModesFor(weekly, ctx).map((mode) => mode.label)).toEqual([
+      'Cada partido',
+      'Por días',
+      'Por semanas',
+    ]);
   });
 });

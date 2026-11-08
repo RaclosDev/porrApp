@@ -71,10 +71,31 @@ class LeagueServiceNbaTest {
     }
 
     @Test
-    @DisplayName("De la NBA solo se juegan los playoffs")
+    @DisplayName("Los playoffs de la NBA solo se juegan en modo Playoffs, y el error lleva a la temporada regular")
     void nbaRejectsOtherFormats() {
         BusinessException error = assertThrows(BusinessException.class, () -> service.createLeague(
                 NewLeague.of("Jornadas", EMAIL, 15L, PoolFormat.MATCH_DAY)));
-        assertTrue(error.getMessage().contains("playoffs"));
+        assertTrue(error.getMessage().contains("Temporada regular"));
+
+        BusinessException bracket = assertThrows(BusinessException.class, () -> service.createLeague(
+                NewLeague.of("Cuadro", EMAIL, 15L, PoolFormat.FULL_BRACKET)));
+        assertTrue(bracket.getMessage().contains("serie a serie"));
+    }
+
+    @Test
+    @DisplayName("La temporada regular de la NBA se juega por semanas o en superviviente, nunca con cuadro")
+    void nbaRegularSeasonIsMatchBased() {
+        when(competitions.findById(16L)).thenReturn(Optional.of(Competition.builder().id(16L)
+                .name("NBA · Temporada regular").externalId(Competition.NBA_REGULAR_SEASON_EXTERNAL_ID)
+                .formatType("LEAGUE").build()));
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.createLeague(
+                NewLeague.of("Cuadro", EMAIL, 16L, PoolFormat.KNOCKOUTS_ONLY)));
+        assertTrue(error.getMessage().contains("partido a partido"));
+
+        service.createLeague(NewLeague.of("Semanas", EMAIL, 16L, PoolFormat.MATCH_DAY));
+        ArgumentCaptor<Edition> edition = ArgumentCaptor.forClass(Edition.class);
+        verify(editions).save(edition.capture());
+        assertEquals(PredictionLockMode.FIXED_DATE, edition.getValue().getLockMode());
     }
 }

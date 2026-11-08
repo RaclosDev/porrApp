@@ -30,6 +30,12 @@ public class Competition {
     /** Identificador de la NBA (ESPN {@code basketball/nba}): solo sus playoffs, serie a serie. */
     public static final String NBA_EXTERNAL_ID = "nba";
 
+    /**
+     * Temporada regular de la NBA (ESPN {@code basketball/nba}, tipo 2): partido a partido, por semanas
+     * oficiales de la NBA, con la Copa NBA dentro. Va aparte de los playoffs, que se juegan serie a serie.
+     */
+    public static final String NBA_REGULAR_SEASON_EXTERNAL_ID = "nba.regular";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -93,7 +99,7 @@ public class Competition {
      */
     public boolean drawsKnockoutRounds() {
         Sport sport = Sport.ofExternalId(externalId);
-        return hasOwnBracket() && (sport == Sport.FOOTBALL || sport == Sport.BASKETBALL);
+        return hasOwnBracket() && (sport == Sport.FOOTBALL || playsSeries());
     }
 
     /**
@@ -101,6 +107,6 @@ public class Competition {
      * pronostica quién la gana y en cuántos partidos. Solo se juega en «Solo eliminatorias».
      */
     public boolean playsSeries() {
-        return ownerLeague == null && Sport.ofExternalId(externalId) == Sport.BASKETBALL;
+        return ownerLeague == null && NBA_EXTERNAL_ID.equals(externalId);
     }
 }

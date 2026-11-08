@@ -15,6 +15,7 @@ import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
+import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
 
 /** «Jornadas»: solo las ligas que se predicen partido a partido; el resto tiene su propia porra. */
 function MatchdayPredictor() {
@@ -113,7 +114,12 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
       />
 
       {md.isSurvivor && (
-        <SurvivorStatusBar status={md.survivor} weeks={activeCompetitionExternalId === 'nfl'} />
+        <SurvivorStatusBar
+          status={md.survivor}
+          weeks={
+            activeCompetitionExternalId === 'nfl' || isNbaRegularSeason(activeCompetitionExternalId)
+          }
+        />
       )}
 
       {md.availableRounds.length > 0 && (
