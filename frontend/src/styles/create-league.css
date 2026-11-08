@@ -389,6 +389,22 @@
     margin-top: 2px;
   }
 
+  .create-league-segments {
+    margin-top: 18px;
+  }
+
+  .create-league-segments > .create-league-hint {
+    margin: 0 0 10px;
+  }
+
+  /* Las tres partes cuelgan de «Toda la velada». */
+  .create-league-segments-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+    gap: 0 12px;
+    padding-left: 24px;
+  }
+
   .create-league-error {
     margin: 0;
     color: var(--stamp-red);

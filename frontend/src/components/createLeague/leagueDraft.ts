@@ -1,5 +1,6 @@
 import type { CreateGroupRequest, CustomLockMode } from '../../services/api';
-import type { Competition, EventSeries, PoolFormat, Sport } from '../../types/api';
+import type { CardSegment, Competition, EventSeries, PoolFormat, Sport } from '../../types/api';
+import { CARD_SEGMENTS } from '../../utils/fights';
 import {
   SCORING_MAX_POINTS,
   defaultScoringRules,
@@ -152,6 +153,8 @@ export interface LeagueDraft {
   tennisDraw: TennisDraw;
   /** UFC con todas las veladas: solo las numeradas o solo las Fight Night; null para todas. */
   eventSeries: EventSeries | null;
+  /** UFC: partes de la cartelera de cada velada que entran (las tres, la velada completa). */
+  cardSegments: CardSegment[];
   entryFee: boolean;
   name: string;
   rules: string;
@@ -178,6 +181,7 @@ export const emptyDraft = (): LeagueDraft => ({
   matchesCompetitionId: null,
   tennisDraw: 'MEN',
   eventSeries: null,
+  cardSegments: [...CARD_SEGMENTS],
   entryFee: false,
   name: '',
   rules: '',
@@ -453,6 +457,12 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   // La serie solo cuenta en una liga de la UFC con todas las veladas.
   if (!matchSelectionApplies(next, ctx) || !isFightNights(next, ctx) || next.matches.mode !== 'ALL')
     next.eventSeries = null;
+  // Las partes de la cartelera solo cuentan en la UFC; en otra competición, la velada completa.
+  if (
+    (!matchSelectionApplies(next, ctx) || !isFightNights(next, ctx)) &&
+    next.cardSegments.length !== CARD_SEGMENTS.length
+  )
+    next.cardSegments = [...CARD_SEGMENTS];
   if (!scoringEditable(next)) next.customScoring = false;
   // Sin personalizar, la puntuación es la del deporte (la del tenis no es la del fútbol).
   if (!next.customScoring) {
@@ -473,6 +483,7 @@ export type StepErrors = Partial<
     | 'customName'
     | 'poolFormat'
     | 'matches'
+    | 'cardSegments'
     | 'lockDate'
     | 'lockAmount'
     | 'scoring'
@@ -489,6 +500,7 @@ export const FIELD_IDS: Record<keyof StepErrors, string> = {
   customName: 'cl-custom-name',
   poolFormat: 'cl-field-format',
   matches: 'cl-field-matches',
+  cardSegments: 'cl-field-card-segments',
   lockDate: 'cl-lock-date',
   lockAmount: 'cl-lock-amount',
   scoring: 'cl-field-scoring',
@@ -521,6 +533,8 @@ export function validateStep(
         ? 'Elige una velada.'
         : selectionError(draft.matches);
     if (problem) errors.matches = problem;
+    if (isFightNights(draft, ctx) && !draft.cardSegments.length)
+      errors.cardSegments = 'Marca al menos una parte de la cartelera.';
   }
   if (step === 'rules') {
     if (draft.lockMode === 'FIXED_DATE') {
@@ -575,10 +589,24 @@ export function buildCreateRequest(draft: LeagueDraft, ctx: DraftContext): Creat
   if (draft.custom) request.customCompetitionName = draft.customName.trim();
   if (rules) request.rules = rules;
   if (draft.entryFee) request.entryFee = true;
+  // UFC: sin las tres partes de la cartelera, las elegidas (en el orden de la velada).
+  const cardSegments =
+    matchSelectionApplies(draft, ctx) &&
+    isFightNights(draft, ctx) &&
+    draft.cardSegments.length < CARD_SEGMENTS.length
+      ? CARD_SEGMENTS.filter((segment) => draft.cardSegments.includes(segment))
+      : null;
   if (matchSelectionApplies(draft, ctx) && draft.matches.mode !== 'ALL') {
     request.matchSelection = toRequest(draft.matches);
-  } else if (matchSelectionApplies(draft, ctx) && isFightNights(draft, ctx) && draft.eventSeries) {
-    request.matchSelection = { mode: 'ALL', eventSeries: draft.eventSeries };
+    if (cardSegments) request.matchSelection.cardSegments = cardSegments;
+  } else if (
+    matchSelectionApplies(draft, ctx) &&
+    isFightNights(draft, ctx) &&
+    (draft.eventSeries || cardSegments)
+  ) {
+    request.matchSelection = { mode: 'ALL' };
+    if (draft.eventSeries) request.matchSelection.eventSeries = draft.eventSeries;
+    if (cardSegments) request.matchSelection.cardSegments = cardSegments;
   }
   const women =
     competition?.tennis && draft.tennisDraw === 'BOTH'
@@ -679,6 +707,12 @@ export function readStoredDraft(): LeagueDraft {
       tennisDraw: pick('tennisDraw', (value) => ['MEN', 'WOMEN', 'BOTH'].includes(value as string)),
       eventSeries: pick('eventSeries', (value) =>
         ['NUMBERED', 'FIGHT_NIGHT'].includes(value as string),
+      ),
+      cardSegments: pick(
+        'cardSegments',
+        (value) =>
+          Array.isArray(value) &&
+          value.every((item) => CARD_SEGMENTS.includes(item as CardSegment)),
       ),
       entryFee: pick('entryFee', isBool),
       name: pick('name', isString),

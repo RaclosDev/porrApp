@@ -94,6 +94,49 @@ describe('liga de la UFC en el asistente', () => {
     ).toBeNull();
   });
 
+  it('elige qué partes de la cartelera entran, con al menos una', () => {
+    const whole = ufcDraft({ name: 'Veladas' });
+    expect(whole.cardSegments).toEqual(['EARLY_PRELIMS', 'PRELIMS', 'MAIN']);
+    // Con la velada completa no se manda nada: la liga queda como las de antes.
+    expect(buildCreateRequest(whole, ctx).matchSelection).toBeUndefined();
+
+    const mainCard = ufcDraft({ cardSegments: ['MAIN'], name: 'Estelar' });
+    expect(buildCreateRequest(mainCard, ctx).matchSelection).toEqual({
+      mode: 'ALL',
+      cardSegments: ['MAIN'],
+    });
+    // Se mandan en el orden de la velada, se marquen como se marquen.
+    const prelims = ufcDraft({
+      cardSegments: ['MAIN', 'EARLY_PRELIMS'],
+      eventSeries: 'NUMBERED',
+      name: 'Numeradas',
+    });
+    expect(buildCreateRequest(prelims, ctx).matchSelection).toEqual({
+      mode: 'ALL',
+      eventSeries: 'NUMBERED',
+      cardSegments: ['EARLY_PRELIMS', 'MAIN'],
+    });
+    const single = ufcDraft({
+      cardSegments: ['PRELIMS'],
+      matches: { ...whole.matches, mode: 'PICK', included: [11] },
+      matchesCompetitionId: 9,
+      name: 'UFC 334',
+    });
+    expect(buildCreateRequest(single, ctx).matchSelection).toMatchObject({
+      mode: 'CUSTOM',
+      includedMatchIds: [11],
+      cardSegments: ['PRELIMS'],
+    });
+
+    expect(validateStep('format', ufcDraft({ cardSegments: [] }), ctx)).toEqual({
+      cardSegments: 'Marca al menos una parte de la cartelera.',
+    });
+    // Fuera de la UFC vuelve a ser la velada completa.
+    expect(
+      normalizeDraft({ ...mainCard, sport: 'FOOTBALL', competitionId: 1 }, ctx).cardSegments,
+    ).toHaveLength(3);
+  });
+
   it('puntúa ganador, método y asalto en vez del 1X2', () => {
     expect(
       scoringSections('MATCH_DAY', false, false, false, false, null, true).map(
