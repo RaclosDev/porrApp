@@ -140,17 +140,17 @@ export const PICK_MODES: { value: PickMode; title: string; text: string }[] = [
   {
     value: 'ALL',
     title: 'Todos los partidos',
-    text: 'Entra cada partido de la competición.',
+    text: 'Toda la competición.',
   },
   {
     value: 'TEAMS',
     title: 'Los de un equipo',
-    text: 'Para la peña de un club: entran sus partidos, también los que se publiquen más adelante.',
+    text: 'Para la peña de un club. Los partidos nuevos entran solos.',
   },
   {
     value: 'PICK',
     title: 'Elegidos a mano',
-    text: 'Solo los partidos que marques, por ejemplo los más destacados.',
+    text: 'Solo los que marques.',
   },
 ];
 

@@ -160,9 +160,7 @@ export default function LeagueSettingsTab({
 
       {section === 'norms' && (
         <section className="league-admin-card">
-          <p className="league-admin-muted">
-            Cuota, pagos, plazos, desempates o premios. Las ven todos los participantes.
-          </p>
+          <p className="league-admin-muted">Cuota, premios, desempates o plazos. Las ven todos.</p>
           <textarea
             id="league-admin-rules"
             className="glass-input league-admin-textarea"
@@ -173,7 +171,7 @@ export default function LeagueSettingsTab({
               setRulesText(event.target.value);
               setNotice('');
             }}
-            placeholder="Ej.: Cuota de 10 € por Bizum a Ana antes del 10 de junio. Premios: 60 % al primero, 30 % al segundo y 10 % al tercero."
+            placeholder="Ej.: 10 € por Bizum a Ana. 60 % al primero, 30 % al segundo, 10 % al tercero."
             aria-label="Normas de la liga"
           />
           <span className="league-admin-hint">{rulesText.length}/8000 caracteres</span>
@@ -198,8 +196,7 @@ export default function LeagueSettingsTab({
             </h3>
           </div>
           <p className="league-admin-muted">
-            Eliminar la liga borra todas sus predicciones y participantes. Esta acción no se puede
-            deshacer.
+            Borra la liga con sus predicciones y participantes. No se puede deshacer.
           </p>
           {!deleteOpen ? (
             <button

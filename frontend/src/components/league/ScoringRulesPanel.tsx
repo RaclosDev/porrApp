@@ -15,7 +15,7 @@ function survivorRules(lives: number, drawSurvives: boolean, draws: boolean, wee
     lives > 1
       ? `Cada fallo te quita una vida y con la última quedas eliminado: empiezas con ${lives}.`
       : 'Al primer fallo quedas eliminado.';
-  return `Superviviente: en cada ${round} eliges un equipo que gane, y no puedes repetir equipo en toda la temporada. ${survive}. ${fail} Elegir es obligatorio: si empiezan todos los partidos de una ${round} sin que hayas elegido, cuenta como fallo. Gana quien supere más ${round}s.`;
+  return `Cada ${round} eliges un equipo, sin repetir. ${survive}. ${fail} No elegir cuenta como fallo. Gana quien supere más ${round}s.`;
 }
 
 /**
@@ -67,14 +67,13 @@ export default function ScoringRulesPanel({
       )}
       {scoring.poolFormat === 'MATCH_DAY' && scoring.fights && (
         <p className="scoring-row-hint">
-          Un empate o una pelea sin resultado no dan puntos a nadie. Una pelea cancelada no cuenta
-          y, si cambia un rival, la predicción de esa pelea se anula y se avisa.
+          Un empate, una pelea sin resultado o cancelada no dan puntos. Si cambia un rival, esa
+          predicción se anula.
         </p>
       )}
       {scoring.poolFormat === 'MATCH_DAY' && signOnly && !winnerOnly && (
         <p className="scoring-row-hint">
-          Provisionalmente solo puntúa el signo 1X2. El resultado exacto y la diferencia de goles
-          están pausados; sus valores se conservan para reactivarlos más adelante.
+          Por ahora solo puntúa el 1X2. El resultado exacto y la diferencia de goles están pausados.
         </p>
       )}
       {sections.map((section) => (

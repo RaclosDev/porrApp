@@ -162,7 +162,7 @@ describe('crear una liga de la temporada regular de la NBA', () => {
     expect(formatUnavailableReason('FULL_BRACKET', chosen, ctx)).toMatch(/partido a partido/);
     expect(formatCopy('MATCH_DAY', chosen, ctx).title).toBe('Por semanas');
     expect(formatCopy('MATCH_DAY', chosen, ctx).text).toMatch(/Copa NBA/);
-    expect(formatCopy('SURVIVOR', chosen, ctx).text).toMatch(/sin repetir equipo/);
+    expect(formatCopy('SURVIVOR', chosen, ctx).text).toMatch(/sin repetir/);
   });
 
   it('cierra por semanas, no por jornadas', () => {

@@ -223,7 +223,7 @@ export default function CustomLockCard({
                   <option value="days">días</option>
                 </select>
               </div>
-              <p className="league-admin-muted m-0">0 = justo cuando empieza. Máximo 30 días.</p>
+              <p className="league-admin-muted m-0">0 = justo al empezar. Máximo 30 días.</p>
             </div>
           )}
 
@@ -237,11 +237,10 @@ export default function CustomLockCard({
         </form>
       )}
       <p className="league-admin-muted">
-        Puedes cambiar el criterio aunque ya haya predicciones. Si el nuevo cierre es posterior, lo
-        que ya estaba cerrado vuelve a abrirse.
+        Si retrasas el cierre, lo cerrado se vuelve a abrir.
         {lock.progressive &&
           !matchday &&
-          ' Quien no haya enviado su predicción antes del primer cierre ya no podrá entrar, y de los demás solo se ve lo que ya está cerrado.'}
+          ' Quien no envíe su predicción antes del primer cierre se queda fuera.'}
       </p>
     </section>
   );

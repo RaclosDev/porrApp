@@ -21,8 +21,8 @@ export default function GroupsDashboard() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<Group | null>(null);
   const [selectedGroupForRules, setSelectedGroupForRules] = useState<Group | null>(null);
   const [selectedCustomCompetition, setSelectedCustomCompetition] = useState<Group | null>(null);
-  // Desde la pantalla de crear liga: «Unirse con código» llega abierto (?unirse) y, tras crear una
-  // con competición personalizada, su gestión (?gestionar=<id>).
+  // Desde el selector de liga, «Unirse con código» llega abierto (?unirse); desde crear liga, tras
+  // crear una con competición personalizada, su gestión (?gestionar=<id>).
   const [searchParams, setSearchParams] = useSearchParams();
   const [showJoinModal, setShowJoinModal] = useState(() => searchParams.has('unirse'));
 
@@ -49,6 +49,19 @@ export default function GroupsDashboard() {
     userId,
     activeGroupId,
   } = useGroupsDashboard();
+
+  // ?unirse se consume al abrir el modal, para que el selector pueda volver a abrirlo estando ya aquí.
+  useEffect(() => {
+    if (!searchParams.has('unirse')) return;
+    setShowJoinModal(true);
+    setSearchParams(
+      (params) => {
+        params.delete('unirse');
+        return params;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams]);
 
   const manageId = searchParams.get('gestionar');
   const competitionToManage =

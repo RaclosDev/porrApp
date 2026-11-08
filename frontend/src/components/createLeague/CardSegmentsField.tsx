@@ -29,9 +29,6 @@ export default function CardSegmentsField({ draft, update, errors }: StepProps) 
       aria-describedby={errors.cardSegments ? errorId(fieldId) : undefined}
     >
       <legend className="create-league-section-title">Peleas de cada velada</legend>
-      <p className="create-league-hint">
-        Solo las peleas de las partes marcadas entran en la liga.
-      </p>
       <label className="create-league-check">
         <input
           ref={allRef}
@@ -40,10 +37,7 @@ export default function CardSegmentsField({ draft, update, errors }: StepProps) 
           aria-controls={CARD_SEGMENTS.map((segment) => `cl-segment-${segment}`).join(' ')}
           onChange={() => update({ cardSegments: all ? [] : [...CARD_SEGMENTS] })}
         />
-        <span>
-          Toda la velada{' '}
-          <span className="create-league-hint">Early Prelims, Prelims y Main Card.</span>
-        </span>
+        <span>Toda la velada</span>
       </label>
       <div className="create-league-segments-list">
         {CARD_SEGMENTS.map((segment) => (
@@ -63,8 +57,7 @@ export default function CardSegmentsField({ draft, update, errors }: StepProps) 
       </div>
       {chosen.length === 1 && chosen[0] === 'EARLY_PRELIMS' && (
         <p className="create-league-hint" role="note">
-          Muchas Fight Night no tienen preliminares tempranos: esas noches la liga se quedará sin
-          peleas.
+          Muchas Fight Night no tienen preliminares tempranos: esas noches no habrá peleas.
         </p>
       )}
       <FieldError fieldId={fieldId} message={errors.cardSegments} />

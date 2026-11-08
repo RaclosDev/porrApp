@@ -208,10 +208,7 @@ export default function LeagueMatchesSection({ group }: { group: Group }) {
         </form>
       )}
       <p className="league-admin-muted">
-        Los partidos futuros de los equipos elegidos entran solos. Si quitas un partido que aún no
-        ha empezado se borran sus predicciones en esta liga; uno ya cerrado con predicciones se
-        queda, para no cambiar la clasificación. Si juntas varias competiciones, las jornadas pasan
-        a ser semanas de lunes a domingo.
+        Quitar un partido borra sus predicciones. Los ya cerrados con predicciones se quedan.
       </p>
     </section>
   );
