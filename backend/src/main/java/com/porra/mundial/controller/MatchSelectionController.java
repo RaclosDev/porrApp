@@ -3,6 +3,7 @@ package com.porra.mundial.controller;
 import com.porra.mundial.dto.MatchSelectionDTO;
 import com.porra.mundial.dto.MatchSelectionRequest;
 import com.porra.mundial.service.prediction.MatchSelectionService;
+import com.porra.mundial.service.sync.OnDemandCompetitionImport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MatchSelectionController {
     private final MatchSelectionService service;
+    private final OnDemandCompetitionImport onDemandImport;
 
     /** Selección actual con todo el calendario de la competición (solo el administrador). */
     @GetMapping("/api/groups/{leagueId}/competition/match-selection")
@@ -35,16 +37,17 @@ public class MatchSelectionController {
 
     /**
      * Calendario de varias competiciones oficiales (la principal primero) para elegir partidos sueltos
-     * de todas al crear una liga.
+     * de todas al crear una liga. Una competición sin ningún partido se carga en el momento de ESPN: sale
+     * con {@code importing} hasta que llegan, o con {@code importError}.
      */
     @GetMapping("/api/competitions/selectable-matches")
     public MatchSelectionDTO selectableFrom(@RequestParam("ids") List<Long> competitionIds) {
-        return service.competitionCalendar(competitionIds);
+        return onDemandImport.withImports(service.competitionCalendar(competitionIds));
     }
 
-    /** Calendario de una competición oficial para elegir partidos al crear una liga. */
+    /** Calendario de una competición oficial para elegir partidos al crear una liga (igual que el anterior). */
     @GetMapping("/api/competitions/{competitionId}/selectable-matches")
     public MatchSelectionDTO selectable(@PathVariable Long competitionId) {
-        return service.competitionCalendar(competitionId);
+        return onDemandImport.withImports(service.competitionCalendar(competitionId));
     }
 }

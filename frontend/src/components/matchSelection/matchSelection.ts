@@ -30,6 +30,26 @@ export const ALL_MATCHES: SelectionValue = {
   competitionIds: [],
 };
 
+/** Competiciones del calendario que se están cargando de ESPN y avisos de las que no se han podido. */
+export interface CalendarImports {
+  loading: string[];
+  errors: string[];
+}
+
+export function calendarImports(
+  view: Pick<MatchSelectionView, 'competitions'> | null | undefined,
+): CalendarImports {
+  const competitions = view?.competitions ?? [];
+  return {
+    loading: competitions.filter((item) => item.importing).map((item) => item.name),
+    errors: competitions.flatMap((item) => (item.importError ? [item.importError] : [])),
+  };
+}
+
+/** Si alguna competición del calendario se está cargando: hay que volver a pedirlo hasta que llegue. */
+export const isImporting = (view: Pick<MatchSelectionView, 'competitions'> | null | undefined) =>
+  view?.competitions.some((item) => item.importing) ?? false;
+
 /** Competiciones que puede juntar una liga, contando la suya (como en el servidor). */
 export const MAX_COMPETITIONS = 8;
 

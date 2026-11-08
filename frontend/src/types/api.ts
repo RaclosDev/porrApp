@@ -349,6 +349,10 @@ interface SelectableCompetition {
   externalId: string | null;
   /** Tiene partidos cerrados con predicciones en la liga: no se puede quitar. */
   locked: boolean;
+  /** Calendario para crear la liga: no tenía partidos y se están cargando ahora de ESPN. */
+  importing?: boolean;
+  /** Por qué sigue sin partidos (ESPN ha fallado o aún no los ha publicado). */
+  importError?: string | null;
 }
 
 export interface MatchSelectionView {

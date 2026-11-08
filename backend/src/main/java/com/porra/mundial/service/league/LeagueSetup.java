@@ -34,9 +34,13 @@ public record LeagueSetup(String rules, Boolean entryFee, ScoringRuleSet scoring
 
     public LeagueSetup {
         rules = rules == null || rules.isBlank() ? null : rules.trim();
+        // «Todos los partidos» sin más es lo de por defecto. Con varias competiciones no se descarta: la
+        // selección valida la combinación (los dos cuadros de un torneo de tenis sí, el resto no) y, si no
+        // vale, no se crea la liga en vez de quedarse con la competición principal sin avisar.
         if (matchSelection != null && matchSelection.mode() == MatchSelectionMode.ALL
                 && matchSelection.eventSeries() == null && matchSelection.cardSegments() == null
-                && matchSelection.tennisScope() == null) {
+                && matchSelection.tennisScope() == null
+                && matchSelection.competitionIdsOrEmpty().stream().distinct().count() <= 1) {
             matchSelection = null;
         }
     }

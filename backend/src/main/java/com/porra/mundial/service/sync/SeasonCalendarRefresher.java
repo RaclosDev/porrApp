@@ -27,7 +27,7 @@ import java.util.List;
 @Slf4j
 public class SeasonCalendarRefresher {
 
-    private static final String[] CACHES = {"competitions", "matches", "matchRadar", "standings"};
+    static final String[] CACHES = {"competitions", "matches", "matchRadar", "standings"};
 
     private final CompetitionRepository competitionRepository;
     private final CompetitionImportService importService;
