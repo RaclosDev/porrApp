@@ -23,8 +23,8 @@ function sportDescription(sport: SportChoice, ctx: StepProps['ctx']) {
       ),
     ];
     return open.length > 0
-      ? `Grand Slams, Masters 1000 y ATP Finals. Ahora: ${open.slice(0, 3).join(', ')}.`
-      : 'Grand Slams, Masters 1000 y ATP Finals, en cuanto haya uno por jugar.';
+      ? `Grand Slams, Masters 1000, WTA 1000 y Finals. Ahora: ${open.slice(0, 3).join(', ')}.`
+      : 'Grand Slams, Masters 1000, WTA 1000 y Finals, en cuanto haya uno por jugar.';
   }
   const names = competitionsOfSport(ctx, sport).map((item) => item.name);
   const shown = names.slice(0, 3).join(', ');

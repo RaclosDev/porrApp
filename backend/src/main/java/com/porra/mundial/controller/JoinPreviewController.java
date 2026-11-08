@@ -62,7 +62,9 @@ public class JoinPreviewController {
 
             Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
             if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
-                String competitionName = activeEdition.get().isMultiCompetition() ? MULTI_COMPETITION
+                String competitionName = activeEdition.get().getTennisScope() != null
+                        ? activeEdition.get().getTennisScope().label()
+                        : activeEdition.get().isMultiCompetition() ? MULTI_COMPETITION
                         : activeEdition.get().getCompetition().getName();
                 String format = activeEdition.get().getPoolFormat() != null
                         ? formatLabel(activeEdition.get().getPoolFormat().name())
@@ -114,7 +116,9 @@ public class JoinPreviewController {
         Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
         if (activeEdition.isPresent()) {
             Edition edition = activeEdition.get();
-            if (edition.isMultiCompetition()) {
+            if (edition.getTennisScope() != null) {
+                competition = edition.getTennisScope().label();
+            } else if (edition.isMultiCompetition()) {
                 competition = MULTI_COMPETITION;
             } else if (edition.getCompetition() != null && edition.getCompetition().getName() != null) {
                 competition = edition.getCompetition().getName();

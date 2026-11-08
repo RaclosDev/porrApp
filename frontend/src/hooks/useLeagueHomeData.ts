@@ -134,9 +134,12 @@ export function useLeagueHomeData(): LeagueHomeData {
   );
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const sortedGroups = useSortedGroups();
-  // Una liga que elige sus partidos (o los junta de varias competiciones) enseña los suyos, no la
-  // jornada oficial de la competición.
-  const ownMatches = format === 'matchday' && activeGroupPicksMatches && groupId != null;
+  // Una liga que elige sus partidos o los junta de varias competiciones (también la de varios torneos de
+  // tenis, que no los elige) enseña los suyos, no la jornada oficial de su competición principal.
+  const ownMatches =
+    format === 'matchday' &&
+    (activeGroupPicksMatches || activeGroupMultiCompetition) &&
+    groupId != null;
   const { data: leagueFixtures, isLoading: loadingLeagueFixtures } = useQuery({
     queryKey: queryKeys.leagueMatches(groupId),
     queryFn: () => fetchMatchdayFixtures(groupId!),
@@ -208,7 +211,9 @@ export function useLeagueHomeData(): LeagueHomeData {
           allTo: ownMatches ? '/jornadas' : '/radar',
           empty:
             tennis && !round
-              ? 'El cuadro aún no está publicado: los partidos aparecerán en cuanto ESPN lo publique.'
+              ? activeGroupMultiCompetition
+                ? 'Aún no hay partidos de los torneos de la liga: aparecerán en cuanto ESPN publique el cuadro del próximo.'
+                : 'El cuadro aún no está publicado: los partidos aparecerán en cuanto ESPN lo publique.'
               : ownMatches
                 ? 'Esta liga aún no tiene partidos por jugar.'
                 : 'No hay partidos programados para esta jornada.',

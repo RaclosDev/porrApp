@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 class TennisDataProviderTest {
 
     private static final String PARIS = "tennis.atp.13";
+    private static final String FINALS = "tennis.atp.339";
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Mock
@@ -51,7 +52,18 @@ class TennisDataProviderTest {
                 "/leagues/atp/events/13-2026", """
                         {"id": "13-2026", "date": "2026-10-31T04:00Z", "endDate": "2026-11-09T04:59Z"}
                         """.getBytes(StandardCharsets.UTF_8),
-                "/atp/scoreboard?dates=20261031", paris);
+                "/atp/scoreboard?dates=20261031", paris,
+                // ATP Finals 2026: publicadas en el calendario, pero aún sin cuadro.
+                "/leagues/atp/events/339-2026", """
+                        {"id": "339-2026", "date": "2026-11-14T05:00Z", "endDate": "2026-11-23T04:59Z"}
+                        """.getBytes(StandardCharsets.UTF_8),
+                "/atp/scoreboard?dates=20261114", """
+                        {"events": [{"id": "148-2026", "groupings": []}, {"id": "339-2026", "groupings": []}]}
+                        """.getBytes(StandardCharsets.UTF_8),
+                "/leagues/atp/events/339-2025", """
+                        {"id": "339-2025", "date": "2025-11-09T05:00Z", "endDate": "2025-11-17T04:59Z"}
+                        """.getBytes(StandardCharsets.UTF_8),
+                "/atp/scoreboard?dates=20251109", finals2025().getBytes(StandardCharsets.UTF_8));
         lenient().when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenAnswer(invocation -> {
             String url = invocation.<HttpRequest>getArgument(0).uri().toString();
             requested.add(url);
@@ -67,10 +79,63 @@ class TennisDataProviderTest {
                 Clock.fixed(Instant.parse("2026-11-07T12:00:00Z"), ZoneOffset.UTC));
     }
 
+    /** Las ATP Finals 2025 resumidas: un partido de grupos, una semifinal y la final, y uno de dobles. */
+    private static String finals2025() {
+        String singles = """
+                {"grouping": {"slug": "mens-singles"}, "competitions": [
+                  %s, %s, %s
+                ]}""".formatted(
+                finalsMatch("167265", "Group Stage", "3623", "Jannik Sinner", "2651", "Alex de Minaur"),
+                finalsMatch("167714", "Semifinal", "3623", "Jannik Sinner", "3782", "Carlos Alcaraz"),
+                finalsMatch("167710", "Final", "3623", "Jannik Sinner", "3782", "Carlos Alcaraz"));
+        String doubles = """
+                {"grouping": {"slug": "mens-doubles"}, "competitions": [%s]}""".formatted(
+                finalsMatch("167278", "Group Stage", "1", "Granollers", "2", "Krawietz"));
+        return "{\"events\": [{\"id\": \"339-2025\", \"groupings\": [" + singles + "," + doubles + "]}]}";
+    }
+
+    private static String finalsMatch(String id, String round, String homeId, String home, String awayId, String away) {
+        return """
+                {"id": "%s", "date": "2025-11-10T13:00Z", "round": {"displayName": "%s"},
+                 "status": {"type": {"name": "STATUS_FINAL", "state": "post", "completed": true}},
+                 "competitors": [
+                   {"id": "%s", "type": "athlete", "order": 1, "winner": true, "athlete": {"displayName": "%s"},
+                    "linescores": [{"winner": true}, {"winner": true}]},
+                   {"id": "%s", "type": "athlete", "order": 2, "winner": false, "athlete": {"displayName": "%s"},
+                    "linescores": [{"winner": false}, {"winner": false}]}
+                 ]}""".formatted(id, round, homeId, home, awayId, away);
+    }
+
+    @Test
+    void theAtpFinalsWithoutADrawHaveNoMatchesYetButKeepTheirDates() throws Exception {
+        assertEquals(0, provider.fetchScoreboardEvents(FINALS, null).size());
+        assertEquals(0, provider.fetchScoreboardEvents(FINALS, "20261115").size());
+        assertEquals(0, provider.fetchTeams(FINALS).size());
+        // Las fechas sí: la sincronización sigue consultando esos días y recoge el cuadro en cuanto sale.
+        assertEquals("2026-11-13T05:00:00Z", provider.fetchSeasonWindow(FINALS).start());
+    }
+
+    @Test
+    void theAtpFinalsTranslateTheGroupStageSemifinalsAndFinalOfTheSinglesDraw() throws Exception {
+        JsonNode events = provider.fetchScoreboardEvents(FINALS, "2025");
+
+        Map<String, String> rounds = StreamSupport.stream(events.spliterator(), false)
+                .collect(Collectors.toMap(e -> e.path("id").asText(), e -> e.path("season").path("slug").asText()));
+        assertEquals(Map.of("tennis-167265", "round-robin", "tennis-167714", "semifinals",
+                "tennis-167710", "final"), rounds);
+        JsonNode group = byId(events, "167265");
+        assertEquals("2", competitor(group, "home").path("score").asText());
+        assertEquals("tennis-3623", competitor(group, "home").path("team").path("id").asText());
+    }
+
     private static JsonNode byId(JsonNode events, String id) {
         return StreamSupport.stream(events.spliterator(), false)
                 .filter(event -> ("tennis-" + id).equals(event.path("id").asText()))
                 .findFirst().orElseThrow();
+    }
+
+    private static String clock(JsonNode event) {
+        return event.path("competitions").get(0).path("status").path("displayClock").asText(null);
     }
 
     private static JsonNode competitor(JsonNode event, String homeAway) {
@@ -114,10 +179,36 @@ class TennisDataProviderTest {
     }
 
     @Test
+    void theGamesOfEachSetGoInTheClockWithTheTiebreakOfItsLoser() throws Exception {
+        JsonNode events = provider.fetchScoreboardEvents(PARIS, "2026");
+
+        assertEquals("3-6 4-6", clock(byId(events, "186503")), "Fils, el primero, pierde");
+        assertEquals("7-6(10) 5-7 3-6", clock(byId(events, "186492")));
+        assertEquals("3-6 6-4 7-6(5)", clock(byId(events, "186497")));
+        assertTrue(byId(events, "186507").path("competitions").get(0).path("status").path("displayClock")
+                .isMissingNode(), "La final por jugar no tiene marcador");
+    }
+
+    @Test
+    void aRetirementKeepsTheGamesPlayedAndSaysHowItEnded() throws Exception {
+        JsonNode match = JSON.readTree("""
+                {"competitors": [
+                  {"homeAway": "home", "linescores": [{"value": 6}, {"value": 2}]},
+                  {"homeAway": "away", "linescores": [{"value": 4}, {"value": 1}]}]}""");
+
+        assertEquals("6-4 2-1 RET", TennisDataProvider.scoreLine(match, "STATUS_RETIRED"));
+        assertEquals("6-4 2-1", TennisDataProvider.scoreLine(match, null), "En directo, solo los juegos");
+        assertEquals("WO", TennisDataProvider.scoreLine(JSON.readTree("{\"competitors\": []}"),
+                "STATUS_WALKOVER"));
+        assertNull(TennisDataProvider.scoreLine(JSON.readTree("{\"competitors\": []}"), "STATUS_FINAL"));
+    }
+
+    @Test
     void aWalkoverHasAWinnerButNoScore() throws Exception {
         JsonNode match = byId(provider.fetchScoreboardEvents(PARIS, "2026"), "186502");
 
         JsonNode status = match.path("competitions").get(0).path("status").path("type");
+        assertEquals("WO", clock(match));
         assertEquals("STATUS_FINAL", status.path("name").asText());
         assertTrue(competitor(match, "away").path("winner").asBoolean(), "Alcaraz pasa por W.O.");
         assertTrue(competitor(match, "away").path("score").isMissingNode());

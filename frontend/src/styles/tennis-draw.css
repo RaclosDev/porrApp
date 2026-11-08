@@ -1,0 +1,189 @@
+/*
+ * Cuadro de un torneo de tenis: rondas en columnas que se desplazan en horizontal en el móvil, y los
+ * grupos de las ATP Finals con su clasificación encima.
+ */
+.tennis-draw-page {
+  display: grid;
+  gap: 14px;
+}
+
+.tennis-draw-page .standings-head {
+  margin-bottom: 0;
+}
+
+.tennis-draw-picker {
+  justify-self: start;
+  flex-wrap: wrap;
+}
+
+.tennis-draw-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.tennis-draw-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tennis-draw-scroll:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.tennis-draw-rounds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-flow: column;
+  /* Cuatro rondas caben sin desplazar en la tarjeta de escritorio (unos 950 px). */
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 14px;
+  min-width: min-content;
+}
+
+.tennis-draw-round {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-snap-align: start;
+}
+
+.tennis-draw-round-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Los huecos se reparten a lo alto: cada partido queda a la altura de los dos que lo alimentan. */
+.tennis-draw-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+.tennis-draw-match.is-pending {
+  border-style: dashed;
+  background: transparent;
+}
+
+.tennis-draw-match.is-live {
+  border-color: var(--accent-red, #b91c1c);
+}
+
+.tennis-draw-match .team-slot.is-projected .team-slot-name {
+  font-style: italic;
+}
+
+.tennis-draw-groups {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+}
+
+.tennis-draw-group {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.tennis-draw-table th,
+.tennis-draw-table td {
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* La tabla tiene columnas fijas: las cifras, estrechas, y el jugador se lleva el resto. Con columnas
+   iguales, su bandera quedaba sola en una línea encima del nombre. */
+.tennis-draw-table th:nth-child(3),
+.tennis-draw-table th:nth-child(4) {
+  width: 2.5rem;
+}
+
+.tennis-draw-table th:nth-child(5) {
+  width: 3.5rem;
+}
+
+.tennis-draw-table th:nth-child(2),
+.tennis-draw-table td:nth-child(2) {
+  text-align: left;
+  white-space: normal;
+}
+
+.tennis-draw-table tr.is-qualified td {
+  font-weight: 700;
+}
+
+.tennis-draw-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tennis-draw-player img {
+  flex-shrink: 0;
+  border-radius: 2px;
+  object-fit: cover;
+}
+
+.tennis-draw-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.tennis-draw-group-matches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+/* Juegos de cada set de un jugador; en negrita los sets que gana y el tie-break perdido en pequeño. */
+.tennis-draw-games {
+  display: inline-flex;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+  color: var(--text-muted, #596371);
+}
+
+.tennis-draw-games > span {
+  position: relative;
+  line-height: 1.4;
+  min-width: 1.1em;
+  text-align: center;
+}
+
+.tennis-draw-games > .is-won {
+  font-weight: 800;
+  color: var(--ink, #111827);
+}
+
+.tennis-draw-games sup {
+  position: absolute;
+  top: 0;
+  left: calc(100% - 1px);
+  line-height: 1;
+  font-size: 0.62em;
+}
