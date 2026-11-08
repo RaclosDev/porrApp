@@ -3,6 +3,7 @@ package com.porra.mundial.controller;
 import com.porra.mundial.dto.GrandPrixBoardDTO;
 import com.porra.mundial.dto.FormulaOneStandingsDTO;
 import com.porra.mundial.dto.GrandPrixPickRequest;
+import com.porra.mundial.dto.RaceClassificationDTO;
 import com.porra.mundial.service.formulaone.FormulaOneStandingsService;
 import com.porra.mundial.service.formulaone.GrandPrixService;
 import com.porra.mundial.service.notification.WebSocketService;
@@ -46,6 +47,13 @@ public class GrandPrixController {
         GrandPrixBoardDTO board = grandPrixService.savePick(CurrentUser.email(principal), groupId, matchId, request);
         webSocketService.notifyMatchPredictionsSaved(groupId);
         return board;
+    }
+
+    /** Clasificación completa de la carrera: puestos, tiempos o diferencias, abandonos y puntos. */
+    @GetMapping("/{matchId}/classification")
+    public RaceClassificationDTO classification(@PathVariable Long matchId, @RequestParam Long groupId,
+                                                Principal principal) {
+        return grandPrixService.classification(CurrentUser.email(principal), groupId, matchId);
     }
 
     @GetMapping("/{matchId}/picks")

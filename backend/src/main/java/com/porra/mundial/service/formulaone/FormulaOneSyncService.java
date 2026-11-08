@@ -56,6 +56,7 @@ public class FormulaOneSyncService {
     private final MatchPredictionRepository matchPredictionRepository;
     private final GrandPrixScoringService scoringService;
     private final GrandPrixResultNotifier resultNotifier;
+    private final RaceClassificationService classificationService;
 
     /**
      * Cada cuánto la sincronización periódica vuelve a cargar la temporada entera aunque ya la tenga
@@ -194,6 +195,10 @@ public class FormulaOneSyncService {
         weekendChanged |= set(weekend.getCircuit(), text(circuit.path("fullName"), 150), weekend::setCircuit);
         weekendChanged |= set(weekend.getCity(), text(circuit.path("address").path("city"), 100), weekend::setCity);
         weekendChanged |= set(weekend.getCountry(), text(circuit.path("address").path("country"), 100), weekend::setCountry);
+        String raceSessionId = sessions.race().path("id").asText("");
+        if (raceSessionId.matches("\\d{1,20}")) {
+            weekendChanged |= set(weekend.getRaceSessionId(), raceSessionId, weekend::setRaceSessionId);
+        }
         if (weekend.isSprint() != sessions.sprint()) {
             weekend.setSprint(sessions.sprint());
             weekendChanged = true;
@@ -281,6 +286,14 @@ public class FormulaOneSyncService {
                 }
                 weekend.setResultsNotifiedAt(Instant.now());
                 raceWeekendRepository.save(weekend);
+            }
+        }
+        // Clasificación completa de una carrera reciente: se deja guardada para quien la abra.
+        if (finished && recent && weekend.hasPodium() && weekend.getClassification() == null) {
+            try {
+                classificationService.refresh(match, weekend);
+            } catch (RuntimeException error) {
+                log.info("Fórmula 1: sin clasificación completa de {}: {}", round, error.getMessage());
             }
         }
         return new Outcome(matchChanged || weekendChanged, scoredNow);

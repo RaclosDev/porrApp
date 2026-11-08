@@ -299,6 +299,39 @@
     margin-top: 12px;
   }
 
+  .gp-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+  }
+
+  .gp-classification {
+    margin-top: 0;
+  }
+
+  .gp-table.gp-classification tbody th {
+    width: 2rem;
+  }
+
+  .gp-table.gp-classification .gp-num {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .gp-classification-time {
+    font-size: 0.8rem;
+  }
+
+  .gp-classification tr.is-out td,
+  .gp-classification tr.is-out th {
+    color: var(--text-muted);
+  }
+
+  .gp-fastest {
+    flex-shrink: 0;
+    color: #8b5cf6;
+  }
+
   .gp-member-list {
     display: flex;
     flex-direction: column;

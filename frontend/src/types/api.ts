@@ -521,6 +521,36 @@ export interface FormulaOneStandings {
   constructors: { rank: number; name: string; color: string | null; points: number }[];
 }
 
+/** Clasificación completa de una carrera de Fórmula 1. */
+export interface RaceClassification {
+  /** false si la carrera no ha acabado o ESPN aún no la ha publicado. */
+  available: boolean;
+  rows: RaceClassificationRow[];
+}
+
+export interface RaceClassificationRow {
+  position: number;
+  driverId: number | null;
+  name: string;
+  team: string | null;
+  /** Hexadecimal sin almohadilla. */
+  teamColor: string | null;
+  number: string | null;
+  /** Puesto de salida. */
+  grid: number | null;
+  laps: number | null;
+  /** Tiempo total del ganador. */
+  time: string | null;
+  /** Diferencia con el ganador de quien acaba en su misma vuelta («+0.799»). */
+  gap: string | null;
+  /** Vueltas perdidas de quien acaba doblado. */
+  lapsBehind: number | null;
+  status: 'FINISHED' | 'RETIRED' | 'DISQUALIFIED' | 'DID_NOT_START' | 'OTHER';
+  /** Puntos del Mundial en la carrera. */
+  points: number | null;
+  fastestLap: boolean;
+}
+
 export interface GrandPrixMemberPick {
   userId: number | null;
   name: string;
