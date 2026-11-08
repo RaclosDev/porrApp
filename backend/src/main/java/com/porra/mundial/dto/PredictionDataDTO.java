@@ -30,7 +30,13 @@ public class PredictionDataDTO {
 
     /** Ganadores por ronda de una competición personalizada, en el orden de sus cruces. */
     private List<List<String>> customRounds;
-    
+
+    /**
+     * En los playoffs de la NBA, en cuántos partidos se gana cada serie (4 a 7), alineado con
+     * {@link #customRounds}; null donde no se ha elegido.
+     */
+    private List<List<Integer>> customSeriesGames;
+
     @JsonProperty("r32")
     @JsonAlias({"r1", "r32", "r_32"})
     private List<List<String>> r32;

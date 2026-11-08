@@ -57,6 +57,15 @@ export const DEFAULT_SCORING: ScoringRules = {
   survivorRoundPoints: 1,
   survivorLives: 1,
   survivorDrawSurvives: 0,
+  nbaPlayInPoints: 5,
+  nbaFirstRoundPoints: 10,
+  nbaConferenceSemifinalPoints: 20,
+  nbaConferenceFinalPoints: 30,
+  nbaFinalsPoints: 50,
+  nbaFirstRoundExactPoints: 5,
+  nbaConferenceSemifinalExactPoints: 10,
+  nbaConferenceFinalExactPoints: 15,
+  nbaFinalsExactPoints: 25,
 };
 
 /** Puntuación de una liga de cuadro completo con las reglas por defecto. */

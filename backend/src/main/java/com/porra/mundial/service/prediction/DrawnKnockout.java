@@ -17,14 +17,27 @@ import java.util.Objects;
  * Eliminatorias que se sortean ronda a ronda (Champions, Copa del Rey…). Cada cruce agrupa sus partidos
  * (ida y vuelta, o uno solo) y se pronostica quién pasa, no cada partido. Una ronda se puede pronosticar
  * en cuanto se conocen todos sus cruces, es decir, tras su sorteo.
+ * <p>
+ * Los playoffs de la NBA van igual, con series al mejor de 7 en vez de cruces: play-in (partido único),
+ * primera ronda, semifinales y finales de conferencia y Finales. Cada serie se puede pronosticar en cuanto
+ * se conocen sus dos equipos, y además de quién la gana se elige en cuántos partidos.
  */
 public final class DrawnKnockout {
     /** Rondas eliminatorias en orden. Tras el playoff de la UEFA vienen los octavos. */
     static final List<String> ROUNDS = List.of("playoff", "r32", "r16", "qf", "sf", "final");
 
+    /**
+     * Rondas de los playoffs de la NBA: play-in, primera ronda («r16», 8 series), semifinales de conferencia
+     * («qf»), finales de conferencia («sf») y Finales.
+     */
+    static final List<String> SERIES_ROUNDS = List.of("playin", "r16", "qf", "sf", "final");
+
+    /** Series al mejor de 7: gana quien llega a 4 victorias. */
+    public static final int SERIES_BEST_OF = 7;
+
     /** Cruces que tiene cada ronda: hasta tenerlos todos no se da por sorteada. */
     private static final Map<String, Integer> EXPECTED_TIES = Map.of(
-            "playoff", 8, "r32", 16, "r16", 8, "qf", 4, "sf", 2, "final", 1);
+            "playoff", 8, "r32", 16, "r16", 8, "qf", 4, "sf", 2, "final", 1, "playin", 6);
 
     /** Entre las eliminatorias de una temporada y las de la siguiente pasan meses. */
     private static final Duration NEW_SEASON_GAP = Duration.ofDays(90);
@@ -62,9 +75,21 @@ public final class DrawnKnockout {
          */
         public Team winner() {
             Match decider = legs.get(legs.size() - 1);
+            // Una serie al mejor de 7 la decide el partido de la cuarta victoria: después puede quedar alguno
+            // «si hace falta» sin jugar. Solo ese partido trae ganador (el de la serie).
+            if (legs.size() > 2) {
+                decider = legs.stream()
+                        .filter(leg -> Boolean.TRUE.equals(leg.getFinished()) && leg.getWinnerTeam() != null)
+                        .reduce((first, second) -> second).orElse(decider);
+            }
             Team winner = decider.getWinnerTeam();
             return Boolean.TRUE.equals(decider.getFinished()) && winner != null
                     && (sameTeam(winner, home()) || sameTeam(winner, away())) ? winner : null;
+        }
+
+        /** Partidos ya jugados del cruce: en una serie decidida, en cuántos se ha ganado (4 a 7). */
+        public int gamesPlayed() {
+            return (int) legs.stream().filter(leg -> Boolean.TRUE.equals(leg.getFinished())).count();
         }
 
         public boolean has(String team) {
@@ -78,11 +103,26 @@ public final class DrawnKnockout {
      *
      * @param key          "playoff", "r32", "r16", "qf", "sf" o "final"
      * @param expectedTies cruces que tiene la ronda
+     * @param bestOf       en la NBA, partidos máximos de cada serie (1 en el play-in, 7 en el resto); 0 en
+     *                     fútbol, donde se elige solo quién pasa
      */
-    public record Round(String key, List<Tie> ties, int expectedTies) {
-        /** Ya se conocen todos sus cruces: se puede pronosticar. */
+    public record Round(String key, List<Tie> ties, int expectedTies, int bestOf) {
+        public Round(String key, List<Tie> ties, int expectedTies) {
+            this(key, ties, expectedTies, 0);
+        }
+
+        /**
+         * Se puede pronosticar: en fútbol, cuando ya se conocen todos sus cruces; en la NBA, en cuanto hay
+         * alguna serie con sus dos equipos (cada una se abre por su cuenta).
+         */
         public boolean drawn() {
+            if (series()) return !ties.isEmpty() && ties.stream().allMatch(Tie::drawn);
             return !ties.isEmpty() && ties.size() >= expectedTies && ties.stream().allMatch(Tie::drawn);
+        }
+
+        /** Series de la NBA (o partidos del play-in), no cruces de fútbol. */
+        public boolean series() {
+            return bestOf > 0;
         }
     }
 
@@ -98,8 +138,10 @@ public final class DrawnKnockout {
      * primera que quedaba por jugar, por ejemplo en octavos.
      */
     public static List<Round> rounds(Edition edition, List<Match> all) {
+        boolean series = playsSeries(edition);
+        List<String> order = series ? SERIES_ROUNDS : ROUNDS;
         List<Match> knockout = all.stream()
-                .filter(match -> match.getRound() != null && ROUNDS.contains(match.getRound()))
+                .filter(match -> match.getRound() != null && order.contains(match.getRound()))
                 .filter(match -> isReal(match.getHomeTeam()) || isReal(match.getAwayTeam()))
                 .sorted(BY_DATE)
                 .toList();
@@ -113,7 +155,7 @@ public final class DrawnKnockout {
         Map<String, List<Match>> byRound = new LinkedHashMap<>();
         for (Match match : knockout) byRound.computeIfAbsent(match.getRound(), key -> new ArrayList<>()).add(match);
         List<String> sequence = new ArrayList<>();
-        for (String key : ROUNDS) {
+        for (String key : order) {
             if (sequence.isEmpty() && !byRound.containsKey(key)) continue;
             // Del playoff de la UEFA se pasa a octavos: no hay dieciseisavos.
             if ("r32".equals(key) && sequence.contains("playoff") && !byRound.containsKey(key)) continue;
@@ -122,7 +164,8 @@ public final class DrawnKnockout {
         List<Round> rounds = new ArrayList<>();
         for (String key : sequence) {
             List<Tie> ties = ties(byRound.getOrDefault(key, List.of()));
-            rounds.add(new Round(key, ties, EXPECTED_TIES.getOrDefault(key, ties.size())));
+            rounds.add(new Round(key, ties, EXPECTED_TIES.getOrDefault(key, ties.size()),
+                    !series ? 0 : "playin".equals(key) ? 1 : SERIES_BEST_OF));
         }
         while (rounds.size() > 1 && created != null && startedBefore(rounds.get(0), created)) {
             rounds.remove(0);
@@ -150,6 +193,45 @@ public final class DrawnKnockout {
             case "qf" -> rules.getQuarterFinalPoints();
             case "r16" -> rules.getRoundOf16Points();
             default -> rules.getRoundOf32Points();
+        };
+    }
+
+    /** La edición pronostica series de la NBA. */
+    public static boolean playsSeries(Edition edition) {
+        return edition != null && edition.getCompetition() != null && edition.getCompetition().playsSeries();
+    }
+
+    /** Puntos de acertar quién gana una serie de la NBA (o un partido del play-in). */
+    public static int seriesPoints(String round, com.porra.mundial.scoring.ScoringRuleSet rules) {
+        return switch (round) {
+            case "playin" -> rules.getNbaPlayInPoints();
+            case "r16" -> rules.getNbaFirstRoundPoints();
+            case "qf" -> rules.getNbaConferenceSemifinalPoints();
+            case "sf" -> rules.getNbaConferenceFinalPoints();
+            default -> rules.getNbaFinalsPoints();
+        };
+    }
+
+    /** Puntos extra de acertar además en cuántos partidos se gana la serie (el play-in no tiene). */
+    public static int seriesExactPoints(String round, com.porra.mundial.scoring.ScoringRuleSet rules) {
+        return switch (round) {
+            case "playin" -> 0;
+            case "r16" -> rules.getNbaFirstRoundExactPoints();
+            case "qf" -> rules.getNbaConferenceSemifinalExactPoints();
+            case "sf" -> rules.getNbaConferenceFinalExactPoints();
+            default -> rules.getNbaFinalsExactPoints();
+        };
+    }
+
+    /** Nombre de una ronda de los playoffs de la NBA. */
+    public static String seriesTitle(String round) {
+        return switch (round) {
+            case "playin" -> "Play-in";
+            case "r16" -> "Primera ronda";
+            case "qf" -> "Semifinales de conferencia";
+            case "sf" -> "Finales de conferencia";
+            case "final" -> "Finales";
+            default -> round;
         };
     }
 
