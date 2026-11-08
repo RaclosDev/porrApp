@@ -26,6 +26,8 @@ interface RankingLayout {
   openRow: '/' | '/jornadas' | 'viewer' | null;
   /** Enlaces a Más elegidos y Buscador, que comparan los cuadros con el oficial del Mundial. */
   worldCupInsights: boolean;
+  /** Enlace a las estadísticas por partido y columna de puntos de jornada (no en la Fórmula 1). */
+  matchStats: boolean;
 }
 
 const NO_RANKING: RankingLayout = {
@@ -33,22 +35,31 @@ const NO_RANKING: RankingLayout = {
   ownBracket: false,
   openRow: null,
   worldCupInsights: false,
+  matchStats: false,
 };
 const OWN_BRACKET_RANKING: RankingLayout = {
   byRound: false,
   ownBracket: true,
   openRow: 'viewer',
   worldCupInsights: false,
+  matchStats: false,
 };
 const MATCHDAY_RANKING: RankingLayout = {
   byRound: true,
   ownBracket: false,
   openRow: '/jornadas',
   worldCupInsights: false,
+  matchStats: true,
 };
 
 const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
-  worldCup: { byRound: false, ownBracket: false, openRow: 'viewer', worldCupInsights: true },
+  worldCup: {
+    byRound: false,
+    ownBracket: false,
+    openRow: 'viewer',
+    worldCupInsights: true,
+    matchStats: false,
+  },
   customBracket: OWN_BRACKET_RANKING,
   ownBracket: OWN_BRACKET_RANKING,
   knockoutDraw: OWN_BRACKET_RANKING,
@@ -56,7 +67,7 @@ const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
   fightCard: MATCHDAY_RANKING,
   tennisDraw: MATCHDAY_RANKING,
   // En una liga de Fórmula 1 las predicciones de cada Gran Premio están en el inicio.
-  grandPrix: { ...MATCHDAY_RANKING, openRow: '/' },
+  grandPrix: { ...MATCHDAY_RANKING, openRow: '/', matchStats: false },
   loading: NO_RANKING,
   error: NO_RANKING,
   none: NO_RANKING,
@@ -111,6 +122,7 @@ function Leaderboard() {
     pichichi: activeGroupPichichi,
     ownBracketHasGroupPoints: validResults.some((row) => (row.points.r1 ?? 0) !== 0),
     selectedMatchday,
+    roundPointsColumn: layout.matchStats,
   });
   const summaryMatchday = selectedMatchdayInfo || currentMatchday;
   // Clasificación de la jornada elegida en vez de la general (se activa al cambiar de jornada).
@@ -275,7 +287,7 @@ function Leaderboard() {
                           : 'Podio de la clasificación general'
                       }
                     />
-                    {!summaryMatchday && (
+                    {!summaryMatchday && layout.matchStats && (
                       <Link className="ranking-secondary-link" to="/stats">
                         Estadísticas por partido
                       </Link>
