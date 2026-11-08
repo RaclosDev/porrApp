@@ -2,6 +2,7 @@ package com.porra.mundial.repository;
 
 import com.porra.mundial.model.Passkey;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,4 +25,8 @@ public interface PasskeyRepository extends JpaRepository<Passkey, Long> {
 
     @Query("SELECT p.credentialId FROM Passkey p WHERE p.userId = :userId")
     List<byte[]> findCredentialIdsByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM Passkey p WHERE p.userId = :userId")
+    int deleteAllOfUser(@Param("userId") Long userId);
 }

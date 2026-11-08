@@ -72,6 +72,10 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/google/login").permitAll()
+                // Registro e inicio de sesión con email y contraseña, y recuperarla por correo.
+                .requestMatchers(HttpMethod.POST, "/api/auth/password/register", "/api/auth/password/register/confirm", "/api/auth/password/login",
+                        "/api/auth/password/reset-request", "/api/auth/password/reset").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/apple/login").permitAll()
                 // Entrar con una llave de acceso: la propia firma de la llave autentica.
                 .requestMatchers(HttpMethod.POST, "/api/auth/passkeys/login", "/api/auth/passkeys/login/options").permitAll()
                 // Refresco y logout: se autentican con la cookie del refresh token.
@@ -111,15 +115,18 @@ public class SecurityConfig {
                             "script-src 'self' " + INDEX_SPECULATION_RULES_HASH + " 'unsafe-hashes' "
                             + INDEX_FONT_ONLOAD_HASH + " https://accounts.google.com https://apis.google.com"
                             // Google Analytics: solo se carga si el visitante acepta la analítica.
-                            + " https://www.googletagmanager.com; " +
+                            + " https://www.googletagmanager.com"
+                            // «Iniciar sesión con Apple»: su script solo se carga al pintar el botón.
+                            + " https://appleid.cdn-apple.com; " +
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                             "font-src 'self' https://fonts.gstatic.com; " +
                             // blob: para la vista previa local de una foto antes de subirla.
                             "img-src 'self' data: blob: https:; " +
                             // 'self' ya incluye el WebSocket del mismo origen (ws/wss).
                             "connect-src 'self' https://accounts.google.com https://site.api.espn.com https://a.espncdn.com"
-                            + " https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; " +
-                            "frame-src 'self' https://accounts.google.com; " +
+                            + " https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com"
+                            + " https://appleid.apple.com; " +
+                            "frame-src 'self' https://accounts.google.com https://appleid.apple.com; " +
                             "frame-ancestors 'none';")
                 )
                 .permissionsPolicyHeader(perm -> perm

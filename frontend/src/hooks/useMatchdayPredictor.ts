@@ -248,7 +248,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   /** Tenis: ganador y, si se eligen, sets; se guarda al momento como un signo. */
   const handleTennisPick = (matchId: number, prediction: DraftPrediction) => {
     if (!isAuthenticated) {
-      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      toast.error('Inicia sesión para guardar tus predicciones.');
       return;
     }
     updatePrediction(matchId, prediction);
@@ -257,7 +257,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
 
   const handleQuickSign = (matchId: number, sign: MatchSign) => {
     if (!isAuthenticated) {
-      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      toast.error('Inicia sesión para guardar tus predicciones.');
       return;
     }
     updatePrediction(matchId, withSign(sign));
@@ -267,7 +267,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   /** Pelea de la UFC: ganador, método y asalto se guardan al momento, como un signo. */
   const handleFightPick = (matchId: number, pick: DraftPrediction) => {
     if (!isAuthenticated) {
-      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      toast.error('Inicia sesión para guardar tus predicciones.');
       return;
     }
     updatePrediction(matchId, pick);
@@ -280,7 +280,7 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
    */
   const handleSurvivorPick = (matchId: number, sign: '1' | '2') => {
     if (!isAuthenticated) {
-      toast.error('Inicia sesión con Google para guardar tu elección.');
+      toast.error('Inicia sesión para guardar tu elección.');
       return;
     }
     const cleared: Draft = {};

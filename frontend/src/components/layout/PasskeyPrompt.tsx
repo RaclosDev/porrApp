@@ -68,7 +68,7 @@ export default function PasskeyPrompt({ userId, onDone }: PasskeyPromptProps) {
     >
       <KeyRound size={22} aria-hidden="true" className="text-main" />
       <p className="m-0 text-center font-bold text-main">
-        ¿Entrar la próxima vez con {method}? Sin escribir tu cuenta de Google.
+        ¿Entrar la próxima vez con {method}? Sin escribir tu cuenta ni tu contraseña.
       </p>
       <div className="mt-[5px] flex gap-2.5">
         <button

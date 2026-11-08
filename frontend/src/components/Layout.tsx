@@ -1,9 +1,7 @@
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
-import type { CredentialResponse } from '@react-oauth/google';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, Suspense } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import ProfileSettingsModal from './ProfileSettingsModal';
 import { useAppStore } from '../store/useAppStore';
@@ -17,6 +15,7 @@ import PasskeyPrompt from './layout/PasskeyPrompt';
 import { usePasskeyPrompt } from '../hooks/usePasskeyPrompt';
 import { useAnalyticsConsentPending } from './layout/CookieConsent';
 import LoginModal from './layout/LoginModal';
+import { OPEN_LOGIN_EVENT, type LoginModalRequest } from '../utils/loginModal';
 import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
 import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
@@ -24,6 +23,13 @@ import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
 import { leagueNavItems, showsFillBracketButton } from './layout/leagueNav';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
+
+/** Páginas a las que puede ir quien tiene sesión pero aún no tiene ninguna liga. */
+const noLeagueAllowed = (pathname: string) =>
+  pathname === '/mis-ligas' ||
+  pathname === '/crear-liga' ||
+  pathname.startsWith('/join/') ||
+  pathname.startsWith('/linkedin');
 
 /**
  * Componente Layout principal que envuelve a todas las rutas.
@@ -48,7 +54,9 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
   const myPrediction = useMyLeaguePrediction();
   const navigate = useNavigate();
-  const [showMyPredictionModal, setShowMyPredictionModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  // Con qué intención se abrió el diálogo de acceso (crear cuenta o entrar) y adónde ir después.
+  const [loginRequest, setLoginRequest] = useState<LoginModalRequest>({});
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const profileSetupCompleted = useAppStore((state) => state.profileSetupCompleted);
@@ -86,11 +94,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isLanding && !isDemo;
 
   // Un usuario autenticado sin ninguna liga solo puede crear o unirse a una.
-  const isNoLeagueAllowedPath =
-    location.pathname === '/mis-ligas' ||
-    location.pathname === '/crear-liga' ||
-    location.pathname.startsWith('/join/') ||
-    location.pathname.startsWith('/linkedin');
+  const isNoLeagueAllowedPath = noLeagueAllowed(location.pathname);
 
   // Avisos inferiores, uno a la vez: el de cookies, el de instalar, el de la llave de acceso y
   // por último el de los recordatorios.
@@ -106,13 +110,16 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isNavLocked || isNoLeagueAllowedPath) return;
+    // Al entrar, la sesión se aplica antes que la navegación en curso (p. ej. a crear la liga):
+    // si la URL ya apunta a una página permitida, no se pisa.
+    if (noLeagueAllowed(window.location.pathname)) return;
     navigate('/mis-ligas', { replace: true });
   }, [isNavLocked, isNoLeagueAllowedPath, navigate]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setShowMyPredictionModal(false);
+        setShowLoginModal(false);
         setShowProfileMenu(false);
       }
     };
@@ -121,10 +128,18 @@ function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const handleOpenLogin = () => setShowMyPredictionModal(true);
-    window.addEventListener('open-login-modal', handleOpenLogin);
-    return () => window.removeEventListener('open-login-modal', handleOpenLogin);
+    const handleOpenLogin = (event: Event) => {
+      setLoginRequest((event as CustomEvent<LoginModalRequest | null>).detail ?? {});
+      setShowLoginModal(true);
+    };
+    window.addEventListener(OPEN_LOGIN_EVENT, handleOpenLogin);
+    return () => window.removeEventListener(OPEN_LOGIN_EVENT, handleOpenLogin);
   }, []);
+
+  // Abierto desde la cabecera, la demo o una ruta privada: entrar, sin destino especial.
+  useEffect(() => {
+    if (!showLoginModal) setLoginRequest({});
+  }, [showLoginModal]);
 
   /**
    * Efecto para forzar la apertura del modal de login si la ruta a la que se
@@ -132,7 +147,7 @@ function Layout({ children }: { children: React.ReactNode }) {
    */
   useEffect(() => {
     if (location.state?.requireLogin) {
-      setShowMyPredictionModal(true);
+      setShowLoginModal(true);
     }
   }, [location.state]);
 
@@ -145,18 +160,13 @@ function Layout({ children }: { children: React.ReactNode }) {
     setInstallBannerDismissed(true);
   };
 
-  const signInWithGoogle = useGoogleSignIn();
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (await signInWithGoogle(credentialResponse)) setShowMyPredictionModal(false);
-  };
-
   return (
     <>
       {isDemo && !isUserLoggedIn && !isLanding && (
         <DemoBanner
           exitDemoMode={exitDemoMode}
           navigate={navigate}
-          setShowMyPredictionModal={setShowMyPredictionModal}
+          setShowLoginModal={setShowLoginModal}
         />
       )}
 
@@ -219,7 +229,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               logout();
               navigate('/', { replace: true });
             }}
-            setShowMyPredictionModal={setShowMyPredictionModal}
+            setShowLoginModal={setShowLoginModal}
             setShowProfileMenu={setShowProfileMenu}
             setShowProfileSettings={setShowProfileSettings}
             showProfileMenu={showProfileMenu}
@@ -259,11 +269,12 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       <LoginModal
         exitDemoMode={exitDemoMode}
-        handleGoogleSuccess={handleGoogleSuccess}
+        intent={loginRequest.intent ?? 'login'}
+        redirectTo={loginRequest.redirectTo}
         isDemo={isDemo}
         navigate={navigate}
-        setShowMyPredictionModal={setShowMyPredictionModal}
-        showMyPredictionModal={showMyPredictionModal}
+        setShowLoginModal={setShowLoginModal}
+        showLoginModal={showLoginModal}
       />
 
       {viewerPredictionId && (

@@ -12,9 +12,16 @@ export {
   endSession,
   prepareSessionHandoff,
   loginWithGoogle,
+  loginWithApple,
   startPasskeyLogin,
   loginWithPasskey,
+  loginWithPassword,
+  registerWithPassword,
+  confirmRegistration,
+  requestPasswordReset,
+  resetPassword,
 } from './http';
+export type { RegisterResult } from './http';
 export * from './endpoints/tournament';
 export * from './endpoints/predictions';
 export * from './endpoints/leaderboard';

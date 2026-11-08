@@ -77,7 +77,7 @@ export default function PasskeySettings() {
         Llaves de acceso
       </h3>
       <span className="text-[0.74rem] text-muted">
-        Entra con Face ID, huella o el PIN del dispositivo, sin escribir tu cuenta de Google.
+        Entra con Face ID, huella o el PIN del dispositivo, sin escribir tu cuenta ni tu contraseña.
       </span>
       {passkeys && passkeys.length > 0 && (
         <ul className="m-0 flex list-none flex-col gap-1.5 p-0">

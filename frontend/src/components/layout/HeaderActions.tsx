@@ -11,7 +11,7 @@ interface HeaderActionsProps {
   sessionPending?: boolean;
   navigate: NavigateFunction;
   onLogout: () => void;
-  setShowMyPredictionModal: (show: boolean) => void;
+  setShowLoginModal: (show: boolean) => void;
   setShowProfileMenu: (show: boolean) => void;
   setShowProfileSettings: (show: boolean) => void;
   showProfileMenu: boolean;
@@ -30,7 +30,7 @@ export default function HeaderActions({
   sessionPending = false,
   navigate,
   onLogout,
-  setShowMyPredictionModal,
+  setShowLoginModal,
   setShowProfileMenu,
   setShowProfileSettings,
   showProfileMenu,
@@ -62,7 +62,7 @@ export default function HeaderActions({
             <button
               id="btn-login-header"
               type="button"
-              onClick={() => setShowMyPredictionModal(true)}
+              onClick={() => setShowLoginModal(true)}
               className="glass-btn header-paper-action h-11 py-0 px-4 text-[0.88rem] flex items-center justify-center gap-2 whitespace-nowrap"
               title="Iniciar sesión"
             >
