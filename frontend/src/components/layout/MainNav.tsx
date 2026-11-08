@@ -4,6 +4,8 @@ import { NavLink } from 'react-router-dom';
 interface MainNavProps {
   isDemo: boolean;
   isMatchDayLeague: boolean;
+  /** Liga de Fórmula 1: su inicio son los Grandes Premios. */
+  isGrandPrixLeague?: boolean;
   isNavLocked: boolean;
   /** Aún no se sabe el formato de la liga activa, así que tampoco qué secciones lleva. */
   formatPending?: boolean;
@@ -13,6 +15,7 @@ interface MainNavProps {
 export default function MainNav({
   isDemo,
   isMatchDayLeague,
+  isGrandPrixLeague = false,
   isNavLocked,
   formatPending = false,
 }: MainNavProps) {
@@ -73,6 +76,32 @@ export default function MainNav({
               className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
             >
               Ranking
+            </NavLink>
+          </>
+        ) : isGrandPrixLeague ? (
+          <>
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+            >
+              Grandes Premios
+            </NavLink>
+            <NavLink
+              to="/ranking"
+              onMouseEnter={() => prefetchRoute('/ranking')}
+              onFocus={() => prefetchRoute('/ranking')}
+              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+            >
+              Ranking
+            </NavLink>
+            <NavLink
+              to="/mis-ligas"
+              onMouseEnter={() => prefetchRoute('/mis-ligas')}
+              onFocus={() => prefetchRoute('/mis-ligas')}
+              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+            >
+              Mis Ligas
             </NavLink>
           </>
         ) : isMatchDayLeague ? (

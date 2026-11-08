@@ -3,8 +3,8 @@ import { addableCompetitions, leagueCompetitionIds } from '../matchSelection/mat
 import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
 import {
   FIELD_IDS,
-  POOL_FORMAT_ORDER,
   errorId,
+  formatsForSport,
   formatCopy,
   formatUnavailableReason,
   matchSelectionApplies,
@@ -66,7 +66,7 @@ export default function FormatStep(props: StepProps) {
       >
         <legend className="sr-only">Modo de juego</legend>
         <div className="create-league-options">
-          {POOL_FORMAT_ORDER.map((format) => (
+          {formatsForSport(draft.sport).map((format) => (
             <OptionCard
               key={format}
               name="cl-format"

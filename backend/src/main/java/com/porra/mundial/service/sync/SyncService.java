@@ -66,6 +66,7 @@ public class SyncService {
     private final CustomLockService customLockService;
     private final MatchRepository matchRepository;
     private final SyncLock syncLock;
+    private final com.porra.mundial.service.formulaone.FormulaOneSyncService formulaOneSyncService;
 
 
     /** Un partido cuenta como «en juego» desde 15 min antes del inicio hasta 4 h después si no ha terminado. */
@@ -215,6 +216,7 @@ public class SyncService {
     }
 
     private CompetitionSync syncCompetition(Competition competition, boolean liveOnly) {
+        if (competition.isFormulaOne()) return syncFormulaOne(competition, liveOnly);
         long start = System.currentTimeMillis();
         SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
         String slug = competition.getExternalId();
@@ -268,6 +270,21 @@ public class SyncService {
             // Lo que ya se haya guardado antes del fallo también cuenta para el aviso y el recálculo.
             return new CompetitionSync(competition.getName(), STATUS_ERROR, batch.matchesUpdated(),
                     batch.teamsUpdated(), e.getMessage(), worldCup && batch.resultsChanged(), batch.clockUpdated());
+        }
+    }
+
+    /**
+     * Fórmula 1: el Gran Premio en curso o el siguiente, en una consulta. La pasada en directo no lo
+     * mira: un Gran Premio se puntúa entero al acabar la carrera, no hay marcador que seguir.
+     */
+    private CompetitionSync syncFormulaOne(Competition competition, boolean liveOnly) {
+        if (liveOnly) return new CompetitionSync(competition.getName(), STATUS_SUCCESS, 0, 0, null, false, 0);
+        try {
+            var result = formulaOneSyncService.syncCurrent(competition);
+            return new CompetitionSync(competition.getName(), STATUS_SUCCESS, result.updated(), 0, null, false, 0);
+        } catch (Exception e) {
+            log.warn("Falló la sincronización de {}: {}", competition.getName(), e.getMessage());
+            return CompetitionSync.failed(competition.getName(), STATUS_ERROR, e.getMessage());
         }
     }
 

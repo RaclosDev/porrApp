@@ -43,6 +43,18 @@ public class MatchPrediction {
 
     private Integer pointsAwarded;
 
+    /** Fórmula 1: pilotos ({@code race_drivers}) elegidos para el podio, la pole y la vuelta rápida. */
+    @Column(name = "race_first_driver_id")
+    private Long raceFirstDriverId;
+    @Column(name = "race_second_driver_id")
+    private Long raceSecondDriverId;
+    @Column(name = "race_third_driver_id")
+    private Long raceThirdDriverId;
+    @Column(name = "race_pole_driver_id")
+    private Long racePoleDriverId;
+    @Column(name = "race_fastest_lap_driver_id")
+    private Long raceFastestLapDriverId;
+
     private Boolean isExactScore;
 
     private Boolean isCorrectSign;

@@ -143,6 +143,7 @@ public class JoinPreviewController {
         return switch (format) {
             case "MATCH_DAY" -> "Por jornadas";
             case "SURVIVOR" -> "Superviviente";
+            case "GRAND_PRIX" -> "Grandes Premios";
             case "FULL_BRACKET" -> "Cuadro completo";
             case "KNOCKOUTS_ONLY" -> "Eliminatorias";
             default -> format.toLowerCase().replace('_', ' ');

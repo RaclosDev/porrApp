@@ -68,6 +68,7 @@ class SyncServiceTest {
     @Mock private LegacyFixtureRepairService legacyFixtureRepairService;
     @Mock private com.porra.mundial.repository.MatchRepository matchRepository;
     @Mock private com.porra.mundial.service.tournament.OfficialMatchdayService officialMatchdayService;
+    @Mock private com.porra.mundial.service.formulaone.FormulaOneSyncService formulaOneSyncService;
 
     @Spy private SyncLock syncLock = new SyncLock();
 
@@ -87,7 +88,7 @@ class SyncServiceTest {
         importService = new CompetitionImportService(competitionRepository, sportsDataProviderRegistry,
                 matchEventProcessor, knockoutBracketService, standingsService, webSocketService,
                 scoreInvalidationService, transactionManager, topScorerService, customLockService, syncLock,
-                officialMatchdayService);
+                officialMatchdayService, formulaOneSyncService);
         when(competitionRepository.findAll()).thenReturn(List.of(worldCup));
         when(competitionRepository.findById(5L)).thenReturn(Optional.of(laLiga));
         when(sportsDataProviderRegistry.getProviderForCompetition(anyString())).thenReturn(provider);

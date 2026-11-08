@@ -1,0 +1,311 @@
+@layer components {
+  /* Fórmula 1: Grandes Premios, predicción de podio, pole y vuelta rápida */
+  .gp-page {
+    padding: 18px 16px 90px;
+  }
+
+  .gp-header {
+    margin-bottom: 14px;
+  }
+
+  .gp-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent-text);
+  }
+
+  .gp-header h1 {
+    margin: 4px 0 6px;
+    font-size: clamp(1.3rem, 5vw, 1.65rem);
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+  }
+
+  .gp-rules {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .gp-section-title {
+    margin: 20px 0 8px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .gp-empty {
+    margin: 0;
+    padding: 24px 4px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .gp-card {
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg);
+    overflow: hidden;
+  }
+
+  .gp-card.is-cancelled {
+    opacity: 0.7;
+  }
+
+  .gp-card-head {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 64px;
+    padding: 12px 14px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .gp-card-head:focus-visible {
+    outline: 2px solid var(--accent-text);
+    outline-offset: -2px;
+  }
+
+  .gp-card-title {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .gp-card-title strong {
+    font-size: 1rem;
+    color: var(--text-main);
+  }
+
+  .gp-card-meta,
+  .gp-card-status {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .gp-card-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .gp-card-side {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+  }
+
+  .gp-card-side svg.is-open {
+    transform: rotate(180deg);
+  }
+
+  .gp-points {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--hit);
+    white-space: nowrap;
+  }
+
+  .gp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--hit);
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+
+  .gp-badge.is-pending {
+    color: var(--miss);
+  }
+
+  .gp-card-body {
+    padding: 4px 14px 14px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .gp-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding-top: 10px;
+  }
+
+  .gp-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    grid-column: span 3;
+  }
+
+  .gp-field label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .gp-optional {
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .gp-select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 1px solid var(--input-border);
+    border-left-width: 5px;
+    border-radius: 10px;
+    background: var(--panel-bg);
+    color: var(--text-main);
+    font: inherit;
+    font-size: 0.92rem;
+  }
+
+  .gp-select:focus-visible {
+    outline: 2px solid var(--accent-text);
+    outline-offset: 1px;
+  }
+
+  .gp-error {
+    grid-column: span 3;
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--miss);
+  }
+
+  .gp-save {
+    grid-column: span 3;
+    min-height: 46px;
+    font-weight: 800;
+  }
+
+  .gp-note {
+    grid-column: span 3;
+    margin: 8px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .gp-table {
+    width: 100%;
+    margin-top: 10px;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  .gp-table th,
+  .gp-table td {
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    color: var(--text-main);
+  }
+
+  .gp-table thead th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .gp-table tbody th {
+    width: 4.5rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  .gp-table td:nth-child(2) {
+    border-left: 4px solid transparent;
+  }
+
+  .gp-table td.is-hit {
+    font-weight: 800;
+    color: var(--hit);
+  }
+
+  .gp-table td.is-hit svg {
+    margin-left: 4px;
+    vertical-align: -2px;
+  }
+
+  .gp-picks-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    margin-top: 12px;
+  }
+
+  .gp-member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .gp-member {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gp-member-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .gp-member-copy strong {
+    font-size: 0.92rem;
+    color: var(--text-main);
+  }
+
+  @media (min-width: 560px) {
+    .gp-field-first,
+    .gp-field-second,
+    .gp-field-third {
+      grid-column: span 1;
+    }
+
+    .gp-field-pole,
+    .gp-field-fastestLap {
+      grid-column: span 3;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .gp-card-side svg {
+      transition: transform 0.2s ease;
+    }
+  }
+}

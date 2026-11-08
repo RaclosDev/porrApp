@@ -9,6 +9,7 @@ import {
   sportChoices,
   emptyDraft,
   firstIncompleteStep,
+  formatsForSport,
   formatUnavailableReason,
   formatCopy,
   lockModesFor,
@@ -185,6 +186,11 @@ describe('borrador de liga', () => {
       ],
     };
     expect(competitionUnavailableReason(withData.competitions[0])).toMatch(/terminado/);
+    // Las terminadas no se ofrecen: ni en su deporte ni como deporte si no queda ninguna abierta.
+    expect(competitionsOfSport(withData, 'FOOTBALL').map((item) => item.id)).toEqual([6, 7]);
+    expect(
+      sportChoices({ competitions: [{ ...withData.competitions[0], sport: 'FOOTBALL' }] }),
+    ).toEqual(['OTHER']);
     expect(
       normalizeDraft({ ...emptyDraft(), sport: 'FOOTBALL', competitionId: 5 }, withData)
         .competitionId,
@@ -315,5 +321,42 @@ describe('borrador de liga', () => {
     // Otra competición o superviviente: vuelven a entrar todos.
     expect(normalizeDraft({ ...picked, competitionId: 2 }, ctx).matches.mode).toBe('ALL');
     expect(normalizeDraft({ ...picked, poolFormat: 'SURVIVOR' }, ctx).matches.mode).toBe('ALL');
+  });
+
+  it('la Fórmula 1 solo se juega por Grandes Premios y se cierra sola en cada clasificación', () => {
+    const f1 = competition({
+      id: 9,
+      name: 'Fórmula 1',
+      externalId: 'f1',
+      formatType: 'RACE',
+      sport: 'FORMULA_1',
+    });
+    const withF1 = { competitions: [...ctx.competitions, f1] };
+    expect(sportChoices(withF1)).toEqual(['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'FORMULA_1', 'OTHER']);
+    expect(formatsForSport('FORMULA_1')).toEqual(['GRAND_PRIX']);
+    expect(formatsForSport('FOOTBALL')).not.toContain('GRAND_PRIX');
+
+    // Un solo modo posible: queda elegido, sin cierre que configurar.
+    const draft = normalizeDraft({ ...emptyDraft(), sport: 'FORMULA_1', competitionId: 9 }, withF1);
+    expect(draft.poolFormat).toBe('GRAND_PRIX');
+    expect(lockModesFor(draft, withF1)).toEqual([]);
+    expect(draft.lockMode).toBeNull();
+    expect(formatUnavailableReason('MATCH_DAY', draft, withF1)).toMatch(/Gran Premio/);
+    const laLiga = normalizeDraft({ ...emptyDraft(), sport: 'FOOTBALL', competitionId: 1 }, withF1);
+    expect(formatUnavailableReason('GRAND_PRIX', laLiga, withF1)).toMatch(/Fórmula 1/);
+
+    const ready = { ...draft, name: 'Paddock' };
+    expect(validateStep('rules', ready, withF1, NOW)).toEqual({});
+    expect(buildCreateRequest(ready, withF1)).toEqual({
+      name: 'Paddock',
+      competitionId: 9,
+      poolFormat: 'GRAND_PRIX',
+      pichichi: false,
+    });
+
+    // El borrador guardado conserva el deporte.
+    storeDraft(ready);
+    expect(readStoredDraft().sport).toBe('FORMULA_1');
+    expect(readStoredDraft().poolFormat).toBe('GRAND_PRIX');
   });
 });

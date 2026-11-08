@@ -78,6 +78,7 @@ class CompetitionImportTransactionTest {
     @MockitoBean com.porra.mundial.service.prediction.MatchSelectionService matchSelection;
     @MockitoBean LegacyFixtureRepairService repair;
     @MockitoBean com.porra.mundial.service.tournament.OfficialMatchdayService matchdays;
+    @MockitoBean com.porra.mundial.service.formulaone.FormulaOneSyncService formulaOne;
     private final ObjectMapper json = new ObjectMapper();
     private SportsDataProvider provider;
     private Long competitionId;

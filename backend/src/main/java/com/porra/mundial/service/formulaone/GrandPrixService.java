@@ -1,0 +1,294 @@
+package com.porra.mundial.service.formulaone;
+
+import com.porra.mundial.dto.GrandPrixBoardDTO;
+import com.porra.mundial.dto.GrandPrixPickRequest;
+import com.porra.mundial.exception.BusinessException;
+import com.porra.mundial.model.Edition;
+import com.porra.mundial.model.Match;
+import com.porra.mundial.model.MatchPrediction;
+import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.model.Membership;
+import com.porra.mundial.model.PoolFormat;
+import com.porra.mundial.model.Prediction;
+import com.porra.mundial.model.RaceDriver;
+import com.porra.mundial.model.RaceWeekend;
+import com.porra.mundial.model.UserAccount;
+import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.repository.MatchPredictionRepository;
+import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.repository.MembershipRepository;
+import com.porra.mundial.repository.PredictionRepository;
+import com.porra.mundial.repository.RaceDriverRepository;
+import com.porra.mundial.repository.RaceWeekendRepository;
+import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.scoring.ScoringRuleSet;
+import com.porra.mundial.service.league.LeagueService;
+import com.porra.mundial.service.prediction.ScoreInvalidationService;
+import com.porra.mundial.util.AppTime;
+import com.porra.mundial.util.TextSanitizer;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * Predicciones de Gran Premio de una liga de Fórmula 1: podio, pole y vuelta rápida. Cada Gran Premio se
+ * cierra al empezar la clasificación, que es la fecha de su fila de {@code matches}; las predicciones del
+ * resto de la liga se ven a partir de ese momento.
+ */
+@Service
+@RequiredArgsConstructor
+public class GrandPrixService {
+
+    private final EditionRepository editionRepository;
+    private final MatchRepository matchRepository;
+    private final RaceWeekendRepository raceWeekendRepository;
+    private final RaceDriverRepository raceDriverRepository;
+    private final MatchPredictionRepository matchPredictionRepository;
+    private final PredictionRepository predictionRepository;
+    private final MembershipRepository membershipRepository;
+    private final UserAccountRepository userAccountRepository;
+    private final LeagueService leagueService;
+    private final ScoreInvalidationService scoreInvalidationService;
+    private final Clock clock = Clock.systemUTC();
+
+    /** Grandes Premios de la temporada en curso con la predicción del usuario. */
+    @Transactional(readOnly = true)
+    public GrandPrixBoardDTO board(String email, Long groupId) {
+        Edition edition = grandPrixEdition(groupId);
+        leagueService.assertCanView(groupId, email);
+        Instant now = clock.instant();
+
+        List<Match> all = matchRepository.findByCompetitionIdOrderByMatchDateAsc(edition.getCompetition().getId());
+        Map<Long, RaceWeekend> weekends = raceWeekendRepository.findByMatchIdIn(all.stream().map(Match::getId).toList())
+                .stream().collect(Collectors.toMap(RaceWeekend::getMatchId, Function.identity()));
+        List<Match> season = currentSeason(all, now);
+        List<Long> latestGrid = latestGrid(all, weekends);
+
+        Map<Long, MatchPrediction> mine = new HashMap<>();
+        if (email != null && !email.isBlank()) {
+            predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId).ifPresent(prediction ->
+                    matchPredictionRepository.findByPredictionId(prediction.getId())
+                            .forEach(pick -> mine.put(pick.getMatch().getId(), pick)));
+        }
+
+        List<GrandPrixBoardDTO.GrandPrix> grandsPrix = new ArrayList<>();
+        Set<Long> driverIds = new LinkedHashSet<>(latestGrid);
+        for (Match match : season) {
+            RaceWeekend weekend = weekends.get(match.getId());
+            List<Long> grid = weekend == null || weekend.entryDriverIds().isEmpty() ? latestGrid : weekend.entryDriverIds();
+            MatchPrediction pick = mine.get(match.getId());
+            GrandPrixBoardDTO.Picks result = weekend == null ? null : result(weekend);
+            GrandPrixBoardDTO.Picks picked = pick == null ? null : picks(pick);
+            driverIds.addAll(grid);
+            Stream.of(result, picked).filter(Objects::nonNull).forEach(p -> driverIds.addAll(ids(p)));
+            grandsPrix.add(new GrandPrixBoardDTO.GrandPrix(match.getId(), match.getRound(),
+                    weekend == null ? null : weekend.getCircuit(),
+                    weekend == null ? null : weekend.getCity(),
+                    weekend == null ? null : weekend.getCountry(),
+                    weekend != null && weekend.isSprint(),
+                    match.getMatchDate(), weekend == null ? null : weekend.getRaceAt(),
+                    match.getStatus() == null ? MatchStatusNormalized.SCHEDULED.name() : match.getStatus().name(),
+                    isLocked(edition, match, now), grid, result, picked,
+                    pick == null ? null : pick.getPointsAwarded(),
+                    pick == null ? null : pick.getScoringDetails()));
+        }
+
+        ScoringRuleSet rules = ScoringRuleSet.forEdition(edition);
+        return new GrandPrixBoardDTO(grandsPrix, drivers(driverIds),
+                new GrandPrixBoardDTO.Rules(rules.getF1ExactPositionPoints(), rules.getF1PodiumPoints(),
+                        rules.getF1PolePoints(), rules.getF1FastestLapPoints()));
+    }
+
+    /** Guarda o cambia la predicción del usuario para un Gran Premio que aún no ha cerrado. */
+    @Transactional
+    public GrandPrixBoardDTO savePick(String email, Long groupId, Long matchId, GrandPrixPickRequest request) {
+        if (email == null || email.isBlank()) throw BusinessException.forbidden("Usuario no autenticado");
+        Edition edition = grandPrixEdition(groupId);
+        if (edition.isLocked()) throw BusinessException.conflict("La liga está cerrada.");
+        UserAccount user = userAccountRepository.findByGoogleEmail(email)
+                .orElseThrow(() -> BusinessException.notFound("Usuario no encontrado"));
+        Membership.MembershipId memberId = new Membership.MembershipId(user.getId(), groupId);
+        boolean publicLeague = edition.getLeague() != null && edition.getLeague().isPublicLeague();
+        if (!membershipRepository.existsById(memberId) && !publicLeague) {
+            throw BusinessException.forbidden("No perteneces a esta liga privada.");
+        }
+
+        Match match = grandPrixOf(edition, matchId);
+        if (isLocked(edition, match, clock.instant())) {
+            throw BusinessException.conflict("La predicción de este Gran Premio ya está cerrada: empezó la clasificación.");
+        }
+        validate(request, gridFor(match));
+
+        Prediction prediction = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId)
+                .orElseGet(() -> {
+                    Membership membership = membershipRepository.findById(memberId).orElse(null);
+                    scoreInvalidationService.evictLeaderboardAfterCommit(groupId);
+                    return predictionRepository.save(Prediction.builder()
+                            .user(user)
+                            .edition(edition)
+                            .name("Pronósticos de " + user.getParticipantName())
+                            .paymentStatus(membership != null && membership.getPaymentStatus() != null
+                                    ? membership.getPaymentStatus() : "PENDING")
+                            .createdAt(Instant.now())
+                            .build());
+                });
+        MatchPrediction pick = matchPredictionRepository.findByPredictionIdAndMatchIdIn(prediction.getId(), List.of(match.getId()))
+                .stream().findFirst()
+                .orElseGet(() -> MatchPrediction.builder().prediction(prediction).match(match).build());
+        pick.setRaceFirstDriverId(request.first());
+        pick.setRaceSecondDriverId(request.second());
+        pick.setRaceThirdDriverId(request.third());
+        pick.setRacePoleDriverId(request.pole());
+        pick.setRaceFastestLapDriverId(request.fastestLap());
+        pick.setPointsAwarded(null);
+        pick.setScoringDetails(null);
+        matchPredictionRepository.save(pick);
+        return board(email, groupId);
+    }
+
+    /**
+     * Predicciones de la liga para un Gran Premio. Antes del cierre solo se ve la propia, para que nadie
+     * copie a nadie.
+     */
+    @Transactional(readOnly = true)
+    public List<GrandPrixBoardDTO.MemberPick> memberPicks(String email, Long groupId, Long matchId) {
+        Edition edition = grandPrixEdition(groupId);
+        leagueService.assertCanView(groupId, email);
+        Match match = grandPrixOf(edition, matchId);
+        boolean revealed = isLocked(edition, match, clock.instant());
+        List<GrandPrixBoardDTO.MemberPick> picks = new ArrayList<>();
+        for (MatchPrediction pick : matchPredictionRepository.findByMatchId(match.getId())) {
+            Prediction prediction = pick.getPrediction();
+            if (prediction == null || prediction.getEdition() == null
+                    || !Objects.equals(prediction.getEdition().getId(), edition.getId())) continue;
+            UserAccount owner = prediction.getUser();
+            boolean mine = owner != null && email != null && email.equalsIgnoreCase(owner.getGoogleEmail());
+            if (!revealed && !mine) continue;
+            picks.add(new GrandPrixBoardDTO.MemberPick(owner == null ? null : owner.getId(),
+                    TextSanitizer.fixParticipantName(prediction.getParticipantName()),
+                    owner == null ? null : owner.getAvatarUrl(), mine, picks(pick), pick.getPointsAwarded(),
+                    pick.getScoringDetails()));
+        }
+        picks.sort(Comparator.comparing((GrandPrixBoardDTO.MemberPick p) -> p.points() == null ? 0 : p.points()).reversed()
+                .thenComparing(p -> p.name() == null ? "" : p.name(), String.CASE_INSENSITIVE_ORDER));
+        return picks;
+    }
+
+    private Edition grandPrixEdition(Long groupId) {
+        if (groupId == null) throw BusinessException.badRequest("Falta la liga");
+        Edition edition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE")
+                .orElseThrow(() -> BusinessException.notFound("La liga no tiene una edición activa"));
+        if (!PoolFormat.isRaceBased(edition.getPoolFormat()) || edition.getCompetition() == null) {
+            throw BusinessException.badRequest("Esta liga no es de Fórmula 1.");
+        }
+        return edition;
+    }
+
+    private Match grandPrixOf(Edition edition, Long matchId) {
+        Match match = matchId == null ? null : matchRepository.findById(matchId).orElse(null);
+        if (match == null || match.getCompetition() == null
+                || !Objects.equals(match.getCompetition().getId(), edition.getCompetition().getId())) {
+            throw BusinessException.notFound("Gran Premio no encontrado");
+        }
+        return match;
+    }
+
+    /** Cerrado al empezar la clasificación, o si el Gran Premio ya no está programado. */
+    static boolean isLocked(Edition edition, Match match, Instant now) {
+        if (edition.isLocked()) return true;
+        if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) return true;
+        if (Boolean.TRUE.equals(match.getFinished())) return true;
+        return match.getMatchDate() == null || !now.isBefore(match.getMatchDate());
+    }
+
+    private List<Long> gridFor(Match match) {
+        RaceWeekend weekend = raceWeekendRepository.findById(match.getId()).orElse(null);
+        if (weekend != null && !weekend.entryDriverIds().isEmpty()) return weekend.entryDriverIds();
+        List<Match> all = matchRepository.findByCompetitionIdOrderByMatchDateAsc(match.getCompetition().getId());
+        Map<Long, RaceWeekend> weekends = raceWeekendRepository.findByMatchIdIn(all.stream().map(Match::getId).toList())
+                .stream().collect(Collectors.toMap(RaceWeekend::getMatchId, Function.identity()));
+        return latestGrid(all, weekends);
+    }
+
+    private void validate(GrandPrixPickRequest request, List<Long> grid) {
+        if (request == null || request.first() == null || request.second() == null || request.third() == null
+                || request.pole() == null) {
+            throw BusinessException.badRequest("Elige el podio completo y la pole.");
+        }
+        if (new HashSet<>(List.of(request.first(), request.second(), request.third())).size() != 3) {
+            throw BusinessException.badRequest("Un piloto no puede ocupar dos puestos del podio.");
+        }
+        Set<Long> chosen = new HashSet<>(List.of(request.first(), request.second(), request.third(), request.pole()));
+        if (request.fastestLap() != null) chosen.add(request.fastestLap());
+        Set<Long> known = raceDriverRepository.findAllById(chosen).stream().map(RaceDriver::getId).collect(Collectors.toSet());
+        if (!known.containsAll(chosen) || (!grid.isEmpty() && !new HashSet<>(grid).containsAll(chosen))) {
+            throw BusinessException.badRequest("Elige pilotos que corran este Gran Premio.");
+        }
+    }
+
+    /**
+     * Grandes Premios del año en curso: el del próximo sin terminar o, si ya no queda ninguno, el del
+     * último. Así la pantalla no acumula temporadas pasadas.
+     */
+    static List<Match> currentSeason(List<Match> all, Instant now) {
+        Match current = all.stream()
+                .filter(m -> m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())
+                        && m.getStatus() != MatchStatusNormalized.CANCELLED && m.getMatchDate().isAfter(now.minusSeconds(4 * 24 * 3600)))
+                .findFirst()
+                .orElse(all.isEmpty() ? null : all.get(all.size() - 1));
+        if (current == null || current.getMatchDate() == null) return all;
+        int year = AppTime.day(current.getMatchDate()).getYear();
+        return all.stream()
+                .filter(m -> m.getMatchDate() != null && AppTime.day(m.getMatchDate()).getYear() == year)
+                .toList();
+    }
+
+    /** Parrilla de la última carrera con lista de inscritos publicada. */
+    private static List<Long> latestGrid(List<Match> all, Map<Long, RaceWeekend> weekends) {
+        for (int i = all.size() - 1; i >= 0; i--) {
+            RaceWeekend weekend = weekends.get(all.get(i).getId());
+            if (weekend != null && !weekend.entryDriverIds().isEmpty()) return weekend.entryDriverIds();
+        }
+        return List.of();
+    }
+
+    private List<GrandPrixBoardDTO.Driver> drivers(Set<Long> ids) {
+        Map<Long, RaceDriver> byId = raceDriverRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(RaceDriver::getId, Function.identity()));
+        return ids.stream().map(byId::get).filter(Objects::nonNull)
+                .map(d -> new GrandPrixBoardDTO.Driver(d.getId(), d.getName(), d.getShortName(), d.getCountry(),
+                        d.getFlagUrl(), d.getTeamName(), d.getTeamColor(), d.getCarNumber()))
+                .toList();
+    }
+
+    private static GrandPrixBoardDTO.Picks result(RaceWeekend weekend) {
+        if (weekend.getPoleDriverId() == null && !weekend.hasPodium()) return null;
+        return new GrandPrixBoardDTO.Picks(weekend.getFirstDriverId(), weekend.getSecondDriverId(),
+                weekend.getThirdDriverId(), weekend.getPoleDriverId(), weekend.getFastestLapDriverId());
+    }
+
+    private static GrandPrixBoardDTO.Picks picks(MatchPrediction pick) {
+        return new GrandPrixBoardDTO.Picks(pick.getRaceFirstDriverId(), pick.getRaceSecondDriverId(),
+                pick.getRaceThirdDriverId(), pick.getRacePoleDriverId(), pick.getRaceFastestLapDriverId());
+    }
+
+    private static List<Long> ids(GrandPrixBoardDTO.Picks picks) {
+        return Stream.of(picks.first(), picks.second(), picks.third(), picks.pole(), picks.fastestLap())
+                .filter(Objects::nonNull).toList();
+    }
+}

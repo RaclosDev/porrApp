@@ -71,6 +71,9 @@ public class LeagueService {
         if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
             throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
         }
+        if (custom && poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX) {
+            throw BusinessException.badRequest("El modo Gran Premio necesita la Fórmula 1 oficial");
+        }
         if (custom && poolFormat == com.porra.mundial.model.PoolFormat.SURVIVOR) {
             // Sin resultados automáticos nadie sabría cuándo queda eliminado cada uno.
             throw BusinessException.badRequest("El modo superviviente necesita una competición oficial");
@@ -100,6 +103,11 @@ public class LeagueService {
                 throw BusinessException.forbidden("Esta competición pertenece a otra liga");
             }
             comp = resolveCanonicalCompetition(comp);
+            if (comp.isFormulaOne() != (poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX)) {
+                throw BusinessException.badRequest(comp.isFormulaOne()
+                        ? "La Fórmula 1 se juega Gran Premio a Gran Premio"
+                        : "El modo Gran Premio es solo para la Fórmula 1");
+            }
             if (comp.drawsKnockoutRounds() && poolFormat == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
                 throw BusinessException.badRequest("Los cruces de esta competición se sortean ronda a ronda: elige Solo eliminatorias");
             }
@@ -142,8 +150,10 @@ public class LeagueService {
                 .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
                 .lockDate(Edition.defaultLockDate(comp, poolFormat))
                 // Unas eliminatorias sorteadas ronda a ronda no pueden cerrarse de una vez.
-                // En la NBA cada serie se cierra al empezar su primer partido.
-                .lockMode(comp.playsSeries() ? com.porra.mundial.model.PredictionLockMode.PER_MATCH
+                // En la NBA cada serie se cierra al empezar su primer partido, y cada Gran Premio de Fórmula 1
+                // al empezar su clasificación (la fecha de su fila de matches).
+                .lockMode(comp.playsSeries() || poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX
+                        ? com.porra.mundial.model.PredictionLockMode.PER_MATCH
                         : comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
                         ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
                         : com.porra.mundial.model.PredictionLockMode.FIXED_DATE)
