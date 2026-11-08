@@ -255,6 +255,42 @@
     vertical-align: -2px;
   }
 
+  .gp-standings {
+    margin-top: 14px;
+  }
+
+  .gp-table.gp-standings tbody th {
+    width: 2.5rem;
+  }
+
+  .gp-table .gp-num {
+    width: 3.5rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gp-standings-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .gp-standings-name img {
+    flex-shrink: 0;
+    border-radius: 2px;
+    object-fit: cover;
+  }
+
+  .gp-standings-team {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .gp-standings-gap {
+    color: var(--text-muted);
+  }
+
   .gp-picks-btn {
     display: inline-flex;
     align-items: center;

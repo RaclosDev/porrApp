@@ -499,6 +499,24 @@ export interface GrandPrixBoard {
   rules: { exactPosition: number; podium: number; pole: number; fastestLap: number };
 }
 
+/** Mundial de Fórmula 1 según ESPN. */
+export interface FormulaOneStandings {
+  season: string | null;
+  drivers: {
+    rank: number;
+    name: string;
+    shortName: string | null;
+    abbreviation: string | null;
+    country: string | null;
+    flagUrl: string | null;
+    team: string | null;
+    /** Hexadecimal sin almohadilla. */
+    teamColor: string | null;
+    points: number;
+  }[];
+  constructors: { rank: number; name: string; color: string | null; points: number }[];
+}
+
 export interface GrandPrixMemberPick {
   userId: number | null;
   name: string;

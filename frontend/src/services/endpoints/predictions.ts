@@ -1,6 +1,7 @@
 /** Pronósticos de cuadro completo y por jornada, y sus estadísticas. */
 import type {
   FriendPrediction,
+  FormulaOneStandings,
   GrandPrixBoard,
   GrandPrixMemberPick,
   GrandPrixPicks,
@@ -107,3 +108,9 @@ export const saveGrandPrixPick = (
 /** Predicciones de la liga para un Gran Premio; antes del cierre, solo la propia. */
 export const fetchGrandPrixMemberPicks = (groupId: number | string, matchId: number) =>
   request<GrandPrixMemberPick[]>(`/grand-prix/${matchId}/picks${query({ groupId })}`);
+
+/** Mundial de pilotos y de constructores de la temporada en curso. */
+export const fetchFormulaOneStandings = (groupId: number | string) =>
+  request<FormulaOneStandings>(`/grand-prix/standings${query({ groupId })}`, {
+    fallbackError: 'No se pudo cargar el Mundial',
+  });

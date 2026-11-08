@@ -40,6 +40,8 @@ export const queryKeys = {
   /** Cuelga de grandPrix: al guardar se refrescan también las de la liga. */
   grandPrixPicks: (groupId: Id, matchId: number) =>
     key('grandPrix', asText(groupId), 'picks', matchId),
+  /** Mundial de F1: es el mismo para todas las ligas, la liga solo comprueba el acceso. */
+  formulaOneStandings: (groupId: Id) => key('formulaOneStandings', asText(groupId)),
   matchdayFixtures: (groupId?: Id, user?: Id, round?: string) =>
     key('matchdayFixtures', asText(groupId), user, round),
   /** Todos los partidos de una liga que elige los suyos, para su portada; cuelga de matchdayFixtures. */
