@@ -110,6 +110,8 @@ export interface Match {
   displayClock: string | null;
   isStartingSoon: boolean;
   status: string;
+  /** Datos de pelea; solo en los partidos de la UFC. */
+  fight?: FightInfo | null;
 }
 
 export interface MatchRadar {

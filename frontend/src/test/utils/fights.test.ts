@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { matchdayFixture } from '../context/fixtures';
 import type { FightInfo } from '../../types/api';
-import { fightResultText, methodRoundText, weightClassLabel } from '../../utils/fights';
+import {
+  fightMethodText,
+  fightOutcomes,
+  fightResultParts,
+  fightResultText,
+  methodRoundText,
+  weightClassLabel,
+} from '../../utils/fights';
 import {
   buildSubmission,
   mergeDraftWithServer,
@@ -49,13 +56,65 @@ describe('textos de pelea', () => {
           }),
         }),
       ),
-    ).toBe('Gana Gane por Decisión (Split) en el asalto 5');
+    ).toBe('Gana Gane por decisión dividida en el asalto 5');
+    expect(
+      fightResultText(
+        matchdayFixture({
+          ...base,
+          fight: fight({
+            winner: '2',
+            resultMethod: 'KO_TKO',
+            resultDetail: 'KO/TKO - Elbows',
+            resultRound: 3,
+            resultClock: '1:28',
+          }),
+        }),
+      ),
+    ).toBe('Gana Hokit por KO/TKO (codazos) en el asalto 3, a 1:28');
     expect(
       fightResultText(matchdayFixture({ ...base, fight: fight({ resultMethod: 'DRAW' }) })),
     ).toBe('Empate: no puntúa');
     expect(
       fightResultText(matchdayFixture({ ...base, fight: fight({ resultMethod: 'NO_CONTEST' }) })),
     ).toBe('Sin resultado: no puntúa');
+  });
+
+  it('traduce el método de ESPN con su tipo', () => {
+    const method = (resultMethod: FightInfo['resultMethod'], resultDetail: string | null) =>
+      fightMethodText(fight({ resultMethod, resultDetail }));
+    expect(method('SUBMISSION', 'Submission - Rear Naked Choke')).toBe('Sumisión (mataleón)');
+    expect(method('SUBMISSION', 'Submission - Suloev Stretch')).toBe('Sumisión (Suloev Stretch)');
+    expect(method('SUBMISSION', 'Submission')).toBe('Sumisión');
+    expect(method('KO_TKO', 'KO/TKO - Punches')).toBe('KO/TKO (puñetazos)');
+    expect(method('KO_TKO', "TKO - Doctor's Stoppage")).toBe('TKO (parada médica)');
+    expect(method('DECISION', 'Decision - Unanimous')).toBe('Decisión unánime');
+    expect(method('DECISION', 'Decision - Split')).toBe('Decisión dividida');
+    expect(method('DECISION', 'Decision - Majority')).toBe('Decisión mayoritaria');
+    expect(method('DRAW', 'Draw - Majority')).toBe('Empate mayoritario');
+    expect(method('NO_CONTEST', 'No Contest')).toBe('Sin resultado');
+    expect(method('DISQUALIFICATION', 'DQ')).toBe('Descalificación');
+    expect(method('OTHER', 'Overturned')).toBe('Overturned');
+    expect(method(null, null)).toBeNull();
+  });
+
+  it('da método, asalto y tiempo, y una insignia a cada luchador', () => {
+    const result = fight({
+      winner: '1',
+      resultMethod: 'SUBMISSION',
+      resultDetail: 'Submission - Guillotine Choke',
+      resultRound: 2,
+      resultClock: '1:25',
+    });
+    expect(fightResultParts(result)).toEqual(['Sumisión (guillotina)', 'Asalto 2', '1:25']);
+    expect(fightOutcomes(result, true)).toEqual({ home: 'W', away: 'L' });
+    expect(fightOutcomes(fight({ winner: '2' }), true)).toEqual({ home: 'L', away: 'W' });
+    expect(fightOutcomes(fight({ resultMethod: 'DRAW' }), true)).toEqual({ home: 'D', away: 'D' });
+    expect(fightOutcomes(fight({ resultMethod: 'NO_CONTEST' }), true)).toEqual({
+      home: 'NC',
+      away: 'NC',
+    });
+    expect(fightOutcomes(result, false)).toBeNull();
+    expect(fightOutcomes(null, true)).toBeNull();
   });
 
   it('resume el método y el asalto elegidos', () => {

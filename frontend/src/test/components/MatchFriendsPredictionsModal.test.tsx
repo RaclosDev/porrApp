@@ -153,4 +153,44 @@ describe('MatchFriendsPredictionsModal', () => {
     expect(screen.queryByText(/21:03/)).not.toBeInTheDocument();
     expect(screen.queryByText(/se ven al empezar/)).not.toBeInTheDocument();
   });
+
+  it('en una pelea de la UFC terminada pinta W y L y cómo acabó, sin marcador', async () => {
+    vi.mocked(fetchMatchdayFriendPredictions).mockResolvedValue(
+      [{ userId: 1, participantName: 'Toto', hasPredicted: true, sign: '2' }].map(friendPrediction),
+    );
+
+    renderModal({
+      homeTeam: 'Keiichiro Nakamura',
+      awayTeam: 'Ollie Schmid',
+      finished: true,
+      locked: true,
+      actualHomeScore: 0,
+      actualAwayScore: 1,
+      fight: {
+        eventId: '1',
+        eventName: 'UFC Fight Night',
+        segment: 'PRELIMS',
+        order: 9,
+        weightClass: null,
+        scheduledRounds: 3,
+        homeRecord: null,
+        awayRecord: null,
+        resultMethod: 'DECISION',
+        resultDetail: 'Decision - Split',
+        resultRound: 3,
+        resultClock: '5:00',
+        winner: '2',
+      },
+    });
+
+    expect(await screen.findByRole('region', { name: '2 · Gana Ollie Schmid' })).toHaveTextContent(
+      'Toto',
+    );
+    expect(screen.queryByText('0 - 1')).not.toBeInTheDocument();
+    expect(screen.getByTitle('Derrota')).toHaveTextContent('L');
+    expect(screen.getByTitle('Victoria')).toHaveTextContent('W');
+    expect(screen.getByText('Decisión dividida')).toBeInTheDocument();
+    expect(screen.getByText('Asalto 3')).toBeInTheDocument();
+    expect(screen.getByText('5:00')).toBeInTheDocument();
+  });
 });

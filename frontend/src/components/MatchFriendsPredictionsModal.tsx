@@ -4,7 +4,8 @@ import { fetchMatchdayFriendPredictions } from '../services/api';
 import { UserAvatar } from './Avatar';
 import type { FriendPrediction, MatchdayFixture } from '../types/api';
 import SheetDialog from './SheetDialog';
-import { methodRoundText } from '../utils/fights';
+import { fightOutcomes, methodRoundText } from '../utils/fights';
+import { FightBadge, FightResultLine } from './fight/FightResult';
 
 function TeamCrest({ logo, name }: { logo: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -131,6 +132,7 @@ export default function MatchFriendsPredictionsModal({
   const roundLabel = match.round && match.round !== 'group' ? match.round : '';
   // En una pelea de la UFC el «marcador» solo dice quién ganó: no se muestra.
   const isFight = Boolean(match.fight);
+  const outcomes = fightOutcomes(match.fight, match.finished);
   const hasFinalScore =
     !isFight && match.finished && match.actualHomeScore != null && match.actualAwayScore != null;
   const ready = !isLoading && !error && predictions.length > 0;
@@ -157,19 +159,29 @@ export default function MatchFriendsPredictionsModal({
       <div className="friends-predictions-match">
         <div className="friends-predictions-team">
           <TeamCrest logo={match.homeTeamLogo} name={match.homeTeam} />
-          <span>{match.homeTeam}</span>
+          <span className="friends-predictions-name">{match.homeTeam}</span>
+          {outcomes && <FightBadge outcome={outcomes.home} />}
         </div>
         <div className="friends-predictions-center">
-          <span className={`friends-predictions-vs${hasFinalScore ? ' is-finished' : ''}`}>
-            {hasFinalScore ? `${match.actualHomeScore} - ${match.actualAwayScore}` : 'vs'}
+          <span
+            className={`friends-predictions-vs${hasFinalScore || outcomes ? ' is-finished' : ''}`}
+          >
+            {hasFinalScore
+              ? `${match.actualHomeScore} - ${match.actualAwayScore}`
+              : outcomes
+                ? 'Final'
+                : 'vs'}
           </span>
           {roundLabel && <span className="friends-predictions-round">{roundLabel}</span>}
         </div>
         <div className="friends-predictions-team is-away">
-          <span>{match.awayTeam}</span>
+          {outcomes && <FightBadge outcome={outcomes.away} />}
+          <span className="friends-predictions-name">{match.awayTeam}</span>
           <TeamCrest logo={match.awayTeamLogo} name={match.awayTeam} />
         </div>
       </div>
+
+      {outcomes && <FightResultLine fight={match.fight} className="friends-predictions-fight" />}
 
       <div className="friends-predictions-meta">
         {matchDate && <span>{matchDate}</span>}

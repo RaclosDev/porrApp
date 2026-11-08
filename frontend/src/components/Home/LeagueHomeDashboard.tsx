@@ -18,6 +18,8 @@ import { useMatchVoters } from '../../hooks/useMatchVoters';
 import { useRoundParticipants } from '../../hooks/useRoundParticipants';
 import type { Match, MatchVoter, MatchVoters } from '../../types/api';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
+import { fightOutcomes, fightResultText } from '../../utils/fights';
+import { FightBadge, FightResultLine } from '../fight/FightResult';
 
 const RANKING_SIZE = 5;
 
@@ -109,9 +111,14 @@ function MatchCard({
   twoWay?: boolean;
 }) {
   const isLive = isLiveMatch(match);
-  const hasScore = hasShownScore(match);
   const home = match.home || 'Local';
   const away = match.away || 'Visitante';
+  // Una pelea de la UFC no tiene marcador: cada luchador lleva su W o L y debajo va cómo acabó.
+  const outcomes = fightOutcomes(match.fight, match.finished);
+  const hasScore = !match.fight && hasShownScore(match);
+  const result = outcomes
+    ? fightResultText({ homeTeam: home, awayTeam: away, fight: match.fight })
+    : '';
   const matchName = `${home} - ${away}`;
   // Las fotos van dentro de la tarjeta: bajo cada equipo y, en las jornadas, el empate bajo el marcador.
   const voterStack = (list: MatchVoter[], label: string) =>
@@ -129,7 +136,7 @@ function MatchCard({
         type="button"
         className="home-match-open"
         onClick={onOpen}
-        aria-label={`${home} contra ${away}, ${action}`}
+        aria-label={`${home} contra ${away}${result ? ` (${result})` : ''}, ${action}`}
       />
       <div className="home-match-meta">
         <span>{formatMatchDate(match.date)}</span>
@@ -146,6 +153,7 @@ function MatchCard({
               />
             </span>
             <span className="home-match-name">{home}</span>
+            {outcomes && <FightBadge outcome={outcomes.home} size="sm" />}
           </div>
           {voterStack(voters?.home ?? [], twoWay ? home : '1')}
         </div>
@@ -153,12 +161,17 @@ function MatchCard({
           <div
             className={`home-match-score${isLive ? ' is-live' : ''}${hasScore ? '' : ' is-pending'}`}
           >
-            {hasScore ? `${match.home_score} - ${match.away_score}` : formatKickOff(match.date)}
+            {hasScore
+              ? `${match.home_score} - ${match.away_score}`
+              : outcomes
+                ? 'Final'
+                : formatKickOff(match.date)}
           </div>
           {voterStack(twoWay ? [] : (voters?.draw ?? []), 'X')}
         </div>
         <div className="home-match-side away">
           <div className="home-match-team away">
+            {outcomes && <FightBadge outcome={outcomes.away} size="sm" />}
             <span className="home-match-name">{away}</span>
             <span className="home-match-crest">
               <Flag
@@ -171,6 +184,7 @@ function MatchCard({
           {voterStack(voters?.away ?? [], twoWay ? away : '2')}
         </div>
       </div>
+      {outcomes && <FightResultLine fight={match.fight} className="home-match-fight" />}
     </div>
   );
 }

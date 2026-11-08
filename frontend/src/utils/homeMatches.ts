@@ -64,6 +64,7 @@ export const fixtureAsMatch = (fixture: MatchdayFixture): Match => ({
   displayClock: fixture.displayClock ?? null,
   isStartingSoon: false,
   status: fixture.status ?? 'SCHEDULED',
+  fight: fixture.fight ?? null,
 });
 
 export function currentRoundMatches(matches: Match[]): { round: string | null; matches: Match[] } {
