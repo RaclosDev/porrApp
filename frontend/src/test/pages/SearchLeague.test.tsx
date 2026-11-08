@@ -11,6 +11,7 @@ it('does not render the active league results for a different shared league', ()
     appContext({
       activeGroupId: '2',
       activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'matchday',
       userGroups: [group({ id: 1, name: 'Liga compartida' })],
       changeGroup,
     }),

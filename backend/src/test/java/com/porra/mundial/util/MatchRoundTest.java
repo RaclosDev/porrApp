@@ -29,6 +29,20 @@ class MatchRoundTest {
     }
 
     @Test
+    void nflWeeksSortByNumberAndPlayoffRoundsStayAfterThem() {
+        List<String> rounds = new ArrayList<>(List.of(
+                "Semana 9", "Semana 10", "Semana 18", "Semana 11", "Ronda de comodines", "Super Bowl"));
+
+        MatchRound.sortNumberedMatchdays(rounds, Function.identity());
+
+        assertThat(rounds).containsExactly(
+                "Semana 9", "Semana 10", "Semana 11", "Semana 18", "Ronda de comodines", "Super Bowl");
+        assertThat(MatchRound.matchdayNumber("Semana 12")).isEqualTo(12);
+        // La semana de una liga con varias competiciones no es una jornada numerada.
+        assertThat(MatchRound.matchdayNumber("Semana 2026-11-02")).isNull();
+    }
+
+    @Test
     void knockoutRoundsHaveSpanishLabelsAndCanBeLookedUpByThem() {
         com.porra.mundial.model.Match octavos = com.porra.mundial.model.Match.builder().round("r16").build();
 

@@ -62,6 +62,7 @@ public class CompetitionImportService {
     private final CustomLockService customLockService;
     private final SyncLock syncLock;
     private final OfficialMatchdayService officialMatchdayService;
+    private final com.porra.mundial.service.formulaone.FormulaOneSyncService formulaOneSyncService;
 
     /**
      * Importa el catálogo de equipos (con escudos) y el calendario de la temporada de una competición.
@@ -81,6 +82,9 @@ public class CompetitionImportService {
             throw new IllegalStateException("Importación interrumpida de la competición " + competitionId, e);
         }
         try {
+            Competition formulaOne = competitionRepository.findById(competitionId)
+                    .filter(c -> c.isFormulaOne()).orElse(null);
+            if (formulaOne != null) return importFormulaOne(formulaOne);
             ImportSnapshot snapshot = downloadImport(competitionId);
             checkImportCancellation();
             ImportCommit committed = new TransactionTemplate(transactionManager).execute(status -> applyImport(snapshot));
@@ -99,6 +103,19 @@ public class CompetitionImportService {
         }
     }
 
+    /** La Fórmula 1 no tiene equipos ni partidos: sus Grandes Premios los carga su propio servicio. */
+    private ImportResult importFormulaOne(Competition competition) {
+        try {
+            var result = formulaOneSyncService.importSeason(competition);
+            if (result.updated() > 0) webSocketService.notifyResultsChanged();
+            return new ImportResult(competition.getName(), 0, result.updated());
+        } catch (RuntimeException error) {
+            throw error;
+        } catch (Exception error) {
+            throw new IllegalStateException("No se pudo cargar la Fórmula 1: " + error.getMessage(), error);
+        }
+    }
+
     private static final int MAX_IMPORT_TEAMS = 1000;
     private static final int MAX_IMPORT_EVENTS = 2000;
 
@@ -114,7 +131,8 @@ public class CompetitionImportService {
         if (slug == null || slug.isBlank()) {
             throw new IllegalArgumentException("La competición no tiene proveedor externo configurado");
         }
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
+        SportsDataProvider provider = sportsDataProviderRegistry.findProviderForCompetition(competition.getExternalId())
+                .orElseThrow(() -> new IllegalArgumentException("Ningún proveedor de datos sigue " + competition.getName()));
         LocalDate today = LocalDate.now();
         Set<String> seenEventIds = new HashSet<>();
         List<JsonNode> selected = new ArrayList<>();

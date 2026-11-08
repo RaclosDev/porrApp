@@ -15,6 +15,21 @@ public class Competition {
     /** Identificador del Mundial 2026 en ESPN. */
     public static final String WORLD_CUP_EXTERNAL_ID = "fifa.world";
 
+    /** Temporada del Mundial que se juega en la app: el rango de fechas que se pide a ESPN. */
+    public static final String WORLD_CUP_SEASON = "2026";
+
+    /**
+     * Formato de las competiciones por veladas (la UFC): cada velada es una jornada con su nombre, sin
+     * numeración de jornadas ni cuadro.
+     */
+    public static final String EVENTS_FORMAT = "EVENTS";
+
+    /** Identificador de la Fórmula 1 (ESPN {@code racing/f1}); su formato es "RACE". */
+    public static final String FORMULA_ONE_EXTERNAL_ID = "f1";
+
+    /** Identificador de la NBA (ESPN {@code basketball/nba}): solo sus playoffs, serie a serie. */
+    public static final String NBA_EXTERNAL_ID = "nba";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -50,8 +65,26 @@ public class Competition {
      * pronostica sobre sus cruces reales, no sobre el cuadro del Mundial.
      */
     public boolean hasOwnBracket() {
-        if (ownerLeague != null || externalId == null || WORLD_CUP_EXTERNAL_ID.equals(externalId)) return false;
+        if (ownerLeague != null || externalId == null || isWorldCup()) return false;
         return "TOURNAMENT".equals(formatType) || LEAGUES_WITH_KNOCKOUTS.contains(externalId);
+    }
+
+    /** El Mundial: la única competición con grupos, terceros, cuadro y pichichi oficiales. */
+    public boolean isWorldCup() {
+        return isWorldCup(externalId);
+    }
+
+    public static boolean isWorldCup(String externalId) {
+        return WORLD_CUP_EXTERNAL_ID.equalsIgnoreCase(externalId);
+    }
+
+    /** Fórmula 1: se sincroniza y se predice Gran Premio a Gran Premio, no partido a partido. */
+    public boolean isFormulaOne() {
+        return ownerLeague == null && FORMULA_ONE_EXTERNAL_ID.equals(externalId);
+    }
+
+    public static boolean isFormulaOne(Competition competition) {
+        return competition != null && competition.isFormulaOne();
     }
 
     /**
@@ -59,6 +92,15 @@ public class Competition {
      * hay un cuadro fijo que rellenar de una vez, así que se pronostica quién pasa ronda a ronda.
      */
     public boolean drawsKnockoutRounds() {
-        return hasOwnBracket() && Sport.ofExternalId(externalId) == Sport.FOOTBALL;
+        Sport sport = Sport.ofExternalId(externalId);
+        return hasOwnBracket() && (sport == Sport.FOOTBALL || sport == Sport.BASKETBALL);
+    }
+
+    /**
+     * Playoffs de la NBA: cada cruce es una serie al mejor de 7 (el play-in, a partido único) y se
+     * pronostica quién la gana y en cuántos partidos. Solo se juega en «Solo eliminatorias».
+     */
+    public boolean playsSeries() {
+        return ownerLeague == null && Sport.ofExternalId(externalId) == Sport.BASKETBALL;
     }
 }

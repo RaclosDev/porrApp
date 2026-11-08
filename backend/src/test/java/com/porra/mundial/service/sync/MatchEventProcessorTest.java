@@ -182,8 +182,34 @@ class MatchEventProcessorTest {
         assertEquals("round1", MatchEventProcessor.roundFromSlug("first-round"));
         assertEquals("round2", MatchEventProcessor.roundFromSlug("second-round"));
         assertEquals("qualifying", MatchEventProcessor.roundFromSlug("qualifying-round"));
+        assertEquals("roundrobin", MatchEventProcessor.roundFromSlug("round-robin"));
         assertNull(MatchEventProcessor.roundFromSlug("league-phase"));
         assertNull(MatchEventProcessor.roundFromSlug(null));
+    }
+
+    @Test
+    @DisplayName("Un tenista que aún no estaba guardado se crea con el partido, con su bandera")
+    void createsATennisPlayerThatArrivesWithItsMatch() throws Exception {
+        Competition paris = Competition.builder().id(7L).name("Masters de París").externalId("tennis.atp.13")
+                .formatType("TOURNAMENT").build();
+        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
+        when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        JsonNode event = JSON.readTree("""
+                {"id": "tennis-186507", "date": "2026-11-08T14:00Z", "season": {"slug": "final"},
+                 "competitions": [{"altGameNote": "", "status": {"type": {"name": "STATUS_SCHEDULED", "state": "pre", "completed": false}},
+                   "competitors": [
+                     {"homeAway": "home", "winner": false, "team": {"id": "tennis-1", "displayName": "Ben Shelton", "logo": "https://flags/usa.png"}},
+                     {"homeAway": "away", "winner": false, "team": {"id": "tennis-2", "displayName": "Carlos Alcaraz", "logo": "https://flags/esp.png"}}]}]}
+                """);
+
+        processor.process(event, cache, new MatchEventProcessor.Batch(paris));
+
+        Match saved = savedMatch();
+        assertEquals("Ben Shelton", saved.getHomeTeam().getName());
+        assertEquals("https://flags/esp.png", saved.getAwayTeam().getLogoUrl());
+        assertEquals("tennis-2", saved.getAwayTeam().getExternalId());
+        assertEquals("final", saved.getRound());
+        assertSame(saved.getAwayTeam(), cache.get("tennis-2"));
     }
 
     @Test
@@ -446,5 +472,74 @@ class MatchEventProcessorTest {
         processor.process(legEvent("league-phase", 1, "", ""), cache, new MatchEventProcessor.Batch(champions));
 
         assertNotEquals("r16", savedMatch().getRound());
+    }
+
+    private JsonNode nflEvent(String name) throws Exception {
+        try (var input = getClass().getResourceAsStream("/espn/nfl-scoreboard.json")) {
+            for (JsonNode event : JSON.readTree(java.util.Objects.requireNonNull(input)).path("events")) {
+                if (event.path("name").asText().equals(name)) return event;
+            }
+        }
+        throw new IllegalArgumentException(name);
+    }
+
+    @Test
+    @DisplayName("Un partido de la NFL va a su semana de ESPN y la pretemporada no se guarda")
+    void nflGamesTakeTheirEspnWeekAndPreseasonIsSkipped() throws Exception {
+        Competition nfl = Competition.builder().id(30L).name("NFL").externalId("nfl").formatType("LEAGUE").build();
+        Team ravens = Team.builder().id(31L).name("Baltimore Ravens").externalId("33").build();
+        Team jaguars = Team.builder().id(32L).name("Jacksonville Jaguars").externalId("30").build();
+        Map<String, Team> nflTeams = new HashMap<>(Map.of("Baltimore Ravens", ravens, "Jacksonville Jaguars", jaguars));
+        when(matchRepository.findByExternalId("401873037")).thenReturn(Optional.empty());
+        when(matchRepository.save(any(Match.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        processor.process(nflEvent("Jacksonville Jaguars at Baltimore Ravens"), nflTeams, new MatchEventProcessor.Batch(nfl));
+        processor.process(nflEvent("Indianapolis Colts at Baltimore Ravens"), nflTeams, new MatchEventProcessor.Batch(nfl));
+
+        Match game = savedMatch();
+        assertEquals("Semana 9", game.getRound());
+        assertEquals(10, game.getHomeScore());
+        assertEquals(33, game.getAwayScore());
+        assertSame(jaguars, game.getWinnerTeam());
+        verify(matchRepository, never()).findByExternalId(nflEvent("Indianapolis Colts at Baltimore Ravens").path("id").asText());
+    }
+
+    @Test
+    @DisplayName("Importar el catálogo no cambia el nombre en español de un equipo que ya existe")
+    void importTeamsKeepsTheLocalNameOfAnExistingTeam() throws Exception {
+        when(teamRepository.findByName("España")).thenReturn(Optional.of(spain));
+        when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
+        JsonNode teams = JSON.readTree("""
+                [{"team": {"id": "164", "displayName": "Spain", "abbreviation": "ESP",
+                           "logos": [{"href": "https://example.test/esp.png"}]}}]
+                """);
+        Map<String, Team> imported = new HashMap<>();
+
+        assertEquals(1, processor.importTeams(teams, imported));
+
+        assertEquals("España", spain.getName());
+        assertEquals("Spain", spain.getNameEn());
+        assertEquals("https://example.test/esp.png", spain.getLogoUrl());
+        assertSame(spain, imported.get("España"));
+        assertSame(spain, imported.get("Spain"));
+        assertSame(spain, imported.get("164"));
+    }
+
+    @Test
+    @DisplayName("Un equipo nuevo del catálogo se guarda con su nombre en español")
+    void importTeamsCreatesNewTeamsWithTheirLocalName() throws Exception {
+        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
+        when(teamRepository.findByExternalId("478")).thenReturn(Optional.empty());
+        when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
+        JsonNode teams = JSON.readTree("""
+                [{"team": {"id": "478", "displayName": "France"}}]
+                """);
+        Map<String, Team> imported = new HashMap<>();
+
+        processor.importTeams(teams, imported);
+
+        Team france = imported.get("478");
+        assertEquals("Francia", france.getName());
+        assertEquals("France", france.getNameEn());
     }
 }

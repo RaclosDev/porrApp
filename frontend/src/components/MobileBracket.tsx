@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react';
 import BracketFinale from './BracketFinale';
-import { ROUND_LABELS, type CanvasMatch, type RenderSlot, type SlotTeam } from './BracketCanvas';
+import { type CanvasMatch, type RenderSlot, type SlotTeam } from './BracketCanvas';
 
 type Side = 'left' | 'right';
 
@@ -49,7 +49,7 @@ export default function MobileBracket<T extends SlotTeam>({
   rightRounds,
   renderSlot,
   renderFinal,
-  roundLabels = ROUND_LABELS,
+  roundLabels,
   defaultTab = 0,
   renderRoundFooter,
 }: {
@@ -59,7 +59,7 @@ export default function MobileBracket<T extends SlotTeam>({
   /** Contenido de la pestaña "Semis y final". */
   renderFinal?: () => ReactNode;
   /** Nombre de cada ronda; la última son las semifinales. */
-  roundLabels?: string[];
+  roundLabels: string[];
   defaultTab?: number;
   renderRoundFooter?: (roundIndex: number, side: Side) => ReactNode;
 }) {

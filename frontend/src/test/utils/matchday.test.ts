@@ -12,6 +12,10 @@ import {
   roundsFromFixtures,
   roundsFromMatchdays,
   sortNumberedRounds,
+  allowsDraw,
+  finishedLabel,
+  resultNote,
+  liveLabel,
   survivorUsedTeams,
   withSign,
   withoutSaved,
@@ -92,6 +96,43 @@ describe('round lists', () => {
       'Octavos',
       'Jornada 2',
     ]);
+  });
+
+  it('ordena las semanas de la NFL por número y deja los playoffs detrás', () => {
+    expect(
+      sortNumberedRounds(['Semana 9', 'Semana 10', 'Semana 18', 'Semana 2', 'Super Bowl']),
+    ).toEqual(['Semana 2', 'Semana 9', 'Semana 10', 'Semana 18', 'Super Bowl']);
+    expect(allowsDraw('AMERICAN_FOOTBALL')).toBe(false);
+    expect(allowsDraw('FOOTBALL')).toBe(true);
+    expect(allowsDraw(undefined)).toBe(true);
+  });
+
+  it('solo deja predecir el empate en el fútbol', () => {
+    expect(allowsDraw('LEAGUE_OF_LEGENDS')).toBe(false);
+    expect(allowsDraw('BASKETBALL')).toBe(false);
+    expect(allowsDraw('TENNIS')).toBe(false);
+    expect(allowsDraw(null)).toBe(true);
+  });
+
+  it('dice si un partido acabó en la prórroga o en los penaltis', () => {
+    expect(resultNote('OT')).toBe('prórroga');
+    expect(resultNote('2OT')).toBe('2 prórrogas');
+    expect(resultNote('AET')).toBe('prórroga');
+    expect(resultNote('PEN 4-2')).toBe('4-2 en penaltis');
+    expect(resultNote("90'")).toBeNull();
+    expect(resultNote(null)).toBeNull();
+    expect(finishedLabel('OT')).toBe('Final · prórroga');
+    expect(finishedLabel('0:00')).toBe('Final');
+  });
+
+  it('pone el reloj en la etiqueta de un partido en juego', () => {
+    expect(liveLabel('3.er cuarto · 5:00')).toBe('En juego · 3.er cuarto · 5:00');
+    expect(liveLabel("67'")).toBe("En juego · 67'");
+    expect(liveLabel('Descanso')).toBe('Descanso');
+    expect(liveLabel(null)).toBe('En juego');
+    expect(liveLabel('  ')).toBe('En juego');
+    // Un código de final no es un reloj.
+    expect(liveLabel('AET')).toBe('En juego');
   });
 
   it('falls back to the last round when everything has finished', () => {
@@ -216,17 +257,14 @@ describe('buildSubmission', () => {
 });
 
 describe('filterFixtures', () => {
-  it('lists live matches first in the upcoming tab', () => {
-    const now = Date.parse('2030-05-01T20:30:00Z');
+  it('lists matches ESPN marks live first in the upcoming tab, not those past kick-off', () => {
     const list = [
       fixture(1, { matchDate: '2030-05-02T20:00:00Z' }),
       fixture(2, { matchDate: '2030-05-01T20:00:00Z' }),
       fixture(3, { matchDate: '2030-05-03T20:00:00Z', status: 'LIVE' }),
       fixture(4, { matchDate: '2030-05-01T18:00:00Z', finished: true }),
     ];
-    expect(filterFixtures(list, 'UPCOMING', {}, false, now).map((f) => f.matchId)).toEqual([
-      2, 3, 1,
-    ]);
+    expect(filterFixtures(list, 'UPCOMING', {}, false).map((f) => f.matchId)).toEqual([3, 1, 2]);
   });
 
   const fixtures = [fixture(1), fixture(2, { finished: true, locked: true }), fixture(3)];

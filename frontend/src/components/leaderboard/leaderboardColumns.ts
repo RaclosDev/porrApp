@@ -21,11 +21,22 @@ export function rankLabel(
   return rank ?? '-';
 }
 
-/** «Jornada 12» -> «J12»; «Fecha 2026-03-14» -> «14/03». */
+/** Rondas de los playoffs de la NFL, abreviadas. */
+const NFL_PLAYOFF_SHORT: Record<string, string> = {
+  'Ronda de comodines': 'WC',
+  'Ronda divisional': 'Div.',
+  'Final de conferencia': 'Conf.',
+  'Super Bowl': 'SB',
+};
+
+/** «Jornada 12» -> «J12»; «Semana 9» (NFL) -> «S9»; «Fecha 2026-03-14» -> «14/03». */
 export const compactMatchdayLabel = (label: string | null) => {
   if (!label) return '';
   const jornada = /^jornada\s+(\d+)$/i.exec(label);
   if (jornada) return `J${jornada[1]}`;
+  const semana = /^semana\s+(\d+)$/i.exec(label);
+  if (semana) return `S${semana[1]}`;
+  if (NFL_PLAYOFF_SHORT[label]) return NFL_PLAYOFF_SHORT[label];
   const fecha = /^fecha\s+(\d{4})-(\d{2})-(\d{2})$/i.exec(label);
   if (fecha) return `${fecha[3]}/${fecha[2]}`;
   return label;

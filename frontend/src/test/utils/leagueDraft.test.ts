@@ -9,7 +9,9 @@ import {
   sportChoices,
   emptyDraft,
   firstIncompleteStep,
+  formatsForSport,
   formatUnavailableReason,
+  formatCopy,
   lockModesFor,
   normalizeDraft,
   readStoredDraft,
@@ -65,6 +67,22 @@ describe('borrador de liga', () => {
     expect(scoringRuleSet).toContain(`MAX_POINTS = ${SCORING_MAX_POINTS};`);
   });
 
+  it('la NFL es su propio deporte y se juega por semanas o superviviente', () => {
+    const nfl = competition({ id: 9, name: 'NFL', externalId: 'nfl' });
+    const nflCtx = { competitions: [...ctx.competitions, nfl] };
+    expect(sportChoices(nflCtx)).toEqual([
+      'FOOTBALL',
+      'LEAGUE_OF_LEGENDS',
+      'AMERICAN_FOOTBALL',
+      'OTHER',
+    ]);
+    const draft = normalizeDraft({ ...emptyDraft(), competitionId: 9 }, nflCtx);
+    expect(draft.sport).toBe('AMERICAN_FOOTBALL');
+    expect(formatCopy('MATCH_DAY', draft, nflCtx).title).toBe('Por semanas');
+    expect(formatUnavailableReason('SURVIVOR', draft, nflCtx)).toBeNull();
+    expect(formatUnavailableReason('FULL_BRACKET', draft, nflCtx)).not.toBeNull();
+  });
+
   it('agrupa por deporte y deja coherente la competición al cambiarlo', () => {
     expect(sportChoices(ctx)).toEqual(['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'OTHER']);
     expect(competitionsOfSport(ctx, 'LEAGUE_OF_LEGENDS').map((item) => item.name)).toEqual([
@@ -98,11 +116,15 @@ describe('borrador de liga', () => {
   });
 
   it('al cambiar de competición quita el formato y el pichichi que ya no encajan', () => {
+    // El pichichi se juega con los goleadores del Mundial: solo en su cuadro.
     const tournament = draftWith({
-      competitionId: 2,
+      competitionId: 3,
       poolFormat: 'KNOCKOUTS_ONLY',
       pichichi: true,
     });
+    expect(
+      draftWith({ competitionId: 2, poolFormat: 'KNOCKOUTS_ONLY', pichichi: true }).pichichi,
+    ).toBe(false);
     expect(tournament.pichichi).toBe(true);
     const custom = normalizeDraft({ ...tournament, custom: true }, ctx);
     expect(custom.competitionId).toBeNull();
@@ -168,6 +190,11 @@ describe('borrador de liga', () => {
       ],
     };
     expect(competitionUnavailableReason(withData.competitions[0])).toMatch(/terminado/);
+    // Las terminadas no se ofrecen: ni en su deporte ni como deporte si no queda ninguna abierta.
+    expect(competitionsOfSport(withData, 'FOOTBALL').map((item) => item.id)).toEqual([6, 7]);
+    expect(
+      sportChoices({ competitions: [{ ...withData.competitions[0], sport: 'FOOTBALL' }] }),
+    ).toEqual(['OTHER']);
     expect(
       normalizeDraft({ ...emptyDraft(), sport: 'FOOTBALL', competitionId: 5 }, withData)
         .competitionId,
@@ -298,5 +325,42 @@ describe('borrador de liga', () => {
     // Otra competición o superviviente: vuelven a entrar todos.
     expect(normalizeDraft({ ...picked, competitionId: 2 }, ctx).matches.mode).toBe('ALL');
     expect(normalizeDraft({ ...picked, poolFormat: 'SURVIVOR' }, ctx).matches.mode).toBe('ALL');
+  });
+
+  it('la Fórmula 1 solo se juega por Grandes Premios y se cierra sola en cada clasificación', () => {
+    const f1 = competition({
+      id: 9,
+      name: 'Fórmula 1',
+      externalId: 'f1',
+      formatType: 'RACE',
+      sport: 'FORMULA_1',
+    });
+    const withF1 = { competitions: [...ctx.competitions, f1] };
+    expect(sportChoices(withF1)).toEqual(['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'FORMULA_1', 'OTHER']);
+    expect(formatsForSport('FORMULA_1')).toEqual(['GRAND_PRIX']);
+    expect(formatsForSport('FOOTBALL')).not.toContain('GRAND_PRIX');
+
+    // Un solo modo posible: queda elegido, sin cierre que configurar.
+    const draft = normalizeDraft({ ...emptyDraft(), sport: 'FORMULA_1', competitionId: 9 }, withF1);
+    expect(draft.poolFormat).toBe('GRAND_PRIX');
+    expect(lockModesFor(draft, withF1)).toEqual([]);
+    expect(draft.lockMode).toBeNull();
+    expect(formatUnavailableReason('MATCH_DAY', draft, withF1)).toMatch(/Gran Premio/);
+    const laLiga = normalizeDraft({ ...emptyDraft(), sport: 'FOOTBALL', competitionId: 1 }, withF1);
+    expect(formatUnavailableReason('GRAND_PRIX', laLiga, withF1)).toMatch(/Fórmula 1/);
+
+    const ready = { ...draft, name: 'Paddock' };
+    expect(validateStep('rules', ready, withF1, NOW)).toEqual({});
+    expect(buildCreateRequest(ready, withF1)).toEqual({
+      name: 'Paddock',
+      competitionId: 9,
+      poolFormat: 'GRAND_PRIX',
+      pichichi: false,
+    });
+
+    // El borrador guardado conserva el deporte.
+    storeDraft(ready);
+    expect(readStoredDraft().sport).toBe('FORMULA_1');
+    expect(readStoredDraft().poolFormat).toBe('GRAND_PRIX');
   });
 });

@@ -3,6 +3,7 @@ package com.porra.mundial.dto;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.service.sync.OnDemandCompetitionImport;
 
 import java.util.List;
 
@@ -27,10 +28,26 @@ public record MatchSelectionDTO(String mode, List<Long> teamIds, List<Long> incl
         }
     }
 
-    /** @param locked tiene partidos cerrados con predicciones en la liga: no se puede quitar */
-    public record CompetitionItem(Long id, String name, String externalId, boolean locked) {
+    /** El mismo calendario con otras competiciones (las mismas con su estado de carga). */
+    public MatchSelectionDTO withCompetitions(List<CompetitionItem> items) {
+        return new MatchSelectionDTO(mode, teamIds, includedMatchIds, excludedMatchIds, teams, matches,
+                removedPredictions, keptMatches, competitionIds, items);
+    }
+
+    /**
+     * @param locked      tiene partidos cerrados con predicciones en la liga: no se puede quitar
+     * @param importing   no tenía partidos y se están cargando ahora de ESPN (calendario del asistente)
+     * @param importError por qué sigue sin partidos: ESPN ha fallado o aún no los ha publicado; null si no
+     */
+    public record CompetitionItem(Long id, String name, String externalId, boolean locked, boolean importing,
+                                  String importError) {
         public static CompetitionItem of(Competition competition, boolean locked) {
-            return new CompetitionItem(competition.getId(), competition.getName(), competition.getExternalId(), locked);
+            return new CompetitionItem(competition.getId(), competition.getName(), competition.getExternalId(), locked,
+                    false, null);
+        }
+
+        public CompetitionItem withImport(OnDemandCompetitionImport.Status status) {
+            return new CompetitionItem(id, name, externalId, locked, status.importing(), status.error());
         }
     }
 

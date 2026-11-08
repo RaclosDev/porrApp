@@ -21,6 +21,15 @@ public class Team {
                 || PLACEHOLDER_NAME_EN.equalsIgnoreCase(team.getNameEn());
     }
 
+    /**
+     * Selección de un grupo del Mundial: equipo oficial (sin competición propia) con letra de grupo.
+     * Los equipos que importa ESPN de otras competiciones llegan con el grupo "-".
+     */
+    public static boolean isWorldCupGroupTeam(Team team) {
+        return team != null && team.getCompetition() == null && team.getGroupName() != null
+                && team.getGroupName().trim().matches("[A-La-l]") && !isPlaceholder(team);
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

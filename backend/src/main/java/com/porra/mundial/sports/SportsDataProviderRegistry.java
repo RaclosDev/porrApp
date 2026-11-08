@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 /** Elige el proveedor de datos de cada competición. */
 @Component
@@ -12,14 +13,9 @@ public class SportsDataProviderRegistry {
 
     private final List<SportsDataProvider> providers;
 
-    public SportsDataProvider getProviderForCompetition(String competitionCode) {
-        if (providers == null || providers.isEmpty()) {
-            throw new IllegalStateException("No hay proveedores de datos deportivos registrados.");
-        }
-
-        return providers.stream()
-                .filter(p -> p.supports(competitionCode))
-                .findFirst()
-                .orElse(providers.get(0));
+    /** El proveedor de la competición; si ninguno la reconoce, ninguno (no se elige uno por defecto). */
+    public Optional<SportsDataProvider> findProviderForCompetition(String competitionCode) {
+        if (providers == null) return Optional.empty();
+        return providers.stream().filter(p -> p.supports(competitionCode)).findFirst();
     }
 }

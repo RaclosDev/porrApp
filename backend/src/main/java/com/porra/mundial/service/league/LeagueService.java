@@ -68,8 +68,14 @@ public class LeagueService {
         if (custom == (competitionId != null)) {
             throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
         }
+        if (poolFormat == null) {
+            throw BusinessException.badRequest("Elige el formato de la porra");
+        }
         if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
             throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
+        }
+        if (custom && poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX) {
+            throw BusinessException.badRequest("El modo Gran Premio necesita la Fórmula 1 oficial");
         }
         if (custom && poolFormat == com.porra.mundial.model.PoolFormat.SURVIVOR) {
             // Sin resultados automáticos nadie sabría cuándo queda eliminado cada uno.
@@ -99,9 +105,27 @@ public class LeagueService {
             if (comp.getOwnerLeague() != null) {
                 throw BusinessException.forbidden("Esta competición pertenece a otra liga");
             }
-            comp = resolveCanonicalCompetition(comp);
+            // Sin proveedor de datos la liga se quedaría sin equipos ni partidos.
+            if (comp.getExternalId() == null || comp.getExternalId().isBlank()) {
+                throw BusinessException.badRequest("Esta competición no se puede seguir: elige otra");
+            }
+            if (com.porra.mundial.model.Sport.isMma(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+                throw BusinessException.badRequest("La UFC se juega velada a velada: elige Por veladas");
+            }
+            if (comp.isFormulaOne() != (poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX)) {
+                throw BusinessException.badRequest(comp.isFormulaOne()
+                        ? "La Fórmula 1 se juega Gran Premio a Gran Premio"
+                        : "El modo Gran Premio es solo para la Fórmula 1");
+            }
             if (comp.drawsKnockoutRounds() && poolFormat == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
                 throw BusinessException.badRequest("Los cruces de esta competición se sortean ronda a ronda: elige Solo eliminatorias");
+            }
+            // De la NBA solo se pronostican los playoffs, serie a serie.
+            if (comp.playsSeries() && poolFormat != com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY) {
+                throw BusinessException.badRequest("De la NBA se pronostican los playoffs: elige el modo Playoffs");
+            }
+            if (com.porra.mundial.model.Sport.isTennis(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
+                throw BusinessException.badRequest("Los torneos de tenis se juegan partido a partido");
             }
         }
 
@@ -129,18 +153,32 @@ public class LeagueService {
                 .role("ADMIN")
                 .build());
 
+        java.time.Instant defaultLockDate = Edition.defaultLockDate(comp, poolFormat);
         editionRepository.save(Edition.builder()
                 .league(group)
                 .competition(comp)
-                .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
-                .lockDate(Edition.defaultLockDate(comp, poolFormat))
+                .poolFormat(poolFormat)
+                .lockDate(defaultLockDate)
                 // Unas eliminatorias sorteadas ronda a ronda no pueden cerrarse de una vez.
-                .lockMode(comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
+                // En la NBA cada serie se cierra al empezar su primer partido, y cada Gran Premio de Fórmula 1
+                // al empezar su clasificación (la fecha de su fila de matches).
+                // Un cuadro sin fecha de cierre conocida se cierra al empezar su primer partido, como propone
+                // el asistente: en una fecha fija sin fecha no se cerraría nunca.
+                .lockMode(comp.playsSeries() || poolFormat == com.porra.mundial.model.PoolFormat.GRAND_PRIX
+                        ? com.porra.mundial.model.PredictionLockMode.PER_MATCH
+                        : com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
+                        ? com.porra.mundial.model.PredictionLockMode.FIXED_DATE
+                        : comp.drawsKnockoutRounds()
                         ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
-                        : com.porra.mundial.model.PredictionLockMode.FIXED_DATE)
-                .pichichi(!custom && pichichi)
+                        : defaultLockDate != null
+                        ? com.porra.mundial.model.PredictionLockMode.FIXED_DATE
+                        : com.porra.mundial.model.PredictionLockMode.FIRST_MATCH)
+                // El único pichichi oficial es el del cuadro del Mundial.
+                .pichichi(pichichi && Edition.isWorldCupBracket(comp, poolFormat))
                 .status("ACTIVE")
-                .scoringRulesJson(com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026().toJson())
+                .scoringRulesJson((com.porra.mundial.model.Sport.isTennis(comp)
+                        ? com.porra.mundial.scoring.ScoringRuleSet.defaultTennis()
+                        : com.porra.mundial.scoring.ScoringRuleSet.defaults()).toJson())
                 .build());
 
         if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
@@ -150,31 +188,6 @@ public class LeagueService {
         }
 
         return group;
-    }
-
-    /**
-     * Traduce competiciones legacy (sin externalId) a su equivalente canónica con
-     * proveedor de datos, para que la importación automática siempre funcione.
-     */
-    private Competition resolveCanonicalCompetition(Competition comp) {
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
-            return comp;
-        }
-        String name = comp.getName() != null ? comp.getName().toLowerCase(java.util.Locale.ROOT) : "";
-        String slug = null;
-        if (name.contains("champions")) {
-            slug = "uefa.champions";
-        } else if (name.contains("premier")) {
-            slug = "eng.1";
-        } else if (name.contains("laliga") || name.contains("la liga")) {
-            slug = "esp.1";
-        } else if (name.contains("mundial") || name.contains("world cup")) {
-            slug = Competition.WORLD_CUP_EXTERNAL_ID;
-        }
-        if (slug == null) {
-            return comp;
-        }
-        return competitionRepository.findByExternalId(slug).orElse(comp);
     }
 
     @Transactional
@@ -271,7 +284,14 @@ public class LeagueService {
     @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "userGroups", key = "#email")
     public List<LeagueResponseDTO> getUserLeagueDTOs(String email) {
-        List<League> groups = getUserLeagues(email);
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user == null) return List.of();
+        java.util.Map<Long, Instant> joinedAt = new java.util.HashMap<>();
+        for (Membership m : membershipRepository.findByUserId(user.getId())) {
+            joinedAt.merge(m.getId().getLeagueId(), m.getJoinedAt() != null ? m.getJoinedAt() : Instant.EPOCH,
+                    (a, b) -> a.isBefore(b) ? a : b);
+        }
+        List<League> groups = leagueRepository.findAllById(joinedAt.keySet());
         if (groups.isEmpty()) return List.of();
 
         List<Long> groupIds = groups.stream().map(League::getId).collect(Collectors.toList());
@@ -281,7 +301,12 @@ public class LeagueService {
                 .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e, (e1, e2) -> e1));
 
         return groups.stream()
-                .map(g -> LeagueResponseDTO.of(g, editionMap.get(g.getId()), true))
+                .map(g -> {
+                    LeagueResponseDTO dto = LeagueResponseDTO.of(g, editionMap.get(g.getId()), true);
+                    Instant joined = joinedAt.get(g.getId());
+                    dto.setJoinedAt(Instant.EPOCH.equals(joined) ? null : joined);
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 

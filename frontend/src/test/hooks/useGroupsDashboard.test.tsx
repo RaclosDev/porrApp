@@ -133,6 +133,28 @@ describe('useGroupsDashboard', () => {
     },
   );
 
+  it('al salir quita la liga de la lista en caché para que se abra sola la más reciente', async () => {
+    vi.mocked(api.leaveGroup).mockResolvedValue({ status: 'success' });
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([group({ id: 1 }), group({ id: 2 })]);
+    const changeGroup = vi.fn();
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({ isAuthenticated: true, userName: 'Ana', activeGroupId: '1', changeGroup }),
+    );
+    useAppStore.setState({ activeGroupId: '1' });
+    const { result } = renderHook(() => useGroupsDashboard(), { wrapper });
+    await waitFor(() => expect(result.current.groups).toHaveLength(2));
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([group({ id: 2 })]);
+
+    await act(async () => {
+      await result.current.handleLeaveGroup(1, 'A');
+    });
+
+    expect(api.leaveGroup).toHaveBeenCalledWith(1);
+    await waitFor(() => expect(result.current.groups.map((g) => g.id)).toEqual([2]));
+    // La nueva liga la elige useLeagueDataEffects; aquí no se deja la app sin liga.
+    expect(changeGroup).not.toHaveBeenCalledWith(null);
+  });
+
   it.each([0, 500, 404])(
     'only removes a remembered guest league on definitive not-found (%s)',
     async (status) => {

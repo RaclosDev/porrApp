@@ -65,6 +65,24 @@ export function removeDraft(kind: DraftKind, groupId: string, userId: string): v
   }
 }
 
+/** Borra los borradores de una liga, de cualquier usuario (al salir de ella o si se borra). */
+export function clearGroupDrafts(groupId: string): void {
+  if (!groupId) return;
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(DRAFT_PREFIX) && key.endsWith(`_g${groupId}`)) keys.push(key);
+    }
+    (['matchday', 'bracket', 'groups', 'advancing'] as const).forEach((kind) =>
+      keys.push(legacyDraftKey(kind, groupId)),
+    );
+    keys.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Borra todos los borradores de todos los usuarios (al cerrar sesión). */
 export function clearAllDrafts(): void {
   try {

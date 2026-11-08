@@ -81,10 +81,26 @@ describe('FeaturedMatchBanner', () => {
     expect(banner).toHaveTextContent('Fecha por confirmar');
   });
 
-  it('marca en juego un partido empezado sin terminar', () => {
+  it('no da por en juego un partido solo porque haya pasado su hora', () => {
     render(
       <FeaturedMatchBanner
-        featuredMatch={match({ homeScore: 1, awayScore: 0, date: '2020-01-01T10:00:00Z' })}
+        featuredMatch={match({ date: '2020-01-01T10:00:00Z', status: 'SCHEDULED' })}
+      />,
+    );
+
+    expect(screen.getByRole('region', { name: 'Próximo partido del cuadro' })).toBeInTheDocument();
+    expect(screen.queryByText(/En directo/)).toBeNull();
+  });
+
+  it('marca en juego un partido que ESPN da en directo', () => {
+    render(
+      <FeaturedMatchBanner
+        featuredMatch={match({
+          homeScore: 1,
+          awayScore: 0,
+          date: '2020-01-01T10:00:00Z',
+          status: 'LIVE',
+        })}
       />,
     );
 

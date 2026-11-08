@@ -159,6 +159,18 @@ export const readGroupVisits = (): Record<string, number> => {
   }
 };
 
+/** Quita una liga del mapa de visitas (ya no es del usuario). */
+export const forgetGroupVisit = (groupId: string) => {
+  const visits = readGroupVisits();
+  if (!(groupId in visits)) return;
+  delete visits[groupId];
+  try {
+    localStorage.setItem('group_last_visited', JSON.stringify(visits));
+  } catch {
+    /* ignore */
+  }
+};
+
 /** Claves de localStorage que pertenecen a la sesión del usuario. */
 const SESSION_KEYS = [
   'my_prediction_name',

@@ -1,20 +1,34 @@
 import type { CreateGroupRequest, CustomLockMode } from '../../services/api';
-import type { Competition, PoolFormat, Sport } from '../../types/api';
+import type {
+  CardSegment,
+  Competition,
+  EventSeries,
+  PoolFormat,
+  Sport,
+  TennisInfo,
+  TennisScope,
+  TennisTour,
+} from '../../types/api';
+import { CARD_SEGMENTS } from '../../utils/fights';
 import {
-  DEFAULT_SCORING_RULES,
   SCORING_MAX_POINTS,
+  defaultScoringRules,
   draftToRules,
   sameRules,
   toDraft,
   type ScoringDraft,
 } from '../../utils/scoringRules';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
+import { isWorldCupCompetition } from '../../context/leagueKind';
+import { isNbaCompetition } from '../../utils/nbaPlayoffs';
 import {
   BRACKET_LOCK_MODES,
   DRAWN_KNOCKOUT_LOCK_MODES,
+  FIGHT_NIGHT_LOCK_MODES,
   LOCK_UNIT_MINUTES,
   matchdayLockModes,
   MAX_LOCK_OFFSET_MINUTES,
+  SERIES_LOCK_MODES,
   SINGLE_LOCK_MODES,
   type LockModeOption,
   type LockUnit,
@@ -49,17 +63,129 @@ export type SportChoice = Sport | 'OTHER';
 export const SPORT_LABELS: Record<SportChoice, string> = {
   FOOTBALL: 'Fútbol',
   LEAGUE_OF_LEGENDS: 'League of Legends',
+  FORMULA_1: 'Fórmula 1',
+  BASKETBALL: 'Baloncesto',
+  AMERICAN_FOOTBALL: 'Fútbol americano',
+  TENNIS: 'Tenis',
+  MMA: 'UFC',
   OTHER: 'Otro deporte',
 };
 
 /** Las competiciones guardadas antes de que el servidor mandara el deporte son de fútbol. */
 const competitionSport = (competition: Competition): Sport =>
   competition.sport ??
-  (competition.externalId?.startsWith('lol.') ? 'LEAGUE_OF_LEGENDS' : 'FOOTBALL');
+  (competition.externalId?.startsWith('lol.')
+    ? 'LEAGUE_OF_LEGENDS'
+    : competition.externalId?.startsWith('mma.')
+      ? 'MMA'
+      : competition.externalId === 'f1'
+        ? 'FORMULA_1'
+        : isNbaCompetition(competition.externalId)
+          ? 'BASKETBALL'
+          : competition.externalId === 'nfl'
+            ? 'AMERICAN_FOOTBALL'
+            : competition.externalId?.startsWith('tennis.')
+              ? 'TENNIS'
+              : 'FOOTBALL');
 
-/** Deportes con competiciones oficiales, en el orden en que llegan, y «otro» al final. */
+/** Cuadro de un torneo de tenis que entra en la liga. */
+export type TennisDraw = 'MEN' | 'WOMEN' | 'BOTH';
+
+/** UFC: qué veladas sigue una liga con todas (sin serie, todas). */
+export const EVENT_SERIES_LABELS: Record<EventSeries, string> = {
+  NUMBERED: 'Solo las numeradas',
+  FIGHT_NIGHT: 'Solo las Fight Night',
+};
+
+export const TENNIS_DRAW_LABELS: Record<TennisDraw, string> = {
+  MEN: 'Masculino',
+  WOMEN: 'Femenino',
+  BOTH: 'Los dos',
+};
+
+/** Tenis: qué torneos sigue una liga de varios (sin alcance, un solo torneo). */
+export const TENNIS_SCOPE_LABELS: Record<TennisScope, string> = {
+  ALL: 'Todos los torneos',
+  GRAND_SLAMS: 'Solo los Grand Slams',
+  MASTERS_1000: 'Solo los Masters 1000 y las ATP Finals',
+};
+
+/** Tenis con varios torneos: los cuadros que sigue, por circuito. */
+export const TENNIS_TOUR_LABELS: Record<TennisDraw, string> = {
+  BOTH: 'ATP y WTA',
+  MEN: 'Solo ATP',
+  WOMEN: 'Solo WTA',
+};
+
+const TENNIS_SCOPE_LEVELS: Record<TennisScope, TennisInfo['level'][]> = {
+  ALL: ['GRAND_SLAM', 'MASTERS_1000', 'FINALS'],
+  GRAND_SLAMS: ['GRAND_SLAM'],
+  MASTERS_1000: ['MASTERS_1000', 'FINALS'],
+};
+
+const TENNIS_TOUR: Record<TennisDraw, TennisTour> = {
+  MEN: 'ATP',
+  WOMEN: 'WTA',
+  BOTH: 'BOTH',
+};
+
+const startTime = (competition: Competition) => {
+  const time = Date.parse(competition.tennis?.startDate ?? '');
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+};
+
+/**
+ * Cuadros de tenis de un alcance y un cuadro, el próximo primero (los terminados al final): el primero es
+ * la competición principal de la liga.
+ */
+export function tennisScopeCompetitions(
+  ctx: DraftContext,
+  scope: TennisScope,
+  draw: 'MEN' | 'WOMEN',
+): Competition[] {
+  return ctx.competitions
+    .filter(
+      (item) =>
+        item.tennis &&
+        item.tennis.draw === draw &&
+        TENNIS_SCOPE_LEVELS[scope].includes(item.tennis.level),
+    )
+    .sort((a, b) => Number(a.finished) - Number(b.finished) || startTime(a) - startTime(b));
+}
+
+/** Cuadros que se pueden elegir en una liga de varios torneos: los dos si alguno tiene femenino. */
+export function tennisScopeDrawChoices(ctx: DraftContext, scope: TennisScope): TennisDraw[] {
+  const men = tennisScopeCompetitions(ctx, scope, 'MEN').length > 0;
+  const women = tennisScopeCompetitions(ctx, scope, 'WOMEN').length > 0;
+  if (men && women) return ['MEN', 'WOMEN', 'BOTH'];
+  return women ? ['WOMEN'] : ['MEN'];
+}
+
+/** Cuadro de tenis de un torneo (por su id en ESPN), si existe y no ha terminado. */
+const tennisCompetition = (
+  ctx: DraftContext,
+  tournamentId: number,
+  draw: 'MEN' | 'WOMEN',
+): Competition | undefined =>
+  ctx.competitions.find(
+    (item) =>
+      item.tennis?.tournamentId === tournamentId && item.tennis.draw === draw && !item.finished,
+  );
+
+/** Cuadros que se pueden elegir en un torneo: los dos solo si tiene cuadro femenino. */
+export function tennisDrawChoices(ctx: DraftContext, tournamentId: number): TennisDraw[] {
+  const men = tennisCompetition(ctx, tournamentId, 'MEN');
+  const women = tennisCompetition(ctx, tournamentId, 'WOMEN');
+  if (men && women) return ['MEN', 'WOMEN', 'BOTH'];
+  return women ? ['WOMEN'] : ['MEN'];
+}
+
+/** Competiciones en las que aún se puede crear una liga: las terminadas no se ofrecen. */
+const openCompetitions = (ctx: DraftContext) => ctx.competitions.filter((item) => !item.finished);
+
+/** Deportes con competiciones oficiales abiertas, en el orden en que llegan, y «otro» al final. */
 export function sportChoices(ctx: DraftContext): SportChoice[] {
-  const sports = [...new Set(ctx.competitions.map(competitionSport))];
+  const sports = [...new Set(openCompetitions(ctx).map(competitionSport))];
   return [...sports, 'OTHER'];
 }
 
@@ -68,7 +194,7 @@ export const competitionUnavailableReason = (competition: Competition) =>
   competition.finished ? 'Ya ha terminado: no quedan partidos por jugar.' : null;
 
 export const competitionsOfSport = (ctx: DraftContext, sport: SportChoice | null) =>
-  ctx.competitions.filter((item) => competitionSport(item) === sport);
+  openCompetitions(ctx).filter((item) => competitionSport(item) === sport);
 
 /** Lo que lleva elegido quien crea la liga. Se guarda tal cual en el dispositivo. */
 export interface LeagueDraft {
@@ -91,6 +217,14 @@ export interface LeagueDraft {
   matches: SelectionValue;
   /** Competición a la que pertenecen los partidos elegidos: si cambia, se vuelve a todos. */
   matchesCompetitionId: number | null;
+  /** Tenis: qué cuadros del torneo entran (la competición elegida es la masculina si son los dos). */
+  tennisDraw: TennisDraw;
+  /** Tenis: la liga sigue varios torneos (todos, Grand Slams o Masters 1000); null para uno solo. */
+  tennisScope: TennisScope | null;
+  /** UFC con todas las veladas: solo las numeradas o solo las Fight Night; null para todas. */
+  eventSeries: EventSeries | null;
+  /** UFC: partes de la cartelera de cada velada que entran (las tres, la velada completa). */
+  cardSegments: CardSegment[];
   entryFee: boolean;
   name: string;
   rules: string;
@@ -111,10 +245,14 @@ export const emptyDraft = (): LeagueDraft => ({
   lockUnit: 'hours',
   lockDate: '',
   customScoring: false,
-  scoring: toDraft(DEFAULT_SCORING_RULES),
+  scoring: toDraft(defaultScoringRules(null)),
   pichichi: false,
   matches: ALL_MATCHES,
   matchesCompetitionId: null,
+  tennisDraw: 'MEN',
+  tennisScope: null,
+  eventSeries: null,
+  cardSegments: [...CARD_SEGMENTS],
   entryFee: false,
   name: '',
   rules: '',
@@ -135,15 +273,22 @@ export const selectedCompetition = (draft: LeagueDraft, ctx: DraftContext) =>
 const hasCompetition = (draft: LeagueDraft, ctx: DraftContext) =>
   draft.custom || selectedCompetition(draft, ctx) != null;
 
-export const POOL_FORMAT_ORDER: PoolFormat[] = [
+const POOL_FORMAT_ORDER: PoolFormat[] = [
   'MATCH_DAY',
   'SURVIVOR',
   'FULL_BRACKET',
   'KNOCKOUTS_ONLY',
+  'GRAND_PRIX',
 ];
 
+/** Modos que se ofrecen para el deporte elegido: la Fórmula 1 solo se juega por Grandes Premios. */
+export const formatsForSport = (sport: SportChoice | null): PoolFormat[] =>
+  sport === 'FORMULA_1'
+    ? ['GRAND_PRIX']
+    : POOL_FORMAT_ORDER.filter((format) => format !== 'GRAND_PRIX');
+
 /** Cómo se juega cada formato, contado a quien aún no lo conoce. */
-export const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
+const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
   MATCH_DAY: {
     title: 'Por jornadas',
     text: 'En cada jornada predices quién gana cada partido: 1, X o 2. Cada acierto suma y gana quien más puntos lleve al final.',
@@ -160,6 +305,16 @@ export const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = 
     title: 'Solo eliminatorias',
     text: 'Rellenas el cuadro desde la primera eliminatoria hasta la final, sin fase de grupos.',
   },
+  GRAND_PRIX: {
+    title: 'Gran Premio a Gran Premio',
+    text: 'Antes de cada clasificación predices el podio, la pole y la vuelta rápida. Los resultados llegan solos al acabar la carrera y gana quien más puntos sume en la temporada.',
+  },
+};
+
+/** Un torneo de tenis se juega partido a partido, desde octavos. */
+const TENNIS_COPY = {
+  title: 'Partido a partido',
+  text: 'Desde octavos eliges quién gana cada partido y, si te atreves, en cuántos sets. Cada ronda vale más que la anterior y cada partido se cierra al empezar.',
 };
 
 /** Solo eliminatorias en una competición que las sortea ronda a ronda (Champions, Copa del Rey…). */
@@ -168,15 +323,49 @@ const KNOCKOUT_DRAW_COPY = {
   text: 'Tras cada sorteo eliges quién pasa cada eliminatoria, ronda a ronda hasta el campeón. En las de ida y vuelta cuenta quién pasa, no cada partido.',
 };
 
+/** Por veladas (la UFC): en cada velada se predice cada pelea. */
+const FIGHT_NIGHTS_COPY = {
+  title: 'Por veladas',
+  text: 'En cada velada predices quién gana cada pelea y, si quieres, cómo acaba (KO/TKO, sumisión o decisión) y en qué asalto. Cada acierto suma.',
+};
+
+/** La competición elegida se juega por veladas (la UFC), no por jornadas. */
+export const isFightNights = (draft: LeagueDraft, ctx: DraftContext) =>
+  selectedCompetition(draft, ctx)?.formatType === 'EVENTS';
+
+/** Playoffs de la NBA: series del play-in a las Finales. */
+const NBA_PLAYOFFS_COPY = {
+  title: 'Playoffs',
+  text: 'Eliges quién gana cada serie, del play-in a las Finales, y en cuántos partidos (4-0, 4-1…). Cada serie se cierra al empezar su primer partido.',
+};
+
+/** La competición elegida son los playoffs de la NBA. */
+export const isNbaDraft = (draft: LeagueDraft, ctx: DraftContext) =>
+  isNbaCompetition(selectedCompetition(draft, ctx)?.externalId);
+
 /** Las eliminatorias de la competición elegida se sortean ronda a ronda. */
 export const isKnockoutDraw = (draft: LeagueDraft, ctx: DraftContext) =>
   Boolean(selectedCompetition(draft, ctx)?.knockoutDraw);
 
+/** Por jornadas y superviviente en la NFL: semana a semana y sin empate. */
+const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string }>> = {
+  MATCH_DAY: {
+    title: 'Por semanas',
+    text: 'Cada semana, y en los playoffs hasta la Super Bowl, predices quién gana cada partido. Cada acierto suma y gana quien más puntos lleve al final.',
+  },
+  SURVIVOR: {
+    title: 'Superviviente',
+    text: 'Cada semana eliges un equipo que gane, sin repetir equipo. Si pierde, o si no eliges, quedas fuera; la liga puede dar vidas extra. Gana quien aguante más semanas.',
+  },
+};
+
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
-  return format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)
-    ? KNOCKOUT_DRAW_COPY
-    : FORMAT_COPY[format];
+  if (format === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHTS_COPY;
+  if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
+  if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;
+  if (format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)) return KNOCKOUT_DRAW_COPY;
+  return (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) || FORMAT_COPY[format];
 }
 
 /** Por qué un formato no se puede elegir con esta competición, o null si se puede. */
@@ -185,11 +374,25 @@ export function formatUnavailableReason(
   draft: LeagueDraft,
   ctx: DraftContext,
 ): string | null {
+  if (draft.sport === 'TENNIS' && format !== 'MATCH_DAY') {
+    return 'En tenis se predice partido a partido.';
+  }
   if (format === 'SURVIVOR' && draft.custom) {
     // Sin resultados automáticos no se sabría quién cae.
     return 'Necesita una competición oficial: los resultados llegan solos y así se sabe quién cae.';
   }
   const competition = selectedCompetition(draft, ctx);
+  if (competition?.formatType === 'EVENTS' && format !== 'MATCH_DAY') {
+    return 'La UFC se juega velada a velada: elige Por veladas.';
+  }
+  const formulaOne = competition?.formatType === 'RACE';
+  if (format === 'GRAND_PRIX' && !formulaOne) return 'Solo para la Fórmula 1.';
+  if (format !== 'GRAND_PRIX' && formulaOne) {
+    return 'La Fórmula 1 se juega Gran Premio a Gran Premio.';
+  }
+  if (format !== 'KNOCKOUTS_ONLY' && isNbaCompetition(competition?.externalId)) {
+    return 'De la NBA se pronostican los playoffs, serie a serie.';
+  }
   if (format === 'FULL_BRACKET' && competition?.knockoutDraw) {
     return 'Los cruces se sortean ronda a ronda: elige Solo eliminatorias.';
   }
@@ -210,18 +413,24 @@ export function formatUnavailableReason(
   return null;
 }
 
-/** Torneo oficial con cuadro propio (no el Mundial) o competición personalizada: se cierra cruce a cruce. */
+/**
+ * Competición personalizada o torneo oficial con cuadro propio: se cierra cruce a cruce. El cuadro
+ * del Mundial se cierra de una vez, antes del torneo.
+ */
 const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
   if (draft.custom) return true;
   const competition = selectedCompetition(draft, ctx);
-  return competition?.formatType === 'TOURNAMENT' && competition.externalId !== 'fifa.world';
+  return competition?.formatType === 'TOURNAMENT' && !isWorldCupCompetition(competition.externalId);
 };
 
 /** Cierres que admite el formato elegido. Superviviente se pronostica partido a partido: como jornadas. */
 export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOption[] {
-  if (draft.poolFormat == null) return [];
+  // Cada Gran Premio se cierra al empezar su clasificación: no hay nada que elegir.
+  if (draft.poolFormat == null || draft.poolFormat === 'GRAND_PRIX') return [];
+  if (draft.poolFormat === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHT_LOCK_MODES;
   if (isMatchBasedFormat(draft.poolFormat))
     return matchdayLockModes(isMultiCompetition(draft.matches));
+  if (isNbaDraft(draft, ctx)) return SERIES_LOCK_MODES;
   if (isKnockoutDraw(draft, ctx)) return DRAWN_KNOCKOUT_LOCK_MODES;
   return allowsProgressiveLock(draft, ctx) ? BRACKET_LOCK_MODES : SINGLE_LOCK_MODES;
 }
@@ -233,25 +442,60 @@ export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOpt
 function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode | null {
   const modes = lockModesFor(draft, ctx);
   if (modes.length === 0) return null;
-  if (isMatchBasedFormat(draft.poolFormat)) return 'PER_MATCH';
+  if (draft.poolFormat === 'MATCH_DAY' && isFightNights(draft, ctx)) return 'PER_ROUND';
+  if (isMatchBasedFormat(draft.poolFormat) || isNbaDraft(draft, ctx)) return 'PER_MATCH';
   return modes.some((item) => item.value === 'PER_ROUND') ? 'PER_ROUND' : 'FIRST_MATCH';
 }
 
 /**
- * El pichichi solo se pronostica en el cuadro de un torneo oficial de fútbol con cuadro fijo (el
- * Mundial): en unas eliminatorias sorteadas ronda a ronda no se puntúa.
+ * El pichichi se puntúa con los goleadores oficiales del Mundial: solo en su cuadro (ni en sus
+ * jornadas ni en otros torneos).
  */
 export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   !draft.custom &&
-  !isKnockoutDraw(draft, ctx) &&
-  draft.sport === 'FOOTBALL' &&
-  selectedCompetition(draft, ctx)?.formatType === 'TOURNAMENT' &&
+  isWorldCupCompetition(selectedCompetition(draft, ctx)?.externalId) &&
   draft.poolFormat != null &&
   !isMatchBasedFormat(draft.poolFormat);
 
 /** Elegir partidos: solo en una liga por jornadas sobre una competición oficial. */
 export const matchSelectionApplies = (draft: LeagueDraft, ctx: DraftContext) =>
-  !draft.custom && draft.poolFormat === 'MATCH_DAY' && selectedCompetition(draft, ctx) != null;
+  !draft.custom &&
+  draft.sport !== 'TENNIS' &&
+  draft.poolFormat === 'MATCH_DAY' &&
+  selectedCompetition(draft, ctx) != null;
+
+/**
+ * Tenis: la competición del cuadro elegido. Con los dos cuadros, la masculina es la principal y la
+ * femenina entra como segunda competición de la liga.
+ */
+function normalizeTennis(next: LeagueDraft, ctx: DraftContext) {
+  if (next.custom) next.tennisScope = null;
+  if (next.tennisScope) {
+    // Varios torneos: la principal es el próximo cuadro del alcance (el masculino si son los dos).
+    const choices = tennisScopeDrawChoices(ctx, next.tennisScope);
+    if (!choices.includes(next.tennisDraw)) next.tennisDraw = choices[0];
+    const primary = tennisScopeCompetitions(
+      ctx,
+      next.tennisScope,
+      next.tennisDraw === 'WOMEN' ? 'WOMEN' : 'MEN',
+    )[0];
+    next.competitionId = primary?.id ?? null;
+    next.poolFormat = 'MATCH_DAY';
+    return;
+  }
+  const tennis = ctx.competitions.find((item) => item.id === next.competitionId)?.tennis;
+  if (!tennis) return;
+  const choices = tennisDrawChoices(ctx, tennis.tournamentId);
+  if (!choices.includes(next.tennisDraw)) next.tennisDraw = choices[0];
+  const wanted = tennisCompetition(
+    ctx,
+    tennis.tournamentId,
+    next.tennisDraw === 'WOMEN' ? 'WOMEN' : 'MEN',
+  );
+  next.competitionId = wanted?.id ?? null;
+  // En tenis no hay otro modo de juego: queda elegido.
+  next.poolFormat = 'MATCH_DAY';
+}
 
 /** Con el formato elegido, la puntuación se puede personalizar (en superviviente: puntos, vidas y empate). */
 export const scoringEditable = (draft: LeagueDraft) => draft.poolFormat != null;
@@ -270,11 +514,21 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   if (next.sport == null && chosen) next.sport = competitionSport(chosen);
   // Sin competiciones oficiales del deporte, solo cabe una personalizada.
   if (next.sport === 'OTHER') next.custom = true;
-  if (chosen && (competitionSport(chosen) !== next.sport || chosen.finished))
+  if (chosen && (competitionSport(chosen) !== next.sport || (chosen.finished && !next.tennisScope)))
     next.competitionId = null;
+  if (next.sport !== 'TENNIS') next.tennisScope = null;
   if (next.custom) next.competitionId = null;
+  if (next.sport === 'TENNIS') normalizeTennis(next, ctx);
   if (next.poolFormat && formatUnavailableReason(next.poolFormat, next, ctx))
     next.poolFormat = null;
+  // Un solo modo posible (la Fórmula 1): queda elegido.
+  const formats = formatsForSport(next.sport);
+  if (
+    next.poolFormat == null &&
+    formats.length === 1 &&
+    !formatUnavailableReason(formats[0], next, ctx)
+  )
+    next.poolFormat = formats[0];
   const modes = lockModesFor(next, ctx);
   if (!modes.some((item) => item.value === next.lockMode))
     next.lockMode = defaultLockMode(next, ctx);
@@ -287,7 +541,21 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
     next.matches = ALL_MATCHES;
     next.matchesCompetitionId = next.competitionId;
   }
+  // La serie solo cuenta en una liga de la UFC con todas las veladas.
+  if (!matchSelectionApplies(next, ctx) || !isFightNights(next, ctx) || next.matches.mode !== 'ALL')
+    next.eventSeries = null;
+  // Las partes de la cartelera solo cuentan en la UFC; en otra competición, la velada completa.
+  if (
+    (!matchSelectionApplies(next, ctx) || !isFightNights(next, ctx)) &&
+    next.cardSegments.length !== CARD_SEGMENTS.length
+  )
+    next.cardSegments = [...CARD_SEGMENTS];
   if (!scoringEditable(next)) next.customScoring = false;
+  // Sin personalizar, la puntuación es la del deporte (la del tenis no es la del fútbol).
+  if (!next.customScoring) {
+    const defaults = toDraft(defaultScoringRules(next.sport));
+    if (JSON.stringify(defaults) !== JSON.stringify(next.scoring)) next.scoring = defaults;
+  }
   return next;
 }
 
@@ -302,6 +570,7 @@ export type StepErrors = Partial<
     | 'customName'
     | 'poolFormat'
     | 'matches'
+    | 'cardSegments'
     | 'lockDate'
     | 'lockAmount'
     | 'scoring'
@@ -318,6 +587,7 @@ export const FIELD_IDS: Record<keyof StepErrors, string> = {
   customName: 'cl-custom-name',
   poolFormat: 'cl-field-format',
   matches: 'cl-field-matches',
+  cardSegments: 'cl-field-card-segments',
   lockDate: 'cl-lock-date',
   lockAmount: 'cl-lock-amount',
   scoring: 'cl-field-scoring',
@@ -345,8 +615,13 @@ export function validateStep(
   if (step === 'format' && !draft.poolFormat) {
     errors.poolFormat = 'Elige cómo se juega la liga.';
   } else if (step === 'format' && matchSelectionApplies(draft, ctx)) {
-    const problem = selectionError(draft.matches);
+    const problem =
+      isFightNights(draft, ctx) && draft.matches.mode !== 'ALL' && !draft.matches.included.length
+        ? 'Elige una velada.'
+        : selectionError(draft.matches);
     if (problem) errors.matches = problem;
+    if (isFightNights(draft, ctx) && !draft.cardSegments.length)
+      errors.cardSegments = 'Marca al menos una parte de la cartelera.';
   }
   if (step === 'rules') {
     if (draft.lockMode === 'FIXED_DATE') {
@@ -385,7 +660,7 @@ export function firstIncompleteStep(draft: LeagueDraft, ctx: DraftContext, now?:
 export function customScoringRules(draft: LeagueDraft) {
   if (!draft.customScoring || !scoringEditable(draft)) return undefined;
   const rules = draftToRules(draft.scoring, SCORING_MAX_POINTS);
-  return rules && !sameRules(rules, DEFAULT_SCORING_RULES) ? rules : undefined;
+  return rules && !sameRules(rules, defaultScoringRules(draft.sport)) ? rules : undefined;
 }
 
 /** Petición de creación; da por hecho que todos los pasos son válidos. */
@@ -401,8 +676,38 @@ export function buildCreateRequest(draft: LeagueDraft, ctx: DraftContext): Creat
   if (draft.custom) request.customCompetitionName = draft.customName.trim();
   if (rules) request.rules = rules;
   if (draft.entryFee) request.entryFee = true;
+  // UFC: sin las tres partes de la cartelera, las elegidas (en el orden de la velada).
+  const cardSegments =
+    matchSelectionApplies(draft, ctx) &&
+    isFightNights(draft, ctx) &&
+    draft.cardSegments.length < CARD_SEGMENTS.length
+      ? CARD_SEGMENTS.filter((segment) => draft.cardSegments.includes(segment))
+      : null;
   if (matchSelectionApplies(draft, ctx) && draft.matches.mode !== 'ALL') {
     request.matchSelection = toRequest(draft.matches);
+    if (cardSegments) request.matchSelection.cardSegments = cardSegments;
+  } else if (
+    matchSelectionApplies(draft, ctx) &&
+    isFightNights(draft, ctx) &&
+    (draft.eventSeries || cardSegments)
+  ) {
+    request.matchSelection = { mode: 'ALL' };
+    if (draft.eventSeries) request.matchSelection.eventSeries = draft.eventSeries;
+    if (cardSegments) request.matchSelection.cardSegments = cardSegments;
+  }
+  const women =
+    competition?.tennis && draft.tennisDraw === 'BOTH' && !draft.tennisScope
+      ? tennisCompetition(ctx, competition.tennis.tournamentId, 'WOMEN')
+      : undefined;
+  if (competition && women) {
+    request.matchSelection = { mode: 'ALL', competitionIds: [competition.id, women.id] };
+  }
+  if (competition?.tennis && draft.tennisScope) {
+    request.matchSelection = {
+      mode: 'ALL',
+      tennisScope: draft.tennisScope,
+      tennisTour: TENNIS_TOUR[draft.tennisDraw],
+    };
   }
   const scoring = customScoringRules(draft);
   if (scoring) request.scoring = scoring;
@@ -466,7 +771,16 @@ export function readStoredDraft(): LeagueDraft {
         : base.scoring;
     return {
       sport: pick('sport', (value) =>
-        ['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'OTHER'].includes(value as string),
+        [
+          'FOOTBALL',
+          'LEAGUE_OF_LEGENDS',
+          'FORMULA_1',
+          'BASKETBALL',
+          'AMERICAN_FOOTBALL',
+          'TENNIS',
+          'MMA',
+          'OTHER',
+        ].includes(value as string),
       ),
       competitionId: pick('competitionId', (value) => typeof value === 'number'),
       custom: pick('custom', isBool),
@@ -484,6 +798,19 @@ export function readStoredDraft(): LeagueDraft {
       pichichi: pick('pichichi', isBool),
       matches,
       matchesCompetitionId: pick('matchesCompetitionId', (value) => typeof value === 'number'),
+      tennisDraw: pick('tennisDraw', (value) => ['MEN', 'WOMEN', 'BOTH'].includes(value as string)),
+      tennisScope: pick('tennisScope', (value) =>
+        ['ALL', 'GRAND_SLAMS', 'MASTERS_1000'].includes(value as string),
+      ),
+      eventSeries: pick('eventSeries', (value) =>
+        ['NUMBERED', 'FIGHT_NIGHT'].includes(value as string),
+      ),
+      cardSegments: pick(
+        'cardSegments',
+        (value) =>
+          Array.isArray(value) &&
+          value.every((item) => CARD_SEGMENTS.includes(item as CardSegment)),
+      ),
       entryFee: pick('entryFee', isBool),
       name: pick('name', isString),
       rules: pick('rules', isString),

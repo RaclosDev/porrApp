@@ -13,9 +13,9 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Porra Mundial API")
+                        .title("PorrApp API")
                         .version("1.0.0")
-                        .description("API REST para la Porra Mundial. Desarrollado con Spring Boot 3.")
+                        .description("API REST de PorrApp. Desarrollado con Spring Boot 3.")
                         .contact(new Contact()
                                 .name("RaclosDev")
                                 .url("https://loopdeck.raclos.es")));

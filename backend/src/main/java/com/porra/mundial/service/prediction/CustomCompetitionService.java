@@ -57,6 +57,9 @@ public class CustomCompetitionService {
             throw BusinessException.forbidden("Solo el administrador puede cambiar el cierre");
         }
         if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran las predicciones");
+        if (com.porra.mundial.model.PoolFormat.isRaceBased(edition.getPoolFormat())) {
+            throw BusinessException.badRequest("En Fórmula 1 cada Gran Premio se cierra al empezar la clasificación");
+        }
         int offset = offsetMinutes == null ? 0 : offsetMinutes;
         if (offset < 0 || offset > MAX_LOCK_OFFSET_MINUTES) {
             throw BusinessException.badRequest("El margen debe estar entre 0 minutos y 30 días");
@@ -78,7 +81,10 @@ public class CustomCompetitionService {
         Instant now = Instant.now();
         edition.setLockMode(mode);
         if (mode == PredictionLockMode.FIXED_DATE) {
-            if (lockDate == null || !lockDate.isAfter(now)) {
+            if (lockDate == null) {
+                throw BusinessException.badRequest("Con el cierre en una fecha fija hace falta la fecha de cierre (lockDate)");
+            }
+            if (!lockDate.isAfter(now)) {
                 throw BusinessException.badRequest("La fecha de cierre debe ser futura");
             }
             edition.setLockOffsetMinutes(0);
@@ -124,6 +130,28 @@ public class CustomCompetitionService {
     @Transactional(readOnly = true)
     public CustomLockService.LockState lockState(Long leagueId, String email) {
         return lockService.state(memberEdition(leagueId, email));
+    }
+
+    /** La liga pronostica los playoffs de la NBA, serie a serie. */
+    @Transactional(readOnly = true)
+    public boolean playsSeries(Long leagueId, String email) {
+        return DrawnKnockout.playsSeries(memberEdition(leagueId, email));
+    }
+
+    /**
+     * Cierre de un cuadro recién creado sin elegirlo: el de su primer partido con fecha. Si la competición ya
+     * ha empezado, ese cierre habría pasado y hay que elegir otro; sin partidos aún, lo fija la sincronización.
+     */
+    @Transactional
+    public void applyDefaultLock(Long leagueId) {
+        Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE").orElse(null);
+        if (edition == null || edition.getLockMode() != PredictionLockMode.FIRST_MATCH) return;
+        Instant lock = lockService.firstMatchLock(edition);
+        if (lock != null && !lock.isAfter(Instant.now())) {
+            throw BusinessException.badRequest("La competición ya ha empezado: elige cómo se cierran las predicciones "
+                    + "(lockMode) o una fecha de cierre futura (lockDate)");
+        }
+        edition.setLockDate(lock);
     }
 
     /** En el modo «primer partido» el cierre sigue al primer partido aunque cambie el calendario. */

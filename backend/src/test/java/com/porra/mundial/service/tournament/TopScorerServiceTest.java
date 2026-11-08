@@ -1,5 +1,6 @@
 package com.porra.mundial.service.tournament;
 
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.service.prediction.ScoreInvalidationService;
 import com.porra.mundial.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -23,6 +24,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,7 +56,7 @@ class TopScorerServiceTest {
     void overlappingRefreshDoesNotQueueAnotherProviderRequest() throws Exception {
         var started = new java.util.concurrent.CountDownLatch(1);
         var release = new java.util.concurrent.CountDownLatch(1);
-        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenAnswer(invocation -> {
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenAnswer(invocation -> {
             started.countDown();
             if (!release.await(2, java.util.concurrent.TimeUnit.SECONDS)) throw new IllegalStateException("timeout");
             return objectMapper.createArrayNode();
@@ -67,14 +69,14 @@ class TopScorerServiceTest {
             release.countDown();
             running.get(2, java.util.concurrent.TimeUnit.SECONDS);
         }
-        verify(sportsDataProvider, times(1)).fetchScoreboardEvents(anyString());
+        verify(sportsDataProvider, times(1)).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
     }
 
     @Test
     void missingPlayerImageIsLookedUpOnceAcrossGoalsAndRefreshes() throws Exception {
         JsonNode goal = goalBy("New Scorer");
         var events = objectMapper.createArrayNode().add(goal.get(0)).add(goal.get(0));
-        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(events);
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(events);
         @SuppressWarnings("unchecked")
         var response = (java.net.http.HttpResponse<String>) mock(java.net.http.HttpResponse.class);
         when(response.statusCode()).thenReturn(200);
@@ -167,7 +169,7 @@ class TopScorerServiceTest {
         """;
 
         JsonNode events = objectMapper.readTree(json);
-        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(events);
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(events);
 
         topScorerService.refresh();
 
@@ -200,7 +202,7 @@ class TopScorerServiceTest {
     @DisplayName("Invalida las puntuaciones de los cuadros solo cuando cambian los goleadores")
     void refresh_invalidatesBracketScoresOnlyWhenScorersChange() throws Exception {
         JsonNode events = goalBy("Kylian Mbappé");
-        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(events);
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(events);
 
         topScorerService.refresh();
         topScorerService.refresh();
@@ -212,7 +214,7 @@ class TopScorerServiceTest {
     @DisplayName("Conserva los goleadores si ESPN deja de devolverlos")
     void refresh_keepsScorersWhenProviderReturnsNoEvents() throws Exception {
         JsonNode events = goalBy("Kylian Mbappé");
-        when(sportsDataProvider.fetchScoreboardEvents(anyString()))
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString()))
                 .thenReturn(events)
                 .thenReturn(objectMapper.createArrayNode());
 
@@ -226,7 +228,7 @@ class TopScorerServiceTest {
     @Test
     @DisplayName("Debe manejar fallos del proveedor sin propagar excepcion")
     void refresh_handlesExceptionGracefully() throws Exception {
-        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenThrow(new RuntimeException("API error"));
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenThrow(new RuntimeException("API error"));
 
         assertDoesNotThrow(() -> topScorerService.refresh());
         assertTrue(topScorerService.getTopScorers().isEmpty());
@@ -236,7 +238,7 @@ class TopScorerServiceTest {
     @Test
     @DisplayName("Debe ignorar cuando el proveedor devuelve null")
     void refresh_ignoresNullEvents() throws Exception {
-        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(null);
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(null);
 
         assertDoesNotThrow(() -> topScorerService.refresh());
         assertTrue(topScorerService.getTopScorers().isEmpty());
@@ -246,11 +248,11 @@ class TopScorerServiceTest {
     @Test
     @DisplayName("scheduledRefresh debe invocar el refresco de goleadores")
     void scheduledRefresh_callsRefresh() throws Exception {
-        when(sportsDataProvider.fetchScoreboardEvents(anyString())).thenReturn(objectMapper.createArrayNode());
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(objectMapper.createArrayNode());
 
         topScorerService.scheduledRefresh();
 
-        verify(sportsDataProvider, times(1)).fetchScoreboardEvents(anyString());
+        verify(sportsDataProvider, times(1)).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
         // Misma lista que la anterior (vacía): no hay nada que avisar.
         verify(webSocketService, never()).broadcastUpdate(anyString());
     }

@@ -35,6 +35,11 @@ export const queryKeys = {
   /** Cuelga del ranking: invalidar `leaderboard(groupId)` también lo invalida. */
   leaderboardLogs: (groupId: Id) => key('leaderboard', asText(groupId), 'logs'),
   leaderboardMatchdays: (groupId?: Id) => key('leaderboardMatchdays', asText(groupId)),
+  /** Grandes Premios de una liga de Fórmula 1 con la predicción del usuario. */
+  grandPrix: (groupId?: Id, user?: Id) => key('grandPrix', asText(groupId), user),
+  /** Cuelga de grandPrix: al guardar se refrescan también las de la liga. */
+  grandPrixPicks: (groupId: Id, matchId: number) =>
+    key('grandPrix', asText(groupId), 'picks', matchId),
   matchdayFixtures: (groupId?: Id, user?: Id, round?: string) =>
     key('matchdayFixtures', asText(groupId), user, round),
   /** Todos los partidos de una liga que elige los suyos, para su portada; cuelga de matchdayFixtures. */
@@ -51,10 +56,10 @@ export const queryKeys = {
   /** También cuelga de matchdayStats, para refrescarse con cada predicción nueva de la liga. */
   roundParticipants: (groupId: Id, matchIds: string) =>
     key('matchdayStats', asText(groupId), 'participants', matchIds),
-  standings: () => key('standings'),
-  odds: () => key('odds'),
-  topScorers: () => key('topScorers'),
-  officialBracket: () => key('officialBracket'),
+  worldCupStandings: () => key('worldCupStandings'),
+  worldCupGroupOdds: () => key('worldCupGroupOdds'),
+  worldCupTopScorers: () => key('worldCupTopScorers'),
+  worldCupOfficialBracket: () => key('worldCupOfficialBracket'),
   predictionScore: (predictionId?: Id) => key('predictionScore', asText(predictionId)),
   matches: (competitionId?: Id) => key('matches', competitionId),
   radar: (competitionId?: Id) => key('radar', competitionId),

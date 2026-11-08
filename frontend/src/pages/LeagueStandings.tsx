@@ -1,29 +1,56 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings, fetchCustomStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import type { LeagueKind } from '../context/leagueKind';
+import UfcCardBoard from '../components/fightCard/UfcCardBoard';
+import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
 
+/** «Tabla»: la clasificación de la competición; en la UFC, la cartelera, y en el tenis, el cuadro. */
 export default function LeagueStandings() {
-  const [showComplete, setShowComplete] = useState(false);
+  const { leagueKind, groupError } = useAppContext();
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={groupError} />,
+    none: <NoLeagueState title="Tabla" what="la tabla" />,
+    unknown: <UnsupportedLeagueState />,
+    matchday: <CompetitionTable />,
+    // En la UFC no hay clasificación de equipos: la tabla es la cartelera de cada velada.
+    fightCard: <UfcCardBoard />,
+    // En el tenis tampoco: los «equipos» son jugadores y la tabla es el cuadro del torneo.
+    tennisDraw: <TennisDrawBoard />,
+    worldCup: <Navigate to="/bracket" replace />,
+    customBracket: <Navigate to="/bracket" replace />,
+    ownBracket: <Navigate to="/bracket" replace />,
+    knockoutDraw: <Navigate to="/bracket" replace />,
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[leagueKind];
+}
 
+/** Clasificación de la competición de una liga por jornadas. */
+function CompetitionTable() {
+  const [showComplete, setShowComplete] = useState(false);
   const {
     activeCompetitionId,
     activeGroupId,
     activeGroupCustomCompetition,
     activeCompetitionName,
-    activeCompetitionFormatType,
-    activeGroupPoolFormat,
-    loadingGroup,
-    groupError,
+    activeCompetitionExternalId,
+    activeCompetitionKnockoutCup: knockoutCup,
   } = useAppContext();
 
-  const isMatchDay =
-    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
+  // La NFL no da puntos: se ordena por victorias y se cuentan puntos anotados, no goles.
+  const winLoss = activeCompetitionExternalId === 'nfl';
+  const labels = winLoss
+    ? { points: 'V', diff: 'Dif', for: 'PF', against: 'PC' }
+    : { points: 'PTS', diff: 'DG', for: 'GF', against: 'GC' };
+  const completeColumns = winLoss ? 5 : 6;
 
   const {
     data: standings,
@@ -36,14 +63,9 @@ export default function LeagueStandings() {
       activeGroupCustomCompetition && activeGroupId
         ? fetchCustomStandings(Number(activeGroupId))
         : fetchCompetitionStandings(activeCompetitionId),
-    enabled: Boolean(activeCompetitionId && isMatchDay),
+    enabled: Boolean(activeCompetitionId),
     staleTime: 120_000,
   });
-
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  if (activeCompetitionFormatType && !isMatchDay) {
-    return <Navigate to="/bracket" replace />;
-  }
 
   return (
     <section className="standings-page paper-panel album-sheet">
@@ -85,10 +107,14 @@ export default function LeagueStandings() {
       ) : !standings || !Array.isArray(standings) || standings.length === 0 ? (
         <div className="paper-panel album-sheet landing-tape standings-empty">
           <p className="standings-empty-title">
-            No hay datos de clasificación disponibles en este momento.
+            {knockoutCup
+              ? 'Esta competición se juega por eliminatorias: no tiene tabla.'
+              : 'No hay datos de clasificación disponibles en este momento.'}
           </p>
           <p className="standings-empty-copy">
-            La tabla aparecerá cuando haya partidos con resultado.
+            {knockoutCup
+              ? 'Los cruces y sus resultados están en Jornadas.'
+              : 'La tabla aparecerá cuando haya partidos con resultado.'}
           </p>
         </div>
       ) : (
@@ -104,7 +130,7 @@ export default function LeagueStandings() {
                 <col className="standings-stat-column" />
                 <col className="standings-stat-column" />
                 {showComplete &&
-                  Array.from({ length: 6 }, (_, i) => (
+                  Array.from({ length: completeColumns }, (_, i) => (
                     <col key={i} className="standings-stat-column" />
                   ))}
               </colgroup>
@@ -115,17 +141,17 @@ export default function LeagueStandings() {
                   </th>
                   <th scope="col">Equipo</th>
                   <th scope="col" className="standings-points-col">
-                    PTS
+                    {labels.points}
                   </th>
                   <th scope="col">PJ</th>
                   {showComplete && (
                     <>
-                      <th scope="col">V</th>
+                      {!winLoss && <th scope="col">V</th>}
                       <th scope="col">E</th>
                       <th scope="col">D</th>
-                      <th scope="col">DG</th>
-                      <th scope="col">GF</th>
-                      <th scope="col">GC</th>
+                      <th scope="col">{labels.diff}</th>
+                      <th scope="col">{labels.for}</th>
+                      <th scope="col">{labels.against}</th>
                     </>
                   )}
                 </tr>
@@ -180,7 +206,7 @@ export default function LeagueStandings() {
 
                       {showComplete && (
                         <>
-                          <td className="standings-win-cell">{row.wins}</td>
+                          {!winLoss && <td className="standings-win-cell">{row.wins}</td>}
                           <td className="standings-muted-cell">{row.ties}</td>
                           <td className="standings-loss-cell">{row.losses}</td>
                           <td
@@ -208,7 +234,9 @@ export default function LeagueStandings() {
           {showComplete ? (
             <div className="standings-legend">
               <span className="standings-legend-note">
-                V victorias · E empates · D derrotas · DG diferencia de marcador
+                {winLoss
+                  ? `V victorias · E empates · D derrotas · Dif diferencia de puntos · PF y PC puntos a favor y en contra`
+                  : 'V victorias · E empates · D derrotas · DG diferencia de marcador'}
               </span>
             </div>
           ) : (

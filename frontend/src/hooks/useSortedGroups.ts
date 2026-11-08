@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { teamKey } from '../utils/teamKey';
-import { useAppContext } from '../context/AppContext';
+import { useWorldCupData } from '../context/leagueData';
 import type { TeamOdds, TeamStanding } from '../types/api';
 
 type TeamWithStats = TeamOdds & { stats: TeamStanding };
@@ -12,7 +12,7 @@ const EMPTY_STANDING: TeamStanding = { pts: 0, diff: 0, gls: 0, mp: 0, fp: 0, po
  * que da el backend o, si aún no la hay, por puntos, diferencia, goles y nombre.
  */
 export function useSortedGroups(): Record<string, TeamWithStats[]> {
-  const { groupOdds, officialPoints } = useAppContext();
+  const { groupOdds, groupStandings: officialPoints } = useWorldCupData();
 
   return useMemo(() => {
     const res: Record<string, TeamWithStats[]> = {};

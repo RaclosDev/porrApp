@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { type RenderViewerSlot, type ViewerData } from './viewerTypes';
-import BracketCanvas from '../BracketCanvas';
+import BracketCanvas, { WORLD_CUP_ROUND_LABELS } from '../BracketCanvas';
 import { BracketFinalMatch } from '../BracketFinale';
 
 interface BracketViewProps {
@@ -36,6 +36,7 @@ export default function BracketView({
   return (
     <div className="pb-5 mt-2.5">
       <BracketCanvas
+        roundLabels={WORLD_CUP_ROUND_LABELS}
         leftRounds={leftRounds}
         rightRounds={rightRounds}
         renderSlot={renderSlot}

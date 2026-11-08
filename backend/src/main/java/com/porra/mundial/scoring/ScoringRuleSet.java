@@ -86,13 +86,69 @@ public class ScoringRuleSet {
     @Builder.Default
     private int survivorDrawSurvives = 0;
 
-    public static ScoringRuleSet defaultWorldCup2026() {
+    // Fórmula 1, por Gran Premio
+    /** Por cada piloto del podio en el puesto exacto. */
+    @Builder.Default
+    private int f1ExactPositionPoints = 10;
+    /** Por cada piloto que sube al podio en otro puesto del podio. */
+    @Builder.Default
+    private int f1PodiumPoints = 4;
+    @Builder.Default
+    private int f1PolePoints = 5;
+    @Builder.Default
+    private int f1FastestLapPoints = 3;
+
+    // Playoffs de la NBA, por serie: acertar quién la gana y, además, en cuántos partidos
+    /** Por cada partido del play-in acertado. */
+    @Builder.Default
+    private int nbaPlayInPoints = 5;
+    @Builder.Default
+    private int nbaFirstRoundPoints = 10;
+    @Builder.Default
+    private int nbaConferenceSemifinalPoints = 20;
+    @Builder.Default
+    private int nbaConferenceFinalPoints = 30;
+    @Builder.Default
+    private int nbaFinalsPoints = 50;
+    /** Extra por acertar también el resultado de la serie (4-0, 4-1…). */
+    @Builder.Default
+    private int nbaFirstRoundExactPoints = 5;
+    @Builder.Default
+    private int nbaConferenceSemifinalExactPoints = 10;
+    @Builder.Default
+    private int nbaConferenceFinalExactPoints = 15;
+    @Builder.Default
+    private int nbaFinalsExactPoints = 25;
+    // Peleas de MMA (UFC)
+    /** Aciertas quién gana la pelea. */
+    @Builder.Default
+    private int fightWinnerPoints = 3;
+    /** Se suma si además aciertas el método (KO/TKO, sumisión o decisión). */
+    @Builder.Default
+    private int fightMethodPoints = 2;
+    /** Se suma si además aciertas el asalto de un KO/TKO o una sumisión. */
+    @Builder.Default
+    private int fightRoundPoints = 2;
+
+    /** Reglas con las que nace una liga (salvo las de tenis): los valores por defecto de cada regla. */
+    public static ScoringRuleSet defaults() {
         return ScoringRuleSet.builder().build();
     }
 
-    /** Reglas guardadas en la edición; las del Mundial 2026 si no tiene. */
+    /**
+     * Puntuación con la que nace una liga de tenis: el ganador de cada partido vale más en cada ronda
+     * (octavos, cuartos, semifinales y final) y acertar los sets suma un extra.
+     */
+    public static ScoringRuleSet defaultTennis() {
+        return ScoringRuleSet.builder()
+                .roundOf16Points(10).quarterFinalPoints(15).semiFinalPoints(20).championPoints(30)
+                .exactScorePoints(5)
+                .build();
+    }
+
+    /** Reglas guardadas en la edición; las de por defecto si no tiene. */
     public static ScoringRuleSet forEdition(Edition edition) {
-        return edition != null ? fromJson(edition.getScoringRulesJson()) : defaultWorldCup2026();
+        return edition != null ? fromJson(edition.getScoringRulesJson()) : defaults();
     }
 
     /** Aplica las modalidades activas sin alterar los valores configurados por el administrador. */
@@ -104,14 +160,14 @@ public class ScoringRuleSet {
 
     public static ScoringRuleSet fromJson(String json) {
         if (json == null || json.isBlank()) {
-            return defaultWorldCup2026();
+            return defaults();
         }
         try {
             return MAPPER.readValue(json, ScoringRuleSet.class);
         } catch (tools.jackson.core.JacksonException e) {
             // Puntuar con otras reglas sin avisar escondería el fallo: queda en el log.
-            log.error("Reglas de puntuación ilegibles; se aplican las del Mundial 2026: {}", e.getMessage());
-            return defaultWorldCup2026();
+            log.error("Reglas de puntuación ilegibles; se aplican las de por defecto: {}", e.getMessage());
+            return defaults();
         }
     }
 
@@ -125,7 +181,7 @@ public class ScoringRuleSet {
             throw BusinessException.badRequest("Faltan las reglas de puntuación.");
         }
         // Jackson convertiría 2.5 en 2: los decimales se rechazan antes de leer las reglas.
-        for (String rule : defaultWorldCup2026().asMap().keySet()) {
+        for (String rule : defaults().asMap().keySet()) {
             JsonNode value = body.get(rule);
             if (value != null && !(value.isIntegralNumber() && value.canConvertToInt())) {
                 throw BusinessException.badRequest(String.format(

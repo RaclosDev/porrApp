@@ -1,6 +1,9 @@
 package com.porra.mundial.config;
 
-import com.porra.mundial.controller.TopScorerController;
+import com.porra.mundial.controller.WorldCupController;
+import com.porra.mundial.service.tournament.OfficialResultsService;
+import com.porra.mundial.service.tournament.StandingsService;
+import com.porra.mundial.service.tournament.TeamService;
 import com.porra.mundial.service.tournament.TopScorerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Verifica las reglas de acceso de {@link SecurityConfig} con los filtros reales activos.
  */
-@WebMvcTest(TopScorerController.class)
+@WebMvcTest(WorldCupController.class)
 @Import({SecurityConfig.class, JwtAuthFilter.class, RateLimitingFilter.class, CsrfOriginFilter.class})
 @org.springframework.test.context.TestPropertySource(properties = "app.metrics.token=" + SecurityConfigTest.METRICS_TOKEN)
 class SecurityConfigTest {
@@ -32,6 +35,15 @@ class SecurityConfigTest {
     private TopScorerService topScorerService;
 
     @MockitoBean
+    private StandingsService standingsService;
+
+    @MockitoBean
+    private OfficialResultsService officialResultsService;
+
+    @MockitoBean
+    private TeamService teamService;
+
+    @MockitoBean
     private JwtUtil jwtUtil;
 
     @MockitoBean
@@ -40,7 +52,9 @@ class SecurityConfigTest {
     @Test
     void publicReadsAreAllowedWithoutLogin() throws Exception {
         when(topScorerService.getTopScorers()).thenReturn(List.of());
-        mockMvc.perform(get("/api/scorers")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/world-cup/scorers")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/world-cup/standings")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/world-cup/group-odds")).andExpect(status().isOk());
         // Ruta pública sin controlador en este test: pasa la seguridad y llega al 404.
         mockMvc.perform(get("/api/groups/1")).andExpect(status().isNotFound());
         mockMvc.perform(get("/api/groups/1/scoring")).andExpect(status().isNotFound());
@@ -50,7 +64,7 @@ class SecurityConfigTest {
     void contentSecurityPolicyAllowsLocalImagePreviews() throws Exception {
         when(topScorerService.getTopScorers()).thenReturn(List.of());
         // La vista previa de una foto elegida es una URL blob: hasta que se sube.
-        mockMvc.perform(get("/api/scorers"))
+        mockMvc.perform(get("/api/world-cup/scorers"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
                         .string("Content-Security-Policy", org.hamcrest.Matchers.containsString("img-src 'self' data: blob: https:")))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
@@ -86,7 +100,7 @@ class SecurityConfigTest {
 
     @Test
     void writesUnderPublicPathsRequireLogin() throws Exception {
-        mockMvc.perform(post("/api/scorers/refresh")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/world-cup/scorers")).andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/matches")).andExpect(status().isUnauthorized());
         mockMvc.perform(delete("/api/groups/1")).andExpect(status().isUnauthorized());
         mockMvc.perform(put("/api/groups/1/scoring")).andExpect(status().isUnauthorized());

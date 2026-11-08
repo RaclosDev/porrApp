@@ -31,6 +31,7 @@ import {
   roundLabelFor,
   roundsFromFixtures,
   roundsFromMatchdays,
+  sortFightCard,
   withSign,
   withoutSaved,
   type Draft,
@@ -38,7 +39,7 @@ import {
   type MatchSign,
   type StatusFilter,
 } from '../utils/matchday';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { MATCH_KINDS } from '../context/leagueKind';
 
 interface SaveVariables {
   groupId: string;
@@ -62,14 +63,13 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     activeGroupId,
     activeGroupIsLocked,
     activeGroupPoolFormat,
-    activeCompetitionFormatType,
+    leagueKind,
     userId,
     userName,
     isAuthenticated,
   } = context;
 
-  const isMatchDay =
-    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
+  const isMatchDay = MATCH_KINDS[leagueKind];
 
   const isSurvivor = activeGroupPoolFormat === 'SURVIVOR';
 
@@ -110,16 +110,10 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     draftRef.current = null;
   }, [storageKey]);
 
-  // Redirigir a mis-ligas si no hay liga seleccionada, o al inicio si no es modalidad por jornadas (ej. Mundial)
+  // Sin liga seleccionada, a Mis ligas. Las demás clases de liga no llegan aquí (MatchdayPredictor).
   useEffect(() => {
-    if (!activeGroupId && isAuthenticated) {
-      navigate('/mis-ligas');
-      return;
-    }
-    if (activeGroupPoolFormat && !isMatchDay) {
-      navigate('/');
-    }
-  }, [activeGroupId, activeGroupPoolFormat, isMatchDay, isAuthenticated, navigate]);
+    if (!activeGroupId && isAuthenticated) navigate('/mis-ligas');
+  }, [activeGroupId, isAuthenticated, navigate]);
 
   const enabled = Boolean(activeGroupId && isMatchDay);
 
@@ -222,7 +216,10 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const predictionFor = (matchId: number) => localPredictions[matchId] || EMPTY_PREDICTION;
 
   const roundFixtures = useMemo(
-    () => (activeRound ? fixtures.filter((f) => roundLabelFor(f) === activeRound) : fixtures),
+    () =>
+      sortFightCard(
+        activeRound ? fixtures.filter((f) => roundLabelFor(f) === activeRound) : fixtures,
+      ),
     [fixtures, activeRound],
   );
 
@@ -248,12 +245,32 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   }, [fixtures]);
 
   /** Elegir un signo lo guarda al momento: no hay botón de guardar. */
+  /** Tenis: ganador y, si se eligen, sets; se guarda al momento como un signo. */
+  const handleTennisPick = (matchId: number, prediction: DraftPrediction) => {
+    if (!isAuthenticated) {
+      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      return;
+    }
+    updatePrediction(matchId, prediction);
+    saveDraft();
+  };
+
   const handleQuickSign = (matchId: number, sign: MatchSign) => {
     if (!isAuthenticated) {
       toast.error('Inicia sesión con Google para guardar tus predicciones.');
       return;
     }
     updatePrediction(matchId, withSign(sign));
+    saveDraft();
+  };
+
+  /** Pelea de la UFC: ganador, método y asalto se guardan al momento, como un signo. */
+  const handleFightPick = (matchId: number, pick: DraftPrediction) => {
+    if (!isAuthenticated) {
+      toast.error('Inicia sesión con Google para guardar tus predicciones.');
+      return;
+    }
+    updatePrediction(matchId, pick);
     saveDraft();
   };
 
@@ -337,6 +354,8 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     displayedFixtures,
     predictionFor,
     handleQuickSign,
+    handleFightPick,
+    handleTennisPick,
     retrySave: saveDraft,
     saveStatus,
     saveErrorMsg,

@@ -9,7 +9,7 @@ import type { ParticipantScore, PredictionData } from '../../types/api';
 
 vi.mock('../../services/api', () => ({
   fetchPrediction: vi.fn(),
-  fetchOfficialBracket: vi.fn(),
+  fetchWorldCupOfficialBracket: vi.fn(),
   fetchPredictionScore: vi.fn(),
 }));
 
@@ -26,7 +26,7 @@ describe('usePredictionViewerData con TanStack Query', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    vi.mocked(api.fetchOfficialBracket).mockResolvedValue({ r32: [] } as PredictionData);
+    vi.mocked(api.fetchWorldCupOfficialBracket).mockResolvedValue({ r32: [] } as PredictionData);
     vi.mocked(api.fetchPredictionScore).mockResolvedValue({
       id: 5,
       total: 3,
@@ -37,7 +37,7 @@ describe('usePredictionViewerData con TanStack Query', () => {
   it('vuelve a pedir el cuadro oficial y los puntos cuando se invalidan', async () => {
     const { result } = render();
     await waitFor(() => expect(result.current.points.total).toBe(3));
-    expect(api.fetchOfficialBracket).toHaveBeenCalledTimes(1);
+    expect(api.fetchWorldCupOfficialBracket).toHaveBeenCalledTimes(1);
     expect(api.fetchPredictionScore).toHaveBeenCalledTimes(1);
 
     vi.mocked(api.fetchPredictionScore).mockResolvedValue({
@@ -46,11 +46,11 @@ describe('usePredictionViewerData con TanStack Query', () => {
       log: [],
     } as unknown as ParticipantScore);
     await act(async () => {
-      await client.invalidateQueries({ queryKey: queryKeys.officialBracket() });
+      await client.invalidateQueries({ queryKey: queryKeys.worldCupOfficialBracket() });
       await client.invalidateQueries({ queryKey: queryKeys.predictionScore() });
     });
 
-    expect(api.fetchOfficialBracket).toHaveBeenCalledTimes(2);
+    expect(api.fetchWorldCupOfficialBracket).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(result.current.points.total).toBe(7));
   });
 
@@ -60,11 +60,11 @@ describe('usePredictionViewerData con TanStack Query', () => {
     first.unmount();
     const second = render();
     expect(second.result.current.loading).toBe(false);
-    expect(api.fetchOfficialBracket).toHaveBeenCalledTimes(1);
+    expect(api.fetchWorldCupOfficialBracket).toHaveBeenCalledTimes(1);
   });
 
   it('usa un cuadro vacío si el oficial no se puede cargar', async () => {
-    vi.mocked(api.fetchOfficialBracket).mockRejectedValue(new Error('caído'));
+    vi.mocked(api.fetchWorldCupOfficialBracket).mockRejectedValue(new Error('caído'));
     const { result } = render();
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBeNull();

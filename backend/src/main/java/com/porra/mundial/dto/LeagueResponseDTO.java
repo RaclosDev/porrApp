@@ -25,6 +25,8 @@ public class LeagueResponseDTO {
     private String adminParticipantName;
     private Long adminUserId;
     private Instant createdAt;
+    /** Cuándo se unió el usuario (solo en sus ligas): elige su liga más reciente si sale de la activa. */
+    private Instant joinedAt;
     
     /** Identificador de la competición asociada a la edición activa. */
     private Long competitionId;
@@ -52,6 +54,10 @@ public class LeagueResponseDTO {
     private String matchSelection;
     /** La liga junta partidos de varias competiciones oficiales (la de {@link #competitionId} es la principal). */
     private boolean multiCompetition;
+    /** Tenis de varios torneos: ALL, GRAND_SLAMS o MASTERS_1000; null en una liga de un solo torneo. */
+    private String tennisScope;
+    /** Tenis de varios torneos: ATP, WTA o BOTH. */
+    private String tennisTour;
     /** Si la edición se encuentra cerrada para nuevos pronósticos o cambios. */
     private Boolean isLocked;
     /** Reglas personalizadas de la liga. */
@@ -129,6 +135,8 @@ public class LeagueResponseDTO {
                 .lockOffsetMinutes(edition.getLockOffsetMinutes())
                 .matchSelection(edition.getMatchSelection() != null ? edition.getMatchSelection().name() : null)
                 .multiCompetition(edition.isMultiCompetition())
-                .pichichi(edition.isPichichi());
+                .tennisScope(edition.getTennisScope() != null ? edition.getTennisScope().name() : null)
+                .tennisTour(edition.getTennisTour() != null ? edition.getTennisTour().name() : null)
+                .pichichi(edition.scoresPichichi());
     }
 }

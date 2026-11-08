@@ -1,22 +1,16 @@
 import { prefetchRoute } from './prefetchRoute';
 import { NavLink } from 'react-router-dom';
+import type { LeagueNavItem } from './leagueNav';
 
 interface MainNavProps {
-  isDemo: boolean;
-  isMatchDayLeague: boolean;
+  /** Secciones de la liga activa (`leagueNavItems`); `null` mientras no se sabe cuáles lleva. */
+  items: readonly LeagueNavItem[] | null;
   isNavLocked: boolean;
-  /** Aún no se sabe el formato de la liga activa, así que tampoco qué secciones lleva. */
-  formatPending?: boolean;
 }
 
 /** Navegación principal de escritorio. */
-export default function MainNav({
-  isDemo,
-  isMatchDayLeague,
-  isNavLocked,
-  formatPending = false,
-}: MainNavProps) {
-  if (formatPending && !isDemo) {
+export default function MainNav({ items, isNavLocked }: MainNavProps) {
+  if (!items) {
     return (
       <div className="header-center">
         <div className="nav-links" aria-hidden="true">
@@ -30,134 +24,23 @@ export default function MainNav({
 
   return (
     <div className="header-center">
-      {/* Navegación */}
       <nav
         className="nav-links"
         inert={isNavLocked}
         style={isNavLocked ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
       >
-        {isDemo ? (
-          <>
-            <NavLink
-              to="/demo"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Inicio
-            </NavLink>
-            <NavLink
-              to="/prediction"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Mi Porra
-            </NavLink>
-            <NavLink
-              to="/bracket"
-              onMouseEnter={() => prefetchRoute('/bracket')}
-              onFocus={() => prefetchRoute('/bracket')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Resultados
-            </NavLink>
-            <NavLink
-              to="/grupos"
-              onMouseEnter={() => prefetchRoute('/grupos')}
-              onFocus={() => prefetchRoute('/grupos')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Grupos
-            </NavLink>
-            <NavLink
-              to="/ranking"
-              onMouseEnter={() => prefetchRoute('/ranking')}
-              onFocus={() => prefetchRoute('/ranking')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Ranking
-            </NavLink>
-          </>
-        ) : isMatchDayLeague ? (
-          <>
-            <NavLink
-              to="/"
-              end
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Inicio
-            </NavLink>
-            <NavLink
-              to="/jornadas"
-              onMouseEnter={() => prefetchRoute('/jornadas')}
-              onFocus={() => prefetchRoute('/jornadas')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Jornadas
-            </NavLink>
-            <NavLink
-              to="/ranking"
-              onMouseEnter={() => prefetchRoute('/ranking')}
-              onFocus={() => prefetchRoute('/ranking')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Ranking
-            </NavLink>
-            <NavLink
-              to="/tabla"
-              onMouseEnter={() => prefetchRoute('/tabla')}
-              onFocus={() => prefetchRoute('/tabla')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Tabla
-            </NavLink>
-            <NavLink
-              to="/mis-ligas"
-              onMouseEnter={() => prefetchRoute('/mis-ligas')}
-              onFocus={() => prefetchRoute('/mis-ligas')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Mis Ligas
-            </NavLink>
-          </>
-        ) : (
-          <>
-            <NavLink
-              to="/"
-              end
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Inicio
-            </NavLink>
-            <NavLink
-              to="/prediction"
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Mi Porra
-            </NavLink>
-            <NavLink
-              to="/bracket"
-              onMouseEnter={() => prefetchRoute('/bracket')}
-              onFocus={() => prefetchRoute('/bracket')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Resultados
-            </NavLink>
-            <NavLink
-              to="/ranking"
-              onMouseEnter={() => prefetchRoute('/ranking')}
-              onFocus={() => prefetchRoute('/ranking')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Ranking
-            </NavLink>
-            <NavLink
-              to="/mis-ligas"
-              onMouseEnter={() => prefetchRoute('/mis-ligas')}
-              onFocus={() => prefetchRoute('/mis-ligas')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Mis Ligas
-            </NavLink>
-          </>
-        )}
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onMouseEnter={() => prefetchRoute(item.to)}
+            onFocus={() => prefetchRoute(item.to)}
+            className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+          >
+            {item.label}
+          </NavLink>
+        ))}
       </nav>
     </div>
   );

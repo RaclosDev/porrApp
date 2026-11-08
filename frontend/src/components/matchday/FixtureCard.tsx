@@ -3,8 +3,15 @@ import { CalendarDays, Users } from 'lucide-react';
 import SignVoters from '../voters/SignVoters';
 import type { MatchdayFixture, MatchVoters } from '../../types/api';
 import {
+  allowsDraw,
+  resultNote,
   formatMatchDate,
   isLiveFixture,
+  liveLabel,
+  tennisLoserSets,
+  tennisPick,
+  tennisPickedLoserSets,
+  tennisPickedSign,
   type DraftPrediction,
   type MatchSign,
 } from '../../utils/matchday';
@@ -22,6 +29,8 @@ interface FixtureCardProps {
   onShowVoters?: (fixture: MatchdayFixture) => void;
   /** Liga superviviente: se elige un equipo que gane en vez de un signo 1X2. */
   survivor?: SurvivorOptions;
+  /** Tenis: se elige quién gana y, si se quiere, los sets. */
+  onTennisPick?: (matchId: number, prediction: DraftPrediction) => void;
 }
 
 export interface SurvivorOptions {
@@ -33,6 +42,8 @@ export interface SurvivorOptions {
 }
 
 const SIGNS: MatchSign[] = ['1', 'X', '2'];
+/** Sin empate (NFL): se elige quién gana. */
+const WINNER_SIGNS: MatchSign[] = ['1', '2'];
 const CREST_STYLE = { width: '24px', height: '24px' };
 
 /** Tarjeta de un partido: estado, signo 1X2 pronosticado y puntos obtenidos. */
@@ -45,7 +56,9 @@ export default function FixtureCard({
   voters,
   onShowVoters,
   survivor,
+  onTennisPick,
 }: FixtureCardProps) {
+  const tennisSets = onTennisPick && fixture.setsToWin ? fixture.setsToWin : null;
   const inputDisabled = locked;
   const teams = [
     { side: 'home', team: fixture.homeTeam, logo: fixture.homeTeamLogo },
@@ -56,14 +69,18 @@ export default function FixtureCard({
   const scored = points != null && points > 0;
   const { actualHomeScore: home, actualAwayScore: away } = fixture;
   const resultSign: MatchSign | null =
-    fixture.finished && home != null && away != null
-      ? home > away
-        ? '1'
-        : home === away
-          ? 'X'
-          : '2'
-      : null;
+    tennisSets && fixture.finished && fixture.winnerSign
+      ? fixture.winnerSign
+      : fixture.finished && home != null && away != null
+        ? home > away
+          ? '1'
+          : home === away
+            ? 'X'
+            : '2'
+        : null;
   const inPlay = fixture.status === 'LIVE' || fixture.status === 'PAUSED';
+  const winnerOnly = !allowsDraw(fixture.sport);
+  const note = fixture.finished ? resultNote(fixture.displayClock) : null;
   // Terminado sin predicción: también se dice que no suma, para que cada partido cerrado tenga su balance.
   // En superviviente solo se juega un partido por jornada: los demás no tienen balance que mostrar.
   const showPoints = survivor
@@ -93,10 +110,20 @@ export default function FixtureCard({
           </button>
           {fixture.finished ? (
             <span className="md-badge is-finished">
-              Final {fixture.actualHomeScore} - {fixture.actualAwayScore}
+              {home != null && away != null
+                ? `Final ${home} - ${away}${note ? ` · ${note}` : ''}`
+                : tennisSets
+                  ? 'Final · retirada o W.O.'
+                  : 'Final'}
             </span>
           ) : isLiveFixture(fixture) ? (
-            <span className="md-badge is-live">En juego</span>
+            <span className="md-badge is-live">
+              {tennisSets && home != null && away != null
+                ? `En juego · ${home}-${away}`
+                : liveLabel(fixture.displayClock)}
+            </span>
+          ) : fixture.awaitingTeams ? (
+            <span className="md-badge is-pending">Por definir</span>
           ) : locked ? (
             <span className="md-badge is-locked" title={fixture.lockReason ?? undefined}>
               Cerrado
@@ -117,8 +144,22 @@ export default function FixtureCard({
           </div>
         ))}
       </div>
+      {fixture.awaitingTeams && !fixture.finished && (
+        <p className="md-match-note">
+          {fixture.lockReason ?? 'Se abre cuando se conozcan los dos equipos'}
+        </p>
+      )}
 
-      {survivor ? (
+      {tennisSets && onTennisPick ? (
+        <TennisPick
+          fixture={fixture}
+          setsToWin={tennisSets}
+          prediction={prediction}
+          resultSign={resultSign}
+          locked={inputDisabled}
+          onPick={(next) => onTennisPick(fixture.matchId, next)}
+        />
+      ) : survivor ? (
         <SurvivorPick
           fixture={fixture}
           sign={prediction.sign}
@@ -127,28 +168,38 @@ export default function FixtureCard({
           options={survivor}
         />
       ) : (
-        <div className="md-signs" role="group" aria-label={`Predicción de ${matchName}`}>
-          {SIGNS.map((s) => {
+        <div
+          className={`md-signs${winnerOnly ? ' md-survivor' : ''}`}
+          role="group"
+          aria-label={`Predicción de ${matchName}`}
+        >
+          {(winnerOnly ? WINNER_SIGNS : SIGNS).map((s) => {
             const isSelected = prediction.sign === s;
             const isResult = resultSign === s;
+            const winner = s === '1' ? fixture.homeTeam : fixture.awayTeam;
             return (
               <button
                 key={s}
                 type="button"
                 disabled={inputDisabled}
                 onClick={() => onQuickSign(fixture.matchId, s)}
-                className={`md-sign-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
-                aria-label={`Predecir ${s} en ${matchName}${isResult ? ' (resultado final)' : ''}`}
+                className={`md-sign-btn${winnerOnly ? ' md-survivor-btn' : ''}${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
+                aria-label={`${winnerOnly ? `Predecir que gana ${winner}` : `Predecir ${s}`} en ${matchName}${isResult ? ' (resultado final)' : ''}`}
                 aria-pressed={isSelected}
               >
-                {s}
+                {winnerOnly ? <span className="md-survivor-team">Gana {winner}</span> : s}
               </button>
             );
           })}
         </div>
       )}
       {voters && onShowVoters && (
-        <SignVoters voters={voters} matchName={matchName} onOpen={() => onShowVoters(fixture)} />
+        <SignVoters
+          voters={voters}
+          matchName={matchName}
+          onOpen={() => onShowVoters(fixture)}
+          twoWay={winnerOnly}
+        />
       )}
 
       {/* Desglose de puntos si el partido ya ha finalizado */}
@@ -172,6 +223,87 @@ export default function FixtureCard({
         </div>
       )}
     </div>
+  );
+}
+
+interface TennisPickProps {
+  fixture: MatchdayFixture;
+  setsToWin: number;
+  prediction: DraftPrediction;
+  resultSign: MatchSign | null;
+  locked: boolean;
+  onPick: (prediction: DraftPrediction) => void;
+}
+
+/**
+ * Tenis: un botón por jugador para elegir quién gana y, debajo, los sets (opcionales). Volver a
+ * pulsar los sets elegidos los quita y deja solo el ganador.
+ */
+function TennisPick({
+  fixture,
+  setsToWin,
+  prediction,
+  resultSign,
+  locked,
+  onPick,
+}: TennisPickProps) {
+  const sign = tennisPickedSign(prediction);
+  const loserSets = tennisPickedLoserSets(prediction);
+  const sides = [
+    { s: '1' as const, player: fixture.homeTeam },
+    { s: '2' as const, player: fixture.awayTeam },
+  ];
+  const { actualHomeScore: home, actualAwayScore: away } = fixture;
+  const resultLoserSets =
+    fixture.finished && home != null && away != null ? Math.min(home, away) : null;
+  const winnerName = sign === '1' ? fixture.homeTeam : sign === '2' ? fixture.awayTeam : null;
+  return (
+    <>
+      <div
+        className="md-signs md-survivor"
+        role="group"
+        aria-label={`Quién gana: ${fixture.homeTeam} o ${fixture.awayTeam}`}
+      >
+        {sides.map(({ s, player }) => {
+          const isSelected = sign === s;
+          const isResult = resultSign === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              disabled={locked}
+              onClick={() => onPick(tennisPick(s, setsToWin, isSelected ? loserSets : null))}
+              className={`md-sign-btn md-survivor-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}${isSelected && resultSign && !isResult ? ' is-miss' : ''}`}
+              aria-pressed={isSelected}
+            >
+              <span className="md-survivor-team">Gana {player}</span>
+            </button>
+          );
+        })}
+      </div>
+      {sign && winnerName && (
+        <div className="md-sets" role="group" aria-label={`En cuántos sets gana ${winnerName}`}>
+          <span className="md-sets-label">Sets</span>
+          {tennisLoserSets(setsToWin).map((lost) => {
+            const isSelected = loserSets === lost;
+            const isResult = resultSign === sign && resultLoserSets === lost;
+            return (
+              <button
+                key={lost}
+                type="button"
+                disabled={locked}
+                onClick={() => onPick(tennisPick(sign, setsToWin, isSelected ? null : lost))}
+                className={`md-sign-btn${isSelected ? ' is-active' : ''}${isResult ? ' is-result' : ''}`}
+                aria-pressed={isSelected}
+                aria-label={`${winnerName} gana ${setsToWin}-${lost}`}
+              >
+                {setsToWin}-{lost}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
 

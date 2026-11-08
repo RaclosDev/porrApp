@@ -12,11 +12,10 @@ import type {
 export type AppContextValue = ReturnType<typeof useAppContext>;
 export const appContext = (fields: Partial<AppContextValue> = {}): AppContextValue => ({
   ...useAppStore.getInitialState(),
-  officialPoints: {},
+  leagueKind: 'none',
   matchRadar: { live: [], last: [], next: [] },
   participantsHashes: [],
   allGames: [],
-  groupOdds: {},
   nameToIdMap: {},
   leaderboardData: [],
   leaderboardMatchdays: [],
@@ -30,8 +29,8 @@ export const appContext = (fields: Partial<AppContextValue> = {}): AppContextVal
   activeGroupAdminId: null,
   activeGroupPoolFormat: null,
   activeGroupCustomCompetition: false,
-  activeGroupOwnBracket: false,
-  activeGroupKnockoutDraw: false,
+  activeGroupWinnerOnly: false,
+  activeCompetitionKnockoutCup: false,
   activeGroupPicksMatches: false,
   activeGroupMultiCompetition: false,
   activeGroupPichichi: false,
@@ -40,13 +39,8 @@ export const appContext = (fields: Partial<AppContextValue> = {}): AppContextVal
   activeGroupRules: '',
   activeCompetitionName: null,
   activeCompetitionExternalId: null,
-  activeCompetitionFormatType: null,
   userGroups: [],
   userGroupsLoaded: true,
-  topScorers: [],
-  topScorersLoading: false,
-  topScorersError: false,
-  refreshTopScorers: vi.fn<AppContextValue['refreshTopScorers']>(),
   ...fields,
 });
 export const group = (fields: Partial<Group> = {}): Group => ({

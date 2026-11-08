@@ -18,6 +18,7 @@ import type { Group, LeagueSummary } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { isApiError } from '../services/apiError';
 import { useAppStore } from '../store/useAppStore';
+import { dropFromMyGroups, forgetLeague } from '../context/leagueFallback';
 import { confirmAction } from '../utils/confirmAction';
 import { isMatchBasedFormat } from '../utils/poolFormat';
 import { copyWithToast, joinLink, shareJoinLinkOnWhatsApp } from '../utils/leagueInvite';
@@ -183,10 +184,10 @@ export function useGroupsDashboard() {
     try {
       await deleteGroup(groupId);
       forgetKnownGroups([groupId]);
-
-      if (useAppStore.getState().activeGroupId === groupId.toString()) {
-        changeGroup(null);
-      }
+      // Fuera de la lista ya: si era la activa, se abre sola la más reciente (useLeagueDataEffects).
+      dropFromMyGroups(queryClient, groupId);
+      if (useAppStore.getState().activeGroupId !== groupId.toString())
+        forgetLeague(queryClient, groupId);
 
       refreshGroups();
       toast.success(`La liga "${groupName}" ha sido eliminada.`);
@@ -247,8 +248,11 @@ export function useGroupsDashboard() {
       return;
     try {
       await leaveGroup(groupId);
-      if (useAppStore.getState().activeGroupId === groupId.toString()) changeGroup(null);
       forgetKnownGroups([groupId]);
+      // Fuera de la lista ya: si era la activa, se abre sola la más reciente (useLeagueDataEffects).
+      dropFromMyGroups(queryClient, groupId);
+      if (useAppStore.getState().activeGroupId !== groupId.toString())
+        forgetLeague(queryClient, groupId);
 
       refreshGroups();
       toast.success(`Has abandonado la liga "${groupName}".`);

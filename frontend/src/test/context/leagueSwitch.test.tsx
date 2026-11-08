@@ -17,9 +17,9 @@ vi.mock('../../services/api', () => ({
   fetchMatchRadar: vi.fn(),
   fetchPredictions: vi.fn(),
   fetchLeaderboard: vi.fn(),
-  fetchStandings: vi.fn().mockResolvedValue({}),
-  fetchTeamOdds: vi.fn().mockResolvedValue({}),
-  fetchTopScorers: vi.fn().mockResolvedValue([]),
+  fetchWorldCupStandings: vi.fn().mockResolvedValue({}),
+  fetchWorldCupGroupOdds: vi.fn().mockResolvedValue({}),
+  fetchWorldCupTopScorers: vi.fn().mockResolvedValue([]),
   updateUserPreferences: vi.fn().mockResolvedValue({}),
 }));
 
@@ -151,7 +151,11 @@ describe('league switching', () => {
     expect(keys).toContainEqual(['predictions', '10']);
     expect(keys).toContainEqual(['leaderboard', '10']);
     expect(
-      keys.some((k) => ['standings', 'matches', 'odds', 'topScorers'].includes(String(k?.[0]))),
+      keys.some((k) =>
+        ['worldCupStandings', 'matches', 'worldCupGroupOdds', 'worldCupTopScorers'].includes(
+          String(k?.[0]),
+        ),
+      ),
     ).toBe(false);
   });
 

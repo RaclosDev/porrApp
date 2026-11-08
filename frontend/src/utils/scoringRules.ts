@@ -1,4 +1,4 @@
-import type { PoolFormat, ScoringRuleKey, ScoringRules } from '../types/api';
+import type { PoolFormat, ScoringRuleKey, ScoringRules, Sport } from '../types/api';
 
 interface ScoringField {
   key: ScoringRuleKey;
@@ -32,6 +32,19 @@ const MATCHDAY: ScoringSection = {
       key: 'goalDiffBonusPoints',
       label: 'Bonus por diferencia de goles',
       hint: 'Se suma al signo si aciertas la diferencia en una victoria (2-0 y acaba 3-1).',
+    },
+  ],
+};
+
+/** NFL: se predice quién gana, sin marcador ni empate. */
+const WINNER_MATCHDAY: ScoringSection = {
+  id: 'matches',
+  title: 'Cada partido',
+  fields: [
+    {
+      key: 'correctSignPoints',
+      label: 'Ganador acertado',
+      hint: 'Aciertas quién gana el partido. Si acaba en empate, no suma nadie.',
     },
   ],
 };
@@ -149,18 +162,104 @@ const DRAWN_KNOCKOUTS: ScoringSection = {
   ],
 };
 
+/** Tenis: cada partido acertado vale más cuanto más avanza el torneo, y los sets suman aparte. */
+const TENNIS: ScoringSection = {
+  id: 'tennis',
+  title: 'Cada partido, por ganador acertado',
+  fields: [
+    {
+      key: 'roundOf16Points',
+      label: 'Octavos',
+      hint: 'Aciertas quién gana un partido de octavos (o de la fase de grupos de las ATP Finals).',
+    },
+    {
+      key: 'quarterFinalPoints',
+      label: 'Cuartos',
+      hint: 'Aciertas quién gana un partido de cuartos.',
+    },
+    { key: 'semiFinalPoints', label: 'Semifinales', hint: 'Aciertas quién gana una semifinal.' },
+    { key: 'championPoints', label: 'Final', hint: 'Aciertas quién gana la final: el campeón.' },
+    {
+      key: 'exactScorePoints',
+      label: 'Extra por los sets',
+      hint: 'Se suma si además aciertas el resultado en sets (3-1). No cuenta tras una retirada o un W.O.',
+    },
+  ],
+};
+
+const NBA_SERIES: ScoringSection = {
+  id: 'nba-series',
+  title: 'Playoffs NBA, por serie acertada',
+  fields: [
+    {
+      key: 'nbaPlayInPoints',
+      label: 'Play-in',
+      hint: 'Cada partido del play-in en el que aciertas quién gana.',
+    },
+    {
+      key: 'nbaFirstRoundPoints',
+      label: 'Primera ronda',
+      hint: 'Cada serie de primera ronda en la que aciertas quién gana.',
+    },
+    {
+      key: 'nbaConferenceSemifinalPoints',
+      label: 'Semifinales de conferencia',
+      hint: 'Cada serie en la que aciertas quién gana.',
+    },
+    {
+      key: 'nbaConferenceFinalPoints',
+      label: 'Finales de conferencia',
+      hint: 'Cada serie en la que aciertas quién gana.',
+    },
+    { key: 'nbaFinalsPoints', label: 'Finales', hint: 'Aciertas el campeón.' },
+  ],
+};
+
+const NBA_EXACT: ScoringSection = {
+  id: 'nba-exact',
+  title: 'Extra por acertar el resultado de la serie (4-0, 4-1…)',
+  fields: [
+    {
+      key: 'nbaFirstRoundExactPoints',
+      label: 'Primera ronda',
+      hint: 'Se suma al ganador si aciertas en cuántos partidos.',
+    },
+    {
+      key: 'nbaConferenceSemifinalExactPoints',
+      label: 'Semifinales de conferencia',
+      hint: 'Se suma al ganador si aciertas en cuántos partidos.',
+    },
+    {
+      key: 'nbaConferenceFinalExactPoints',
+      label: 'Finales de conferencia',
+      hint: 'Se suma al ganador si aciertas en cuántos partidos.',
+    },
+    {
+      key: 'nbaFinalsExactPoints',
+      label: 'Finales',
+      hint: 'Se suma al campeón si aciertas en cuántos partidos.',
+    },
+  ],
+};
+
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
  * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
- * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi.
+ * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi. En la NFL
+ * (`winnerOnly`) cada partido puntúa solo el ganador.
  */
 export function scoringSections(
   format: PoolFormat | null,
   pichichi: boolean,
   knockoutDraw = false,
+  nbaSeries = false,
+  winnerOnly = false,
+  sport: Sport | null = null,
 ): ScoringSection[] {
-  if (format === 'MATCH_DAY') return [MATCHDAY];
+  if (sport === 'TENNIS') return [TENNIS];
+  if (format === 'MATCH_DAY') return [winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
+  if (nbaSeries) return [NBA_SERIES, NBA_EXACT];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
   return pichichi ? [...sections, TOP_SCORER] : sections;
@@ -188,8 +287,31 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   survivorRoundPoints: 1,
   survivorLives: 1,
   survivorDrawSurvives: 0,
+  nbaPlayInPoints: 5,
+  nbaFirstRoundPoints: 10,
+  nbaConferenceSemifinalPoints: 20,
+  nbaConferenceFinalPoints: 30,
+  nbaFinalsPoints: 50,
+  nbaFirstRoundExactPoints: 5,
+  nbaConferenceSemifinalExactPoints: 10,
+  nbaConferenceFinalExactPoints: 15,
+  nbaFinalsExactPoints: 25,
 };
 export const SCORING_MAX_POINTS = 1000;
+
+/** Puntuación con la que nace una liga de tenis (`ScoringRuleSet.defaultTennis` en el servidor). */
+const TENNIS_SCORING_RULES: ScoringRules = {
+  ...DEFAULT_SCORING_RULES,
+  roundOf16Points: 10,
+  quarterFinalPoints: 15,
+  semiFinalPoints: 20,
+  championPoints: 30,
+  exactScorePoints: 5,
+};
+
+/** Puntuación por defecto de una liga del deporte. */
+export const defaultScoringRules = (sport: Sport | 'OTHER' | null): ScoringRules =>
+  sport === 'TENNIS' ? TENNIS_SCORING_RULES : DEFAULT_SCORING_RULES;
 
 /** Valores tal como se escriben en los campos del formulario. */
 export type ScoringDraft = Record<ScoringRuleKey, string>;

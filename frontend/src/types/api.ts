@@ -3,8 +3,11 @@
  * (paquete com.porra.mundial.dto); los nombres de campo coinciden con el JSON.
  */
 
-export type PoolFormat = 'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY' | 'SURVIVOR';
-type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT';
+export type PoolFormat =
+  'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY' | 'SURVIVOR' | 'GRAND_PRIX';
+/** RACE: Fórmula 1, Gran Premio a Gran Premio. */
+/** `EVENTS`: competición por veladas (la UFC), cada velada es una jornada con su nombre. */
+type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT' | 'RACE' | 'EVENTS';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
 export interface StatusResponse {
@@ -44,7 +47,29 @@ export interface UserPreferences {
 // --- Competiciones y partidos ---
 
 /** Deporte de una competición oficial (`Sport` en el servidor). */
-export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS';
+export type Sport =
+  | 'FOOTBALL'
+  | 'LEAGUE_OF_LEGENDS'
+  | 'FORMULA_1'
+  | 'BASKETBALL'
+  | 'AMERICAN_FOOTBALL'
+  | 'TENNIS'
+  | 'MMA';
+
+/** Cuadro de un torneo de tenis (`CompetitionDTO.TennisInfo` en el servidor). */
+export interface TennisInfo {
+  /** Id del torneo en ESPN: los dos cuadros de un torneo lo comparten. */
+  tournamentId: number;
+  /** Nombre del torneo, sin el cuadro. */
+  tournament: string;
+  level: 'GRAND_SLAM' | 'MASTERS_1000' | 'FINALS';
+  draw: 'MEN' | 'WOMEN';
+  /** Sets que hay que ganar: 3 en los Grand Slams masculinos, 2 en el resto. */
+  setsToWin: number;
+  /** Fechas de la edición actual (la que se juega o la próxima); null si ESPN no la tiene. */
+  startDate: string | null;
+  endDate: string | null;
+}
 
 export interface Competition {
   id: number;
@@ -59,6 +84,8 @@ export interface Competition {
   groupStage?: boolean | null;
   /** Sus eliminatorias se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda. */
   knockoutDraw?: boolean;
+  /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
+  tennis?: TennisInfo | null;
 }
 
 export interface Match {
@@ -83,6 +110,8 @@ export interface Match {
   displayClock: string | null;
   isStartingSoon: boolean;
   status: string;
+  /** Datos de pelea; solo en los partidos de la UFC. */
+  fight?: FightInfo | null;
 }
 
 export interface MatchRadar {
@@ -107,6 +136,8 @@ export interface TeamStanding {
 export type GroupStandings = Record<string, Record<string, TeamStanding>>;
 
 export interface LeagueStanding {
+  /** Grupo, conferencia o fase («Grupo A», «Fase suiza»…) si la competición tiene varias tablas. */
+  group?: string | null;
   rank: number;
   teamName: string;
   teamLogo: string | null;
@@ -153,6 +184,8 @@ export interface PredictionData {
   thirds?: string[];
   /** Ganadores por ronda; null en lo que otro participante aún puede cambiar (cierre por partes). */
   customRounds?: (string | null)[][];
+  /** Playoffs de la NBA: en cuántos partidos se gana cada serie (4 a 7), alineado con `customRounds`. */
+  customSeriesGames?: (number | null)[][];
   r32?: TeamPair[];
   /** Mismo contenido que r32; el backend lo sigue enviando para pronósticos antiguos. */
   r1?: TeamPair[];
@@ -251,6 +284,8 @@ export interface Group {
   adminParticipantName: string | null;
   adminUserId: number | null;
   createdAt: string | null;
+  /** Cuándo se unió el usuario (solo en sus ligas, `/groups/mine`). */
+  joinedAt?: string | null;
   competitionId: number | null;
   customCompetition?: boolean;
   competitionExternalId?: string | null;
@@ -268,6 +303,10 @@ export interface Group {
   matchSelection?: MatchSelectionMode | null;
   /** Junta partidos de varias competiciones (la de `competitionId` es la principal); sus jornadas son semanas. */
   multiCompetition?: boolean;
+  /** Tenis de varios torneos: cuáles sigue; null en una liga de un solo torneo. */
+  tennisScope?: TennisScope | null;
+  /** Tenis de varios torneos: cuadros que sigue. */
+  tennisTour?: TennisTour | null;
 }
 
 type MatchSelectionMode = 'ALL' | 'CUSTOM';
@@ -312,6 +351,10 @@ interface SelectableCompetition {
   externalId: string | null;
   /** Tiene partidos cerrados con predicciones en la liga: no se puede quitar. */
   locked: boolean;
+  /** Calendario para crear la liga: no tenía partidos y se están cargando ahora de ESPN. */
+  importing?: boolean;
+  /** Por qué sigue sin partidos (ESPN ha fallado o aún no los ha publicado). */
+  importError?: string | null;
 }
 
 export interface MatchSelectionView {
@@ -330,8 +373,28 @@ export interface MatchSelectionView {
   keptMatches: number;
 }
 
+/** UFC: veladas numeradas («UFC 334») o el resto (Fight Night y demás sin número). */
+export type EventSeries = 'NUMBERED' | 'FIGHT_NIGHT';
+
+/** Tenis: torneos de una liga de varios (todos, Grand Slams o Masters 1000 con las ATP Finals). */
+export type TennisScope = 'ALL' | 'GRAND_SLAMS' | 'MASTERS_1000';
+
+/** Tenis de varios torneos: cuadros masculinos (ATP), femeninos (WTA) o los dos. */
+export type TennisTour = 'ATP' | 'WTA' | 'BOTH';
+
+/** UFC: partes de la cartelera de una velada (estelar, preliminares y preliminares tempranos). */
+export type CardSegment = 'EARLY_PRELIMS' | 'PRELIMS' | 'MAIN';
+
 export interface MatchSelectionRequest {
   mode: MatchSelectionMode;
+  /** UFC con todas las veladas: solo las de una serie; sin ella, las que ya tenía (al crear, todas). */
+  eventSeries?: EventSeries;
+  /** UFC: partes de la cartelera que entran; sin ellas, las que ya tenía (al crear, la velada completa). */
+  cardSegments?: CardSegment[];
+  /** Tenis: la liga sigue varios torneos y suma los nuevos; sin él, el que ya tenía (al crear, uno). */
+  tennisScope?: TennisScope;
+  /** Tenis con `tennisScope`: cuadros que sigue; sin él, los que ya tenía (al crear, los dos). */
+  tennisTour?: TennisTour;
   /** Competiciones de la liga, con la principal; sin ellas, las que ya tenía. */
   competitionIds?: number[];
   teamIds?: number[];
@@ -361,6 +424,89 @@ export interface ScoringRules {
   survivorLives: number;
   /** Superviviente: 1 si un empate también supera la jornada. */
   survivorDrawSurvives: number;
+  /** UFC: ganador acertado. */
+  fightWinnerPoints: number;
+  /** UFC: se suma si además aciertas el método. */
+  fightMethodPoints: number;
+  /** UFC: se suma si además aciertas el asalto de un KO/TKO o una sumisión. */
+  fightRoundPoints: number;
+  /** Playoffs de la NBA: por partido del play-in acertado. */
+  nbaPlayInPoints: number;
+  /** Playoffs de la NBA: por serie acertada en cada ronda. */
+  nbaFirstRoundPoints: number;
+  nbaConferenceSemifinalPoints: number;
+  nbaConferenceFinalPoints: number;
+  nbaFinalsPoints: number;
+  /** Playoffs de la NBA: extra por acertar también en cuántos partidos se gana la serie. */
+  nbaFirstRoundExactPoints: number;
+  nbaConferenceSemifinalExactPoints: number;
+  nbaConferenceFinalExactPoints: number;
+  nbaFinalsExactPoints: number;
+  /** Fórmula 1: cada piloto del podio en su puesto exacto. */
+  f1ExactPositionPoints: number;
+  /** Fórmula 1: cada piloto que sube al podio en otro puesto. */
+  f1PodiumPoints: number;
+  f1PolePoints: number;
+  f1FastestLapPoints: number;
+}
+
+/** Podio, pole y vuelta rápida de un Gran Premio (ids de piloto); cualquiera puede faltar. */
+export interface GrandPrixPicks {
+  first: number | null;
+  second: number | null;
+  third: number | null;
+  pole: number | null;
+  fastestLap: number | null;
+}
+
+export interface RaceDriver {
+  id: number;
+  name: string;
+  shortName: string | null;
+  country: string | null;
+  flagUrl: string | null;
+  team: string | null;
+  /** Hexadecimal sin almohadilla. */
+  teamColor: string | null;
+  number: string | null;
+}
+
+type GrandPrixStatus = 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'CANCELLED' | 'POSTPONED';
+
+export interface GrandPrix {
+  id: number;
+  name: string;
+  circuit: string | null;
+  city: string | null;
+  country: string | null;
+  sprint: boolean;
+  /** Cierre: empieza la clasificación. */
+  lockAt: string | null;
+  raceAt: string | null;
+  status: GrandPrixStatus;
+  locked: boolean;
+  /** Pilotos que se pueden elegir. */
+  gridIds: number[];
+  result: GrandPrixPicks | null;
+  pick: GrandPrixPicks | null;
+  points: number | null;
+  details: string | null;
+}
+
+export interface GrandPrixBoard {
+  grandsPrix: GrandPrix[];
+  drivers: RaceDriver[];
+  rules: { exactPosition: number; podium: number; pole: number; fastestLap: number };
+}
+
+export interface GrandPrixMemberPick {
+  userId: number | null;
+  name: string;
+  avatarUrl: string | null;
+  mine: boolean;
+  pick: GrandPrixPicks;
+  points: number | null;
+  details: string | null;
 }
 
 export type ScoringRuleKey = keyof ScoringRules;
@@ -368,8 +514,17 @@ export type ScoringRuleKey = keyof ScoringRules;
 /** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */
 export interface LeagueScoring {
   matchSignOnly?: boolean;
+  /**
+   * Deporte de la competición de la liga: en la NFL se puntúa el ganador, sin empate; en tenis, el
+   * ganador de cada ronda y los sets.
+   */
+  sport?: Sport | null;
   /** Eliminatorias sorteadas ronda a ronda: se puntúa cada cruce acertado según su ronda. */
   knockoutDraw?: boolean;
+  /** Liga de la UFC: se puntúan ganador, método y asalto de cada pelea. */
+  fights?: boolean;
+  /** Playoffs de la NBA: puntos por serie acertada y extra por acertar en cuántos partidos. */
+  nbaSeries?: boolean;
   poolFormat: PoolFormat | null;
   pichichi: boolean;
   editable: boolean;
@@ -418,16 +573,29 @@ export interface MatchdayFixture {
   groupName: string | null;
   /** Competición del partido, solo en las ligas que juntan varias. */
   competitionName?: string | null;
+  /** Deporte del partido: en la NFL se predice quién gana, sin X. */
+  sport?: Sport | null;
   finished: boolean | null;
   status: string | null;
   actualHomeScore: number | null;
   actualAwayScore: number | null;
   displayClock: string | null;
+  /** Tenis: sets que hay que ganar (2 o 3). Falta en el resto de deportes. */
+  setsToWin?: number | null;
+  /** Tenis: quién ha ganado, también tras una retirada o un W.O., que no tienen marcador. */
+  winnerSign?: '1' | '2' | null;
   predHomeScore: number | null;
   predAwayScore: number | null;
   predSign: string | null;
+  /** Pelea de la UFC: método (KO_TKO, SUBMISSION, DECISION) y asalto elegidos. */
+  predMethod?: string | null;
+  predRound?: number | null;
+  /** Datos de pelea; solo en las ligas de la UFC. */
+  fight?: FightInfo | null;
   locked: boolean;
   lockReason: string | null;
+  /** Aún falta un rival («Por definir»): cerrado hasta que se conozcan los dos. */
+  awaitingTeams?: boolean;
   /** Cuándo se cierra el pronóstico; puede ser antes de que empiece el partido. */
   lockAt?: string | null;
   pointsAwarded: number | null;
@@ -441,6 +609,33 @@ export interface MatchdayPredictionInput {
   homeScore: number | null;
   awayScore: number | null;
   sign: '1' | 'X' | '2' | string | null;
+  /** Pelea de la UFC: método y asalto, opcionales. */
+  method?: FightMethod | null;
+  round?: number | null;
+}
+
+/** Métodos que se pueden predecir en una pelea. */
+export type FightMethod = 'KO_TKO' | 'SUBMISSION' | 'DECISION';
+
+/** Datos de una pelea de la UFC (`FightInfoDTO`). */
+export interface FightInfo {
+  eventId: string;
+  eventName: string | null;
+  /** Bloque de la cartelera. */
+  segment: CardSegment | null;
+  /** 1 es la pelea estelar. */
+  order: number | null;
+  weightClass: string | null;
+  scheduledRounds: number | null;
+  homeRecord: string | null;
+  awayRecord: string | null;
+  /** Cómo acabó; null si no ha acabado. */
+  resultMethod: FightMethod | 'DRAW' | 'NO_CONTEST' | 'DISQUALIFICATION' | 'OTHER' | null;
+  resultDetail: string | null;
+  resultRound: number | null;
+  resultClock: string | null;
+  /** '1' ganó la esquina roja (local), '2' la azul; null sin ganador. */
+  winner: '1' | '2' | null;
 }
 
 /** Elección de una jornada en una liga superviviente. */
@@ -484,6 +679,9 @@ export interface FriendPrediction {
   homeScore: number | null;
   awayScore: number | null;
   sign: string | null;
+  /** Pelea de la UFC: método y asalto elegidos. */
+  method?: string | null;
+  round?: number | null;
   pointsAwarded: number | null;
   isExactScore: boolean | null;
   isCorrectSign: boolean | null;
@@ -523,6 +721,14 @@ export interface MatchStats {
   /** null mientras el partido no ha terminado. */
   exactHits: number | null;
   signHits: number | null;
+  /** UFC: cuántos eligieron cada método, del más elegido al menos; vacío en el resto. */
+  methods?: MethodCount[];
+}
+
+/** Un método de victoria pronosticado en una pelea de la UFC y cuántos lo eligieron. */
+interface MethodCount {
+  method: string;
+  count: number;
 }
 
 /** Un miembro que ha pronosticado un signo. */
