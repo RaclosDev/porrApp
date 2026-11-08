@@ -59,6 +59,11 @@ interface ColumnOptions {
   /** Algún pronóstico tiene puntos de la fase de grupos (solo en los cuadros propios). */
   ownBracketHasGroupPoints: boolean;
   selectedMatchday: string | null;
+  /**
+   * Columna con los puntos de jornada. En la Fórmula 1 todos los puntos son de Gran Premio y la
+   * columna repetiría el total.
+   */
+  roundPointsColumn?: boolean;
 }
 
 /** Columnas de la tabla según el formato de la liga. */
@@ -68,23 +73,25 @@ export function leaderboardColumns({
   pichichi,
   ownBracketHasGroupPoints,
   selectedMatchday,
+  roundPointsColumn = true,
 }: ColumnOptions): LeaderboardColumn[] {
   const scorerColumn: LeaderboardColumn[] = pichichi
     ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }]
     : [];
   if (isMatchday) {
-    return [
-      { key: 'total', label: 'Total', kind: 'total' },
-      selectedMatchday
-        ? {
+    const roundColumn: LeaderboardColumn[] = selectedMatchday
+      ? [
+          {
             key: 'matchday',
             label: selectedMatchday,
             shortLabel: compactMatchdayLabel(selectedMatchday),
             kind: 'matchday',
-          }
-        : { key: 'matchPoints', label: 'Puntos de jornada', kind: 'detail' },
-      ...scorerColumn,
-    ];
+          },
+        ]
+      : roundPointsColumn
+        ? [{ key: 'matchPoints', label: 'Puntos de jornada', kind: 'detail' }]
+        : [];
+    return [{ key: 'total', label: 'Total', kind: 'total' }, ...roundColumn, ...scorerColumn];
   }
   if (ownBracket) {
     return [

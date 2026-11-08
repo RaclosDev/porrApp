@@ -140,7 +140,11 @@ export interface LeagueStanding {
   group?: string | null;
   rank: number;
   teamName: string;
+  /** Nombre corto para pantallas estrechas («Bills»); solo la NFL lo trae. */
+  teamShortName?: string | null;
   teamLogo: string | null;
+  /** NFL: puesto en su conferencia para los playoffs (entran los 7 primeros). */
+  playoffSeed?: number | null;
   points: number;
   gamesPlayed: number;
   wins: number;
@@ -497,6 +501,24 @@ export interface GrandPrixBoard {
   grandsPrix: GrandPrix[];
   drivers: RaceDriver[];
   rules: { exactPosition: number; podium: number; pole: number; fastestLap: number };
+}
+
+/** Mundial de Fórmula 1 según ESPN. */
+export interface FormulaOneStandings {
+  season: string | null;
+  drivers: {
+    rank: number;
+    name: string;
+    shortName: string | null;
+    abbreviation: string | null;
+    country: string | null;
+    flagUrl: string | null;
+    team: string | null;
+    /** Hexadecimal sin almohadilla. */
+    teamColor: string | null;
+    points: number;
+  }[];
+  constructors: { rank: number; name: string; color: string | null; points: number }[];
 }
 
 export interface GrandPrixMemberPick {

@@ -21,6 +21,7 @@ import {
   formatWhen,
   gridDrivers,
   pickError,
+  placeLabel,
   samePick,
   splitGrandsPrix,
 } from './grandPrix';
@@ -45,7 +46,7 @@ export default function GrandPrixPage() {
     () => new Map((board.data?.drivers ?? []).map((driver) => [driver.id, driver])),
     [board.data],
   );
-  const { next, upcoming, done } = useMemo(
+  const { live, next, upcoming, done } = useMemo(
     () => splitGrandsPrix(board.data?.grandsPrix ?? []),
     [board.data],
   );
@@ -74,7 +75,7 @@ export default function GrandPrixPage() {
   }
 
   const { rules } = board.data;
-  const season = (next ?? done[0])?.raceAt?.slice(0, 4);
+  const season = (live[0] ?? next ?? done[0])?.raceAt?.slice(0, 4);
 
   return (
     <section className="gp-page md-page paper-panel album-sheet">
@@ -95,13 +96,32 @@ export default function GrandPrixPage() {
         </p>
       )}
 
-      {board.data.grandsPrix.length > 0 && !next && (
+      {board.data.grandsPrix.length > 0 && !next && live.length === 0 && (
         <p className="gp-empty">No quedan Grandes Premios por disputar esta temporada.</p>
+      )}
+
+      {live.length > 0 && (
+        <>
+          <h2 className="gp-section-title">En juego</h2>
+          {live.map((gp) => (
+            <GrandPrixCard
+              key={gp.id}
+              gp={gp}
+              drivers={drivers}
+              groupId={activeGroupId}
+              userId={userId}
+              defaultOpen
+              onShowPicks={setPicksOf}
+            />
+          ))}
+        </>
       )}
 
       {next && (
         <>
-          <h2 className="gp-section-title">Próximo Gran Premio</h2>
+          <h2 className="gp-section-title">
+            {live.length > 0 ? 'Próximo para predecir' : 'Próximo Gran Premio'}
+          </h2>
           <GrandPrixCard
             gp={next}
             drivers={drivers}
@@ -157,9 +177,12 @@ export default function GrandPrixPage() {
   );
 }
 
-function statusText(gp: GrandPrix): string {
+function statusText(gp: GrandPrix, drivers: Drivers): string {
   if (gp.status === 'CANCELLED') return 'Cancelado';
-  if (gp.status === 'FINISHED') return 'Disputado';
+  if (gp.status === 'FINISHED') {
+    const winner = gp.result?.first;
+    return winner != null ? `Ganó ${shortName(drivers.get(winner))}` : 'Disputado';
+  }
   if (gp.locked)
     return gp.status === 'LIVE' ? 'En marcha · predicción cerrada' : 'Predicción cerrada';
   return `Cierra ${formatWhen(gp.lockAt)}, al empezar la clasificación`;
@@ -182,7 +205,7 @@ function GrandPrixCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = `gp-body-${gp.id}`;
-  const place = [gp.city, gp.country].filter(Boolean).join(', ');
+  const place = placeLabel(gp);
   return (
     <article className={`gp-card ${gp.status === 'CANCELLED' ? 'is-cancelled' : ''}`}>
       <button
@@ -201,7 +224,7 @@ function GrandPrixCard({
           </span>
           <span className="gp-card-status">
             {gp.locked && gp.status !== 'FINISHED' && <Lock size={12} aria-hidden="true" />}
-            {statusText(gp)}
+            {statusText(gp, drivers)}
           </span>
         </span>
         <span className="gp-card-side">
