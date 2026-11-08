@@ -301,6 +301,36 @@ describe('Leaderboard Component', () => {
     expect(screen.queryByText(/Pendiente/)).not.toBeInTheDocument();
   });
 
+  it('en la Fórmula 1 no ofrece abrir a cada participante ni las jornadas', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: [participantScore(sampleLeaderboard[0])],
+        leaderboardMatchdays: [],
+        loading: false,
+        activeGroupName: 'Paddock',
+        activeGroupId: '1',
+        activeGroupPichichi: false,
+        activeGroupPoolFormat: 'GRAND_PRIX',
+        leagueKind: 'grandPrix',
+        activeGroupAdminId: 1,
+        userId: '20',
+        userName: 'Otro',
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByText('Carlos').length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /Ver jornadas|Ver porra/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Puntos de jornada/)).not.toBeInTheDocument();
+  });
+
   it('muestra las columnas del cuadro eliminatorio en modalidad FULL_BRACKET', () => {
     vi.mocked(useAppContext).mockReturnValue(
       appContext({

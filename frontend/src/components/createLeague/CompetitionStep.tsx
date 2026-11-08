@@ -1,6 +1,7 @@
 import {
   CUSTOM_NAME_MAX,
   FIELD_IDS,
+  allowsCustomCompetition,
   competitionUnavailableReason,
   competitionsOfSport,
   errorId,
@@ -114,19 +115,21 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
             </div>
           </div>
         ))}
-        <div className="create-league-group">
-          <h3 className="create-league-section-title">Tu propia competición</h3>
-          <div className="create-league-options">
-            <OptionCard
-              name={NAME}
-              value="custom"
-              checked={draft.custom}
-              onChange={() => update({ custom: true })}
-              title="Competición personalizada"
-              description="El torneo del barrio, de la oficina o del pueblo. Después de crear la liga añades tú los equipos, los partidos y los resultados."
-            />
+        {allowsCustomCompetition(draft.sport) && (
+          <div className="create-league-group">
+            <h3 className="create-league-section-title">Tu propia competición</h3>
+            <div className="create-league-options">
+              <OptionCard
+                name={NAME}
+                value="custom"
+                checked={draft.custom}
+                onChange={() => update({ custom: true })}
+                title="Competición personalizada"
+                description="El torneo del barrio, de la oficina o del pueblo. Después de crear la liga añades tú los equipos, los partidos y los resultados."
+              />
+            </div>
           </div>
-        </div>
+        )}
         <FieldError fieldId={FIELD_IDS.competition} message={errors.competition} />
       </fieldset>
 
