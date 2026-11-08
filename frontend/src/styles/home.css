@@ -315,6 +315,12 @@
     justify-content: center;
   }
 
+  .home-match-result {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   .home-match-score {
     flex-shrink: 0;
     min-width: 52px;
