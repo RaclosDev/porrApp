@@ -221,6 +221,25 @@ export function roundsFromMatchdays(matchdays: MatchdayPoints[]): RoundList {
   return { rounds, current };
 }
 
+const hasScored = (matchday: MatchdayPoints) =>
+  matchday.finished ||
+  Object.values(matchday.pointsByPrediction ?? {}).some((points) => Number(points) > 0);
+
+/**
+ * Jornada que abre el ranking: la actual en cuanto alguien ha puntuado en ella (o ha terminado); hasta
+ * entonces, la última que sí tiene puntos, para no abrir una clasificación con todos a cero. Vale para
+ * cualquier liga por rondas: jornadas, semanas, veladas, rondas de tenis o Grandes Premios.
+ */
+export function rankingMatchday(matchdays: MatchdayPoints[]): MatchdayPoints | null {
+  if (matchdays.length === 0) return null;
+  const flagged = matchdays.findIndex((matchday) => matchday.current);
+  const currentIndex = flagged >= 0 ? flagged : matchdays.length - 1;
+  for (let index = currentIndex; index >= 0; index--) {
+    if (hasScored(matchdays[index])) return matchdays[index];
+  }
+  return matchdays[currentIndex];
+}
+
 /** Jornada que se muestra: la elegida si existe; si no, la actual o la primera. */
 export const resolveRound = (selected: string | null, { rounds, current }: RoundList) =>
   selected && rounds.includes(selected) ? selected : (current ?? rounds[0] ?? null);
