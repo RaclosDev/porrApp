@@ -100,7 +100,10 @@ export function useLeagueHomeData(): LeagueHomeData {
   const allGames = useMemo(
     () =>
       activeGroupKnockoutDraw
-        ? competitionGames.filter((match) => KNOCKOUT_ROUNDS.includes(match.round))
+        ? competitionGames.filter(
+            // En los playoffs de la NBA el play-in también se pronostica.
+            (match) => KNOCKOUT_ROUNDS.includes(match.round) || match.round === 'playin',
+          )
         : competitionGames,
     [competitionGames, activeGroupKnockoutDraw],
   );

@@ -185,6 +185,61 @@ const DRAWN_KNOCKOUTS: ScoringSection = {
   ],
 };
 
+const NBA_SERIES: ScoringSection = {
+  id: 'nba-series',
+  title: 'Playoffs NBA, por serie acertada',
+  fields: [
+    {
+      key: 'nbaPlayInPoints',
+      label: 'Play-in',
+      hint: 'Cada partido del play-in en el que aciertas quién gana.',
+    },
+    {
+      key: 'nbaFirstRoundPoints',
+      label: 'Primera ronda',
+      hint: 'Cada serie de primera ronda en la que aciertas quién gana.',
+    },
+    {
+      key: 'nbaConferenceSemifinalPoints',
+      label: 'Semifinales de conferencia',
+      hint: 'Cada serie en la que aciertas quién gana.',
+    },
+    {
+      key: 'nbaConferenceFinalPoints',
+      label: 'Finales de conferencia',
+      hint: 'Cada serie en la que aciertas quién gana.',
+    },
+    { key: 'nbaFinalsPoints', label: 'Finales', hint: 'Aciertas el campeón.' },
+  ],
+};
+
+const NBA_EXACT: ScoringSection = {
+  id: 'nba-exact',
+  title: 'Extra por acertar el resultado de la serie (4-0, 4-1…)',
+  fields: [
+    {
+      key: 'nbaFirstRoundExactPoints',
+      label: 'Primera ronda',
+      hint: 'Se suma al ganador si aciertas en cuántos partidos.',
+    },
+    {
+      key: 'nbaConferenceSemifinalExactPoints',
+      label: 'Semifinales de conferencia',
+      hint: 'Se suma al ganador si aciertas en cuántos partidos.',
+    },
+    {
+      key: 'nbaConferenceFinalExactPoints',
+      label: 'Finales de conferencia',
+      hint: 'Se suma al ganador si aciertas en cuántos partidos.',
+    },
+    {
+      key: 'nbaFinalsExactPoints',
+      label: 'Finales',
+      hint: 'Se suma al campeón si aciertas en cuántos partidos.',
+    },
+  ],
+};
+
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
  * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
@@ -195,11 +250,13 @@ export function scoringSections(
   format: PoolFormat | null,
   pichichi: boolean,
   knockoutDraw = false,
+  nbaSeries = false,
   winnerOnly = false,
 ): ScoringSection[] {
   if (format === 'MATCH_DAY') return [winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
   if (format === 'GRAND_PRIX') return [GRAND_PRIX];
+  if (nbaSeries) return [NBA_SERIES, NBA_EXACT];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
   const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
   return pichichi ? [...sections, TOP_SCORER] : sections;
@@ -231,6 +288,15 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   f1PodiumPoints: 4,
   f1PolePoints: 5,
   f1FastestLapPoints: 3,
+  nbaPlayInPoints: 5,
+  nbaFirstRoundPoints: 10,
+  nbaConferenceSemifinalPoints: 20,
+  nbaConferenceFinalPoints: 30,
+  nbaFinalsPoints: 50,
+  nbaFirstRoundExactPoints: 5,
+  nbaConferenceSemifinalExactPoints: 10,
+  nbaConferenceFinalExactPoints: 15,
+  nbaFinalsExactPoints: 25,
 };
 export const SCORING_MAX_POINTS = 1000;
 

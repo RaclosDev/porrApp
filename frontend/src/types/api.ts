@@ -46,7 +46,8 @@ export interface UserPreferences {
 // --- Competiciones y partidos ---
 
 /** Deporte de una competición oficial (`Sport` en el servidor). */
-export type Sport = 'FOOTBALL' | 'LEAGUE_OF_LEGENDS' | 'FORMULA_1' | 'AMERICAN_FOOTBALL';
+export type Sport =
+  'FOOTBALL' | 'LEAGUE_OF_LEGENDS' | 'FORMULA_1' | 'BASKETBALL' | 'AMERICAN_FOOTBALL';
 
 export interface Competition {
   id: number;
@@ -155,6 +156,8 @@ export interface PredictionData {
   thirds?: string[];
   /** Ganadores por ronda; null en lo que otro participante aún puede cambiar (cierre por partes). */
   customRounds?: (string | null)[][];
+  /** Playoffs de la NBA: en cuántos partidos se gana cada serie (4 a 7), alineado con `customRounds`. */
+  customSeriesGames?: (number | null)[][];
   r32?: TeamPair[];
   /** Mismo contenido que r32; el backend lo sigue enviando para pronósticos antiguos. */
   r1?: TeamPair[];
@@ -363,6 +366,18 @@ export interface ScoringRules {
   survivorLives: number;
   /** Superviviente: 1 si un empate también supera la jornada. */
   survivorDrawSurvives: number;
+  /** Playoffs de la NBA: por partido del play-in acertado. */
+  nbaPlayInPoints: number;
+  /** Playoffs de la NBA: por serie acertada en cada ronda. */
+  nbaFirstRoundPoints: number;
+  nbaConferenceSemifinalPoints: number;
+  nbaConferenceFinalPoints: number;
+  nbaFinalsPoints: number;
+  /** Playoffs de la NBA: extra por acertar también en cuántos partidos se gana la serie. */
+  nbaFirstRoundExactPoints: number;
+  nbaConferenceSemifinalExactPoints: number;
+  nbaConferenceFinalExactPoints: number;
+  nbaFinalsExactPoints: number;
   /** Fórmula 1: cada piloto del podio en su puesto exacto. */
   f1ExactPositionPoints: number;
   /** Fórmula 1: cada piloto que sube al podio en otro puesto. */
@@ -439,6 +454,8 @@ export interface LeagueScoring {
   sport?: Sport | null;
   /** Eliminatorias sorteadas ronda a ronda: se puntúa cada cruce acertado según su ronda. */
   knockoutDraw?: boolean;
+  /** Playoffs de la NBA: puntos por serie acertada y extra por acertar en cuántos partidos. */
+  nbaSeries?: boolean;
   poolFormat: PoolFormat | null;
   pichichi: boolean;
   editable: boolean;

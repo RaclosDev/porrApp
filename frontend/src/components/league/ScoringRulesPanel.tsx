@@ -34,6 +34,7 @@ export default function ScoringRulesPanel({
     scoring.poolFormat,
     scoring.pichichi,
     scoring.knockoutDraw,
+    scoring.nbaSeries,
     winnerOnly,
   );
   const current = (key: ScoringRuleKey) =>

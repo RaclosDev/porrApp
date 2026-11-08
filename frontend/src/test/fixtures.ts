@@ -61,6 +61,15 @@ export const DEFAULT_SCORING: ScoringRules = {
   f1PodiumPoints: 4,
   f1PolePoints: 5,
   f1FastestLapPoints: 3,
+  nbaPlayInPoints: 5,
+  nbaFirstRoundPoints: 10,
+  nbaConferenceSemifinalPoints: 20,
+  nbaConferenceFinalPoints: 30,
+  nbaFinalsPoints: 50,
+  nbaFirstRoundExactPoints: 5,
+  nbaConferenceSemifinalExactPoints: 10,
+  nbaConferenceFinalExactPoints: 15,
+  nbaFinalsExactPoints: 25,
 };
 
 /** Puntuación de una liga de cuadro completo con las reglas por defecto. */

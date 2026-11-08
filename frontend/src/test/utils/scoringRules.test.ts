@@ -14,7 +14,9 @@ const keysOf = (format: Parameters<typeof scoringSections>[0], pichichi: boolean
 describe('scoringRules', () => {
   it('en la NFL cada partido solo puntúa el ganador', () => {
     expect(
-      scoringSections('MATCH_DAY', false, false, true).flatMap((s) => s.fields.map((f) => f.key)),
+      scoringSections('MATCH_DAY', false, false, false, true).flatMap((s) =>
+        s.fields.map((f) => f.key),
+      ),
     ).toEqual(['correctSignPoints']);
   });
 
@@ -39,12 +41,24 @@ describe('scoringRules', () => {
     ]);
   });
 
-  it('las reglas del cuadro, las de jornadas, superviviente y Fórmula 1 cubren todas las del backend', () => {
+  it('los playoffs de la NBA puntúan cada serie y el extra por acertar en cuántos partidos', () => {
+    const nba = scoringSections('KNOCKOUTS_ONLY', false, true, true).flatMap((section) =>
+      section.fields.map((field) => field.key),
+    );
+    expect(nba).toContain('nbaPlayInPoints');
+    expect(nba).toContain('nbaFinalsExactPoints');
+    expect(nba).not.toContain('roundOf16Points');
+  });
+
+  it('las reglas del cuadro, las de jornadas, las de superviviente, las de la NBA y las de Fórmula 1 cubren todas las del backend', () => {
     const shown = new Set([
       ...keysOf('FULL_BRACKET', true),
       ...keysOf('MATCH_DAY', true),
       ...keysOf('SURVIVOR', false),
       ...keysOf('GRAND_PRIX', false),
+      ...scoringSections('KNOCKOUTS_ONLY', false, true, true).flatMap((section) =>
+        section.fields.map((field) => field.key),
+      ),
     ]);
     expect([...shown].sort()).toEqual(Object.keys(DEFAULT_SCORING).sort());
   });

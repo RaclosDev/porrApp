@@ -113,6 +113,87 @@ describe('KnockoutDrawPredictor', () => {
     ).toBeInTheDocument();
   });
 
+  describe('playoffs de la NBA', () => {
+    const nbaState = {
+      ...lockState([[false, false]]),
+      mode: 'PER_MATCH' as const,
+      knockoutRounds: [
+        {
+          round: 'r16',
+          drawn: true,
+          expectedTies: 8,
+          bestOf: 7,
+          ties: [
+            { home: 'Cavaliers', away: 'Heat', winner: null, matchIds: [11, 12], conference: 'E' },
+            {
+              home: 'Thunder',
+              away: 'Grizzlies',
+              winner: null,
+              matchIds: [21, 22],
+              conference: 'W',
+            },
+          ],
+        },
+        { round: 'qf', drawn: false, expectedTies: 4, bestOf: 7, ties: [] },
+      ],
+    };
+
+    beforeEach(() => {
+      vi.mocked(appContextModule.useAppContext).mockReturnValue(
+        appContext({
+          activeGroupId: '20',
+          activeGroupName: 'Playoffs 2027',
+          activeGroupKnockoutDraw: true,
+          activeGroupIsLocked: false,
+          activeCompetitionExternalId: 'nba',
+          userName: 'Tester',
+          allGames: [
+            leg(11, 'Cavaliers', 'Heat', '2027-04-19T00:30:00+02:00', { round: 'r16' }),
+            leg(12, 'Cavaliers', 'Heat', '2027-04-21T01:00:00+02:00', { round: 'r16' }),
+            leg(21, 'Thunder', 'Grizzlies', '2027-04-20T21:30:00+02:00', { round: 'r16' }),
+            leg(22, 'Thunder', 'Grizzlies', '2027-04-23T03:30:00+02:00', { round: 'r16' }),
+          ],
+        }),
+      );
+    });
+
+    it('elige quién gana la serie y en cuántos partidos, agrupadas por conferencia', async () => {
+      vi.mocked(api.fetchCustomLockState).mockResolvedValue(nbaState);
+      renderPredictor();
+
+      expect(await screen.findByRole('tab', { name: '1.ª ronda' })).toBeInTheDocument();
+      expect(screen.getByText('Conferencia Este')).toBeInTheDocument();
+      expect(screen.getByText('Conferencia Oeste')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Pasar a Thunder' }));
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Thunder gana 4-1, en 5 partidos' }),
+      );
+
+      await waitFor(() =>
+        expect(api.createPrediction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            customRounds: [[null, 'Thunder']],
+            customSeriesGames: [[null, 5]],
+          }),
+          '20',
+        ),
+      );
+    });
+
+    it('sin series aún, dice cuándo empiezan los playoffs', async () => {
+      vi.mocked(api.fetchCustomLockState).mockResolvedValue({
+        ...nbaState,
+        knockoutRounds: [],
+        playoffsStart: '2027-04-12T09:00:00+02:00',
+      });
+      renderPredictor();
+
+      expect(
+        await screen.findByText(/Los playoffs empiezan el lunes, 12 de abril/),
+      ).toBeInTheDocument();
+    });
+  });
+
   it('avisa si aún no hay cruces', async () => {
     vi.mocked(api.fetchCustomLockState).mockResolvedValue({ ...lockState(), knockoutRounds: [] });
     renderPredictor();

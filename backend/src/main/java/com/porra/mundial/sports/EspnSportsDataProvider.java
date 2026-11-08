@@ -176,7 +176,7 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     }
 
     /**
-     * JSON de una URL de la API de ESPN (otros deportes, como la Fórmula 1), con el mismo circuit breaker.
+     * JSON de una URL de la API de ESPN (otros deportes, como la Fórmula 1 o la NBA), con el mismo circuit breaker.
      * Solo admite los hosts de ESPN.
      */
     public JsonNode fetchEspnJson(String url) throws Exception {
