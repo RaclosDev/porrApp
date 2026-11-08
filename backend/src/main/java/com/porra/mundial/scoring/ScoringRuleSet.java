@@ -86,6 +86,28 @@ public class ScoringRuleSet {
     @Builder.Default
     private int survivorDrawSurvives = 0;
 
+    // Playoffs de la NBA, por serie: acertar quién la gana y, además, en cuántos partidos
+    /** Por cada partido del play-in acertado. */
+    @Builder.Default
+    private int nbaPlayInPoints = 5;
+    @Builder.Default
+    private int nbaFirstRoundPoints = 10;
+    @Builder.Default
+    private int nbaConferenceSemifinalPoints = 20;
+    @Builder.Default
+    private int nbaConferenceFinalPoints = 30;
+    @Builder.Default
+    private int nbaFinalsPoints = 50;
+    /** Extra por acertar también el resultado de la serie (4-0, 4-1…). */
+    @Builder.Default
+    private int nbaFirstRoundExactPoints = 5;
+    @Builder.Default
+    private int nbaConferenceSemifinalExactPoints = 10;
+    @Builder.Default
+    private int nbaConferenceFinalExactPoints = 15;
+    @Builder.Default
+    private int nbaFinalsExactPoints = 25;
+
     public static ScoringRuleSet defaultWorldCup2026() {
         return ScoringRuleSet.builder().build();
     }

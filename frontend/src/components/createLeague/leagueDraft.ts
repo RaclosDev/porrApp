@@ -9,12 +9,14 @@ import {
   type ScoringDraft,
 } from '../../utils/scoringRules';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
+import { isNbaCompetition } from '../../utils/nbaPlayoffs';
 import {
   BRACKET_LOCK_MODES,
   DRAWN_KNOCKOUT_LOCK_MODES,
   LOCK_UNIT_MINUTES,
   matchdayLockModes,
   MAX_LOCK_OFFSET_MINUTES,
+  SERIES_LOCK_MODES,
   SINGLE_LOCK_MODES,
   type LockModeOption,
   type LockUnit,
@@ -49,6 +51,7 @@ export type SportChoice = Sport | 'OTHER';
 export const SPORT_LABELS: Record<SportChoice, string> = {
   FOOTBALL: 'Fútbol',
   LEAGUE_OF_LEGENDS: 'League of Legends',
+  BASKETBALL: 'Baloncesto',
   AMERICAN_FOOTBALL: 'Fútbol americano',
   TENNIS: 'Tenis',
   OTHER: 'Otro deporte',
@@ -59,11 +62,13 @@ const competitionSport = (competition: Competition): Sport =>
   competition.sport ??
   (competition.externalId?.startsWith('lol.')
     ? 'LEAGUE_OF_LEGENDS'
-    : competition.externalId === 'nfl'
-      ? 'AMERICAN_FOOTBALL'
-      : competition.externalId?.startsWith('tennis.')
-        ? 'TENNIS'
-        : 'FOOTBALL');
+    : isNbaCompetition(competition.externalId)
+      ? 'BASKETBALL'
+      : competition.externalId === 'nfl'
+        ? 'AMERICAN_FOOTBALL'
+        : competition.externalId?.startsWith('tennis.')
+          ? 'TENNIS'
+          : 'FOOTBALL');
 
 /** Cuadro de un torneo de tenis que entra en la liga. */
 export type TennisDraw = 'MEN' | 'WOMEN' | 'BOTH';
@@ -213,6 +218,16 @@ const KNOCKOUT_DRAW_COPY = {
   text: 'Tras cada sorteo eliges quién pasa cada eliminatoria, ronda a ronda hasta el campeón. En las de ida y vuelta cuenta quién pasa, no cada partido.',
 };
 
+/** Playoffs de la NBA: series del play-in a las Finales. */
+const NBA_PLAYOFFS_COPY = {
+  title: 'Playoffs',
+  text: 'Eliges quién gana cada serie, del play-in a las Finales, y en cuántos partidos (4-0, 4-1…). Cada serie se cierra al empezar su primer partido.',
+};
+
+/** La competición elegida son los playoffs de la NBA. */
+export const isNbaDraft = (draft: LeagueDraft, ctx: DraftContext) =>
+  isNbaCompetition(selectedCompetition(draft, ctx)?.externalId);
+
 /** Las eliminatorias de la competición elegida se sortean ronda a ronda. */
 export const isKnockoutDraw = (draft: LeagueDraft, ctx: DraftContext) =>
   Boolean(selectedCompetition(draft, ctx)?.knockoutDraw);
@@ -232,6 +247,7 @@ const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
   if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
+  if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)) return KNOCKOUT_DRAW_COPY;
   return (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) || FORMAT_COPY[format];
 }
@@ -250,6 +266,9 @@ export function formatUnavailableReason(
     return 'Necesita una competición oficial: los resultados llegan solos y así se sabe quién cae.';
   }
   const competition = selectedCompetition(draft, ctx);
+  if (format !== 'KNOCKOUTS_ONLY' && isNbaCompetition(competition?.externalId)) {
+    return 'De la NBA se pronostican los playoffs, serie a serie.';
+  }
   if (format === 'FULL_BRACKET' && competition?.knockoutDraw) {
     return 'Los cruces se sortean ronda a ronda: elige Solo eliminatorias.';
   }
@@ -282,6 +301,7 @@ export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOpt
   if (draft.poolFormat == null) return [];
   if (isMatchBasedFormat(draft.poolFormat))
     return matchdayLockModes(isMultiCompetition(draft.matches));
+  if (isNbaDraft(draft, ctx)) return SERIES_LOCK_MODES;
   if (isKnockoutDraw(draft, ctx)) return DRAWN_KNOCKOUT_LOCK_MODES;
   return allowsProgressiveLock(draft, ctx) ? BRACKET_LOCK_MODES : SINGLE_LOCK_MODES;
 }
@@ -293,7 +313,7 @@ export function lockModesFor(draft: LeagueDraft, ctx: DraftContext): LockModeOpt
 function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode | null {
   const modes = lockModesFor(draft, ctx);
   if (modes.length === 0) return null;
-  if (isMatchBasedFormat(draft.poolFormat)) return 'PER_MATCH';
+  if (isMatchBasedFormat(draft.poolFormat) || isNbaDraft(draft, ctx)) return 'PER_MATCH';
   return modes.some((item) => item.value === 'PER_ROUND') ? 'PER_ROUND' : 'FIRST_MATCH';
 }
 
@@ -561,9 +581,14 @@ export function readStoredDraft(): LeagueDraft {
         : base.scoring;
     return {
       sport: pick('sport', (value) =>
-        ['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'AMERICAN_FOOTBALL', 'TENNIS', 'OTHER'].includes(
-          value as string,
-        ),
+        [
+          'FOOTBALL',
+          'LEAGUE_OF_LEGENDS',
+          'BASKETBALL',
+          'AMERICAN_FOOTBALL',
+          'TENNIS',
+          'OTHER',
+        ].includes(value as string),
       ),
       competitionId: pick('competitionId', (value) => typeof value === 'number'),
       custom: pick('custom', isBool),

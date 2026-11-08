@@ -35,6 +35,7 @@ export default function ScoringRulesPanel({
     scoring.poolFormat,
     scoring.pichichi,
     scoring.knockoutDraw,
+    scoring.nbaSeries,
     winnerOnly,
     scoring.sport ?? null,
   );

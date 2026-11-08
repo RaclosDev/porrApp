@@ -92,7 +92,7 @@ describe('liga de tenis', () => {
   });
 
   it('puntúa por ronda y por sets', () => {
-    const sections = scoringSections('MATCH_DAY', false, false, true, 'TENNIS');
+    const sections = scoringSections('MATCH_DAY', false, false, false, true, 'TENNIS');
     expect(sections.flatMap((section) => section.fields.map((field) => field.key))).toEqual([
       'roundOf16Points',
       'quarterFinalPoints',

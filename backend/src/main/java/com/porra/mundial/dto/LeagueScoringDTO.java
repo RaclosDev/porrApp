@@ -15,6 +15,7 @@ import com.porra.mundial.scoring.ScoringRuleSet;
  * @param rules      reglas con las que puntúa la edición
  * @param defaults   reglas por defecto
  * @param knockoutDraw eliminatorias sorteadas ronda a ronda: los puntos son por eliminatoria acertada en cada ronda
+ * @param nbaSeries  playoffs de la NBA: puntos por serie acertada y extra por acertar en cuántos partidos
  * @param sport      deporte de la competición principal ({@code Sport}): en la NFL se acierta el ganador, sin
  *                   empate; en tenis el ganador de cada ronda y los sets
  */
@@ -26,6 +27,7 @@ public record LeagueScoringDTO(
         ScoringRuleSet rules,
         ScoringRuleSet defaults,
         boolean knockoutDraw,
+        boolean nbaSeries,
         String sport) {
 
     @com.fasterxml.jackson.annotation.JsonProperty("matchSignOnly")
@@ -43,6 +45,8 @@ public record LeagueScoringDTO(
                 ScoringRuleSet.forEdition(edition),
                 tennis ? ScoringRuleSet.defaultTennis() : ScoringRuleSet.defaultWorldCup2026(),
                 com.porra.mundial.service.prediction.DrawnKnockout.applies(edition),
+                com.porra.mundial.service.prediction.DrawnKnockout.applies(edition)
+                        && com.porra.mundial.service.prediction.DrawnKnockout.playsSeries(edition),
                 edition.getCompetition() != null
                         ? Sport.ofExternalId(edition.getCompetition().getExternalId()).name() : null);
     }

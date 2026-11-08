@@ -15,6 +15,9 @@ public class Competition {
     /** Identificador del Mundial 2026 en ESPN. */
     public static final String WORLD_CUP_EXTERNAL_ID = "fifa.world";
 
+    /** Identificador de la NBA (ESPN {@code basketball/nba}): solo sus playoffs, serie a serie. */
+    public static final String NBA_EXTERNAL_ID = "nba";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -59,6 +62,15 @@ public class Competition {
      * hay un cuadro fijo que rellenar de una vez, así que se pronostica quién pasa ronda a ronda.
      */
     public boolean drawsKnockoutRounds() {
-        return hasOwnBracket() && Sport.ofExternalId(externalId) == Sport.FOOTBALL;
+        Sport sport = Sport.ofExternalId(externalId);
+        return hasOwnBracket() && (sport == Sport.FOOTBALL || sport == Sport.BASKETBALL);
+    }
+
+    /**
+     * Playoffs de la NBA: cada cruce es una serie al mejor de 7 (el play-in, a partido único) y se
+     * pronostica quién la gana y en cuántos partidos. Solo se juega en «Solo eliminatorias».
+     */
+    public boolean playsSeries() {
+        return ownerLeague == null && Sport.ofExternalId(externalId) == Sport.BASKETBALL;
     }
 }

@@ -66,7 +66,8 @@ public record CompetitionDTO(Long id, String name, String externalId, String for
                 .orElse(null);
         boolean finished = tennis != null && dates != null
                 ? dates.end().isBefore(now) && calendar.unfinished() == 0
-                : imported && calendar.unfinished() == 0;
+                // La NBA vuelve cada año: con los últimos playoffs ya jugados se espera a los siguientes.
+                : imported && calendar.unfinished() == 0 && !competition.playsSeries();
         return new CompetitionDTO(competition.getId(), competition.getName(),
                 competition.getExternalId(), competition.getFormatType(),
                 Sport.ofExternalId(competition.getExternalId()),

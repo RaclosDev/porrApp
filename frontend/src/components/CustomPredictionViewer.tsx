@@ -9,6 +9,7 @@ import { getCustomRoundTitle } from '../utils/customBracket';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { useCustomLock } from '../hooks/useCustomLock';
 import { knockoutRoundTitle } from '../utils/knockoutDraw';
+import { isSeriesRound, seriesScore } from '../utils/nbaPlayoffs';
 import Flag from './Flag';
 import { ViewerModal } from './prediction/ViewerFrame';
 import '../styles/custom-prediction-viewer.css';
@@ -141,12 +142,17 @@ export default function CustomPredictionViewer({
                     <section key={index} className="custom-viewer-card">
                       <h4 className="album-sheet-title">
                         {knockoutRounds
-                          ? knockoutRoundTitle(knockoutRounds[index]?.round ?? '')
+                          ? knockoutRoundTitle(
+                              knockoutRounds[index]?.round ?? '',
+                              isSeriesRound(knockoutRounds[index]),
+                            )
                           : getCustomRoundTitle(index, rounds.length)}
                       </h4>
                       <ol className="custom-viewer-list">
                         {round.map((winner, position) => {
                           const tie = knockoutRounds?.[index]?.ties[position];
+                          const bestOf = knockoutRounds?.[index]?.bestOf ?? 0;
+                          const games = prediction.customSeriesGames?.[index]?.[position] ?? null;
                           // En unas eliminatorias sorteadas se dice de qué cruce es cada elección.
                           return tie ? (
                             <li key={position} className="custom-viewer-tie">
@@ -154,6 +160,11 @@ export default function CustomPredictionViewer({
                                 {tie.home ?? '?'} – {tie.away ?? '?'}
                               </span>
                               {teamName(winner, 'Sin elegir u oculto')}
+                              {winner && games != null && bestOf > 1 && (
+                                <span className="custom-viewer-series">
+                                  {seriesScore(games, bestOf)}
+                                </span>
+                              )}
                             </li>
                           ) : (
                             <li key={position}>
