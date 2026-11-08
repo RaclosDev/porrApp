@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
 import { Mail } from 'lucide-react';
 import { useEmailSignIn, type EmailSignInMode } from '../hooks/useGoogleSignIn';
+import { requestPasswordReset } from '../services/api';
 import { errorMessage } from '../utils/errors';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -32,6 +33,7 @@ export default function EmailSignInForm({
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [forgot, setForgot] = useState(false);
   const registering = mode === 'register';
 
   if (!open) {
@@ -45,6 +47,10 @@ export default function EmailSignInForm({
         Continuar con email
       </button>
     );
+  }
+
+  if (forgot) {
+    return <ForgotPasswordForm initialEmail={email} onBack={() => setForgot(false)} />;
   }
 
   const switchMode = (next: EmailSignInMode) => {
@@ -145,9 +151,20 @@ export default function EmailSignInForm({
       </label>
       {registering && (
         <p id={`${id}-password-hint`} className="m-0 text-[0.76rem] text-muted leading-[1.4]">
-          Mínimo {MIN_PASSWORD_LENGTH} caracteres. Guárdala bien: de momento no se puede recuperar
-          por correo.
+          Mínimo {MIN_PASSWORD_LENGTH} caracteres.
         </p>
+      )}
+      {!registering && (
+        <button
+          type="button"
+          className="self-start text-[0.8rem] underline min-h-11 bg-transparent border-0 p-0 text-inherit cursor-pointer"
+          onClick={() => {
+            setError('');
+            setForgot(true);
+          }}
+        >
+          ¿Has olvidado la contraseña?
+        </button>
       )}
       {error && (
         <p role="alert" className="m-0 text-[0.82rem] text-[#b91c1c]">
@@ -160,6 +177,89 @@ export default function EmailSignInForm({
         disabled={busy || !email.trim() || !password}
       >
         {busy ? 'Un momento…' : registering ? 'Crear cuenta' : 'Entrar'}
+      </button>
+    </form>
+  );
+}
+
+interface ForgotPasswordFormProps {
+  initialEmail: string;
+  onBack: () => void;
+}
+
+/** Pide el enlace para cambiar la contraseña. El mensaje es el mismo exista o no la cuenta. */
+function ForgotPasswordForm({ initialEmail, onBack }: ForgotPasswordFormProps) {
+  const id = useId();
+  const [email, setEmail] = useState(initialEmail);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await requestPasswordReset(email.trim());
+      setSent(true);
+    } catch (cause) {
+      setError(errorMessage(cause, 'No se ha podido mandar el enlace.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form
+      className="flex flex-col gap-3 text-left w-full max-w-80 mx-auto"
+      onSubmit={(event) => void submit(event)}
+      aria-labelledby={`${id}-title`}
+      noValidate
+    >
+      <h4 id={`${id}-title`} className="m-0 text-[0.95rem] font-bold text-center">
+        Cambiar la contraseña
+      </h4>
+      {sent ? (
+        <p role="status" className="m-0 text-[0.85rem] leading-[1.45]">
+          Si hay una cuenta con contraseña con ese email, te llegará un enlace para cambiarla.
+          Caduca en 30 minutos; mira también en spam.
+        </p>
+      ) : (
+        <>
+          <p className="m-0 text-[0.82rem] text-muted leading-[1.4]">
+            Te mandamos un enlace a tu email para que pongas una nueva.
+          </p>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-bold" htmlFor={`${id}-email`}>
+            Email
+            <input
+              id={`${id}-email`}
+              type="email"
+              inputMode="email"
+              autoComplete="username"
+              required
+              maxLength={254}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="glass-input font-normal"
+            />
+          </label>
+          {error && (
+            <p role="alert" className="m-0 text-[0.82rem] text-[#b91c1c]">
+              {error}
+            </p>
+          )}
+          <button
+            type="submit"
+            className="glass-btn primary-btn font-bold min-h-11"
+            disabled={busy || !email.trim()}
+          >
+            {busy ? 'Un momento…' : 'Mandar enlace'}
+          </button>
+        </>
+      )}
+      <button type="button" className="glass-btn min-h-11 text-[0.85rem]" onClick={onBack}>
+        Volver
       </button>
     </form>
   );

@@ -375,6 +375,24 @@ export function registerWithPassword(email: string, password: string): Promise<L
   return login('/auth/password/register', { email, password }, 'No se ha podido crear la cuenta');
 }
 
+/** Pide el enlace para cambiar la contraseña. Responde igual exista o no la cuenta. */
+export function requestPasswordReset(email: string): Promise<{ message: string }> {
+  return request(
+    '/auth/password/reset-request',
+    { method: 'POST', json: { email }, fallbackError: 'No se ha podido mandar el enlace' },
+    false,
+  );
+}
+
+/** Pone la contraseña nueva con el token del enlace del correo y guarda el access token. */
+export function resetPassword(token: string, password: string): Promise<LoginResponse> {
+  return login(
+    '/auth/password/reset',
+    { token, password },
+    'No se ha podido cambiar la contraseña',
+  );
+}
+
 /** Inicia sesión con email y contraseña y guarda el access token. */
 export function loginWithPassword(email: string, password: string): Promise<LoginResponse> {
   return login('/auth/password/login', { email, password }, 'No se ha podido iniciar sesión');

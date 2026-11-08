@@ -17,6 +17,8 @@ export {
   loginWithPasskey,
   loginWithPassword,
   registerWithPassword,
+  requestPasswordReset,
+  resetPassword,
 } from './http';
 export * from './endpoints/tournament';
 export * from './endpoints/predictions';

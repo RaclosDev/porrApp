@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { resetAnalyticsConsent } from '../services/analytics';
 
 const CONTACT_EMAIL = 'raclosdev@gmail.com';
-const UPDATED_AT = '6 de noviembre de 2026';
+const UPDATED_AT = '8 de noviembre de 2026';
 
 interface LegalProps {
   kind: 'privacy' | 'legal';
@@ -58,7 +58,8 @@ function PrivacyContent() {
         </li>
         <li>
           Si te registras con email: tu email y un resumen cifrado (hash) de tu contraseña, del que
-          no se puede sacar la contraseña.
+          no se puede sacar la contraseña. Si pides cambiarla, te mandamos a ese email un enlace que
+          caduca a los 30 minutos.
         </li>
         <li>El nombre público y la foto de perfil que elijas.</li>
         <li>
@@ -111,11 +112,12 @@ function PrivacyContent() {
           administrador de la liga.
         </li>
         <li>
-          Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos)
-          y Google (inicio de sesión; su código solo se carga cuando abres el botón de «Continuar
-          con Google») y, solo si aceptas la analítica, Google Analytics, sin compartir los datos
-          con otros servicios de Google ni usarlos para publicidad. Los servicios de avisos push del
-          navegador (Google, Apple o Mozilla) solo reciben el aviso cifrado.
+          Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos),
+          Google (inicio de sesión; su código solo se carga cuando abres el botón de «Continuar con
+          Google»), Resend (solo manda el correo para cambiar la contraseña cuando lo pides) y, solo
+          si aceptas la analítica, Google Analytics, sin compartir los datos con otros servicios de
+          Google ni usarlos para publicidad. Los servicios de avisos push del navegador (Google,
+          Apple o Mozilla) solo reciben el aviso cifrado.
         </li>
         <li>
           Algunos de estos proveedores están en EE. UU. Las transferencias se amparan en el Marco de
