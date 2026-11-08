@@ -503,4 +503,43 @@ class MatchEventProcessorTest {
         assertSame(jaguars, game.getWinnerTeam());
         verify(matchRepository, never()).findByExternalId(nflEvent("Indianapolis Colts at Baltimore Ravens").path("id").asText());
     }
+
+    @Test
+    @DisplayName("Importar el catálogo no cambia el nombre en español de un equipo que ya existe")
+    void importTeamsKeepsTheLocalNameOfAnExistingTeam() throws Exception {
+        when(teamRepository.findByName("España")).thenReturn(Optional.of(spain));
+        when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
+        JsonNode teams = JSON.readTree("""
+                [{"team": {"id": "164", "displayName": "Spain", "abbreviation": "ESP",
+                           "logos": [{"href": "https://example.test/esp.png"}]}}]
+                """);
+        Map<String, Team> imported = new HashMap<>();
+
+        assertEquals(1, processor.importTeams(teams, imported));
+
+        assertEquals("España", spain.getName());
+        assertEquals("Spain", spain.getNameEn());
+        assertEquals("https://example.test/esp.png", spain.getLogoUrl());
+        assertSame(spain, imported.get("España"));
+        assertSame(spain, imported.get("Spain"));
+        assertSame(spain, imported.get("164"));
+    }
+
+    @Test
+    @DisplayName("Un equipo nuevo del catálogo se guarda con su nombre en español")
+    void importTeamsCreatesNewTeamsWithTheirLocalName() throws Exception {
+        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
+        when(teamRepository.findByExternalId("478")).thenReturn(Optional.empty());
+        when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
+        JsonNode teams = JSON.readTree("""
+                [{"team": {"id": "478", "displayName": "France"}}]
+                """);
+        Map<String, Team> imported = new HashMap<>();
+
+        processor.importTeams(teams, imported);
+
+        Team france = imported.get("478");
+        assertEquals("Francia", france.getName());
+        assertEquals("France", france.getNameEn());
+    }
 }
