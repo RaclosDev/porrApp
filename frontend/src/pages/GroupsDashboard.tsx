@@ -5,9 +5,10 @@ import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import type { CredentialResponse } from '@react-oauth/google';
-import GoogleSignInButton from '../components/GoogleSignInButton';
+import SocialSignInButtons from '../components/SocialSignInButtons';
 import EmailSignInForm from '../components/EmailSignInForm';
-import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
+import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
+import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
 import GroupCard from '../components/groups/GroupCard';
 import JoinGroupPanel from '../components/groups/JoinGroupPanel';
@@ -91,22 +92,21 @@ export default function GroupsDashboard() {
     await signInWithGoogle(credentialResponse);
   };
 
+  const appleSignIn = useAppleSignIn();
   const pendingCode = localStorage.getItem('pendingJoinCode');
+  usePasskeyAutoSignIn(!userName && !pendingCode);
   if (pendingCode) return <Navigate to={`/join/${encodeURIComponent(pendingCode)}`} replace />;
 
   if (!userName) {
     return (
       <div className="join-auth-screen paper-panel album-sheet landing-tape text-center p-6">
         <h2 className="poster-title text-2xl mb-5">Inicia sesión para crear o unirte a una liga</h2>
-        <div className="flex justify-center">
-          <GoogleSignInButton
-            onSuccess={handleDirectGoogleLogin}
-            onError={() => toast.error('Inicio de sesión cancelado')}
-            theme="outline"
-            shape="rectangular"
-            text="continue_with"
-          />
-        </div>
+        <SocialSignInButtons
+          onGoogleSuccess={handleDirectGoogleLogin}
+          onGoogleError={() => toast.error('Inicio de sesión cancelado')}
+          onApple={appleSignIn}
+          shape="rectangular"
+        />
         <div className="mt-5">
           <EmailSignInForm />
         </div>

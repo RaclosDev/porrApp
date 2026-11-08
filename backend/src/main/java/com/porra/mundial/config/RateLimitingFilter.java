@@ -72,10 +72,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Login (con Google, contraseña o llave de acceso), registro con contraseña y canje del traspaso de sesión a la app instalada:
+        // Login (con Google, Apple, contraseña o llave de acceso), registro con contraseña y canje del traspaso de sesión a la app instalada:
         // 15 peticiones por minuto e IP.
         if (path != null && (path.startsWith("/api/auth/google/login") || path.startsWith("/api/auth/passkeys/login")
-                || path.startsWith("/api/auth/password/")
+                || path.startsWith("/api/auth/password/") || path.startsWith("/api/auth/apple/login")
                 || path.startsWith("/api/auth/session/handoff"))) {
             String clientIp = getClientIp(request);
             if (!isAllowedAuthLogin(clientIp)) {

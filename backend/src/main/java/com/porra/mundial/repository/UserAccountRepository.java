@@ -16,6 +16,9 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long>,
     /** Usuario de una cuenta de Google, por el claim "sub" de su ID token. */
     Optional<UserAccount> findByGoogleSub(String googleSub);
 
+    /** Usuario de una cuenta de Apple, por el claim "sub" de su ID token. */
+    Optional<UserAccount> findByAppleSub(String appleSub);
+
     /** Implementado en {@link UserAccountRepositoryImpl}: se reutiliza dentro de la transacción. */
     @Override
     Optional<UserAccount> findByGoogleEmail(String googleEmail);

@@ -2,6 +2,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, type NavigateFunction } from 'react-router-dom';
 import type { CredentialResponse } from '@react-oauth/google';
 import {
+  loginWithApple,
   loginWithGoogle,
   loginWithPasskey,
   loginWithPassword,
@@ -13,10 +14,15 @@ import { useAppStore } from '../store/useAppStore';
 import type { LoginResponse } from '../types/api';
 import { errorMessage } from '../utils/errors';
 import { getPasskey, isPasskeyCancel } from '../utils/webauthn';
-import { markPasskeyPromptAnswered } from '../utils/passkeyPrompt';
+import {
+  markDeviceHasPasskey,
+  markPasskeyPromptAnswered,
+  notePasskeyAutoCancel,
+} from '../utils/passkeyPrompt';
+import { isAppleCancel, signInWithApple } from '../utils/appleSignIn';
 
 /**
- * Tras un inicio de sesión correcto (con Google, contraseña o llave de acceso): guarda el access token,
+ * Tras un inicio de sesión correcto (con Google, Apple, contraseña o llave de acceso): guarda el access token,
  * rellena el store y lleva a "Mis ligas" si el usuario aún no ha elegido ninguna.
  */
 function completeSignIn(
@@ -76,18 +82,44 @@ export function useGoogleSignIn({ navigateAfterLogin = true } = {}) {
 export function usePasskeySignIn({ navigateAfterLogin = true } = {}) {
   const navigate = useNavigate();
 
-  return async (): Promise<boolean> => {
+  /** @param automatic la abre la app sola al pedir acceso: entonces no se muestran errores */
+  return async ({ automatic = false } = {}): Promise<boolean> => {
     try {
       const { requestId, options } = await startPasskeyLogin();
       const credential = await getPasskey(options);
       const data = await loginWithPasskey(requestId, credential);
-      // Este dispositivo ya tiene llave: no hace falta ofrecer añadir otra.
+      // Este dispositivo ya tiene llave: no hace falta ofrecer añadir otra, y la próxima vez se
+      // ofrece sola.
       markPasskeyPromptAnswered(data.userId);
+      markDeviceHasPasskey();
       completeSignIn(data, navigate, navigateAfterLogin);
       return true;
     } catch (err) {
-      if (!isPasskeyCancel(err)) {
+      if (isPasskeyCancel(err)) {
+        if (automatic) notePasskeyAutoCancel();
+      } else if (!automatic) {
         toast.error(errorMessage(err, 'No se ha podido entrar con la llave de acceso'));
+      }
+      return false;
+    }
+  };
+}
+
+/**
+ * Inicia sesión con Apple (ventana emergente de Apple). Devuelve si el inicio de sesión ha ido
+ * bien; si la persona cierra la ventana no se muestra ningún error.
+ */
+export function useAppleSignIn({ navigateAfterLogin = true } = {}) {
+  const navigate = useNavigate();
+
+  return async (): Promise<boolean> => {
+    try {
+      const { idToken, name } = await signInWithApple();
+      completeSignIn(await loginWithApple(idToken, name), navigate, navigateAfterLogin);
+      return true;
+    } catch (err) {
+      if (!isAppleCancel(err)) {
+        toast.error(errorMessage(err, 'No se ha podido iniciar sesión con Apple'));
       }
       return false;
     }

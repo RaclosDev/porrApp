@@ -55,6 +55,9 @@ class PasswordAuthServiceTest {
     @MockitoBean
     private GoogleCredentialVerifier googleCredentialVerifier;
 
+    @MockitoBean
+    private AppleCredentialVerifier appleCredentialVerifier;
+
     private SessionTokens register(String email, String password) {
         SessionTokens session = passwordAuthService.register(email, password);
         em.flush();
@@ -142,5 +145,22 @@ class PasswordAuthServiceTest {
         assertThat(sessionService.refresh(squatter.refreshToken())).isEmpty();
         assertThat(sessionService.refresh(owner.refreshToken())).isPresent();
         assertStatus(() -> passwordAuthService.login("victima@gmail.com", "clave-del-intruso"), HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void signingInWithAppleAlsoClaimsAPasswordAccount() {
+        SessionTokens squatter = register("victima@icloud.com", "clave-del-intruso");
+
+        when(appleCredentialVerifier.verify("apple-token"))
+                .thenReturn(new AppleCredentialVerifier.AppleIdentity("apple-victima", "victima@icloud.com", true));
+        SessionTokens owner = authService.loginWithApple("apple-token", null);
+        em.flush();
+        em.clear();
+
+        UserAccount account = userAccountRepository.findById(owner.user().getId()).orElseThrow();
+        assertThat(account.getId()).isEqualTo(squatter.user().getId());
+        assertThat(account.getAppleSub()).isEqualTo("apple-victima");
+        assertThat(account.getPasswordHash()).isNull();
+        assertThat(sessionService.refresh(squatter.refreshToken())).isEmpty();
     }
 }

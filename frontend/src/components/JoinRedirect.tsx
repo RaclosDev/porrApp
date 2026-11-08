@@ -1,12 +1,12 @@
 import PaperLoading from './PaperLoading';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { CredentialResponse } from '@react-oauth/google';
-import GoogleSignInButton from './GoogleSignInButton';
+import SocialSignInButtons from './SocialSignInButtons';
 import EmailSignInForm from './EmailSignInForm';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
-import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
+import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
+import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
 import { fetchGroupInvitationPreview, joinGroup } from '../services/api';
 import { myGroupsQuery } from '../services/queries';
 import { queryKeys } from '../services/queryKeys';
@@ -24,6 +24,7 @@ export default function JoinRedirect() {
   const { isAuthenticated, userName, changeGroup } = useAppContext();
   const signedIn = isAuthenticated && Boolean(userName);
   const signIn = useGoogleSignIn({ navigateAfterLogin: false });
+  const appleSignIn = useAppleSignIn({ navigateAfterLogin: false });
   const joining = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -51,13 +52,14 @@ export default function JoinRedirect() {
     });
   }, [signedIn, preview, membership.data, changeGroup, navigate]);
 
-  const accept = async (credential?: CredentialResponse) => {
+  /** @param signInFirst inicio de sesión que hacer antes de unirse; si falla, no se une */
+  const accept = async (signInFirst?: () => Promise<boolean>) => {
     if (!preview || joining.current) return;
     joining.current = true;
     setBusy(true);
     setError('');
     try {
-      if (credential && !(await signIn(credential))) return;
+      if (signInFirst && !(await signInFirst())) return;
       const group = await joinGroup(normalizedCode);
       await queryClient.cancelQueries({ queryKey: queryKeys.myGroups() });
       queryClient.setQueryData<Group[]>(queryKeys.myGroups(true), (groups = []) => [
@@ -77,6 +79,11 @@ export default function JoinRedirect() {
       setBusy(false);
     }
   };
+
+  // Con llave de acceso en este dispositivo, se pide nada más ver la invitación y después se une.
+  usePasskeyAutoSignIn(Boolean(preview) && !signedIn, () => void accept(), {
+    navigateAfterLogin: false,
+  });
 
   return (
     <section className="max-w-130 mx-auto my-8">
@@ -113,20 +120,17 @@ export default function JoinRedirect() {
             ) : (
               <>
                 <p className="m-0">
-                  Continúa con Google o con tu email para unirte a esta liga. Después te llevaremos
+                  Entra con Google, Apple o tu email para unirte a esta liga. Después te llevaremos
                   directamente a tu porra.
                 </p>
-                <div className="flex justify-center">
-                  <GoogleSignInButton
-                    onSuccess={(response) => accept(response)}
-                    onError={() =>
-                      setError('No se ha podido iniciar sesión. Puedes volver a intentarlo.')
-                    }
-                    theme="outline"
-                    shape="rectangular"
-                    text="continue_with"
-                  />
-                </div>
+                <SocialSignInButtons
+                  onGoogleSuccess={(response) => accept(() => signIn(response))}
+                  onGoogleError={() =>
+                    setError('No se ha podido iniciar sesión. Puedes volver a intentarlo.')
+                  }
+                  onApple={() => accept(appleSignIn)}
+                  shape="rectangular"
+                />
                 <EmailSignInForm
                   initialMode="register"
                   navigateAfterLogin={false}
