@@ -98,6 +98,7 @@ export function useLeagueHomeData(): LeagueHomeData {
   } = useAppContext();
   // En la UFC no hay tabla de equipos (los «equipos» son luchadores): su tabla es la cartelera.
   const ufc = isUfcCompetition(activeCompetitionExternalId);
+  const winLoss = activeCompetitionExternalId === 'nfl';
   // En el tenis, igual: su tabla es el cuadro del torneo.
   const tennis = isTennisCompetition(activeCompetitionExternalId);
   // En unas eliminatorias (Champions…) la fase de liga no se pronostica: la portada enseña los cruces.
@@ -190,7 +191,10 @@ export function useLeagueHomeData(): LeagueHomeData {
                   name: team.teamName,
                   logo: team.teamLogo,
                   detail: `${team.gamesPlayed} PJ`,
-                  value: `${team.points} pts`,
+                  // En la NFL no hay puntos: se enseña el balance de victorias y derrotas.
+                  value: winLoss
+                    ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}`
+                    : `${team.points} pts`,
                 })),
               }
             : null,
@@ -269,6 +273,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     customTeams,
     activeGroupKnockoutDraw,
     activeGroupMultiCompetition,
+    winLoss,
     tennis,
   ]);
 

@@ -35,9 +35,12 @@ public enum Sport {
         return competition != null && ofExternalId(competition.getExternalId()) == MMA;
     }
 
-    /** Si un partido puede acabar en empate y se puede predecir la X. En la NFL, el tenis y la UFC se predice el ganador. */
+    /**
+     * Si un partido puede acabar en empate y se puede predecir la X. Solo en el fútbol: en la NFL, la NBA,
+     * el LoL (una serie siempre la gana alguien), el tenis y la UFC se predice el ganador.
+     */
     public boolean allowsDraws() {
-        return this != AMERICAN_FOOTBALL && this != TENNIS && this != MMA;
+        return this == FOOTBALL;
     }
 
     /** Si el partido admite predecir el empate; sin competición, como en fútbol. */

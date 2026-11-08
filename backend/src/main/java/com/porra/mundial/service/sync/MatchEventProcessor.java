@@ -8,6 +8,7 @@ import com.porra.mundial.config.Constants;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchStatusNormalized;
+import com.porra.mundial.model.Sport;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
@@ -221,7 +222,7 @@ public class MatchEventProcessor {
         // Pretemporada y Pro Bowl no se pronostican.
         if (nfl && NflSchedule.isExcluded(event)) return;
 
-        MatchStatus status = parseStatus(competition);
+        MatchStatus status = parseStatus(competition, playsQuarters(batch.competition));
         Scores scores = parseScores(competition, home, away, homeTeam, awayTeam, status);
         // Una pelea de la UFC va en la ronda de su velada y lleva sus datos de pelea aparte.
         JsonNode fight = event.path("ufc").isObject() ? event.path("ufc") : null;
@@ -247,7 +248,14 @@ public class MatchEventProcessor {
         }
     }
 
-    private MatchStatus parseStatus(JsonNode competition) {
+    /** La NBA y la NFL se juegan por cuartos: su reloj en directo lleva el cuarto. */
+    private static boolean playsQuarters(Competition competition) {
+        if (competition == null || competition.getOwnerLeague() != null) return false;
+        Sport sport = Sport.ofExternalId(competition.getExternalId());
+        return sport == Sport.BASKETBALL || sport == Sport.AMERICAN_FOOTBALL;
+    }
+
+    private MatchStatus parseStatus(JsonNode competition, boolean quarters) {
         JsonNode type = competition.path("status").path("type");
         String name = type.path("name").asText("").toUpperCase(Locale.ROOT).replace("STATUS_", "");
         MatchStatusNormalized normalized = switch (name) {
@@ -260,7 +268,7 @@ public class MatchEventProcessor {
                     type.path("completed").asBoolean(false));
         };
         return new MatchStatus(normalized, normalized == MatchStatusNormalized.FINISHED,
-                competition.path("status").path("displayClock").asText(null));
+                MatchClock.of(competition, normalized, quarters));
     }
 
     private Competitor findCompetitor(JsonNode competitors, String homeAway) {

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
 import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
-import { formatMatchDate } from '../../utils/matchday';
+import { finishedLabel, formatMatchDate } from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
 import { Skeleton } from '../SkeletonBlock';
@@ -299,7 +299,7 @@ export default function LeagueHomeDashboard() {
           !votersMatch
             ? undefined
             : votersMatch.finished
-              ? 'Final'
+              ? finishedLabel(votersMatch.displayClock)
               : isLiveMatch(votersMatch)
                 ? votersMatch.displayClock || 'En directo'
                 : undefined

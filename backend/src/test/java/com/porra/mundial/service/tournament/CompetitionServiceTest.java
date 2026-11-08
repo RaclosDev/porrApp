@@ -135,6 +135,45 @@ class CompetitionServiceTest {
         assertThat(table.get(0).getGoalDiff()).isEqualTo(2);
     }
 
+    @Test
+    void theNflTableJoinsBothConferencesRankedByWinShare() throws Exception {
+        when(competitions.findById(6L)).thenReturn(Optional.of(
+                Competition.builder().id(6L).externalId("nfl").build()));
+        when(espn.fetchStandings("nfl")).thenReturn(tools.jackson.databind.json.JsonMapper.builder().build().readTree("""
+                {"children": [
+                  {"name": "AFC", "standings": {"entries": [
+                    {"team": {"displayName": "Bills"}, "stats": [{"name": "wins", "value": 6}, {"name": "losses", "value": 3},
+                      {"name": "pointDifferential", "value": 40}, {"name": "pointsFor", "value": 230}, {"name": "pointsAgainst", "value": 190}]},
+                    {"team": {"displayName": "Jets"}, "stats": [{"name": "wins", "value": 2}, {"name": "losses", "value": 7}]}
+                  ]}},
+                  {"name": "NFC", "standings": {"entries": [
+                    {"team": {"displayName": "Lions"}, "stats": [{"name": "wins", "value": 8}, {"name": "losses", "value": 1}]},
+                    {"team": {"displayName": "Giants"}, "stats": [{"name": "wins", "value": 6}, {"name": "losses", "value": 2},
+                      {"name": "ties", "value": 1}]}
+                  ]}}
+                ]}"""));
+
+        List<LeagueStandingDTO> table = service.getStandings(6L);
+
+        assertThat(table).extracting(LeagueStandingDTO::getTeamName).containsExactly("Lions", "Giants", "Bills", "Jets");
+        assertThat(table).extracting(LeagueStandingDTO::getRank).containsExactly(1, 2, 3, 4);
+        assertThat(table.get(1).getGamesPlayed()).isEqualTo(9);
+        assertThat(table.get(1).getTies()).isEqualTo(1);
+        assertThat(table.get(2).getPoints()).isEqualTo(6);
+        assertThat(table.get(2).getGoalDiff()).isEqualTo(40);
+        verifyNoInteractions(matches);
+    }
+
+    @Test
+    void aKnockoutCupHasNoTable() throws Exception {
+        when(competitions.findById(7L)).thenReturn(Optional.of(Competition.builder().id(7L)
+                .externalId("esp.copa_del_rey").formatType("TOURNAMENT").build()));
+        when(espn.fetchStandings("esp.copa_del_rey")).thenReturn(null);
+
+        assertThat(service.getStandings(7L)).isEmpty();
+        verifyNoInteractions(matches);
+    }
+
     private static Match result(String home, String away, int homeGoals, int awayGoals) {
         return Match.builder().homeTeam(team(home)).awayTeam(team(away))
                 .homeScore(homeGoals).awayScore(awayGoals).finished(true).build();

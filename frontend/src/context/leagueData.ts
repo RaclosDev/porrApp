@@ -24,6 +24,10 @@ import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
 /** Competición del Mundial en el proveedor: solo sus ligas usan grupos, terceros y pichichi oficiales. */
 const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
 
+/** Competiciones en las que se predice el ganador, sin empate: la NFL, la NBA y el LoL. */
+const isWinnerOnlyCompetition = (externalId: string | null | undefined): boolean =>
+  externalId === 'nfl' || externalId === 'nba' || Boolean(externalId?.startsWith('lol.'));
+
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
 // se unan sin fricción con el tipo de cada consulta.
 const EMPTY_OBJECT = Object.freeze({}) as Record<string, never>;
@@ -157,9 +161,9 @@ function useLeagueState() {
         (groupInfo?.formatType === 'TOURNAMENT' &&
           Boolean(groupInfo?.competitionExternalId) &&
           groupInfo?.competitionExternalId !== WORLD_CUP_EXTERNAL_ID)),
-    // NFL: se predice quién gana, sin empate, así que los votos van en dos columnas.
+    // NFL, NBA y LoL: se predice quién gana, sin empate, así que los votos van en dos columnas.
     activeGroupWinnerOnly:
-      groupInfo?.competitionExternalId === 'nfl' && !groupInfo.multiCompetition,
+      isWinnerOnlyCompetition(groupInfo?.competitionExternalId) && !groupInfo?.multiCompetition,
     // Eliminatorias que se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda.
     activeGroupKnockoutDraw: Boolean(groupInfo?.knockoutDraw),
     // Liga por jornadas que elige sus partidos (de una o de varias competiciones).
