@@ -42,6 +42,7 @@ function OfficialBracket() {
     knockoutDraw: <KnockoutDrawResults />,
     matchday: <Navigate to="/tabla" replace />,
     fightCard: <Navigate to="/tabla" replace />,
+    tennisDraw: <Navigate to="/tabla" replace />,
     // Fórmula 1: los resultados de cada Gran Premio están en el inicio.
     grandPrix: <Navigate to="/" replace />,
   };

@@ -1,5 +1,14 @@
 import type { CreateGroupRequest, CustomLockMode } from '../../services/api';
-import type { CardSegment, Competition, EventSeries, PoolFormat, Sport } from '../../types/api';
+import type {
+  CardSegment,
+  Competition,
+  EventSeries,
+  PoolFormat,
+  Sport,
+  TennisInfo,
+  TennisScope,
+  TennisTour,
+} from '../../types/api';
 import { CARD_SEGMENTS } from '../../utils/fights';
 import {
   SCORING_MAX_POINTS,
@@ -94,6 +103,64 @@ export const TENNIS_DRAW_LABELS: Record<TennisDraw, string> = {
   BOTH: 'Los dos',
 };
 
+/** Tenis: qué torneos sigue una liga de varios (sin alcance, un solo torneo). */
+export const TENNIS_SCOPE_LABELS: Record<TennisScope, string> = {
+  ALL: 'Todos los torneos',
+  GRAND_SLAMS: 'Solo los Grand Slams',
+  MASTERS_1000: 'Solo los Masters 1000 y las ATP Finals',
+};
+
+/** Tenis con varios torneos: los cuadros que sigue, por circuito. */
+export const TENNIS_TOUR_LABELS: Record<TennisDraw, string> = {
+  BOTH: 'ATP y WTA',
+  MEN: 'Solo ATP',
+  WOMEN: 'Solo WTA',
+};
+
+const TENNIS_SCOPE_LEVELS: Record<TennisScope, TennisInfo['level'][]> = {
+  ALL: ['GRAND_SLAM', 'MASTERS_1000', 'FINALS'],
+  GRAND_SLAMS: ['GRAND_SLAM'],
+  MASTERS_1000: ['MASTERS_1000', 'FINALS'],
+};
+
+const TENNIS_TOUR: Record<TennisDraw, TennisTour> = {
+  MEN: 'ATP',
+  WOMEN: 'WTA',
+  BOTH: 'BOTH',
+};
+
+const startTime = (competition: Competition) => {
+  const time = Date.parse(competition.tennis?.startDate ?? '');
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+};
+
+/**
+ * Cuadros de tenis de un alcance y un cuadro, el próximo primero (los terminados al final): el primero es
+ * la competición principal de la liga.
+ */
+export function tennisScopeCompetitions(
+  ctx: DraftContext,
+  scope: TennisScope,
+  draw: 'MEN' | 'WOMEN',
+): Competition[] {
+  return ctx.competitions
+    .filter(
+      (item) =>
+        item.tennis &&
+        item.tennis.draw === draw &&
+        TENNIS_SCOPE_LEVELS[scope].includes(item.tennis.level),
+    )
+    .sort((a, b) => Number(a.finished) - Number(b.finished) || startTime(a) - startTime(b));
+}
+
+/** Cuadros que se pueden elegir en una liga de varios torneos: los dos si alguno tiene femenino. */
+export function tennisScopeDrawChoices(ctx: DraftContext, scope: TennisScope): TennisDraw[] {
+  const men = tennisScopeCompetitions(ctx, scope, 'MEN').length > 0;
+  const women = tennisScopeCompetitions(ctx, scope, 'WOMEN').length > 0;
+  if (men && women) return ['MEN', 'WOMEN', 'BOTH'];
+  return women ? ['WOMEN'] : ['MEN'];
+}
+
 /** Cuadro de tenis de un torneo (por su id en ESPN), si existe y no ha terminado. */
 const tennisCompetition = (
   ctx: DraftContext,
@@ -152,6 +219,8 @@ export interface LeagueDraft {
   matchesCompetitionId: number | null;
   /** Tenis: qué cuadros del torneo entran (la competición elegida es la masculina si son los dos). */
   tennisDraw: TennisDraw;
+  /** Tenis: la liga sigue varios torneos (todos, Grand Slams o Masters 1000); null para uno solo. */
+  tennisScope: TennisScope | null;
   /** UFC con todas las veladas: solo las numeradas o solo las Fight Night; null para todas. */
   eventSeries: EventSeries | null;
   /** UFC: partes de la cartelera de cada velada que entran (las tres, la velada completa). */
@@ -181,6 +250,7 @@ export const emptyDraft = (): LeagueDraft => ({
   matches: ALL_MATCHES,
   matchesCompetitionId: null,
   tennisDraw: 'MEN',
+  tennisScope: null,
   eventSeries: null,
   cardSegments: [...CARD_SEGMENTS],
   entryFee: false,
@@ -399,6 +469,20 @@ export const matchSelectionApplies = (draft: LeagueDraft, ctx: DraftContext) =>
  * femenina entra como segunda competición de la liga.
  */
 function normalizeTennis(next: LeagueDraft, ctx: DraftContext) {
+  if (next.custom) next.tennisScope = null;
+  if (next.tennisScope) {
+    // Varios torneos: la principal es el próximo cuadro del alcance (el masculino si son los dos).
+    const choices = tennisScopeDrawChoices(ctx, next.tennisScope);
+    if (!choices.includes(next.tennisDraw)) next.tennisDraw = choices[0];
+    const primary = tennisScopeCompetitions(
+      ctx,
+      next.tennisScope,
+      next.tennisDraw === 'WOMEN' ? 'WOMEN' : 'MEN',
+    )[0];
+    next.competitionId = primary?.id ?? null;
+    next.poolFormat = 'MATCH_DAY';
+    return;
+  }
   const tennis = ctx.competitions.find((item) => item.id === next.competitionId)?.tennis;
   if (!tennis) return;
   const choices = tennisDrawChoices(ctx, tennis.tournamentId);
@@ -430,8 +514,9 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   if (next.sport == null && chosen) next.sport = competitionSport(chosen);
   // Sin competiciones oficiales del deporte, solo cabe una personalizada.
   if (next.sport === 'OTHER') next.custom = true;
-  if (chosen && (competitionSport(chosen) !== next.sport || chosen.finished))
+  if (chosen && (competitionSport(chosen) !== next.sport || (chosen.finished && !next.tennisScope)))
     next.competitionId = null;
+  if (next.sport !== 'TENNIS') next.tennisScope = null;
   if (next.custom) next.competitionId = null;
   if (next.sport === 'TENNIS') normalizeTennis(next, ctx);
   if (next.poolFormat && formatUnavailableReason(next.poolFormat, next, ctx))
@@ -611,11 +696,18 @@ export function buildCreateRequest(draft: LeagueDraft, ctx: DraftContext): Creat
     if (cardSegments) request.matchSelection.cardSegments = cardSegments;
   }
   const women =
-    competition?.tennis && draft.tennisDraw === 'BOTH'
+    competition?.tennis && draft.tennisDraw === 'BOTH' && !draft.tennisScope
       ? tennisCompetition(ctx, competition.tennis.tournamentId, 'WOMEN')
       : undefined;
   if (competition && women) {
     request.matchSelection = { mode: 'ALL', competitionIds: [competition.id, women.id] };
+  }
+  if (competition?.tennis && draft.tennisScope) {
+    request.matchSelection = {
+      mode: 'ALL',
+      tennisScope: draft.tennisScope,
+      tennisTour: TENNIS_TOUR[draft.tennisDraw],
+    };
   }
   const scoring = customScoringRules(draft);
   if (scoring) request.scoring = scoring;
@@ -707,6 +799,9 @@ export function readStoredDraft(): LeagueDraft {
       matches,
       matchesCompetitionId: pick('matchesCompetitionId', (value) => typeof value === 'number'),
       tennisDraw: pick('tennisDraw', (value) => ['MEN', 'WOMEN', 'BOTH'].includes(value as string)),
+      tennisScope: pick('tennisScope', (value) =>
+        ['ALL', 'GRAND_SLAMS', 'MASTERS_1000'].includes(value as string),
+      ),
       eventSeries: pick('eventSeries', (value) =>
         ['NUMBERED', 'FIGHT_NIGHT'].includes(value as string),
       ),

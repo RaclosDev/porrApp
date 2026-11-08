@@ -32,6 +32,7 @@ const MY_LEAGUES: LeagueNavItem = { to: '/mis-ligas', label: 'Mis Ligas', icon: 
 const MATCHDAYS: LeagueNavItem = { to: '/jornadas', label: 'Jornadas', icon: Calendar };
 const TABLE: LeagueNavItem = { to: '/tabla', label: 'Tabla', icon: ListOrdered };
 const FIGHT_CARD: LeagueNavItem = { to: '/tabla', label: 'Cartelera', icon: ListOrdered };
+const TENNIS_DRAW: LeagueNavItem = { to: '/tabla', label: 'Cuadro', icon: ListOrdered };
 const WORLD_CUP_GROUPS: LeagueNavItem = {
   to: '/grupos',
   label: 'Grupos',
@@ -64,6 +65,7 @@ const LEAGUE_NAV: Record<LeagueKind, readonly LeagueNavItem[] | null> = {
   knockoutDraw: BRACKET_NAV,
   matchday: MATCHDAY_NAV,
   fightCard: [HOME, MATCHDAYS, RANKING, FIGHT_CARD, MY_LEAGUES],
+  tennisDraw: [HOME, MATCHDAYS, RANKING, TENNIS_DRAW, MY_LEAGUES],
   grandPrix: [GRAND_PRIX, RANKING, MY_LEAGUES],
 };
 

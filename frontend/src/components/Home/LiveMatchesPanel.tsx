@@ -47,7 +47,8 @@ function LiveMatchesPanel({
           </div>
 
           <div className="last-match-center flex flex-col items-center">
-            {hasStarted && m.homeScore !== null && m.awayScore !== null ? (
+            {/* Una pelea de la UFC no tiene marcador. */}
+            {hasStarted && !m.fight && m.homeScore !== null && m.awayScore !== null ? (
               <span className="last-match-score">
                 {m.homeScore} - {m.awayScore}
               </span>

@@ -103,6 +103,7 @@ function Search() {
     worldCup: <WorldCupSearch />,
     matchday: <Navigate to="/stats" replace />,
     fightCard: <Navigate to="/stats" replace />,
+    tennisDraw: <Navigate to="/stats" replace />,
     customBracket: <Navigate to="/" replace />,
     ownBracket: <Navigate to="/" replace />,
     knockoutDraw: <Navigate to="/" replace />,

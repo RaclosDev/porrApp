@@ -32,7 +32,8 @@ import java.util.Objects;
  * {@link RaceDriver}. Al acabar la carrera guarda podio, pole y vuelta rápida, puntúa y avisa.
  * <ul>
  *   <li>{@link #importSeason}: la temporada entera (al crear una liga y en la barrida diaria de las 5:00).</li>
- *   <li>{@link #syncCurrent}: el Gran Premio en curso o el siguiente (sincronización cada 15 minutos).</li>
+ *   <li>{@link #sync}: sincronización cada 15 minutos; el Gran Premio en curso o el siguiente y, si falta,
+ *   la temporada entera.</li>
  * </ul>
  */
 @Service
@@ -56,15 +57,52 @@ public class FormulaOneSyncService {
     private final GrandPrixScoringService scoringService;
     private final GrandPrixResultNotifier resultNotifier;
 
+    /**
+     * Cada cuánto la sincronización periódica vuelve a cargar la temporada entera aunque ya la tenga
+     * (cambios de calendario); entre medias solo mira el Gran Premio en curso.
+     */
+    static final Duration SEASON_REFRESH = Duration.ofHours(6);
+
+    /**
+     * Última carga completa de la temporada, o null si no la hay en este proceso o la última falló. La
+     * sincronización del Gran Premio en curso guarda ese Gran Premio, así que la competición nunca está
+     * vacía y no se puede usar «no tiene partidos» para saber si falta el calendario.
+     */
+    private volatile Instant seasonLoadedAt;
+
     /** Lo que ha cambiado en una pasada. */
     public record SyncResult(int grandsPrix, int updated, boolean resultsChanged) {}
 
+    /**
+     * Pasada de la sincronización periódica: la temporada entera si falta (al arrancar, tras una carga
+     * fallida o cada {@link #SEASON_REFRESH}) y, si no, solo el Gran Premio en curso.
+     */
+    public SyncResult sync(Competition competition) throws Exception {
+        Instant loaded = seasonLoadedAt;
+        if (loaded == null || loaded.isBefore(Instant.now().minus(SEASON_REFRESH))) {
+            return importSeason(competition);
+        }
+        return syncCurrent(competition);
+    }
+
     /** Temporada en curso y, desde noviembre, la siguiente si ESPN ya la tiene. */
     public synchronized SyncResult importSeason(Competition competition) throws Exception {
-        if (!espn.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
+        if (!espn.isAvailable()) {
+            seasonLoadedAt = null;
+            throw new IllegalStateException("Circuit breaker abierto");
+        }
         int year = LocalDate.now(AppTime.ZONE).getYear();
         Totals totals = new Totals();
-        process(competition, espn.seasonEvents(year), totals);
+        JsonNode season;
+        try {
+            season = espn.seasonEvents(year);
+        } catch (Exception error) {
+            // Sin calendario: la siguiente pasada periódica lo vuelve a intentar.
+            seasonLoadedAt = null;
+            throw error;
+        }
+        process(competition, season, totals);
+        seasonLoadedAt = Instant.now();
         if (LocalDate.now(AppTime.ZONE).getMonthValue() >= 11) {
             try {
                 process(competition, espn.seasonEvents(year + 1), totals);

@@ -17,6 +17,7 @@ const PROGRESSIVE_LOCK: Record<LeagueKind, boolean> = {
   knockoutDraw: false,
   matchday: false,
   fightCard: false,
+  tennisDraw: false,
   grandPrix: false,
   loading: false,
   error: false,

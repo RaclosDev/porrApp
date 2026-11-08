@@ -1,4 +1,5 @@
 import type { Group, PoolFormat } from '../types/api';
+import { isTennisCompetition } from '../utils/tennisDraw';
 
 /**
  * Clase de la liga activa: decide qué enseña cada pantalla. Se calcula solo aquí (`leagueKindOf`) y
@@ -12,8 +13,9 @@ import type { Group, PoolFormat } from '../types/api';
  * - `customBracket`: cuadro de una competición personalizada de la liga.
  * - `ownBracket`: cuadro fijo de un torneo oficial que no es el Mundial (Worlds de LoL…).
  * - `knockoutDraw`: eliminatorias sorteadas ronda a ronda (Champions, Copa del Rey, playoffs de la NBA).
- * - `matchday`: partido a partido por jornadas o semanas, también superviviente, tenis y varias competiciones.
+ * - `matchday`: partido a partido por jornadas o semanas, también superviviente y varias competiciones.
  * - `fightCard`: velada a velada (UFC); su tabla es la cartelera.
+ * - `tennisDraw`: partido a partido de tenis; su tabla es el cuadro del torneo.
  * - `grandPrix`: Gran Premio a Gran Premio (Fórmula 1).
  * - `unknown`: una combinación que esta versión no reconoce; no se enseña nada de otra clase.
  */
@@ -27,6 +29,7 @@ export type LeagueKind =
   | 'knockoutDraw'
   | 'matchday'
   | 'fightCard'
+  | 'tennisDraw'
   | 'grandPrix'
   | 'unknown';
 
@@ -40,6 +43,7 @@ const KINDS: Record<LeagueKind, true> = {
   knockoutDraw: true,
   matchday: true,
   fightCard: true,
+  tennisDraw: true,
   grandPrix: true,
   unknown: true,
 };
@@ -95,7 +99,8 @@ export function leagueKindOf({ hasLeague, loading, error, league }: LeagueKindIn
       return 'grandPrix';
     case 'MATCH_DAY':
     case 'SURVIVOR':
-      return league.formatType === 'EVENTS' ? 'fightCard' : 'matchday';
+      if (league.formatType === 'EVENTS') return 'fightCard';
+      return isTennisCompetition(league.competitionExternalId) ? 'tennisDraw' : 'matchday';
     case 'FULL_BRACKET':
     case 'KNOCKOUTS_ONLY':
       return bracketKind(league);
@@ -115,6 +120,7 @@ export const BRACKET_KINDS = {
   knockoutDraw: true,
   matchday: false,
   fightCard: false,
+  tennisDraw: false,
   grandPrix: false,
   loading: false,
   error: false,
@@ -126,6 +132,7 @@ export const BRACKET_KINDS = {
 export const MATCH_KINDS = {
   matchday: true,
   fightCard: true,
+  tennisDraw: true,
   worldCup: false,
   customBracket: false,
   ownBracket: false,

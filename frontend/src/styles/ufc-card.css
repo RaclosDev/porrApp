@@ -168,8 +168,13 @@
     border-right: 3px solid var(--corner-blue);
   }
 
-  .ufc-fighter.is-loser {
+  /* Atenuado sin tocar la insignia L, que debe seguir legible. */
+  .ufc-fighter.is-loser .ufc-fighter-photo {
     opacity: 0.55;
+  }
+
+  .ufc-fighter.is-loser .ufc-fighter-name {
+    color: var(--text-muted);
   }
 
   .ufc-fighter-photo {
@@ -208,31 +213,12 @@
     justify-content: flex-end;
   }
 
-  .ufc-fighter-win {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    padding: 1px 6px;
-    border-radius: 999px;
-    background: rgba(22, 101, 52, 0.12);
-    color: var(--hit);
-    font-size: 0.68rem;
-    font-weight: 800;
-  }
-
   .ufc-fighter-record {
     margin-top: 2px;
     font-size: 0.75rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--text-muted);
-  }
-
-  .ufc-bout-result {
-    margin: 10px 0 0;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-main);
   }
 
   .ufc-split {

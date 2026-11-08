@@ -2,6 +2,7 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.MatchRadarDTO;
 import com.porra.mundial.dto.MatchResponseDTO;
+import com.porra.mundial.model.Fight;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.service.tournament.MatchService;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /** Partidos sincronizados de ESPN (solo lectura). */
 @RestController
@@ -41,6 +43,9 @@ public class MatchController {
     }
 
     private List<MatchResponseDTO> publicDtos(List<Match> matches) {
-        return matchService.publicOnly(matches).stream().map(MatchResponseDTO::fromEntity).toList();
+        List<Match> visible = matchService.publicOnly(matches);
+        // Las peleas de la UFC llevan su resultado (ganador, método, asalto y tiempo), no un marcador.
+        Map<Long, Fight> fights = matchService.fightsOf(visible);
+        return visible.stream().map(m -> MatchResponseDTO.fromEntity(m, fights.get(m.getId()))).toList();
     }
 }

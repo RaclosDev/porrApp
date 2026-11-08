@@ -48,6 +48,11 @@ const EXAMPLES: Record<LeagueKind, LeagueKindInput> = {
     formatType: 'EVENTS',
     competitionExternalId: 'mma.ufc',
   }),
+  tennisDraw: ready({
+    poolFormat: 'MATCH_DAY',
+    formatType: 'TOURNAMENT',
+    competitionExternalId: 'tennis.atp.1',
+  }),
   grandPrix: ready({ poolFormat: 'GRAND_PRIX', formatType: 'RACE', competitionExternalId: 'f1' }),
   unknown: ready({
     poolFormat: null,
@@ -69,9 +74,13 @@ describe('leagueKindOf', () => {
     ],
     ['el superviviente', { poolFormat: 'SURVIVOR', formatType: 'LEAGUE' }, 'matchday'],
     [
-      'un torneo de tenis',
-      { poolFormat: 'MATCH_DAY', formatType: 'TOURNAMENT', competitionExternalId: 'tennis.atp.1' },
-      'matchday',
+      'el cuadro femenino de un torneo de tenis',
+      {
+        poolFormat: 'MATCH_DAY',
+        formatType: 'TOURNAMENT',
+        competitionExternalId: 'tennis.wta.189',
+      },
+      'tennisDraw',
     ],
     [
       'una liga de varias competiciones',

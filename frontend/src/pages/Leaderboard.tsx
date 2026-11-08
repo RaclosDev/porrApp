@@ -54,6 +54,7 @@ const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
   knockoutDraw: OWN_BRACKET_RANKING,
   matchday: MATCHDAY_RANKING,
   fightCard: MATCHDAY_RANKING,
+  tennisDraw: MATCHDAY_RANKING,
   // En una liga de Fórmula 1 las predicciones de cada Gran Premio están en el inicio.
   grandPrix: { ...MATCHDAY_RANKING, openRow: '/' },
   loading: NO_RANKING,

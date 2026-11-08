@@ -9,8 +9,9 @@ import { queryKeys } from '../services/queryKeys';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
+import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
 
-/** «Tabla»: la clasificación de la competición o, en la UFC, la cartelera de cada velada. */
+/** «Tabla»: la clasificación de la competición; en la UFC, la cartelera, y en el tenis, el cuadro. */
 export default function LeagueStandings() {
   const { leagueKind, groupError } = useAppContext();
   const views: Record<LeagueKind, ReactNode> = {
@@ -21,6 +22,8 @@ export default function LeagueStandings() {
     matchday: <CompetitionTable />,
     // En la UFC no hay clasificación de equipos: la tabla es la cartelera de cada velada.
     fightCard: <UfcCardBoard />,
+    // En el tenis tampoco: los «equipos» son jugadores y la tabla es el cuadro del torneo.
+    tennisDraw: <TennisDrawBoard />,
     worldCup: <Navigate to="/bracket" replace />,
     customBracket: <Navigate to="/bracket" replace />,
     ownBracket: <Navigate to="/bracket" replace />,

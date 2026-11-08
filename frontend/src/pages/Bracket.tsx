@@ -36,6 +36,7 @@ function Bracket() {
     knockoutDraw: <KnockoutDrawPredictor />,
     matchday: <Navigate to="/jornadas" replace />,
     fightCard: <Navigate to="/jornadas" replace />,
+    tennisDraw: <Navigate to="/jornadas" replace />,
     // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
     grandPrix: <Navigate to="/" replace />,
   };

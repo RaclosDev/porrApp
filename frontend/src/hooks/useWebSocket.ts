@@ -16,6 +16,8 @@ const SCORE_DEPENDENT_KEYS = [
   queryKeys.competitionStandings(),
   queryKeys.worldCupOfficialBracket(),
   queryKeys.predictionScore(),
+  // Fórmula 1: los Grandes Premios se cargan en segundo plano y los resultados llegan con la sincronización.
+  queryKeys.grandPrix(),
 ];
 
 const DATA_DEPENDENT_KEYS = [

@@ -1,5 +1,7 @@
 package com.porra.mundial.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.porra.mundial.model.Fight;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.model.Match;
 
@@ -31,7 +33,9 @@ public record MatchResponseDTO(
         String winner,
         String displayClock,
         boolean isStartingSoon,
-        String status
+        String status,
+        /** Datos de pelea; solo en los partidos de la UFC. */
+        @JsonInclude(JsonInclude.Include.NON_NULL) FightInfoDTO fight
 ) {
     /**
      * Convierte una entidad de base de datos Match a este DTO optimizado para JSON.
@@ -41,6 +45,11 @@ public record MatchResponseDTO(
      * @return El DTO poblado.
      */
     public static MatchResponseDTO fromEntity(Match m) {
+        return fromEntity(m, null);
+    }
+
+    /** Igual, con los datos de pelea si es un combate de la UFC. */
+    public static MatchResponseDTO fromEntity(Match m, Fight fight) {
         boolean isStartingSoon = false;
         if (m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())) {
             long diffMs = java.time.Duration.between(Instant.now(), m.getMatchDate()).toMillis();
@@ -71,7 +80,8 @@ public record MatchResponseDTO(
                 m.getWinnerTeam() != null ? m.getWinnerTeam().getName() : null,
                 m.getDisplayClock(),
                 isStartingSoon,
-                Boolean.TRUE.equals(m.getFinished()) ? "FINISHED" : m.getStatus() != null ? m.getStatus().name() : "SCHEDULED"
+                Boolean.TRUE.equals(m.getFinished()) ? "FINISHED" : m.getStatus() != null ? m.getStatus().name() : "SCHEDULED",
+                FightInfoDTO.of(fight, m)
         );
     }
 }

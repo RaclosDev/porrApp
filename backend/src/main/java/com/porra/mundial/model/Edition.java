@@ -101,6 +101,19 @@ public class Edition {
     private java.util.Set<CardSegment> cardSegments;
 
     /**
+     * Tenis: torneos que sigue una liga de varios (todos, Grand Slams o Masters 1000), cuyos cuadros guarda
+     * {@code edition_competitions}; null en una liga de un solo torneo y en el resto de deportes.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tennis_scope", length = 20)
+    private TennisScope tennisScope;
+
+    /** Tenis con {@link #tennisScope}: cuadros que sigue (ATP, WTA o los dos). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tennis_tour", length = 10)
+    private TennisTour tennisTour;
+
+    /**
      * Si la liga junta partidos de varias competiciones oficiales (las guarda {@code edition_competitions};
      * {@link #competition} es la principal). Sus jornadas son semanas de lunes a domingo.
      */

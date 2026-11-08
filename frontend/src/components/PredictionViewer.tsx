@@ -53,6 +53,7 @@ function PredictionViewer(props: PredictionViewerProps) {
     knockoutDraw: ownBracket,
     matchday: null,
     fightCard: null,
+    tennisDraw: null,
     grandPrix: null,
     loading: null,
     error: null,

@@ -45,6 +45,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     knockoutDraw: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
     matchday: <LeagueHomeDashboard />,
     fightCard: <LeagueHomeDashboard />,
+    tennisDraw: <LeagueHomeDashboard />,
     // Fórmula 1: el inicio son los Grandes Premios.
     grandPrix: <GrandPrixPage />,
   };

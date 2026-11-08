@@ -34,6 +34,7 @@ function Stats() {
     worldCup: <WorldCupStatsPage />,
     matchday: <MatchdayStatsPage />,
     fightCard: <MatchdayStatsPage />,
+    tennisDraw: <MatchdayStatsPage />,
     // Sin estadísticas propias: los cuadros propios, las eliminatorias sorteadas y la Fórmula 1.
     customBracket: <Navigate to="/" replace />,
     ownBracket: <Navigate to="/" replace />,

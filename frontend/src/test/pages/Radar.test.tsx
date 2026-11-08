@@ -64,4 +64,40 @@ describe('Radar', () => {
       'is-loser',
     );
   });
+
+  it('una pelea de la UFC lleva W y L en vez de marcador, y cómo acabó', () => {
+    const fight = {
+      ...match(7, 'Keiichiro Nakamura', 'Ollie Schmid', '2030-03-01T23:00:00', 0, 1),
+      finished: true,
+      fight: {
+        eventId: '1',
+        eventName: 'UFC Fight Night',
+        segment: 'PRELIMS',
+        order: 9,
+        weightClass: 'Featherweight',
+        scheduledRounds: 3,
+        homeRecord: null,
+        awayRecord: null,
+        resultMethod: 'SUBMISSION',
+        resultDetail: 'Submission - Rear Naked Choke',
+        resultRound: 2,
+        resultClock: '3:12',
+        winner: '2',
+      },
+    } as Match;
+    render(<RadarView matchRadar={radar({ last: [fight] })} />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Resultados' }));
+    const panel = screen.getByRole('tabpanel', { name: 'Resultados' });
+    expect(within(panel).queryByText('0')).not.toBeInTheDocument();
+    expect(within(panel).queryByText('1')).not.toBeInTheDocument();
+    expect(within(panel).getByTitle('Victoria')).toHaveTextContent('W');
+    expect(within(panel).getByTitle('Derrota')).toHaveTextContent('L');
+    expect(within(panel).getByText('Ollie Schmid').closest('.radar-match-team')).toHaveClass(
+      'is-winner',
+    );
+    expect(within(panel).getByText('Sumisión (mataleón)')).toBeInTheDocument();
+    expect(within(panel).getByText('Asalto 2')).toBeInTheDocument();
+    expect(within(panel).getByText('3:12')).toBeInTheDocument();
+  });
 });

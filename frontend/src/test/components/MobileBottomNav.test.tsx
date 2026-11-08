@@ -30,6 +30,7 @@ const EXPECTED: Record<LeagueKind, string[] | null> = {
   knockoutDraw: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
   matchday: ['Inicio', 'Jornadas', 'Ranking', 'Tabla', 'Mis Ligas'],
   fightCard: ['Inicio', 'Jornadas', 'Ranking', 'Cartelera', 'Mis Ligas'],
+  tennisDraw: ['Inicio', 'Jornadas', 'Ranking', 'Cuadro', 'Mis Ligas'],
   grandPrix: ['Carreras', 'Ranking', 'Mis Ligas'],
 };
 

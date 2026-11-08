@@ -8,10 +8,11 @@ import {
 } from '../../utils/matchday';
 import {
   FIGHT_METHOD_LABELS,
-  fightResultText,
+  fightOutcomes,
   segmentLabel,
   weightClassLabel,
 } from '../../utils/fights';
+import { FightBadge, FightResultLine } from '../fight/FightResult';
 
 interface FightCardProps {
   fixture: MatchdayFixture;
@@ -63,6 +64,7 @@ export default function FightCard({
     },
   ];
   const methodHit = fixture.finished && method !== '' && fight.resultMethod === method;
+  const outcomes = cancelled ? null : fightOutcomes(fight, fixture.finished);
 
   const pick = (nextSign: '1' | '2', nextMethod: FightMethod | '' = method, nextRound = round) =>
     onPick(fixture.matchId, withFightPick(nextSign, nextMethod, nextRound));
@@ -127,6 +129,7 @@ export default function FightCard({
               aria-pressed={isSelected}
               aria-label={`Gana ${name}${record ? ` (${record})` : ''}${isResult ? ', ganador' : ''}`}
             >
+              {outcomes && <FightBadge outcome={s === '1' ? outcomes.home : outcomes.away} />}
               {photo ? (
                 <img className="md-fight-photo" src={photo} alt="" loading="lazy" />
               ) : (
@@ -200,10 +203,10 @@ export default function FightCard({
         </>
       )}
 
-      {(fixture.finished || cancelled) && (
-        <p className="md-fight-result">
-          {cancelled ? fixture.lockReason : fightResultText(fixture)}
-        </p>
+      {cancelled ? (
+        <p className="md-fight-result">{fixture.lockReason}</p>
+      ) : (
+        fixture.finished && <FightResultLine fight={fight} className="md-fight-outcome" />
       )}
 
       {showPoints && (

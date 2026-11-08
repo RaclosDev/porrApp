@@ -52,6 +52,8 @@ describe('useWebSocket', () => {
       expect(invalidated).toContainEqual(['worldCupOfficialBracket']);
       expect(invalidated).toContainEqual(['matchFriendPredictions']);
       expect(invalidated).toContainEqual(['leaderboard']);
+      // Los Grandes Premios de la Fórmula 1 llegan en segundo plano tras crear la liga.
+      expect(invalidated).toContainEqual(['grandPrix']);
       for (const ghost of ['myPredictions', 'missingRoundUsers', 'matchRadar']) {
         expect(invalidated).not.toContainEqual([ghost]);
       }
