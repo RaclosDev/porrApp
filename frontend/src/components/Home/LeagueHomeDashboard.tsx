@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
-import { isLiveMatch } from '../../utils/homeMatches';
+import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
 import { formatMatchDate } from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import Flag from '../Flag';
@@ -109,7 +109,7 @@ function MatchCard({
   twoWay?: boolean;
 }) {
   const isLive = isLiveMatch(match);
-  const hasScore = match.home_score != null && match.away_score != null;
+  const hasScore = hasShownScore(match);
   const home = match.home || 'Local';
   const away = match.away || 'Visitante';
   const matchName = `${home} - ${away}`;

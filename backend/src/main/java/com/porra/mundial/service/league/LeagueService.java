@@ -296,7 +296,14 @@ public class LeagueService {
     @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "userGroups", key = "#email")
     public List<LeagueResponseDTO> getUserLeagueDTOs(String email) {
-        List<League> groups = getUserLeagues(email);
+        UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
+        if (user == null) return List.of();
+        java.util.Map<Long, Instant> joinedAt = new java.util.HashMap<>();
+        for (Membership m : membershipRepository.findByUserId(user.getId())) {
+            joinedAt.merge(m.getId().getLeagueId(), m.getJoinedAt() != null ? m.getJoinedAt() : Instant.EPOCH,
+                    (a, b) -> a.isBefore(b) ? a : b);
+        }
+        List<League> groups = leagueRepository.findAllById(joinedAt.keySet());
         if (groups.isEmpty()) return List.of();
 
         List<Long> groupIds = groups.stream().map(League::getId).collect(Collectors.toList());
@@ -306,7 +313,12 @@ public class LeagueService {
                 .collect(Collectors.toMap(e -> e.getLeague().getId(), e -> e, (e1, e2) -> e1));
 
         return groups.stream()
-                .map(g -> LeagueResponseDTO.of(g, editionMap.get(g.getId()), true))
+                .map(g -> {
+                    LeagueResponseDTO dto = LeagueResponseDTO.of(g, editionMap.get(g.getId()), true);
+                    Instant joined = joinedAt.get(g.getId());
+                    dto.setJoinedAt(Instant.EPOCH.equals(joined) ? null : joined);
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 

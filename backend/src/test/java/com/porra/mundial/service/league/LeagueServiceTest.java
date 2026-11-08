@@ -91,6 +91,25 @@ class LeagueServiceTest {
     }
 
     @Test
+    @DisplayName("Mis ligas incluyen cuándo se unió el usuario a cada una")
+    void myLeaguesIncludeWhenTheUserJoined() {
+        java.time.Instant joined = java.time.Instant.parse("2026-11-01T10:00:00Z");
+        Membership membership = new Membership();
+        membership.setId(new Membership.MembershipId(2L, 10L));
+        membership.setJoinedAt(joined);
+        when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(membershipRepository.findByUserId(2L)).thenReturn(List.of(membership));
+        when(leagueRepository.findAllById(java.util.Set.of(10L))).thenReturn(List.of(league));
+        when(editionRepository.findByLeagueIdInAndStatus(List.of(10L), "ACTIVE")).thenReturn(List.of());
+
+        var mine = leagueService.getUserLeagueDTOs("member@test.com");
+
+        assertEquals(1, mine.size());
+        assertEquals(10L, mine.get(0).getId());
+        assertEquals(joined, mine.get(0).getJoinedAt());
+    }
+
+    @Test
     @DisplayName("createLeague con una clave ya usada devuelve la liga existente sin crear otra")
     void createGroupWithRepeatedKeyReturnsExistingLeague() {
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));

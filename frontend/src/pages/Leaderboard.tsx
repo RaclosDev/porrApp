@@ -1,5 +1,6 @@
 import React, { useState, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { NoLeagueState } from '../components/NoLeagueState';
 import { BarChart3, Search, Share2 } from 'lucide-react';
 import MatchdayPodium from '../components/MatchdayPodium';
 import PaperLoading from '../components/PaperLoading';
@@ -14,38 +15,6 @@ import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 
 type RankingTab = 'table' | 'evolution';
-
-/** Sin liga activa: qué hacer para tener una clasificación. */
-function NoLeague({ signedIn }: { signedIn: boolean }) {
-  return (
-    <section className="view-section active">
-      <div className="paper-panel album-sheet text-center py-10 px-6 max-w-140 mx-auto my-5">
-        <h2 className="poster-title mt-0 mb-2 text-[1.5rem]">Clasificación</h2>
-        <p className="text-muted text-[0.92rem] mt-0 mb-5">
-          {signedIn
-            ? 'Únete a una liga o crea la tuya para ver su clasificación.'
-            : 'Inicia sesión para ver la clasificación de tus ligas.'}
-        </p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          {signedIn ? (
-            <Link to="/mis-ligas" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
-              Ir a Mis ligas
-            </Link>
-          ) : (
-            <>
-              <Link to="/" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
-                Iniciar sesión
-              </Link>
-              <Link to="/demo" className="glass-btn py-2.5 px-5 font-bold">
-                Ver la demo
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 /** Clasificación de la liga activa (tabla y gráfica). */
 function Leaderboard() {
@@ -86,7 +55,7 @@ function Leaderboard() {
   const [showDetail, setShowDetail] = useState(false);
 
   if (loading) return <PaperLoading label="Cargando clasificación" />;
-  if (!activeGroupId) return <NoLeague signedIn={Boolean(userName)} />;
+  if (!activeGroupId) return <NoLeagueState title="Clasificación" what="la clasificación" />;
 
   // Las ligas de Fórmula 1 suman por Gran Premio como las de jornadas: su desglose es por Gran Premio.
   const isMatchday =

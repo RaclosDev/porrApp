@@ -219,7 +219,7 @@ public class TopScorerService {
             HttpRequest sportsReq = HttpRequest.newBuilder()
                     .uri(URI.create(sportsDbUrl))
                     .timeout(Duration.ofSeconds(5))
-                    .header("User-Agent", "PorraMundial/1.0")
+                    .header("User-Agent", "PorrApp/1.0")
                     .GET()
                     .build();
             HttpResponse<String> sportsRes = httpClient.send(sportsReq, HttpResponse.BodyHandlers.ofString());
@@ -240,7 +240,7 @@ public class TopScorerService {
                 HttpRequest wikiReq = HttpRequest.newBuilder()
                         .uri(URI.create(wikiUrl))
                         .timeout(Duration.ofSeconds(5))
-                        .header("User-Agent", "PorraMundial/1.0")
+                        .header("User-Agent", "PorrApp/1.0")
                         .GET()
                         .build();
                 HttpResponse<String> wikiRes = httpClient.send(wikiReq, HttpResponse.BodyHandlers.ofString());

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 import { normalizeCountryName } from '../utils/constants';
@@ -19,6 +19,10 @@ import { featuredGroupQuery, leaguePredictionsQuery, myGroupsQuery } from '../se
 import { useAppStore } from '../store/useAppStore';
 import type { Group, MatchRadar } from '../types/api';
 import { isMatchBasedFormat } from '../utils/poolFormat';
+import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
+
+/** Competición del Mundial en el proveedor: solo sus ligas usan grupos, terceros y pichichi oficiales. */
+const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
 
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
 // se unan sin fricción con el tipo de cada consulta.
@@ -26,6 +30,14 @@ const EMPTY_OBJECT = Object.freeze({}) as Record<string, never>;
 const EMPTY_ARRAY = Object.freeze([]) as never[];
 const EMPTY_RADAR = Object.freeze({ live: [], last: [], next: [] }) as MatchRadar;
 const NO_GROUP_NAME = 'Ninguna liga seleccionada';
+
+// Copia de «todos los partidos» de cuando la app pedía partidos sin liga: mezclaba deportes y
+// competiciones y podía tener partidos ya jugados como pendientes. Ya no se pide; se borra.
+try {
+  localStorage.removeItem('cached_matches_all');
+} catch {
+  /* almacenamiento bloqueado */
+}
 
 /**
  * Copia local de los datos oficiales y públicos (clasificación, cuotas, partidos) para pintar algo
@@ -60,10 +72,9 @@ const isObject = (value: unknown): value is object =>
 
 /** Estado de la liga activa, con los datos en bruto que usan los demás hooks de este módulo. */
 function useLeagueState() {
-  const { activeGroupId, storeCompetitionId, isAuthenticated } = useAppStore(
+  const { activeGroupId, isAuthenticated } = useAppStore(
     useShallow((s) => ({
       activeGroupId: s.activeGroupId,
-      storeCompetitionId: s.activeCompetitionId,
       isAuthenticated: s.isAuthenticated,
     })),
   );
@@ -111,16 +122,21 @@ function useLeagueState() {
     },
   });
 
-  // A persisted competition belongs to the previous selection until this league resolves.
-  const activeCompetitionId = activeGroupId
-    ? (groupInfo?.competitionId ?? null)
-    : storeCompetitionId;
-  const activeGroupPoolFormat = groupInfo?.poolFormat || (activeGroupId ? null : 'FULL_BRACKET');
+  // Sin liga no hay competición ni formato: nada se rellena con los del Mundial ni con los de la
+  // liga anterior.
+  const activeCompetitionId = activeGroupId ? (groupInfo?.competitionId ?? null) : null;
+  const activeGroupPoolFormat = (activeGroupId && groupInfo?.poolFormat) || null;
+  const worldCup =
+    Boolean(activeGroupId) &&
+    groupInfo?.competitionExternalId === WORLD_CUP_EXTERNAL_ID &&
+    !groupInfo?.multiCompetition;
 
   return {
     groupInfo,
-    /** Ya se sabe a qué competición pertenece la liga activa (o no hay liga). */
-    competitionReady: !activeGroupId || activeCompetitionId != null,
+    /** Hay liga activa y ya se sabe a qué competición pertenece. */
+    competitionReady: Boolean(activeGroupId) && activeCompetitionId != null,
+    /** La liga activa es del Mundial: la única con grupos, cuotas y pichichi oficiales. */
+    activeGroupWorldCup: worldCup,
     loadingGroup: Boolean(activeGroupId && groupPending),
     groupError:
       groupInfo && (!isApiError(groupError) || groupError.status === 0 || groupError.status >= 500)
@@ -138,7 +154,7 @@ function useLeagueState() {
       (Boolean(groupInfo?.customCompetition) ||
         (groupInfo?.formatType === 'TOURNAMENT' &&
           Boolean(groupInfo?.competitionExternalId) &&
-          groupInfo?.competitionExternalId !== 'fifa.world')),
+          groupInfo?.competitionExternalId !== WORLD_CUP_EXTERNAL_ID)),
     // NFL: se predice quién gana, sin empate, así que los votos van en dos columnas.
     activeGroupWinnerOnly:
       groupInfo?.competitionExternalId === 'nfl' && !groupInfo.multiCompetition,
@@ -147,7 +163,8 @@ function useLeagueState() {
     // Liga por jornadas que elige sus partidos (de una o de varias competiciones).
     activeGroupPicksMatches: groupInfo?.matchSelection === 'CUSTOM',
     activeGroupMultiCompetition: Boolean(groupInfo?.multiCompetition),
-    activeGroupPichichi: groupInfo?.pichichi !== undefined ? Boolean(groupInfo.pichichi) : true,
+    // El pichichi oficial es del Mundial: sin dato de la liga, solo lo tienen las del Mundial.
+    activeGroupPichichi: Boolean(groupInfo?.pichichi ?? worldCup),
     activeGroupIsLocked: Boolean(groupInfo?.isLocked),
     activeGroupLockDate: groupInfo?.lockDate || null,
     activeGroupRules: groupInfo?.rules || '',
@@ -181,11 +198,15 @@ export function useOfficialData() {
     loadingGroup,
     activeCompetitionId,
     activeGroupCustomCompetition: isCustomCompetition,
-    activeGroupPichichi,
+    activeGroupPichichi: leaguePichichi,
+    activeGroupWorldCup: worldCup,
   } = useLeagueState();
+  // Clasificación de grupos, cuotas y goleadores son datos del Mundial: solo para sus ligas.
+  const activeGroupPichichi = worldCup && leaguePichichi;
 
   const { data: standings, isLoading: loadingStandings } = useQuery({
     queryKey: queryKeys.standings(),
+    enabled: worldCup,
     queryFn: async () => {
       const data = await fetchStandings();
       localCopy.write('cached_official_standings', data);
@@ -202,6 +223,7 @@ export function useOfficialData() {
 
   const { data: odds } = useQuery({
     queryKey: queryKeys.odds(),
+    enabled: worldCup,
     queryFn: async () => {
       const data = await fetchTeamOdds();
       localCopy.write('cached_official_odds', data);
@@ -210,7 +232,7 @@ export function useOfficialData() {
     placeholderData: (previous) => localCopy.objectOr('cached_official_odds', previous),
   });
 
-  const matchesCacheKey = `cached_matches_${activeCompetitionId || 'all'}`;
+  const matchesCacheKey = `cached_matches_${activeCompetitionId}`;
   const { data: matches, isLoading: loadingMatches } = useQuery({
     queryKey: isCustomCompetition
       ? queryKeys.customMatches(activeGroupId)
@@ -255,13 +277,14 @@ export function useOfficialData() {
   }, [matches]);
 
   return {
-    officialPoints: isObject(standings) ? standings : EMPTY_OBJECT,
+    officialPoints: worldCup && isObject(standings) ? standings : EMPTY_OBJECT,
     matchRadar: competitionReady && isObject(radar) ? radar : EMPTY_RADAR,
     allGames: competitionReady && Array.isArray(matches) ? matches : EMPTY_ARRAY,
-    groupOdds: isObject(odds) ? odds : EMPTY_OBJECT,
+    groupOdds: worldCup && isObject(odds) ? odds : EMPTY_OBJECT,
     nameToIdMap,
-    loading: loadingGroup || (loadingStandings && !standings) || (loadingMatches && !matches),
-    topScorers: Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,
+    loading:
+      loadingGroup || (worldCup && loadingStandings && !standings) || (loadingMatches && !matches),
+    topScorers: activeGroupPichichi && Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,
     topScorersLoading: activeGroupPichichi && topScorersLoading,
     topScorersError: activeGroupPichichi && topScorersError,
     refreshTopScorers,
@@ -331,17 +354,29 @@ export function useLeagueRanking() {
  */
 export function useLeagueDataEffects() {
   const queryClient = useQueryClient();
-  const { activeGroupId, storeCompetitionId, setActiveCompetitionId, isDemoMode, changeGroup } =
-    useAppStore(
-      useShallow((s) => ({
-        activeGroupId: s.activeGroupId,
-        storeCompetitionId: s.activeCompetitionId,
-        setActiveCompetitionId: s.setActiveCompetitionId,
-        isDemoMode: s.isDemoMode,
-        changeGroup: s.changeGroup,
-      })),
-    );
+  const {
+    activeGroupId,
+    storeCompetitionId,
+    setActiveCompetitionId,
+    isDemoMode,
+    changeGroup,
+    isAuthenticated,
+    choosingLeague,
+  } = useAppStore(
+    useShallow((s) => ({
+      activeGroupId: s.activeGroupId,
+      storeCompetitionId: s.activeCompetitionId,
+      setActiveCompetitionId: s.setActiveCompetitionId,
+      isDemoMode: s.isDemoMode,
+      changeGroup: s.changeGroup,
+      isAuthenticated: s.isAuthenticated,
+      choosingLeague: s.choosingLeague,
+    })),
+  );
   const { groupInfo } = useLeagueState();
+  const { data: myGroups, dataUpdatedAt: myGroupsUpdatedAt } = useQuery(
+    myGroupsQuery(isAuthenticated),
+  );
 
   // La competición de la liga activa se guarda para el próximo arranque.
   useEffect(() => {
@@ -350,8 +385,9 @@ export function useLeagueDataEffects() {
     }
   }, [groupInfo?.competitionId, storeCompetitionId, setActiveCompetitionId]);
 
-  // Un 403 en la liga activa (p. ej. tras una expulsión) refresca la lista de ligas. El ranking se
-  // pide en todas las pantallas; los pronósticos, solo en las que los usan.
+  // Un 403 o 404 en la liga activa (p. ej. tras una expulsión o si la han borrado) refresca la lista
+  // de ligas; si ya no está, el efecto de abajo abre otra. El ranking se pide en todas las
+  // pantallas; los pronósticos, solo en las que los usan.
   const { error: predictionsError } = useQuery({
     ...leaguePredictionsQuery(activeGroupId),
     enabled: false,
@@ -361,12 +397,15 @@ export function useLeagueDataEffects() {
     queryFn: () => fetchLeaderboard(activeGroupId),
     enabled: Boolean(activeGroupId),
   });
-  const forbiddenError = [predictionsError, leaderboardError].find((error) =>
-    isApiError(error, 403),
+  const { error: groupError } = useQuery<Partial<Group>>({
+    queryKey: queryKeys.group(activeGroupId),
+    enabled: false,
+  });
+  const forbiddenError = [groupError, predictionsError, leaderboardError].find(
+    (error) => isApiError(error, 403) || isApiError(error, 404) || isApiError(error, 410),
   );
   useEffect(() => {
     if (!isDemoMode && forbiddenError && activeGroupId) {
-      // No cambiar silenciosamente a otra liga: parecería que la seleccionada se ha sustituido.
       console.warn('No se pudieron cargar los datos de la liga activa', {
         activeGroupId,
         message: forbiddenError.message,
@@ -374,6 +413,50 @@ export function useLeagueDataEffects() {
       queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
     }
   }, [forbiddenError, activeGroupId, queryClient, isDemoMode]);
+
+  // Cuándo se eligió la liga activa: una lista de ligas anterior aún no la incluye (recién creada).
+  const selectedAt = useRef({ groupId: activeGroupId, at: 0 });
+  useEffect(() => {
+    if (selectedAt.current.groupId !== activeGroupId)
+      selectedAt.current = { groupId: activeGroupId, at: Date.now() };
+  }, [activeGroupId]);
+
+  // La liga abandonada se olvida cuando las pantallas ya piden la nueva: antes, sus consultas
+  // aún montadas la volverían a guardar.
+  const leftGroupId = useRef<string | null>(null);
+  useEffect(() => {
+    const left = leftGroupId.current;
+    if (!left || left === activeGroupId) return;
+    leftGroupId.current = null;
+    forgetLeague(queryClient, left);
+  }, [activeGroupId, queryClient]);
+
+  // La liga activa ya no es del usuario (se ha salido, la han borrado o le han quitado el acceso) o
+  // no hay ninguna elegida teniendo ligas: se abre la más reciente sin recargar y se olvida la
+  // anterior. Sin ligas queda vacía y cada pantalla lo explica. Al arrancar elige AppProvider.
+  useEffect(() => {
+    if (isDemoMode || !isAuthenticated || choosingLeague || !Array.isArray(myGroups)) return;
+    if (localStorage.getItem('pendingJoinCode')) return;
+    if (activeGroupId && myGroups.some((g) => String(g.id) === activeGroupId)) return;
+    if (!activeGroupId && myGroups.length === 0) return;
+    if (activeGroupId && myGroupsUpdatedAt < selectedAt.current.at) {
+      // Lista anterior a la elección (p. ej. una liga recién creada): se confirma con el servidor.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
+      return;
+    }
+    const left = activeGroupId;
+    leftGroupId.current = left || null;
+    changeGroup(pickMostRecentLeague(myGroups.filter((g) => String(g.id) !== left)));
+  }, [
+    activeGroupId,
+    myGroups,
+    myGroupsUpdatedAt,
+    isAuthenticated,
+    isDemoMode,
+    choosingLeague,
+    changeGroup,
+    queryClient,
+  ]);
 
   // La demo sin liga elegida abre la liga pública destacada.
   const needsFeaturedGroup = isDemoMode && !activeGroupId;

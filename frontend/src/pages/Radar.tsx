@@ -1,4 +1,5 @@
 import PaperLoading from '../components/PaperLoading';
+import { isLiveMatch } from '../utils/homeMatches';
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { openStats } from '../utils/navigation';
@@ -106,7 +107,7 @@ export function RadarView({ matchRadar }: { matchRadar: MatchRadar | null | unde
   const liveMatches = matchRadar?.live || [];
   const lastMatches = (matchRadar?.last || []).slice(0, 10);
   const nextMatches = (matchRadar?.next || []).slice(0, 10);
-  const isActuallyLive = liveMatches.some((m) => new Date(m.date ?? 0) <= new Date());
+  const isActuallyLive = liveMatches.some(isLiveMatch);
 
   const columns: { tab: Tab; title: string; matches: Match[]; empty: string }[] = [
     {

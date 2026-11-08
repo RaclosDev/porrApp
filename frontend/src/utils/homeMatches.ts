@@ -6,8 +6,25 @@ const VOID_STATUSES = new Set(['CANCELLED', 'POSTPONED', 'ABANDONED', 'SUSPENDED
 const timeOf = (match: Match) => (match.date ? new Date(match.date).getTime() || 0 : 0);
 const byDate = (a: Match, b: Match) => timeOf(a) - timeOf(b);
 
+const PLACEHOLDER_TEAMS = new Set(['', 'por definir', 'tbd', '???']);
+
+/** Equipo real: ni vacío ni un hueco «Por definir» (una carrera o un cruce aún sin rivales). */
+const isDefinedTeam = (name: string | null | undefined) =>
+  !PLACEHOLDER_TEAMS.has((name ?? '').trim().toLowerCase());
+
+/**
+ * En directo solo si el proveedor (ESPN) lo marca así, nunca por la hora, y con dos equipos reales:
+ * un evento sin rivales (un Gran Premio, un cruce por definir) no es un partido en juego.
+ */
 export const isLiveMatch = (match: Match) =>
-  !match.finished && LIVE_STATUSES.has((match.status || '').toUpperCase());
+  !match.finished &&
+  LIVE_STATUSES.has((match.status || '').toUpperCase()) &&
+  isDefinedTeam(match.home) &&
+  isDefinedTeam(match.away);
+
+/** Marcador que se puede enseñar: el partido ha terminado o está en juego (antes, nada de 0-0). */
+export const hasShownScore = (match: Match) =>
+  (match.finished || isLiveMatch(match)) && match.home_score != null && match.away_score != null;
 
 /** Partido que aún se jugará: no ha terminado ni se ha cancelado o aplazado. */
 const isPlayableMatch = (match: Match) =>
@@ -75,9 +92,13 @@ export function currentRoundMatches(matches: Match[]): { round: string | null; m
 export function upcomingMatches(
   matches: Match[],
   limit = 6,
+  now: number = Date.now(),
 ): { finished: boolean; matches: Match[] } {
-  const defined = matches.filter((match) => match.home && match.away);
-  const pending = defined.filter(isPlayableMatch).sort(byDate);
+  const defined = matches.filter((match) => isDefinedTeam(match.home) && isDefinedTeam(match.away));
+  // Un partido cuya hora ya ha pasado sin que el proveedor lo dé por empezado no es «próximo».
+  const pending = defined
+    .filter((match) => isPlayableMatch(match) && (isLiveMatch(match) || timeOf(match) >= now))
+    .sort(byDate);
   if (pending.length > 0) {
     return {
       finished: false,

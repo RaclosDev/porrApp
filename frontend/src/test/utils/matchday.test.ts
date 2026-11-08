@@ -226,17 +226,14 @@ describe('buildSubmission', () => {
 });
 
 describe('filterFixtures', () => {
-  it('lists live matches first in the upcoming tab', () => {
-    const now = Date.parse('2030-05-01T20:30:00Z');
+  it('lists matches ESPN marks live first in the upcoming tab, not those past kick-off', () => {
     const list = [
       fixture(1, { matchDate: '2030-05-02T20:00:00Z' }),
       fixture(2, { matchDate: '2030-05-01T20:00:00Z' }),
       fixture(3, { matchDate: '2030-05-03T20:00:00Z', status: 'LIVE' }),
       fixture(4, { matchDate: '2030-05-01T18:00:00Z', finished: true }),
     ];
-    expect(filterFixtures(list, 'UPCOMING', {}, false, now).map((f) => f.matchId)).toEqual([
-      2, 3, 1,
-    ]);
+    expect(filterFixtures(list, 'UPCOMING', {}, false).map((f) => f.matchId)).toEqual([3, 1, 2]);
   });
 
   const fixtures = [fixture(1), fixture(2, { finished: true, locked: true }), fixture(3)];

@@ -16,6 +16,7 @@ for (const width of [390, 1440]) {
       name: 'Liga local',
       adminUserId: 7,
       competitionId: 2,
+      competitionExternalId: 'fifa.world',
       competitionName: 'Mundial',
       formatType: 'TOURNAMENT',
       poolFormat: 'FULL_BRACKET',

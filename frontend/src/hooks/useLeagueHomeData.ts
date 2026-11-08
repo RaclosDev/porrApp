@@ -22,8 +22,6 @@ import { useSortedGroups } from './useSortedGroups';
 import type { Match } from '../types/api';
 import { isMatchBasedFormat } from '../utils/poolFormat';
 
-/** Competición del cuadro oficial con grupos, terceros y cruces. */
-const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
 const MINI_TABLE_SIZE = 5;
 
 type LeagueHomeFormat = 'matchday' | 'custom' | 'worldcup' | 'official';
@@ -60,14 +58,13 @@ export function useLeagueHomeFormat(): LeagueHomeFormat {
     activeGroupPoolFormat,
     activeCompetitionFormatType,
     activeGroupCustomCompetition,
-    activeCompetitionExternalId,
+    activeGroupWorldCup,
   } = useAppContext();
   if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE')
     return 'matchday';
   if (activeGroupCustomCompetition) return 'custom';
-  if (activeCompetitionExternalId && activeCompetitionExternalId !== WORLD_CUP_EXTERNAL_ID)
-    return 'official';
-  return 'worldcup';
+  // Grupos, terceros y pichichi oficiales solo si la liga es del Mundial; nunca por defecto.
+  return activeGroupWorldCup ? 'worldcup' : 'official';
 }
 
 const logosOf = (matches: Match[]) => {

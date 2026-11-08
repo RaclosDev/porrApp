@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isLiveMatch } from '../../utils/homeMatches';
 import Flag from '../Flag';
 import InkStamp from '../InkStamp';
 import { formatMatchDate } from '../../utils/matchday';
@@ -46,7 +47,9 @@ export default function FeaturedMatchBanner({
   const hasScore = featuredMatch.homeScore != null && featuredMatch.awayScore != null;
   const started = Boolean(featuredMatch.date && new Date(featuredMatch.date) <= new Date());
 
-  const live = started && !featuredMatch.finished;
+  // Con resultados de ESPN, en directo solo si ESPN lo dice; con resultados a mano (competición
+  // propia) no hay estado en directo y basta con que haya pasado la hora para esperar el resultado.
+  const live = manualResults ? started && !featuredMatch.finished : isLiveMatch(featuredMatch);
   let heading = 'Próximo partido del cuadro';
   if (live) heading = manualResults ? 'Partido pendiente de resultado' : 'En directo en el cuadro';
   // El título ya dice si está en juego; solo se añade el minuto real si lo hay, o «Final».

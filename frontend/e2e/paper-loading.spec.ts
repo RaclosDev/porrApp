@@ -9,6 +9,8 @@ const league: Group = {
   adminUserId: null,
   createdAt: null,
   competitionId: 2,
+  // La fase de grupos solo existe en las ligas del Mundial.
+  competitionExternalId: 'fifa.world',
   competitionName: 'Competición de prueba',
   formatType: 'TOURNAMENT',
   poolFormat: 'FULL_BRACKET',

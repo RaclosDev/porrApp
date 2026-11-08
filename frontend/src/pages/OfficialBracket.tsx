@@ -1,4 +1,5 @@
 import PaperLoading from '../components/PaperLoading';
+import { isLiveMatch } from '../utils/homeMatches';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
@@ -31,7 +32,7 @@ function OfficialBracket() {
     activeGroupPoolFormat,
     activeCompetitionFormatType,
     activeGroupCustomCompetition,
-    activeCompetitionExternalId,
+    activeGroupWorldCup,
     activeGroupKnockoutDraw,
     loadingGroup,
     groupError,
@@ -46,9 +47,8 @@ function OfficialBracket() {
     return <Navigate to="/tabla" replace />;
   }
   if (activeGroupKnockoutDraw) return <KnockoutDrawResults />;
-  if (activeCompetitionExternalId && activeCompetitionExternalId !== 'fifa.world') {
-    return <OfficialTournamentHome />;
-  }
+  // El cuadro con grupos, terceros y pichichi es el del Mundial: solo para sus ligas.
+  if (!activeGroupWorldCup) return <OfficialTournamentHome />;
 
   return <OfficialBracketView />;
 }
@@ -177,9 +177,7 @@ function OfficialBracketView() {
       if (isMatchInRound(featuredMatch, context?.roundIndex)) {
         if (featuredMatch.home === name || featuredMatch.away === name) {
           isFeatured = true;
-          if (featuredMatch.date && new Date(featuredMatch.date) <= new Date()) {
-            isLive = true;
-          }
+          isLive = isLiveMatch(featuredMatch);
         }
       }
     }
