@@ -22,4 +22,9 @@ public interface RefreshTokenFamilyRepository extends JpaRepository<RefreshToken
     @Modifying
     @Query(value = "DELETE FROM refresh_token_families WHERE expires_at < :now", nativeQuery = true)
     int deleteExpired(@Param("now") Instant now);
+
+    /** Cierra todas las sesiones abiertas del usuario. */
+    @Modifying
+    @Query("UPDATE RefreshTokenFamily f SET f.revokedAt = :now WHERE f.user.id = :userId AND f.revokedAt IS NULL")
+    int revokeAllOfUser(@Param("userId") Long userId, @Param("now") Instant now);
 }

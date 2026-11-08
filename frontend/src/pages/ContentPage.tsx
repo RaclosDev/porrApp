@@ -3,6 +3,7 @@ import MarkerHeading from '../components/landing/MarkerHeading';
 import NetLine from '../components/landing/NetLine';
 import SiteFooter from '../components/landing/SiteFooter';
 import type { ContentPage as ContentPageData } from '../seo/pages';
+import { openSignupToCreateLeague } from '../utils/loginModal';
 
 interface ContentPageProps {
   page: ContentPageData;
@@ -15,7 +16,7 @@ interface ContentPageProps {
  * resto en texto sobre la pared para que la página no sea una fila de tarjetas iguales.
  */
 export default function ContentPage({ page }: ContentPageProps) {
-  const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
+  const openLogin = openSignupToCreateLeague;
   const [first, ...rest] = page.sections;
 
   return (
@@ -31,7 +32,7 @@ export default function ContentPage({ page }: ContentPageProps) {
         <p className="text-[#1f2937] text-lg max-w-160 leading-snug">{page.lede}</p>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
-            Crear mi liga con Google
+            Crear mi liga
           </button>
           <Link to="/demo" className="landing-btn">
             Ver una porra de ejemplo

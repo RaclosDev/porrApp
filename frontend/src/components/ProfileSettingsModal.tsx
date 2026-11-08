@@ -21,7 +21,7 @@ import { useDialogFocus } from '../hooks/useDialogFocus';
 
 /**
  * Ajustes de cuenta: nombre público y foto de perfil.
- * No cambia el correo ni el nombre de Google ni la vinculación de la cuenta.
+ * No cambia el correo ni la forma de entrar (Google o contraseña).
  */
 export default function ProfileSettingsModal({
   onClose,
@@ -228,8 +228,8 @@ export default function ProfileSettingsModal({
               </span>
             )}
             <span className="text-[0.74rem] text-muted">
-              Es el nombre que ven tus amigos en clasificaciones y ligas. Tu cuenta de Google y su
-              vinculación no cambian.
+              Es el nombre que ven tus amigos en clasificaciones y ligas. Tu email y tu forma de
+              entrar no cambian.
             </span>
           </section>
           {!onboarding && <ReminderSettings />}

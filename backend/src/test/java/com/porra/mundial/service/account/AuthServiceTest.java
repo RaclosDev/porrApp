@@ -3,6 +3,7 @@ package com.porra.mundial.service.account;
 import com.porra.mundial.config.JwtUtil;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.service.account.AppleCredentialVerifier.AppleIdentity;
 import com.porra.mundial.service.account.GoogleCredentialVerifier.GoogleIdentity;
 import com.porra.mundial.service.account.SessionService.SessionTokens;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,17 @@ class AuthServiceTest {
 
     @MockitoBean
     private GoogleCredentialVerifier googleCredentialVerifier;
+
+    @MockitoBean
+    private AppleCredentialVerifier appleCredentialVerifier;
+
+    private SessionTokens loginWithApple(String subject, String email, String name) {
+        when(appleCredentialVerifier.verify("apple-token")).thenReturn(new AppleIdentity(subject, email, true));
+        SessionTokens session = authService.loginWithApple("apple-token", name);
+        em.flush();
+        em.clear();
+        return session;
+    }
 
     private SessionTokens login(String subject, String email) {
         when(googleCredentialVerifier.verify("credential"))
@@ -127,5 +139,52 @@ class AuthServiceTest {
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED));
         assertThat(userAccountRepository.findByGoogleSub("sub-x")).isEmpty();
+    }
+
+    @Test
+    void aNewAppleAccountIsRegisteredAndThenFoundByItsSub() {
+        SessionTokens first = loginWithApple("apple-nuevo", "Nuevo@PrivateRelay.AppleId.com", "Nuria");
+
+        UserAccount nuria = userAccountRepository.findByAppleSub("apple-nuevo").orElseThrow();
+        assertThat(nuria.getGoogleEmail()).isEqualTo("nuevo@privaterelay.appleid.com");
+        assertThat(nuria.getParticipantName()).isEqualTo("Nuria");
+        assertThat(nuria.getGoogleSub()).isNull();
+        assertThat(first.user().getId()).isEqualTo(nuria.getId());
+
+        // Las siguientes veces Apple ya no manda el nombre.
+        assertThat(loginWithApple("apple-nuevo", "nuevo@privaterelay.appleid.com", null).user().getId())
+                .isEqualTo(nuria.getId());
+    }
+
+    @Test
+    void appleIsLinkedToTheGoogleAccountWithTheSameVerifiedEmail() {
+        UserAccount ana = existing("sub-ana", "ana@test.com", "Ana");
+
+        SessionTokens session = loginWithApple("apple-ana", "ana@test.com", null);
+
+        assertThat(session.user().getId()).isEqualTo(ana.getId());
+        assertThat(reload(ana).getAppleSub()).isEqualTo("apple-ana");
+        assertThat(reload(ana).getGoogleSub()).isEqualTo("sub-ana");
+    }
+
+    @Test
+    void anEmailOfAnotherAppleAccountDoesNotGiveAccess() {
+        UserAccount eva = em.persist(UserAccount.builder().appleSub("apple-eva").googleEmail("eva@test.com")
+                .participantName("Eva").build());
+
+        assertThatThrownBy(() -> loginWithApple("apple-intruso", "eva@test.com", null))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+        assertThat(reload(eva).getAppleSub()).isEqualTo("apple-eva");
+    }
+
+    @Test
+    void anUnverifiedAppleEmailIsRejected() {
+        when(appleCredentialVerifier.verify("apple-token")).thenReturn(new AppleIdentity("apple-x", "x@test.com", false));
+
+        assertThatThrownBy(() -> authService.loginWithApple("apple-token", null))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED));
+        assertThat(userAccountRepository.findByAppleSub("apple-x")).isEmpty();
     }
 }

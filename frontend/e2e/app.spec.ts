@@ -57,7 +57,7 @@ for (const viewport of [
       );
 
       await page.getByRole('button', { name: 'Crear mi liga gratis', exact: true }).first().click();
-      const dialog = page.getByRole('dialog', { name: 'Iniciar sesión' });
+      const dialog = page.getByRole('dialog', { name: 'Crea tu cuenta' });
       await expect(dialog).toBeVisible();
       const panel = dialog.locator('.modal-content');
       expect(

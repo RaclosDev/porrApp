@@ -16,6 +16,7 @@ import {
 import { useLandingData } from '../hooks/useLandingData';
 import SiteFooter from '../components/landing/SiteFooter';
 import { LANDING_COPY } from '../seo/pages';
+import { openSignupToCreateLeague } from '../utils/loginModal';
 
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
 
@@ -33,7 +34,7 @@ export default function Landing() {
   const { leaders, leagueName, participants, champion, nextFixtures, loading, error } =
     useLandingData();
   const leagueLabel = leagueName ?? 'la liga pública';
-  const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
+  const openLogin = openSignupToCreateLeague;
   const leader = leaders[0];
   const initial = reduced ? 'show' : 'hidden';
   const inView = {
