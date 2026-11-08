@@ -16,6 +16,7 @@ import {
   finishedLabel,
   resultNote,
   liveLabel,
+  scoringDetailsText,
   survivorUsedTeams,
   withSign,
   withoutSaved,
@@ -329,5 +330,26 @@ describe('survivorUsedTeams', () => {
 
   it('sin estado no hay equipos usados', () => {
     expect(survivorUsedTeams(null, 'Jornada 1').size).toBe(0);
+  });
+});
+
+describe('scoringDetailsText', () => {
+  it('en la NFL y la NBA habla de ganador, no de signo 1X2', () => {
+    expect(scoringDetailsText('Acierto de signo 1X2 (3 pts)', 'AMERICAN_FOOTBALL', true)).toBe(
+      'Ganador acertado',
+    );
+    expect(scoringDetailsText('Sin acierto en signo (0 pts)', 'BASKETBALL', false)).toBe(
+      'Ganador fallado',
+    );
+  });
+
+  it('deja el fútbol y los demás desgloses como vienen', () => {
+    expect(scoringDetailsText('Acierto de signo 1X2 (3 pts)', 'FOOTBALL', true)).toBe(
+      'Acierto de signo 1X2 (3 pts)',
+    );
+    expect(scoringDetailsText('Resultado exacto 2-1 (5 pts)', 'LEAGUE_OF_LEGENDS', true)).toBe(
+      'Resultado exacto 2-1 (5 pts)',
+    );
+    expect(scoringDetailsText(null, 'AMERICAN_FOOTBALL', true)).toBeNull();
   });
 });
