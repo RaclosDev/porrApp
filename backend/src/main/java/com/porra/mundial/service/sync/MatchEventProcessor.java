@@ -166,6 +166,10 @@ public class MatchEventProcessor {
 
     /**
      * Guarda los equipos (con escudo) del catálogo de una competición.
+     * <p>
+     * Un equipo que ya existe conserva su nombre: los cuadros de los participantes guardan los nombres en
+     * español y se puntúan comparándolos con el de cada equipo, así que cambiar «España» por el
+     * «Spain» del proveedor dejaría sin puntos a todo el que la eligió.
      *
      * @return número de equipos importados
      */
@@ -178,18 +182,19 @@ public class MatchEventProcessor {
             String displayName = t.path("displayName").asText(t.path("name").asText(null));
             if (displayName == null || displayName.isBlank()) continue;
 
-            String abbr = t.path("abbreviation").asText(null);
+            String localName = Constants.getLocalName(displayName);
             String logo = t.path("logos").path(0).path("href").asText(t.path("logo").asText(null));
 
-            Team team = teamRepository.findByName(displayName)
+            Team team = teamRepository.findByName(localName)
                     .or(() -> id != null ? teamRepository.findByExternalId(id) : Optional.empty())
-                    .orElseGet(() -> Team.builder().name(displayName).groupName("-").build());
-            team.setName(displayName);
-            if (abbr != null) team.setNameEn(abbr);
+                    .or(() -> teamRepository.findByName(displayName))
+                    .orElseGet(() -> Team.builder().name(localName).groupName("-").build());
+            team.setNameEn(displayName);
             if (id != null) team.setExternalId(id);
             if (logo != null && !logo.isBlank()) team.setLogoUrl(logo);
 
             teamRepository.save(team);
+            cache.put(team.getName(), team);
             cache.put(displayName, team);
             if (id != null) cache.put(id, team);
             imported++;
