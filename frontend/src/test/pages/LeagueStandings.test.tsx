@@ -165,3 +165,32 @@ it('shows the NFL by division with records and playoff seeds, and by conference 
   expect(container.querySelectorAll('.is-playoff-cutline')).toHaveLength(1);
   expect(screen.getByText(/entran los 7 primeros/)).toBeVisible();
 });
+it('lets a league of several competitions switch between their tables', async () => {
+  vi.mocked(useAppContext).mockReturnValue(
+    appContext({
+      activeCompetitionId: 2,
+      activeCompetitionName: null,
+      activeGroupMultiCompetition: true,
+      activeGroupCompetitions: [
+        { id: 2, name: 'LaLiga', externalId: 'esp.1' },
+        { id: 3, name: 'Champions League', externalId: 'uefa.champions' },
+      ],
+      activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'matchday',
+    }),
+  );
+  vi.mocked(fetchCompetitionStandings).mockImplementation(async (id) => [
+    { ...row, teamName: id === 3 ? 'Arsenal' : 'Barcelona' },
+  ]);
+  setup();
+  expect(await screen.findByText('Barcelona')).toBeVisible();
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('LaLiga');
+  fireEvent.click(screen.getByRole('button', { name: 'Champions League' }));
+  expect(await screen.findByText('Arsenal')).toBeVisible();
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Champions League');
+  expect(screen.getByRole('button', { name: 'Champions League' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(fetchCompetitionStandings).toHaveBeenLastCalledWith(3);
+});

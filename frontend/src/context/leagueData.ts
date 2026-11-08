@@ -17,7 +17,7 @@ import { isApiError } from '../services/apiError';
 import { queryKeys } from '../services/queryKeys';
 import { featuredGroupQuery, leaguePredictionsQuery, myGroupsQuery } from '../services/queries';
 import { useAppStore } from '../store/useAppStore';
-import type { Group, MatchRadar } from '../types/api';
+import type { Group, LeagueCompetition, MatchRadar } from '../types/api';
 import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
 import { MATCH_KINDS, leagueKindOf, type LeagueKind } from './leagueKind';
 import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
@@ -33,6 +33,7 @@ const isWinnerOnlyCompetition = (externalId: string | null | undefined): boolean
 // se unan sin fricción con el tipo de cada consulta.
 const EMPTY_OBJECT = Object.freeze({}) as Record<string, never>;
 const EMPTY_ARRAY = Object.freeze([]) as never[];
+const EMPTY_COMPETITIONS: LeagueCompetition[] = [];
 const EMPTY_RADAR = Object.freeze({ live: [], last: [], next: [] }) as MatchRadar;
 const NO_GROUP_NAME = 'Ninguna liga seleccionada';
 
@@ -173,6 +174,9 @@ function useLeagueState() {
     // Liga por jornadas que elige sus partidos (de una o de varias competiciones).
     activeGroupPicksMatches: groupInfo?.matchSelection === 'CUSTOM',
     activeGroupMultiCompetition: Boolean(groupInfo?.multiCompetition),
+    // Las competiciones de una liga que junta varias, para elegir cuál se ve en la Tabla.
+    activeGroupCompetitions:
+      (groupInfo?.multiCompetition && groupInfo.competitions) || EMPTY_COMPETITIONS,
     // El pichichi se juega con los goleadores oficiales del Mundial: solo en sus cuadros.
     activeGroupPichichi: leagueKind === 'worldCup' && Boolean(groupInfo?.pichichi),
     activeGroupIsLocked: Boolean(groupInfo?.isLocked),
