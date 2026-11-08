@@ -359,13 +359,29 @@ const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
   },
 };
 
+/** Por jornadas y superviviente en el LoL: series sin empate, al mejor de 1, 3 o 5 partidas. */
+const LOL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string }>> = {
+  MATCH_DAY: {
+    title: 'Por jornadas',
+    text: 'En cada jornada predices quién gana cada serie y, si te atreves, el resultado (2-1, 3-0…). Cada acierto suma y gana quien más puntos lleve al final.',
+  },
+  SURVIVOR: {
+    title: 'Superviviente',
+    text: 'En cada jornada eliges un equipo que gane su serie, sin repetir equipo. Si pierde, o si no eliges, quedas fuera; la liga puede dar vidas extra. Gana quien aguante más jornadas.',
+  },
+};
+
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
   if (format === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHTS_COPY;
   if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isKnockoutDraw(draft, ctx)) return KNOCKOUT_DRAW_COPY;
-  return (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) || FORMAT_COPY[format];
+  return (
+    (draft.sport === 'AMERICAN_FOOTBALL' && NFL_FORMAT_COPY[format]) ||
+    (draft.sport === 'LEAGUE_OF_LEGENDS' && LOL_FORMAT_COPY[format]) ||
+    FORMAT_COPY[format]
+  );
 }
 
 /** Por qué un formato no se puede elegir con esta competición, o null si se puede. */

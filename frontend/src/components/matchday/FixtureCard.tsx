@@ -79,6 +79,7 @@ export default function FixtureCard({
             : '2'
         : null;
   const inPlay = fixture.status === 'LIVE' || fixture.status === 'PAUSED';
+  const series = fixture.sport === 'LEAGUE_OF_LEGENDS';
   const winnerOnly = !allowsDraw(fixture.sport);
   const note = fixture.finished ? resultNote(fixture.displayClock) : null;
   // Terminado sin predicción: también se dice que no suma, para que cada partido cerrado tenga su balance.
@@ -94,6 +95,9 @@ export default function FixtureCard({
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays size={12} aria-hidden="true" />
           {formatMatchDate(fixture.matchDate)}
+          {fixture.bestOf != null && fixture.bestOf > 0 && (
+            <span className="md-best-of">Al mejor de {fixture.bestOf}</span>
+          )}
           {!locked && fixture.lockAt && fixture.lockAt !== fixture.matchDate && (
             <span className="md-lock-at">· Cierra {formatMatchDate(fixture.lockAt)}</span>
           )}
@@ -112,7 +116,7 @@ export default function FixtureCard({
             <span className="md-badge is-finished">
               {home != null && away != null
                 ? `Final ${home} - ${away}${note ? ` · ${note}` : ''}`
-                : tennisSets
+                : tennisSets && !series
                   ? 'Final · retirada o W.O.'
                   : 'Final'}
             </span>
@@ -154,6 +158,7 @@ export default function FixtureCard({
         <TennisPick
           fixture={fixture}
           setsToWin={tennisSets}
+          unit={series ? 'Partidas' : 'Sets'}
           prediction={prediction}
           resultSign={resultSign}
           locked={inputDisabled}
@@ -229,6 +234,8 @@ export default function FixtureCard({
 interface TennisPickProps {
   fixture: MatchdayFixture;
   setsToWin: number;
+  /** Qué se cuenta: los sets del tenis o las partidas de una serie del LoL. */
+  unit: 'Sets' | 'Partidas';
   prediction: DraftPrediction;
   resultSign: MatchSign | null;
   locked: boolean;
@@ -236,12 +243,13 @@ interface TennisPickProps {
 }
 
 /**
- * Tenis: un botón por jugador para elegir quién gana y, debajo, los sets (opcionales). Volver a
- * pulsar los sets elegidos los quita y deja solo el ganador.
+ * Tenis y series del LoL: un botón por jugador o equipo para elegir quién gana y, debajo, los sets o
+ * las partidas (opcionales). Volver a pulsar el resultado elegido lo quita y deja solo el ganador.
  */
 function TennisPick({
   fixture,
   setsToWin,
+  unit,
   prediction,
   resultSign,
   locked,
@@ -282,8 +290,16 @@ function TennisPick({
         })}
       </div>
       {sign && winnerName && (
-        <div className="md-sets" role="group" aria-label={`En cuántos sets gana ${winnerName}`}>
-          <span className="md-sets-label">Sets</span>
+        <div
+          className="md-sets"
+          role="group"
+          aria-label={
+            unit === 'Sets'
+              ? `En cuántos sets gana ${winnerName}`
+              : `Con qué resultado gana ${winnerName} la serie`
+          }
+        >
+          <span className="md-sets-label">{unit}</span>
           {tennisLoserSets(setsToWin).map((lost) => {
             const isSelected = loserSets === lost;
             const isResult = resultSign === sign && resultLoserSets === lost;
