@@ -51,8 +51,7 @@ const renderAt = (path = '/crear-liga') =>
     </QueryClientProvider>,
   );
 
-const next = (label: string) =>
-  fireEvent.click(screen.getByRole('button', { name: `Siguiente: ${label}` }));
+const next = () => fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
 it('crea una liga por jornadas paso a paso y deja el código para invitar', async () => {
   vi.mocked(createGroup).mockResolvedValue(
@@ -61,34 +60,35 @@ it('crea una liga por jornadas paso a paso y deja el código para invitar', asyn
   renderAt();
 
   fireEvent.click(await screen.findByRole('radio', { name: 'Fútbol' }));
-  next('Competición');
+  next();
   // Solo las del deporte elegido.
   expect(screen.queryByRole('radio', { name: 'Worlds' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('radio', { name: 'LaLiga' }));
-  next('Modo de juego');
+  next();
 
-  expect(screen.getByRole('heading', { level: 2, name: '¿Cómo se juega?' })).toHaveFocus();
-  // En una liga regular no hay cuadro que rellenar.
-  expect(screen.getByRole('radio', { name: 'Cuadro completo' })).toBeDisabled();
+  expect(screen.getByRole('heading', { level: 2, name: 'Elige el modo de juego' })).toHaveFocus();
+  // En una liga regular no hay cuadro que rellenar: ni se ofrece.
+  expect(screen.queryByRole('radio', { name: 'Cuadro completo' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('radio', { name: 'Por jornadas' }));
-  next('Reglas');
+  next();
 
   fireEvent.click(screen.getByRole('radio', { name: 'Por días' }));
   fireEvent.click(screen.getByRole('checkbox', { name: /La liga tiene cuota/ }));
-  next('Identidad');
+  next();
 
   fireEvent.change(screen.getByLabelText('Nombre de la liga'), { target: { value: 'Amigos' } });
-  next('Resumen');
+  next();
 
   expect(screen.getByText('LaLiga')).toBeInTheDocument();
   expect(screen.getByText('Por días')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Crear liga' }));
 
-  expect(await screen.findByRole('heading', { name: '¡Tu liga está lista!' })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Liga creada' })).toBeInTheDocument();
   expect(screen.getByText('AMIGOS7')).toBeInTheDocument();
-  expect(
-    screen.getByRole('link', { name: 'Hacer mis predicciones de la jornada' }),
-  ).toHaveAttribute('href', '/jornadas');
+  expect(screen.getByRole('link', { name: 'Hacer mis predicciones' })).toHaveAttribute(
+    'href',
+    '/jornadas',
+  );
   const [request, key] = vi.mocked(createGroup).mock.calls[0];
   expect(request).toEqual({
     name: 'Amigos',
@@ -109,10 +109,10 @@ it('crea una liga por jornadas paso a paso y deja el código para invitar', asyn
 it('no avanza sin elegir deporte y lleva el foco al campo', async () => {
   renderAt();
   await screen.findByRole('radio', { name: 'Fútbol' });
-  next('Competición');
+  next();
 
   expect(screen.getByText('Elige un deporte.')).toBeInTheDocument();
-  expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('¿A qué deporte');
+  expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Elige deporte');
   await waitFor(() => expect(screen.getByRole('radio', { name: 'Fútbol' })).toHaveFocus());
 });
 
@@ -128,7 +128,7 @@ it('recupera el borrador al recargar y no deja saltarse pasos pendientes', async
   renderAt('/crear-liga?paso=6');
 
   expect(
-    await screen.findByRole('heading', { level: 2, name: 'Nombre, imagen y normas' }),
+    await screen.findByRole('heading', { level: 2, name: 'Ponle nombre' }),
   ).toBeInTheDocument();
   expect(screen.getByText('Paso 5 de 6')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Atrás' }));

@@ -32,13 +32,20 @@ import SummaryStep from '../components/createLeague/SummaryStep';
 import LeagueInvitePanel from '../components/createLeague/LeagueInvitePanel';
 
 const STEP_TITLES: Record<LeagueStepId, string> = {
-  sport: '¿A qué deporte se juega?',
-  competition: '¿Sobre qué competición se juega?',
-  format: '¿Cómo se juega?',
-  rules: 'Reglas de la liga',
-  identity: 'Nombre, imagen y normas',
-  summary: 'Revisa y crea la liga',
+  sport: 'Elige deporte',
+  competition: 'Elige la competición',
+  format: 'Elige el modo de juego',
+  rules: 'Ajusta las reglas',
+  identity: 'Ponle nombre',
+  summary: 'Revisa y crea',
 };
+
+/** El título del paso; la competición cambia con el tenis (un torneo) y con otro deporte (la tuya). */
+function stepTitle(id: LeagueStepId, sport: string | null) {
+  if (id === 'competition' && sport === 'TENNIS') return 'Elige el torneo';
+  if (id === 'competition' && sport === 'OTHER') return 'Nombra tu competición';
+  return STEP_TITLES[id];
+}
 
 const EMPTY = JSON.stringify(emptyDraft());
 
@@ -168,7 +175,7 @@ export default function CreateLeague() {
   const startOver = async () => {
     const confirmed = await confirmAction({
       title: '¿Empezar de nuevo?',
-      message: 'Se borra todo lo que has elegido para esta liga.',
+      message: 'Se borra todo lo elegido.',
       confirmLabel: 'Empezar de nuevo',
     });
     if (!confirmed) return;
@@ -180,7 +187,7 @@ export default function CreateLeague() {
     return (
       <section className="view-section active create-league">
         <div className="paper-panel album-sheet landing-tape create-league-sheet">
-          <h1 className="poster-title create-league-title">¡Tu liga está lista!</h1>
+          <h1 className="poster-title create-league-title">Liga creada</h1>
           <LeagueInvitePanel group={created.group} imageFailed={created.imageFailed} />
         </div>
       </section>
@@ -224,7 +231,7 @@ export default function CreateLeague() {
           tabIndex={-1}
           className="poster-title create-league-title"
         >
-          {STEP_TITLES[step.id]}
+          {stepTitle(step.id, draft.sport)}
         </h2>
 
         {!ctx ? (
@@ -233,7 +240,7 @@ export default function CreateLeague() {
           <>
             {competitions.isError && step.id === 'sport' && (
               <div className="create-league-error is-block" role="alert">
-                <span>No se han podido cargar las competiciones oficiales.</span>
+                <span>No se pudieron cargar las competiciones.</span>
                 <button
                   type="button"
                   className="glass-btn create-league-small-btn"
@@ -284,11 +291,7 @@ export default function CreateLeague() {
             className="glass-btn primary-btn create-league-nav-btn is-primary"
             disabled={!ctx || submitting}
           >
-            {isLast
-              ? submitting
-                ? 'Creando liga…'
-                : 'Crear liga'
-              : `Siguiente: ${LEAGUE_STEPS[current + 1].label}`}
+            {isLast ? (submitting ? 'Creando liga…' : 'Crear liga') : 'Siguiente'}
           </button>
         </div>
       </form>

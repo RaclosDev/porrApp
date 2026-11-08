@@ -39,7 +39,7 @@ describe('reglas de superviviente', () => {
       />,
     );
 
-    expect(screen.getByText(/en cada semana eliges un equipo/)).toBeInTheDocument();
+    expect(screen.getByText(/Cada semana eliges un equipo/)).toBeInTheDocument();
     expect(screen.getByText(/Gana quien supere más semanas/)).toBeInTheDocument();
     expect(screen.getByLabelText('Semana superada')).toHaveValue(1);
   });

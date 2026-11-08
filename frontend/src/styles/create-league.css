@@ -232,6 +232,20 @@
     gap: 8px;
   }
 
+  /* Opciones de una palabra (el deporte): dos por fila en el móvil; la que lleva texto, a lo ancho. */
+  .create-league-options.is-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  }
+
+  .create-league-options.is-tiles .create-league-option {
+    gap: 10px;
+    padding-inline: 12px;
+  }
+
+  .create-league-options.is-tiles .create-league-option:not(.is-compact) {
+    grid-column: 1 / -1;
+  }
+
   .create-league-options.is-row {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
     margin-bottom: 12px;
@@ -249,6 +263,14 @@
     color: var(--ink);
     cursor: pointer;
     transition: border-color 0.15s ease;
+  }
+
+  .create-league-option.is-compact {
+    align-items: center;
+  }
+
+  .create-league-option.is-compact input {
+    margin-top: 0;
   }
 
   .create-league-option:hover {

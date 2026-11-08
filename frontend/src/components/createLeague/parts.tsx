@@ -40,7 +40,7 @@ export function OptionCard({
   return (
     <label
       htmlFor={id}
-      className={`create-league-option${disabledReason ? ' is-disabled' : ''}${checked ? ' is-checked' : ''}`}
+      className={`create-league-option${disabledReason ? ' is-disabled' : ''}${checked ? ' is-checked' : ''}${described ? '' : ' is-compact'}`}
     >
       <input
         type="radio"
