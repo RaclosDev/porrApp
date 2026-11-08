@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
 import { useAppContext } from '../context/AppContext';
+import type { LeagueKind } from '../context/leagueKind';
+import { useWorldCupData } from '../context/leagueData';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { usePredictionViewerData, type RoundRef } from '../hooks/usePredictionViewerData';
 import { PredictionSkeleton } from './Skeleton';
@@ -13,7 +15,7 @@ import RoundFooter from './prediction/RoundFooter';
 import ViewerSlot from './prediction/ViewerSlot';
 import { ViewerMessage, ViewerModal } from './prediction/ViewerFrame';
 import type { ViewerTab } from './prediction/viewerTypes';
-import { nextKnockoutMatch } from '../utils/bracketBuilder';
+import { nextWorldCupKnockoutMatch } from '../utils/bracketBuilder';
 import { advancingThirds, thirdPlacedTeams } from '../utils/predictionViewer';
 import { featuredSlot, groupTeamPoints } from '../utils/viewerScoring';
 import { isMathematicallyQualified } from '../utils/groupStatus';
@@ -35,20 +37,29 @@ const HIDDEN_ROUNDS = { 0: false, 1: false, 2: false, 3: false };
  * terceros y cuadro de eliminatorias con los puntos obtenidos.
  */
 function PredictionViewer(props: PredictionViewerProps) {
-  const { activeGroupOwnBracket, activeGroupWorldCup, viewerPredictionId, setViewerPredictionId } =
-    useAppContext();
+  const { leagueKind, viewerPredictionId, setViewerPredictionId } = useAppContext();
   const id = props.predictionId || viewerPredictionId;
-  if (activeGroupOwnBracket && id) {
-    return (
-      <CustomPredictionViewer
-        predictionId={id}
-        onClose={props.onClose || (() => setViewerPredictionId(null))}
-      />
-    );
-  }
-  // Grupos, terceros y cruces del Mundial: solo para sus ligas, nunca como visor por defecto.
-  if (!activeGroupWorldCup) return null;
-  return <WorldCupPredictionViewer {...props} />;
+  const ownBracket = id ? (
+    <CustomPredictionViewer
+      predictionId={id}
+      onClose={props.onClose || (() => setViewerPredictionId(null))}
+    />
+  ) : null;
+  // Solo las ligas de cuadro tienen visor; las demás no enseñan ninguno.
+  const viewers: Record<LeagueKind, ReactNode> = {
+    worldCup: <WorldCupPredictionViewer {...props} />,
+    customBracket: ownBracket,
+    ownBracket,
+    knockoutDraw: ownBracket,
+    matchday: null,
+    fightCard: null,
+    grandPrix: null,
+    loading: null,
+    error: null,
+    none: null,
+    unknown: null,
+  };
+  return viewers[leagueKind];
 }
 
 function WorldCupPredictionViewer({
@@ -58,7 +69,8 @@ function WorldCupPredictionViewer({
   onClose = null,
 }: PredictionViewerProps) {
   const state = useAppContext();
-  const { viewerPredictionId, setViewerPredictionId, officialPoints, groupOdds, allGames } = state;
+  const { viewerPredictionId, setViewerPredictionId, allGames } = state;
+  const { groupStandings: officialPoints, groupOdds } = useWorldCupData();
   const { participantsHashes } = state;
   const effectivePredictionId = predictionId || viewerPredictionId;
   const handleClose = useCallback(
@@ -99,7 +111,7 @@ function WorldCupPredictionViewer({
     initialSection === 'knockout' ? 'bracket' : 'groups',
   );
 
-  const featuredMatch = useMemo(() => nextKnockoutMatch(allGames), [allGames]);
+  const featuredMatch = useMemo(() => nextWorldCupKnockoutMatch(allGames), [allGames]);
 
   // Las cuatro variantes del modal comparten el mismo contenedor raíz, así que el ref no cambia.
   const dialogRef = useRef<HTMLDivElement>(null);

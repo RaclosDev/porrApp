@@ -21,9 +21,9 @@ vi.mock('../../services/api', () => ({
   fetchPredictions: vi.fn().mockResolvedValue([]),
   fetchLeaderboard: vi.fn(),
   fetchLeaderboardMatchdays: vi.fn().mockResolvedValue([]),
-  fetchStandings: vi.fn().mockResolvedValue({}),
-  fetchTeamOdds: vi.fn().mockResolvedValue({}),
-  fetchTopScorers: vi.fn().mockResolvedValue([]),
+  fetchWorldCupStandings: vi.fn().mockResolvedValue({}),
+  fetchWorldCupGroupOdds: vi.fn().mockResolvedValue({}),
+  fetchWorldCupTopScorers: vi.fn().mockResolvedValue([]),
   updateUserPreferences: vi.fn().mockResolvedValue({}),
 }));
 
@@ -150,18 +150,16 @@ describe('when the active league stops being available', () => {
     expect(result.current.activeGroupName).toBe('Ninguna liga seleccionada');
     expect(result.current.activeGroupPoolFormat).toBeNull();
     expect(result.current.activeCompetitionId).toBeNull();
-    expect(result.current.activeGroupWorldCup).toBe(false);
+    expect(result.current.leagueKind).toBe('none');
     expect(result.current.activeGroupPichichi).toBe(false);
     expect(result.current.allGames).toEqual([]);
     expect(result.current.matchRadar).toEqual({ live: [], last: [], next: [] });
-    expect(result.current.officialPoints).toEqual({});
-    expect(result.current.topScorers).toEqual([]);
     // Ni partidos de todas las competiciones ni datos del Mundial.
     expect(api.fetchMatches).not.toHaveBeenCalled();
     expect(api.fetchMatchRadar).not.toHaveBeenCalled();
-    expect(api.fetchStandings).not.toHaveBeenCalled();
-    expect(api.fetchTeamOdds).not.toHaveBeenCalled();
-    expect(api.fetchTopScorers).not.toHaveBeenCalled();
+    expect(api.fetchWorldCupStandings).not.toHaveBeenCalled();
+    expect(api.fetchWorldCupGroupOdds).not.toHaveBeenCalled();
+    expect(api.fetchWorldCupTopScorers).not.toHaveBeenCalled();
   });
 
   it('a league deleted elsewhere (404) is replaced once the server confirms it is gone', async () => {

@@ -1,10 +1,13 @@
 import LeagueLoadState from '../components/LeagueLoadState';
-import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
 import { BracketFinalMatch } from '../components/BracketFinale';
-import BracketCanvas, { TeamSlot, type SlotContext } from '../components/BracketCanvas';
+import BracketCanvas, {
+  TeamSlot,
+  WORLD_CUP_ROUND_LABELS,
+  type SlotContext,
+} from '../components/BracketCanvas';
 import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
 import { useBracket } from '../hooks/useBracket';
@@ -14,39 +17,33 @@ import { isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
 import CustomBracket from './CustomBracket';
 import KnockoutDrawPredictor from './KnockoutDrawPredictor';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import type { LeagueKind } from '../context/leagueKind';
 
+/** «Mi porra»: dónde se rellena la predicción de cada clase de liga. */
 function Bracket() {
-  // Las competiciones personalizadas y los torneos oficiales con cuadro propio (Worlds de LoL…) se
-  // pronostican sobre sus cruces; el editor de grupos y terceros es solo del Mundial.
-  const {
-    activeGroupOwnBracket,
-    activeGroupKnockoutDraw,
-    activeGroupWorldCup,
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    loadingGroup,
-    groupError,
-  } = useAppContext();
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  // Champions, Copa del Rey…: los cruces se sortean ronda a ronda y se pronostican igual.
-  if (activeGroupKnockoutDraw) {
-    return <KnockoutDrawPredictor />;
-  }
-  if (activeGroupOwnBracket) {
-    return <CustomBracket />;
-  }
-  // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
-  if (isGrandPrixFormat(activeGroupPoolFormat)) return <Navigate to="/" replace />;
-  if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE') {
-    return <Navigate to="/jornadas" replace />;
-  }
-  // El editor de grupos, terceros y cruces es el del Mundial: solo para sus ligas, nunca por defecto.
-  if (!activeGroupWorldCup) return <Navigate to="/" replace />;
-  return <WorldCupBracket />;
+  const { leagueKind, groupError } = useAppContext();
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={groupError} />,
+    none: <NoLeagueState title="Mi porra" what="las predicciones" />,
+    unknown: <UnsupportedLeagueState />,
+    worldCup: <WorldCupBracket />,
+    // Los cuadros propios (personalizadas, Worlds de LoL…) se pronostican sobre sus cruces.
+    customBracket: <CustomBracket />,
+    ownBracket: <CustomBracket />,
+    // Champions, Copa del Rey, NBA…: los cruces se sortean y se pronostican ronda a ronda.
+    knockoutDraw: <KnockoutDrawPredictor />,
+    matchday: <Navigate to="/jornadas" replace />,
+    fightCard: <Navigate to="/jornadas" replace />,
+    // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[leagueKind];
 }
 
 /**
- * Porra de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
+ * Porra del Mundial de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
  * si no, o al editar, el asistente de grupos y cruces.
  */
 function WorldCupBracket() {
@@ -61,7 +58,6 @@ function WorldCupBracket() {
     predictionName,
     setPredictionName,
     isKnockoutsOnly,
-    isMatchDay,
     allTeams,
     isInitialState,
     isAuthenticated,
@@ -78,19 +74,12 @@ function WorldCupBracket() {
     savedGroupsDraft,
     savedThirdsDraft,
     savedPredictionId,
-    loadingGroup,
-    groupError,
   } = useBracket();
 
   const [mobileStep, setMobileStep] = useState('bracket'); // 'bracket' | 'save'
   const [isEditing, setIsEditing] = useState(false);
 
   const effectivePredictionId = savedPredictionId || myPred?.key;
-
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  if (isMatchDay) {
-    return <Navigate to="/jornadas" replace />;
-  }
 
   if (effectivePredictionId && !isEditing) {
     return (
@@ -242,6 +231,7 @@ function WorldCupBracket() {
 
           <div className={mobileStep === 'bracket' ? '' : 'mobile-step-hidden'}>
             <BracketCanvas
+              roundLabels={WORLD_CUP_ROUND_LABELS}
               leftRounds={[
                 bracketState.r32.left,
                 bracketState.r16.left,

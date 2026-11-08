@@ -47,7 +47,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class SyncService {
 
-    private static final String WORLD_CUP_DATE_RANGE = "2026";
+    /** Paso de la sincronización que recalcula los grupos y el cuadro del Mundial. */
+    static final String WORLD_CUP_REFRESH = "Clasificación y cuadro del Mundial";
     private static final DateTimeFormatter ESPN_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     static final String STATUS_SUCCESS = "success";
@@ -203,7 +204,7 @@ public class SyncService {
         }
         worldCupRefreshPending |= results.stream().anyMatch(CompetitionSync::worldCupResultsChanged);
         if (worldCupRefreshPending && !Thread.currentThread().isInterrupted()) {
-            results.add(refreshWorldCup(competitions));
+            results.add(refreshWorldCup());
             topScorerService.refresh();
         }
         if (results.stream().anyMatch(r -> r.matchesUpdated() > 0 || r.teamsUpdated() > 0)) {
@@ -218,7 +219,11 @@ public class SyncService {
     private CompetitionSync syncCompetition(Competition competition, boolean liveOnly) {
         if (competition.isFormulaOne()) return syncFormulaOne(competition, liveOnly);
         long start = System.currentTimeMillis();
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
+        SportsDataProvider provider = sportsDataProviderRegistry.findProviderForCompetition(competition.getExternalId())
+                .orElse(null);
+        if (provider == null) {
+            return CompetitionSync.failed(competition.getName(), STATUS_ERROR, "sin proveedor de datos");
+        }
         String slug = competition.getExternalId();
         if (!provider.isAvailable()) {
             log.warn("Sincronización de {} omitida: el circuit breaker de {} está abierto",
@@ -231,7 +236,7 @@ public class SyncService {
             Map<String, Team> teams = matchEventProcessor.teamCache();
 
             if (worldCup) {
-                processEvents(provider.fetchScoreboardEvents(slug, WORLD_CUP_DATE_RANGE), teams, batch);
+                processEvents(provider.fetchScoreboardEvents(slug, Competition.WORLD_CUP_SEASON), teams, batch);
             } else if (LolEsportsDataProvider.isLolCompetition(slug)) {
                 // El calendario de lolesports llega entero de una vez (y en caché) e incluye ediciones
                 // anteriores: se repasa la temporada en curso para que las series ya jugadas reciban su fase.
@@ -320,9 +325,8 @@ public class SyncService {
      * Recalcula la clasificación de grupos y el cuadro del Mundial al final de una pasada. Si falla, se
      * repite en la siguiente aunque esa no cambie ningún resultado.
      */
-    private CompetitionSync refreshWorldCup(List<Competition> competitions) {
-        String name = competitions.stream().filter(WorldCupTables::isWorldCup).map(Competition::getName)
-                .findFirst().orElse(Competition.WORLD_CUP_EXTERNAL_ID);
+    private CompetitionSync refreshWorldCup() {
+        String name = WORLD_CUP_REFRESH;
         worldCupRefreshPending = true;
         try {
             int placed = WorldCupTables.refresh(knockoutBracketService, standingsService);

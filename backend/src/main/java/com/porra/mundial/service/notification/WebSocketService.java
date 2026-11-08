@@ -142,7 +142,7 @@ public class WebSocketService {
     /** Cachés que dependen de los resultados y equipos que llegan de la sincronización. */
     static final List<String> RESULT_CACHES = List.of(
             "matches", "matchRadar", "standings", "officialPoints", "leaderboard",
-            "competitionStandings", "allTeams", "groupOdds");
+            "competitionStandings", "groupOdds");
     /** Cachés que muestran el minuto de juego. */
     static final List<String> CLOCK_CACHES = List.of("matches", "matchRadar");
 

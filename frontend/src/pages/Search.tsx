@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
@@ -22,7 +22,8 @@ import {
   type OfficialState,
   type StageId,
 } from '../utils/bracketStats';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import type { LeagueKind } from '../context/leagueKind';
 
 const FULL_STAGES: StageId[] = [
   'groups',
@@ -74,17 +75,7 @@ function realSituation(official: OfficialState, team: string): string | null {
  * ronda, quién lo pone y hasta dónde lo lleva el resto.
  */
 function Search() {
-  const {
-    activeGroupPoolFormat,
-    activeGroupOwnBracket,
-    activeCompetitionFormatType,
-    activeGroupWorldCup,
-    activeGroupId,
-    userGroups,
-    changeGroup,
-    loadingGroup,
-    groupError,
-  } = useAppContext();
+  const { leagueKind, activeGroupId, userGroups, changeGroup, groupError } = useAppContext();
   const [params] = useSearchParams();
   const requestedGroup = params.get('group');
   if (requestedGroup && requestedGroup !== String(activeGroupId)) {
@@ -103,19 +94,24 @@ function Search() {
       </section>
     );
   }
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  if (activeGroupOwnBracket) {
-    return <Navigate to="/" replace />;
-  }
-  if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE') {
-    return <Navigate to="/stats" replace />;
-  }
-  // El buscador recorre los cuadros del Mundial: el resto de ligas no lo tiene.
-  if (!activeGroupWorldCup) return <Navigate to="/" replace />;
-  return <BracketSearch />;
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={groupError} />,
+    none: <NoLeagueState title="Buscar" what="las predicciones" />,
+    unknown: <UnsupportedLeagueState />,
+    // El buscador recorre los cuadros del Mundial de la liga.
+    worldCup: <WorldCupSearch />,
+    matchday: <Navigate to="/stats" replace />,
+    fightCard: <Navigate to="/stats" replace />,
+    customBracket: <Navigate to="/" replace />,
+    ownBracket: <Navigate to="/" replace />,
+    knockoutDraw: <Navigate to="/" replace />,
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[leagueKind];
 }
 
-function BracketSearch() {
+function WorldCupSearch() {
   const { activeGroupId } = useAppContext();
   const insights = useBracketInsights();
   const { entries, official, knockoutsOnly } = insights;

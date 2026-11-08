@@ -8,7 +8,9 @@ import MatchdayStatsView from '../components/insights/MatchdayStatsView';
 import { InsightsNotice } from '../components/insights/InsightCard';
 import type { OfficialState } from '../utils/bracketStats';
 import { Navigate } from 'react-router-dom';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import type { ReactNode } from 'react';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import type { LeagueKind } from '../context/leagueKind';
 
 /** Resumen del torneo para la cabecera. */
 function tournamentSummary(official: OfficialState): string {
@@ -22,41 +24,42 @@ function tournamentSummary(official: OfficialState): string {
  * real; en las de jornadas, el reparto de pronósticos de cada partido ya empezado.
  */
 function Stats() {
-  const {
-    activeGroupId,
-    activeGroupName,
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    activeGroupOwnBracket,
-    activeGroupWorldCup,
-    loadingGroup,
-    groupError,
-  } = useAppContext();
-
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  // Lo más elegido compara con el cuadro del Mundial; los cuadros propios (LoL, personalizadas) no lo tienen.
-  if (activeGroupOwnBracket) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE') {
-    return (
-      <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
-        <InsightsHeader leagueName={activeGroupName} summary="Por partido" withSearch={false} />
-        {activeGroupId ? (
-          <MatchdayStatsView groupId={activeGroupId} />
-        ) : (
-          <InsightsNotice title="No hay ninguna liga seleccionada" />
-        )}
-      </section>
-    );
-  }
-  // Las estadísticas de cuadro son las del Mundial: el resto de ligas no las tiene.
-  if (!activeGroupWorldCup) return <Navigate to="/" replace />;
-  return <BracketStatsPage />;
+  const { leagueKind, groupError } = useAppContext();
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={groupError} />,
+    none: <NoLeagueState title="Estadísticas" what="las estadísticas" />,
+    unknown: <UnsupportedLeagueState />,
+    // Lo más elegido compara los cuadros con el oficial del Mundial.
+    worldCup: <WorldCupStatsPage />,
+    matchday: <MatchdayStatsPage />,
+    fightCard: <MatchdayStatsPage />,
+    // Sin estadísticas propias: los cuadros propios, las eliminatorias sorteadas y la Fórmula 1.
+    customBracket: <Navigate to="/" replace />,
+    ownBracket: <Navigate to="/" replace />,
+    knockoutDraw: <Navigate to="/" replace />,
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[leagueKind];
 }
 
-function BracketStatsPage() {
+/** Reparto de pronósticos de cada partido ya empezado. */
+function MatchdayStatsPage() {
+  const { activeGroupId, activeGroupName } = useAppContext();
+  return (
+    <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
+      <InsightsHeader leagueName={activeGroupName} summary="Por partido" withSearch={false} />
+      {activeGroupId ? (
+        <MatchdayStatsView groupId={activeGroupId} />
+      ) : (
+        <InsightsNotice title="No hay ninguna liga seleccionada" />
+      )}
+    </section>
+  );
+}
+
+/** Lo más elegido en los cuadros del Mundial de la liga, comparado con lo real. */
+function WorldCupStatsPage() {
   const insights = useBracketInsights();
   const count = insights.entries.length;
   const summary =

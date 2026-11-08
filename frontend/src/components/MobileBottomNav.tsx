@@ -1,74 +1,15 @@
 import React, { useState } from 'react';
 import { NavLink, matchPath, useLocation } from 'react-router-dom';
-import {
-  Home,
-  Trophy,
-  Users,
-  Calendar,
-  Pencil,
-  Swords,
-  LayoutGrid,
-  ListOrdered,
-  Flag,
-} from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
-import { isUfcCompetition } from '../utils/fightCard';
+import { leagueNavItems } from './layout/leagueNav';
 
 /** Navegación inferior en móvil (hasta 768 px); el resalte se desliza a la pestaña activa. */
 export default function MobileBottomNav() {
-  const {
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    activeCompetitionExternalId,
-    isAuthenticated,
-    userGroups,
-    userGroupsLoaded,
-    isDemoMode,
-    loadingGroup,
-    choosingLeague,
-    activeGroupWorldCup,
-  } = useAppContext();
+  const { leagueKind, isAuthenticated, userGroups, userGroupsLoaded, isDemoMode } = useAppContext();
 
   const isDemo = isDemoMode;
   const isNavLocked = isAuthenticated && userGroupsLoaded && userGroups.length === 0 && !isDemo;
-  const isMatchDay =
-    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
-
-  const navItems = isDemo
-    ? [
-        { to: '/demo', label: 'Inicio', icon: Home },
-        { to: '/prediction', label: 'Mi Porra', icon: Pencil },
-        { to: '/bracket', label: 'Resultados', icon: Swords },
-        // La fase de grupos solo existe en las ligas del Mundial.
-        ...(activeGroupWorldCup ? [{ to: '/grupos', label: 'Grupos', icon: LayoutGrid }] : []),
-        { to: '/ranking', label: 'Ranking', icon: Trophy },
-      ]
-    : isGrandPrixFormat(activeGroupPoolFormat)
-      ? [
-          { to: '/', label: 'Carreras', icon: Flag, end: true },
-          { to: '/ranking', label: 'Ranking', icon: Trophy },
-          { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
-        ]
-      : isMatchDay
-        ? [
-            { to: '/', label: 'Inicio', icon: Home, end: true },
-            { to: '/jornadas', label: 'Jornadas', icon: Calendar },
-            { to: '/ranking', label: 'Ranking', icon: Trophy },
-            {
-              to: '/tabla',
-              label: isUfcCompetition(activeCompetitionExternalId) ? 'Cartelera' : 'Tabla',
-              icon: ListOrdered,
-            },
-            { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
-          ]
-        : [
-            { to: '/', label: 'Inicio', icon: Home, end: true },
-            { to: '/prediction', label: 'Mi Porra', icon: Pencil },
-            { to: '/bracket', label: 'Resultados', icon: Swords },
-            { to: '/ranking', label: 'Ranking', icon: Trophy },
-            { to: '/mis-ligas', label: 'Mis Ligas', icon: Users },
-          ];
+  const navItems = leagueNavItems(leagueKind, isDemo) ?? [];
 
   const { pathname } = useLocation();
   const activeIndex = navItems.findIndex((item) =>
@@ -82,9 +23,9 @@ export default function MobileBottomNav() {
   }
   const indicatorIndex = activeIndex === -1 ? lastActiveIndex : activeIndex;
 
-  // Hasta saber el formato de la liga activa no se sabe qué pestañas lleva: se reserva el hueco en
-  // vez de enseñar las de otro formato y cambiarlas al momento.
-  if ((loadingGroup || choosingLeague) && !isDemo) {
+  // Hasta saber la clase de la liga activa no se sabe qué pestañas lleva: se reserva el hueco en
+  // vez de enseñar las de otra clase y cambiarlas al momento.
+  if (leagueKind === 'loading') {
     return (
       <nav
         className="mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 flex items-center justify-around py-0 px-1.5 z-[1000]"
@@ -157,7 +98,7 @@ export default function MobileBottomNav() {
                 <span
                   className={`text-[0.64rem] tracking-[0.2px] [transition:color_0.2s_ease] ${isActive ? 'font-bold' : 'font-medium'} ${isActive ? 'text-[#111827]' : 'text-[#94a3b8]'}`}
                 >
-                  {item.label}
+                  {item.mobileLabel ?? item.label}
                 </span>
               </>
             )}

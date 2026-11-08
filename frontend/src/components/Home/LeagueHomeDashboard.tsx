@@ -17,7 +17,7 @@ import RoundParticipants from '../voters/RoundParticipants';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
 import { useRoundParticipants } from '../../hooks/useRoundParticipants';
 import type { Match, MatchVoter, MatchVoters } from '../../types/api';
-import { isMatchBasedFormat } from '../../utils/poolFormat';
+import { MATCH_KINDS } from '../../context/leagueKind';
 
 const RANKING_SIZE = 5;
 
@@ -232,6 +232,7 @@ export default function LeagueHomeDashboard() {
     userId,
     isAuthenticated,
     activeGroupPoolFormat,
+    leagueKind,
     activeGroupWinnerOnly,
     loading: loadingOfficialData,
     loadingLeaderboard,
@@ -259,7 +260,7 @@ export default function LeagueHomeDashboard() {
   const participants = useRoundParticipants(
     activeGroupId,
     matches.items.map((match) => match.id).filter(Boolean),
-    isAuthenticated && isMatchBasedFormat(activeGroupPoolFormat),
+    isAuthenticated && MATCH_KINDS[leagueKind],
   );
 
   // La competición solo se muestra si aporta información nueva respecto al nombre de la liga.
@@ -357,7 +358,7 @@ export default function LeagueHomeDashboard() {
               <PanelHeader
                 title={matches.title}
                 onSeeAll={() => navigate(matches.allTo)}
-                reserveExtra={isMatchBasedFormat(activeGroupPoolFormat)}
+                reserveExtra={MATCH_KINDS[leagueKind]}
               >
                 <RoundParticipants participants={participants} roundLabel={matches.title} />
               </PanelHeader>

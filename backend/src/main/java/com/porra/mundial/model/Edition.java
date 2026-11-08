@@ -16,10 +16,25 @@ public class Edition {
     // Fecha de cierre de cuadros ya establecida por V24, también para las nuevas ligas.
     private static final Instant WORLD_CUP_DEADLINE = Instant.parse("2026-06-11T18:00:00Z"); // 20:00 en Madrid
 
+    /** Solo el cuadro del Mundial tiene una fecha de cierre conocida; el resto se cierra como diga su liga. */
     public static Instant defaultLockDate(Competition competition, PoolFormat format) {
-        return competition != null
-                && Competition.WORLD_CUP_EXTERNAL_ID.equals(competition.getExternalId())
-                && !PoolFormat.isMatchBased(format) ? WORLD_CUP_DEADLINE : null;
+        return isWorldCupBracket(competition, format) ? WORLD_CUP_DEADLINE : null;
+    }
+
+    /** Cuadro del Mundial (completo o solo eliminatorias): grupos, terceros y cruces oficiales de la FIFA. */
+    public static boolean isWorldCupBracket(Competition competition, PoolFormat format) {
+        return competition != null && competition.isWorldCup()
+                && (format == PoolFormat.FULL_BRACKET || format == PoolFormat.KNOCKOUTS_ONLY);
+    }
+
+    /** @see #isWorldCupBracket(Competition, PoolFormat) */
+    public boolean isWorldCupBracket() {
+        return isWorldCupBracket(competition, poolFormat);
+    }
+
+    /** Puntúa el máximo goleador: solo en el cuadro del Mundial, el único con pichichi oficial. */
+    public boolean scoresPichichi() {
+        return pichichi && isWorldCupBracket();
     }
 
     @Id
@@ -52,7 +67,7 @@ public class Edition {
     /** Flag indicando si en esta edición se otorgan puntos extra por adivinar al Pichichi. */
     @Builder.Default
     @Column(nullable = false)
-    private boolean pichichi = true;
+    private boolean pichichi = false;
 
     /** Fecha y hora límite para enviar o editar pronósticos. */
     @Column(name = "lock_date")

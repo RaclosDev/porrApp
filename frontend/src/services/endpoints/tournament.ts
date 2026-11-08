@@ -11,18 +11,19 @@ import type {
 } from '../../types/api';
 import { request, query } from '../http';
 
-export const fetchStandings = () => request<GroupStandings>('/standings');
+export const fetchWorldCupStandings = () => request<GroupStandings>('/world-cup/standings');
 
-export const fetchMatches = (competitionId: number | null = null) =>
+export const fetchMatches = (competitionId: number) =>
   request<Match[]>(`/matches${query({ competitionId })}`);
 
-export const fetchMatchRadar = (competitionId: number | null = null) =>
+export const fetchMatchRadar = (competitionId: number) =>
   request<MatchRadar>(`/matches/radar${query({ competitionId })}`);
 
-export const fetchTeamOdds = () => request<GroupOdds>('/teams/odds');
+export const fetchWorldCupGroupOdds = () => request<GroupOdds>('/world-cup/group-odds');
 
 // Evita que el panel Pichichi se quede cargando indefinidamente si el backend no responde.
-export const fetchTopScorers = () => request<TopScorer[]>('/scorers', { timeoutMs: 12_000 });
+export const fetchWorldCupTopScorers = () =>
+  request<TopScorer[]>('/world-cup/scorers', { timeoutMs: 12_000 });
 
 export const fetchCompetitionStandings = async (
   competitionId: number | null,
@@ -35,5 +36,6 @@ export async function fetchCompetitions(): Promise<Competition[]> {
   return cachedCompetitions;
 }
 
-/** Cuadro oficial. Se cachea como consulta de TanStack (`officialBracketQuery`). */
-export const fetchOfficialBracket = () => request<PredictionData>('/standings/official-bracket');
+/** Cuadro oficial. Se cachea como consulta de TanStack (`worldCupOfficialBracketQuery`). */
+export const fetchWorldCupOfficialBracket = () =>
+  request<PredictionData>('/world-cup/official-bracket');

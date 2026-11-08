@@ -96,16 +96,25 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
-    @DisplayName("Debe soportar múltiples competiciones (LaLiga, Champions, Premier, Mundial)")
-    void supports_returnsTrueForSupportedCompetitions() {
+    @DisplayName("Reconoce las competiciones por su id de ESPN, no por su nombre ni sin id")
+    void supports_onlyKnownEspnIds() {
         assertTrue(provider.supports("esp.1"));
         assertTrue(provider.supports("uefa.champions"));
         assertTrue(provider.supports("eng.1"));
         assertTrue(provider.supports("fifa.world"));
-        assertTrue(provider.supports("LaLiga EA Sports"));
-        assertTrue(provider.supports("UEFA Champions League"));
-        assertTrue(provider.supports("Premier League"));
-        assertTrue(provider.supports("FIFA World Cup 2026"));
+        assertTrue(provider.supports(" ESP.1 "));
+        assertFalse(provider.supports(null));
+        assertFalse(provider.supports(" "));
+        assertFalse(provider.supports("LaLiga EA Sports"));
+        assertFalse(provider.supports("FIFA World Cup 2026"));
+        assertFalse(provider.supports("Mundial"));
+    }
+
+    @Test
+    @DisplayName("Sin id de competición no pide a ESPN ninguna liga por defecto")
+    void fetch_withoutCompetitionFails() {
+        assertThrows(IllegalArgumentException.class, () -> provider.fetchScoreboardEvents(null, "20261024"));
+        assertThrows(IllegalArgumentException.class, () -> provider.fetchTeams(" "));
     }
 
     @Test

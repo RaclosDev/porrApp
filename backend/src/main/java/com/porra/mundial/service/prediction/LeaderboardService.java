@@ -78,7 +78,7 @@ public class LeaderboardService {
         if (!stale.isEmpty()) {
             OfficialResultsService.OfficialResults official = officialResultsService.current();
             boolean pichichiActive = stale.stream()
-                    .anyMatch(p -> p.getEdition() == null || p.getEdition().isPichichi());
+                    .anyMatch(p -> p.getEdition() != null && p.getEdition().scoresPichichi());
             List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
 
             Map<Long, List<MatchPrediction>> matchPredsByPrediction = matchPredictionsByPrediction(stale);
@@ -397,7 +397,7 @@ public class LeaderboardService {
         Prediction pred = predictionRepository.findById(predictionId).orElse(null);
         if (pred == null) return null;
 
-        boolean pichichiActive = pred.getEdition() == null || pred.getEdition().isPichichi();
+        boolean pichichiActive = pred.getEdition() != null && pred.getEdition().scoresPichichi();
         List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
                 officialResultsService.current(), scorers,
@@ -415,10 +415,7 @@ public class LeaderboardService {
         PredictionDataDTO participant = pred.getBracketData();
         ParticipantScoreDTO score;
         Edition edition = pred.getEdition();
-        boolean bracketEdition = edition != null && edition.getCompetition() != null
-                && com.porra.mundial.model.Competition.WORLD_CUP_EXTERNAL_ID.equals(edition.getCompetition().getExternalId())
-                && (edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.FULL_BRACKET
-                    || edition.getPoolFormat() == com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY);
+        boolean bracketEdition = edition != null && edition.isWorldCupBracket();
         if (participant != null && PredictableBracket.applies(edition)) {
             score = customBracketScoringService.score(pred);
         } else if (participant != null && bracketEdition) {

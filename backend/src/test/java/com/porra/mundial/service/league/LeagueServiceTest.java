@@ -171,36 +171,53 @@ class LeagueServiceTest {
     }
 
     @Test
-    @DisplayName("createLeague traduce competiciones legacy a la canónica con externalId")
-    void createGroup_ResolvesLegacyCompetitionToCanonical() {
+    @DisplayName("createLeague no adivina la competición de una sin proveedor por su nombre")
+    void createGroup_RejectsCompetitionWithoutProvider() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        // Una competición antigua sin id externo: antes «Mundial» en el nombre la convertía en el Mundial.
+        when(competitionRepository.findById(1L)).thenReturn(Optional.of(Competition.builder()
+                .id(1L).name("Mundial de clubes").build()));
 
-        Competition legacy = Competition.builder()
-                .id(1L)
-                .name("Champions League")
-                .build();
-        Competition canonical = Competition.builder()
-                .id(5L)
-                .name("UEFA Champions League")
-                .externalId("uefa.champions")
-                .build();
+        BusinessException error = assertThrows(BusinessException.class, () -> leagueService.createLeague(
+                NewLeague.of("Prueba", "admin@test.com", 1L, com.porra.mundial.model.PoolFormat.FULL_BRACKET)));
 
-        when(competitionRepository.findById(1L)).thenReturn(Optional.of(legacy));
-        when(competitionRepository.findByExternalId("uefa.champions")).thenReturn(Optional.of(canonical));
-        when(leagueRepository.save(any(League.class))).thenAnswer(invocation -> {
-            League saved = invocation.getArgument(0);
-            saved.setId(99L);
-            return saved;
-        });
+        assertEquals(400, error.getStatus().value());
+        verify(competitionRepository, never()).findByExternalId(anyString());
+        verify(leagueRepository, never()).save(any());
+    }
 
-        leagueService.createLeague(NewLeague.of("Prueba Champions", "admin@test.com", 1L,
-                com.porra.mundial.model.PoolFormat.MATCH_DAY));
+    @Test
+    @DisplayName("createLeague exige el formato: no hay cuadro por defecto")
+    void createGroup_RequiresPoolFormat() {
+        assertThrows(BusinessException.class, () -> leagueService.createLeague(
+                NewLeague.of("Sin formato", "admin@test.com", 2L, null)));
+        verify(leagueRepository, never()).save(any());
+        verify(editionRepository, never()).save(any());
+    }
 
-        verify(editionRepository).save(argThat(edition ->
-                edition.getCompetition() != null && edition.getCompetition().getId().equals(5L)));
-        // La importación se pide para después de confirmar la liga, no dentro de su transacción.
-        verify(eventPublisher).publishEvent(new CompetitionImportRequestedEvent(5L));
+    @Test
+    @DisplayName("Solo el cuadro del Mundial guarda el pichichi")
+    void createGroup_KeepsPichichiOnlyForTheWorldCupBracket() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(leagueRepository.save(any(League.class))).thenReturn(league);
+        when(competitionRepository.findById(5L)).thenReturn(Optional.of(Competition.builder().id(5L)
+                .externalId("uefa.champions").formatType("LEAGUE").build()));
+        when(competitionRepository.findById(2L)).thenReturn(Optional.of(Competition.builder().id(2L)
+                .externalId(Competition.WORLD_CUP_EXTERNAL_ID).formatType("TOURNAMENT").build()));
+
+        leagueService.createLeague(NewLeague.of("Champions", "admin@test.com", 5L,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(true));
+        leagueService.createLeague(NewLeague.of("Mundial por jornadas", "admin@test.com", 2L,
+                com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(true));
+        leagueService.createLeague(NewLeague.of("Mundial", "admin@test.com", 2L,
+                com.porra.mundial.model.PoolFormat.FULL_BRACKET).withPichichi(true));
+
+        org.mockito.ArgumentCaptor<com.porra.mundial.model.Edition> saved =
+                org.mockito.ArgumentCaptor.forClass(com.porra.mundial.model.Edition.class);
+        verify(editionRepository, org.mockito.Mockito.times(3)).save(saved.capture());
+        assertEquals(java.util.List.of(false, false, true),
+                saved.getAllValues().stream().map(com.porra.mundial.model.Edition::isPichichi).toList());
     }
 
     @Test

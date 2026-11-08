@@ -1,11 +1,13 @@
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AppProvider, useAppContext } from '../../context/AppContext';
+import { useWorldCupData } from '../../context/leagueData';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAppStore, defaultBracketState } from '../../store/useAppStore';
 
 function ConsumerComponent() {
-  const { allGames, nameToIdMap, officialPoints, groupOdds, leaderboardData } = useAppContext();
+  const { allGames, nameToIdMap, leaderboardData } = useAppContext();
+  const { groupStandings: officialPoints, groupOdds } = useWorldCupData();
   return (
     <div>
       <span data-testid="games-count">

@@ -6,12 +6,25 @@ import type { Group } from '../../types/api';
 import { errorMessage } from '../../utils/errors';
 import { queryKeys } from '../../services/queryKeys';
 import CustomLockCard from './custom/CustomLockCard';
+import { leagueKindOf, type LeagueKind } from '../../context/leagueKind';
 import type { SaveAction } from './custom/customCompetition';
 
-/** El cuadro se pronostica cruce a cruce: torneos con cuadro propio (no el Mundial). */
+/** Los cuadros propios (personalizados o de un torneo oficial) se pueden cerrar cruce a cruce. */
+const PROGRESSIVE_LOCK: Record<LeagueKind, boolean> = {
+  customBracket: true,
+  ownBracket: true,
+  worldCup: false,
+  knockoutDraw: false,
+  matchday: false,
+  fightCard: false,
+  grandPrix: false,
+  loading: false,
+  error: false,
+  none: false,
+  unknown: false,
+};
 const allowsProgressiveLock = (group: Group) =>
-  group.customCompetition ||
-  (group.formatType === 'TOURNAMENT' && group.competitionExternalId !== 'fifa.world');
+  PROGRESSIVE_LOCK[leagueKindOf({ hasLeague: true, loading: false, error: false, league: group })];
 
 /**
  * Las ligas sobre una competición oficial eligen su cierre en los ajustes de la liga (las de jornadas,

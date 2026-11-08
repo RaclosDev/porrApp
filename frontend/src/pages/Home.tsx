@@ -1,6 +1,6 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useSortedGroups } from '../hooks/useSortedGroups';
 import { normalizeCountryName } from '../utils/constants';
@@ -14,50 +14,62 @@ import TopScorersPanel from '../components/Home/TopScorersPanel';
 import LeagueHomeDashboard from '../components/Home/LeagueHomeDashboard';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
-import { useLeagueHomeFormat } from '../hooks/useLeagueHomeData';
 import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
-import { isGrandPrixFormat } from '../utils/poolFormat';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import { useWorldCupData } from '../context/leagueData';
+import type { LeagueKind } from '../context/leagueKind';
+
+type HomeMode = 'home' | 'groups';
 
 /**
- * Página principal. La portada es la misma para todos los formatos de liga (LeagueHomeDashboard);
- * en /grupos el Mundial muestra la fase de grupos completa y los demás cuadros su vista de resultados.
+ * Página principal (/) y fase de grupos (/grupos). La portada es la misma para todas las clases de
+ * liga con calendario o cuadro (LeagueHomeDashboard); /grupos es la fase de grupos del Mundial y,
+ * en los demás cuadros, su vista de resultados.
  */
-function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
-  const {
-    groupOdds,
-    officialPoints,
-    allGames,
-    loading,
-    matchRadar,
-    topScorers,
-    topScorersLoading,
-    topScorersError,
-    refreshTopScorers,
-    activeGroupPichichi,
-    loadingGroup,
-    groupError,
-    choosingLeague,
-    activeGroupPoolFormat,
-  } = useAppContext();
-  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
+function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
+  const { leagueKind, groupError } = useAppContext();
   const [viewMode, setViewMode] = useState(defaultMode);
-  const [activeMobilePanel, setActiveMobilePanel] = useState<'thirds' | 'live' | 'scorers' | null>(
-    null,
-  );
-
   useEffect(() => {
     setViewMode(defaultMode);
   }, [defaultMode]);
 
-  const sortedGroups = useSortedGroups();
-  const format = useLeagueHomeFormat();
+  const home = viewMode === 'home';
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={groupError} />,
+    none: <NoLeagueState title="Inicio" what="los partidos y el ranking" />,
+    unknown: <UnsupportedLeagueState />,
+    worldCup: home ? <LeagueHomeDashboard /> : <WorldCupGroups />,
+    customBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
+    ownBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
+    knockoutDraw: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
+    matchday: <LeagueHomeDashboard />,
+    fightCard: <LeagueHomeDashboard />,
+    // Fórmula 1: el inicio son los Grandes Premios.
+    grandPrix: <GrandPrixPage />,
+  };
+  return views[leagueKind];
+}
 
-  if (choosingLeague || loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  // Fórmula 1: el inicio son los Grandes Premios.
-  if (isGrandPrixFormat(activeGroupPoolFormat)) return <GrandPrixPage />;
-  if (viewMode === 'home' || format === 'matchday') return <LeagueHomeDashboard />;
-  // Solo el Mundial tiene fase de grupos oficial; los demás cuadros la muestran en su vista de resultados.
-  if (format !== 'worldcup') return <OfficialBracket />;
+/** Fase de grupos del Mundial: clasificación de cada grupo, mejores terceros, partidos y pichichi. */
+function WorldCupGroups() {
+  const { allGames, loading: loadingOfficial, matchRadar } = useAppContext();
+  const {
+    groupOdds,
+    groupStandings,
+    loading: loadingWorldCup,
+    pichichi,
+    topScorers,
+    topScorersLoading,
+    topScorersError,
+    refreshTopScorers,
+  } = useWorldCupData();
+  const loading = loadingOfficial || loadingWorldCup;
+  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
+  const [activeMobilePanel, setActiveMobilePanel] = useState<'thirds' | 'live' | 'scorers' | null>(
+    null,
+  );
+  const sortedGroups = useSortedGroups();
 
   const hasGroupsData = groupOdds && Object.keys(groupOdds).length > 0;
   if (loading && !hasGroupsData) {
@@ -182,7 +194,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
         >
           Partidos
         </button>
-        {activeGroupPichichi && (
+        {pichichi && (
           <button
             type="button"
             aria-expanded={activeMobilePanel === 'scorers'}
@@ -196,7 +208,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
 
       <div className="hide-on-desktop mb-5 flex flex-col items-center w-full">
         <div className={activeMobilePanel === 'thirds' ? '' : 'mobile-step-hidden'}>
-          <BestThirdsPanel officialPoints={officialPoints} />
+          <BestThirdsPanel officialPoints={groupStandings} />
         </div>
         <div className={activeMobilePanel === 'live' ? '' : 'mobile-step-hidden'}>
           <LiveMatchesPanel
@@ -205,7 +217,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
             maxNext={1}
           />
         </div>
-        {activeGroupPichichi && (
+        {pichichi && (
           <div className={activeMobilePanel === 'scorers' ? '' : 'mobile-step-hidden'}>
             <TopScorersPanel
               topScorers={topScorers}
@@ -220,7 +232,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
       {/* Paneles desktop (siempre visibles, solo en groups) */}
       <div className="hide-on-mobile flex flex-wrap justify-center items-start mb-5 w-full gap-5">
         <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
-          <BestThirdsPanel officialPoints={officialPoints} />
+          <BestThirdsPanel officialPoints={groupStandings} />
         </div>
         <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel
@@ -229,7 +241,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: 'home' | 'groups' }) {
             maxNext={1}
           />
         </div>
-        {activeGroupPichichi && (
+        {pichichi && (
           <div className="pichichi-mobile-center flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
             <TopScorersPanel
               topScorers={topScorers}

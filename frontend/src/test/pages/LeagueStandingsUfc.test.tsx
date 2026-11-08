@@ -93,6 +93,7 @@ beforeEach(() => {
       activeCompetitionName: 'UFC',
       activeCompetitionExternalId: 'mma.ufc',
       activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'fightCard',
     }),
   );
   vi.mocked(fetchLeaderboardMatchdays).mockResolvedValue([

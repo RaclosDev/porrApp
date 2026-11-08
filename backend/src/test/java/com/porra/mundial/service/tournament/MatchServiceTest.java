@@ -65,8 +65,8 @@ class MatchServiceTest {
     void sendsTheRequestedLimitToTheDatabaseAndSkipsEmptyPages() {
         matchService.getLastMatches(5, 7L);
         matchService.getNextMatches(3, 7L);
-        assertThat(matchService.getLastMatches(0)).isEmpty();
-        assertThat(matchService.getNextMatches(0)).isEmpty();
+        assertThat(matchService.getLastMatches(0, 7L)).isEmpty();
+        assertThat(matchService.getNextMatches(0, 7L)).isEmpty();
         verify(matchRepository).findRadarLast(7L, PageRequest.of(0, 5));
         verify(matchRepository).findRadarNext(eq(7L), any(), eq(MatchStatusNormalized.SCHEDULED), eq(PageRequest.of(0, 3)));
         verifyNoMoreInteractions(matchRepository);

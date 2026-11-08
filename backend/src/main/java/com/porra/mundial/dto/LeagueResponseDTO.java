@@ -131,6 +131,6 @@ public class LeagueResponseDTO {
                 .lockOffsetMinutes(edition.getLockOffsetMinutes())
                 .matchSelection(edition.getMatchSelection() != null ? edition.getMatchSelection().name() : null)
                 .multiCompetition(edition.isMultiCompetition())
-                .pichichi(edition.isPichichi());
+                .pichichi(edition.scoresPichichi());
     }
 }

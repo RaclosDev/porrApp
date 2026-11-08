@@ -17,14 +17,10 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
 
-    @org.springframework.cache.annotation.Cacheable("allTeams")
-    public List<Team> getAllTeams() {
-        return teamRepository.findByCompetitionIsNullOrderByGroupNameAscNameAsc();
-    }
-
-    public Map<String, List<Team>> getTeamsByGroup() {
-        return getAllTeams().stream()
-                .filter(t -> t.getGroupName() != null && !"-".equals(t.getGroupName()) && !Team.PLACEHOLDER_NAME.equalsIgnoreCase(t.getName()))
+    /** Selecciones de cada grupo del Mundial ("A" → equipos); el resto de equipos no tiene grupo. */
+    private Map<String, List<Team>> worldCupGroups() {
+        return teamRepository.findByCompetitionIsNullOrderByGroupNameAscNameAsc().stream()
+                .filter(Team::isWorldCupGroupTeam)
                 .collect(Collectors.groupingBy(
                         t -> t.getGroupName().toUpperCase().trim(),
                         TreeMap::new,
@@ -49,17 +45,17 @@ public class TeamService {
     /**
      * Guarda o actualiza un equipo en la base de datos.
      */
-    @org.springframework.cache.annotation.CacheEvict(value = {"allTeams", "groupOdds"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = "groupOdds", allEntries = true)
     @Transactional
     public Team save(Team team) {
         return teamRepository.save(team);
     }
 
-    /** Probabilidades por grupo con la forma que espera el frontend. */
+    /** Probabilidades de cada grupo del Mundial, para ordenar su cuadro antes del torneo. */
     @org.springframework.cache.annotation.Cacheable("groupOdds")
-    public Map<String, List<TeamOddsDTO>> getGroupOdds() {
+    public Map<String, List<TeamOddsDTO>> getWorldCupGroupOdds() {
         Map<String, List<TeamOddsDTO>> result = new TreeMap<>();
-        Map<String, List<Team>> groups = getTeamsByGroup();
+        Map<String, List<Team>> groups = worldCupGroups();
 
         groups.forEach((groupName, teams) -> {
             List<TeamOddsDTO> teamList = teams.stream()

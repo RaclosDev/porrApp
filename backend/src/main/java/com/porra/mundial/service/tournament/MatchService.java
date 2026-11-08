@@ -38,11 +38,6 @@ public class MatchService {
                 || !privateIds.contains(match.getCompetition().getId())).toList();
     }
 
-    @org.springframework.cache.annotation.Cacheable(value = "matches", sync = true)
-    public List<Match> getAllMatches() {
-        return matchRepository.findAll();
-    }
-
     public List<Match> getMatchesByCompetition(Long competitionId) {
         return matchRepository.findByCompetitionIdOrderByMatchDateAsc(competitionId);
     }
@@ -51,10 +46,6 @@ public class MatchService {
     public static final int STARTING_SOON_MINUTES = 20;
 
     /** Partidos en juego o que empiezan en los próximos {@link #STARTING_SOON_MINUTES} minutos. */
-    public List<Match> getLiveMatches() {
-        return getLiveMatches(null);
-    }
-
     public List<Match> getLiveMatches(Long competitionId) {
         Instant now = Instant.now();
         Instant soonThreshold = now.plus(STARTING_SOON_MINUTES, ChronoUnit.MINUTES);
@@ -64,17 +55,9 @@ public class MatchService {
                 List.of(MatchStatusNormalized.SCHEDULED, MatchStatusNormalized.LIVE, MatchStatusNormalized.PAUSED));
     }
 
-    public List<Match> getLastMatches(int limit) {
-        return getLastMatches(limit, null);
-    }
-
     public List<Match> getLastMatches(int limit, Long competitionId) {
         if (limit == 0) return List.of();
         return matchRepository.findRadarLast(competitionId, PageRequest.of(0, limit));
-    }
-
-    public List<Match> getNextMatches(int limit) {
-        return getNextMatches(limit, null);
     }
 
     public List<Match> getNextMatches(int limit, Long competitionId) {

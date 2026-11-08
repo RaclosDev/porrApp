@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { withLeagueKind } from './leagueKind';
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
 
@@ -66,18 +67,19 @@ async function mockUfcLeague(page: Page) {
     localStorage.setItem('activeCompetitionId', '2');
     localStorage.setItem('passkey_prompt_answered:7', '1');
   });
-  const league = {
+  const league = withLeagueKind('fightCard', {
     id: 1,
     name: 'Veladas del sábado',
     adminUserId: 7,
     competitionId: 2,
     competitionName: 'UFC',
     competitionExternalId: 'mma.ufc',
-    formatType: 'LEAGUE',
+    // Así llega la UFC del servidor: su formato es por veladas.
+    formatType: 'EVENTS',
     poolFormat: 'MATCH_DAY',
     pichichi: false,
     isLocked: false,
-  };
+  });
   const fixtures = [
     fight(1, ['Ramón Rojo', 'Ángel Azul'], 'MAIN', 1, { predSign: '2' }),
     fight(

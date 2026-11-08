@@ -52,7 +52,7 @@ describe('matchday editing and navigation', () => {
       activeGroupId: '10',
       activeGroupName: 'Liga A',
       activeGroupPoolFormat: 'MATCH_DAY',
-      activeCompetitionFormatType: 'LEAGUE',
+      leagueKind: 'matchday',
       isAuthenticated: true,
       userId: '7',
     });
@@ -319,12 +319,18 @@ describe('opening a league from a reminder link', () => {
     const champions = group({ id: 20, name: 'Champions', poolFormat: 'MATCH_DAY' });
     // Como el store real, cambiar de liga la activa al momento.
     const changeGroup = vi.fn(() => {
-      current = { ...current, activeGroupId: '20', activeGroupPoolFormat: 'MATCH_DAY' };
+      current = {
+        ...current,
+        activeGroupId: '20',
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
+      };
     });
     // Liga activa sin jornadas (p. ej. un cuadro de LoL) y las ligas del usuario aún cargando.
     let current: AppContextValue = appContext({
       activeGroupId: '5',
       activeGroupPoolFormat: 'FULL_BRACKET',
+      leagueKind: 'ownBracket',
       isAuthenticated: true,
       userId: '7',
       userGroups: [],
@@ -358,18 +364,24 @@ describe('opening a league from a reminder link', () => {
 });
 
 describe('opening a league without matchdays from a notification link', () => {
-  it('switches to it and lands on its home', () => {
+  it('switches to it and lands on its own prediction', () => {
     const bracket = group({ id: 30, name: 'Cuadro', poolFormat: 'FULL_BRACKET' });
     let current: AppContextValue = appContext({
       activeGroupId: '5',
       activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'matchday',
       isAuthenticated: true,
       userId: '7',
       userGroups: [bracket],
       userGroupsLoaded: true,
     });
     const changeGroup = vi.fn(() => {
-      current = { ...current, activeGroupId: '30', activeGroupPoolFormat: 'FULL_BRACKET' };
+      current = {
+        ...current,
+        activeGroupId: '30',
+        activeGroupPoolFormat: 'FULL_BRACKET',
+        leagueKind: 'ownBracket',
+      };
     });
     current = { ...current, changeGroup };
     vi.mocked(useAppContext).mockImplementation(() => current);
@@ -381,7 +393,7 @@ describe('opening a league without matchdays from a notification link', () => {
         <MemoryRouter initialEntries={['/jornadas?group=30']}>
           <Routes>
             <Route path="/jornadas" element={<MatchdayPredictor />} />
-            <Route path="/" element={<p>Inicio</p>} />
+            <Route path="/prediction" element={<p>Mi porra</p>} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -389,7 +401,7 @@ describe('opening a league without matchdays from a notification link', () => {
     const view = render(tree());
     expect(changeGroup).toHaveBeenCalledWith(30);
     view.rerender(tree());
-    expect(screen.getByText('Inicio')).toBeInTheDocument();
+    expect(screen.getByText('Mi porra')).toBeInTheDocument();
   });
 });
 
@@ -419,7 +431,7 @@ describe('matchday screen with the league round summary', () => {
         activeGroupId: '10',
         activeGroupName: 'Liga A',
         activeGroupPoolFormat: 'MATCH_DAY',
-        activeCompetitionFormatType: 'LEAGUE',
+        leagueKind: 'matchday',
         isAuthenticated: true,
         userId: '7',
       }),

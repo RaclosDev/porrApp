@@ -1,34 +1,44 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings, fetchCustomStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
-import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
-import { isUfcCompetition } from '../utils/fightCard';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import type { LeagueKind } from '../context/leagueKind';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 
+/** «Tabla»: la clasificación de la competición o, en la UFC, la cartelera de cada velada. */
 export default function LeagueStandings() {
-  const [showComplete, setShowComplete] = useState(false);
+  const { leagueKind, groupError } = useAppContext();
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={groupError} />,
+    none: <NoLeagueState title="Tabla" what="la tabla" />,
+    unknown: <UnsupportedLeagueState />,
+    matchday: <CompetitionTable />,
+    // En la UFC no hay clasificación de equipos: la tabla es la cartelera de cada velada.
+    fightCard: <UfcCardBoard />,
+    worldCup: <Navigate to="/bracket" replace />,
+    customBracket: <Navigate to="/bracket" replace />,
+    ownBracket: <Navigate to="/bracket" replace />,
+    knockoutDraw: <Navigate to="/bracket" replace />,
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[leagueKind];
+}
 
+/** Clasificación de la competición de una liga por jornadas. */
+function CompetitionTable() {
+  const [showComplete, setShowComplete] = useState(false);
   const {
     activeCompetitionId,
     activeGroupId,
     activeGroupCustomCompetition,
     activeCompetitionName,
-    activeCompetitionFormatType,
-    activeGroupPoolFormat,
-    activeCompetitionExternalId,
-    loadingGroup,
-    groupError,
   } = useAppContext();
-
-  const isMatchDay =
-    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
-  // En la UFC no hay clasificación de equipos: la tabla es la cartelera de cada velada.
-  const isUfc = isUfcCompetition(activeCompetitionExternalId);
 
   const {
     data: standings,
@@ -41,16 +51,9 @@ export default function LeagueStandings() {
       activeGroupCustomCompetition && activeGroupId
         ? fetchCustomStandings(Number(activeGroupId))
         : fetchCompetitionStandings(activeCompetitionId),
-    enabled: Boolean(activeCompetitionId && isMatchDay && !isUfc),
+    enabled: Boolean(activeCompetitionId),
     staleTime: 120_000,
   });
-
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  if (isGrandPrixFormat(activeGroupPoolFormat)) return <Navigate to="/" replace />;
-  if (isUfc && isMatchDay) return <UfcCardBoard />;
-  if (activeCompetitionFormatType && !isMatchDay) {
-    return <Navigate to="/bracket" replace />;
-  }
 
   return (
     <section className="standings-page paper-panel album-sheet">
