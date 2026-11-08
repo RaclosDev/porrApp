@@ -20,6 +20,7 @@ import {
 } from '../utils/homeMatches';
 import { displayRoundLabel } from '../utils/matchday';
 import { useSortedGroups } from './useSortedGroups';
+import { nflOverall, nflRecord } from '../utils/nflStandings';
 import type { Match } from '../types/api';
 import type { LeagueKind } from '../context/leagueKind';
 
@@ -165,7 +166,11 @@ export function useLeagueHomeData(): LeagueHomeData {
     const logos = logosOf(allGames);
     // Con varias tablas (grupos de la Libertadores, fases del LoL) la portada enseña una: la primera, o
     // en el LoL la fase más reciente.
-    const tables = groupStandings(leagueStandings ?? []);
+    // La NFL llega por divisiones: la portada enseña los mejores balances de toda la liga.
+    const tables =
+      winLoss && leagueStandings?.length
+        ? [{ title: null, rows: nflOverall(leagueStandings) }]
+        : groupStandings(leagueStandings ?? []);
     const miniTable = lol ? tables[tables.length - 1] : tables[0];
 
     if (format === 'matchday') {
@@ -205,10 +210,7 @@ export function useLeagueHomeData(): LeagueHomeData {
                   logo: team.teamLogo,
                   detail: `${team.gamesPlayed} PJ`,
                   // En la NFL y el LoL no hay puntos: se enseña el balance de victorias y derrotas.
-                  value:
-                    winLoss || lol
-                      ? `${team.wins}-${team.losses}${team.ties ? `-${team.ties}` : ''}`
-                      : `${team.points} pts`,
+                  value: winLoss || lol ? nflRecord(team) : `${team.points} pts`,
                 })),
               }
             : null,
