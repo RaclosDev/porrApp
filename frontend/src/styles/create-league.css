@@ -10,7 +10,7 @@
     padding-bottom: 32px;
   }
 
-  /* En móvil los enlaces van siempre bajo el título: así no saltan al aparecer «Empezar de nuevo». */
+  /* En móvil «Tengo un código» va bajo el título; en escritorio, a su derecha. */
   .create-league-header {
     display: flex;
     flex-direction: column;
@@ -32,12 +32,6 @@
     color: var(--text-muted);
     font-size: 0.85rem;
     font-weight: 600;
-  }
-
-  .create-league-header-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 14px;
   }
 
   .create-league-link {
@@ -504,6 +498,12 @@
     gap: 10px;
     padding-top: 16px;
     border-top: 1.5px solid var(--ink);
+  }
+
+  /* Empezar de nuevo: secundario, bajo los botones de avanzar. */
+  .create-league-restart {
+    align-self: center;
+    margin-top: -10px;
   }
 
   .create-league-nav-btn {
