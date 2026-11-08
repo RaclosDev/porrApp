@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import LoginModal from '../../components/layout/LoginModal';
 import {
+  confirmRegistration,
   loginWithPasskey,
   loginWithPassword,
   registerWithPassword,
@@ -22,6 +23,7 @@ vi.mock('../../services/api', () => ({
   loginWithPasskey: vi.fn(),
   loginWithPassword: vi.fn(),
   registerWithPassword: vi.fn(),
+  confirmRegistration: vi.fn(),
   requestPasswordReset: vi.fn(),
   resetPassword: vi.fn(),
   setAuthToken: vi.fn(),
@@ -35,17 +37,26 @@ vi.mock('../../utils/webauthn', async (importOriginal) => ({
 
 const close = vi.fn();
 
-const renderModal = () =>
+function CurrentPath() {
+  return <span data-testid="path">{useLocation().pathname}</span>;
+}
+
+const renderModal = ({
+  intent = 'login',
+  redirectTo,
+}: { intent?: 'login' | 'signup'; redirectTo?: string } = {}) =>
   render(
     <MemoryRouter>
       <LoginModal
         exitDemoMode={vi.fn()}
-        handleGoogleSuccess={vi.fn()}
+        intent={intent}
+        redirectTo={redirectTo}
         isDemo={false}
         navigate={vi.fn()}
-        setShowMyPredictionModal={close}
-        showMyPredictionModal
+        setShowLoginModal={close}
+        showLoginModal
       />
+      <CurrentPath />
     </MemoryRouter>,
   );
 
@@ -114,39 +125,104 @@ const session: LoginResponse = {
   avatarUrl: '',
 };
 
-const openEmailForm = () => {
-  renderModal();
-  fireEvent.click(screen.getByRole('button', { name: 'Continuar con email' }));
-};
+const openEmailForm = () => renderModal();
 
 const fill = (email: string, password: string) => {
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } });
   fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: password } });
 };
 
-it('creates an account with email and password and closes', async () => {
-  vi.mocked(registerWithPassword).mockResolvedValue(session);
-  openEmailForm();
+it('opens on «Crear tu cuenta» from «Crear mi liga» and can switch to signing in', () => {
+  renderModal({ intent: 'signup' });
 
-  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+  expect(screen.getByRole('heading', { name: 'Crea tu cuenta' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeInTheDocument();
+  // Sin Apple configurado no se menciona Apple.
+  expect(screen.getByText(/Con Google o tu email/)).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Entrar con llave de acceso' })).toBeNull();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Inicia sesión' }));
+  expect(screen.getByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+});
+
+it('creates the account with the code from the email and goes to create the league', async () => {
+  vi.mocked(registerWithPassword).mockResolvedValue({ verificationRequired: true });
+  vi.mocked(confirmRegistration).mockResolvedValue(session);
+  renderModal({ intent: 'signup', redirectTo: '/crear-liga' });
+
   fill(' marta@test.com ', 'una-clave-larga');
-  fireEvent.click(screen.getAllByRole('button', { name: 'Crear cuenta' })[1]);
+  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+  expect(await screen.findByRole('heading', { name: 'Revisa tu correo' })).toBeInTheDocument();
+  expect(registerWithPassword).toHaveBeenCalledWith('marta@test.com', 'una-clave-larga');
+  expect(close).not.toHaveBeenCalled();
+
+  fireEvent.change(screen.getByLabelText('Código'), { target: { value: '123' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('6 cifras');
+
+  fireEvent.change(screen.getByLabelText('Código'), { target: { value: '123 456' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
   await waitFor(() => expect(close).toHaveBeenCalledWith(false));
-  expect(registerWithPassword).toHaveBeenCalledWith('marta@test.com', 'una-clave-larga');
-  expect(setAuthToken).toHaveBeenCalledWith('access');
+  expect(confirmRegistration).toHaveBeenCalledWith('marta@test.com', '123456', 'una-clave-larga');
   expect(useAppStore.getState().userName).toBe('marta');
+  expect(screen.getByTestId('path')).toHaveTextContent('/crear-liga');
+});
+
+it('shows why the code was not accepted', async () => {
+  vi.mocked(registerWithPassword).mockResolvedValue({ verificationRequired: true });
+  vi.mocked(confirmRegistration).mockRejectedValue(new Error('El código no es correcto.'));
+  renderModal({ intent: 'signup' });
+
+  fill('marta@test.com', 'una-clave-larga');
+  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+  fireEvent.change(await screen.findByLabelText('Código'), { target: { value: '000000' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('El código no es correcto.');
+  expect(close).not.toHaveBeenCalled();
+});
+
+it('creates the account at once when the server has no email configured', async () => {
+  vi.mocked(registerWithPassword).mockResolvedValue(session);
+  renderModal({ intent: 'signup' });
+
+  fill('marta@test.com', 'una-clave-larga');
+  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+  await waitFor(() => expect(close).toHaveBeenCalledWith(false));
+  expect(confirmRegistration).not.toHaveBeenCalled();
 });
 
 it('does not send a password that is too short when registering', () => {
-  openEmailForm();
+  renderModal({ intent: 'signup' });
 
-  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
   fill('marta@test.com', 'corta');
-  fireEvent.click(screen.getAllByRole('button', { name: 'Crear cuenta' })[1]);
+  expect(screen.getByText(/llevas 5/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
   expect(screen.getByRole('alert')).toHaveTextContent('al menos 8 caracteres');
   expect(registerWithPassword).not.toHaveBeenCalled();
+});
+
+it('asks for a valid email before sending', () => {
+  openEmailForm();
+
+  fill('marta', 'otra-clave');
+  fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+
+  expect(screen.getByRole('alert')).toHaveTextContent('email válido');
+  expect(loginWithPassword).not.toHaveBeenCalled();
+});
+
+it('closes with the close button', () => {
+  renderModal();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+
+  expect(close).toHaveBeenCalledWith(false);
 });
 
 it('asks for the reset link with the email already typed and says the same whatever the account', async () => {
@@ -157,7 +233,7 @@ it('asks for the reset link with the email already typed and says the same whate
   fireEvent.click(screen.getByRole('button', { name: '¿Has olvidado la contraseña?' }));
   fireEvent.click(screen.getByRole('button', { name: 'Mandar enlace' }));
 
-  expect(await screen.findByRole('status')).toHaveTextContent('te llegará un enlace');
+  expect(await screen.findByRole('status')).toHaveTextContent('te llegará un correo');
   expect(requestPasswordReset).toHaveBeenCalledWith('marta@test.com');
 
   fireEvent.click(screen.getByRole('button', { name: 'Volver' }));

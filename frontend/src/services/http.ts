@@ -370,9 +370,32 @@ export function loginWithApple(idToken: string, name?: string): Promise<LoginRes
   return login('/auth/apple/login', { idToken, name }, 'Error al iniciar sesión con Apple');
 }
 
-/** Crea una cuenta con email y contraseña, sin Google, y guarda el access token. */
-export function registerWithPassword(email: string, password: string): Promise<LoginResponse> {
-  return login('/auth/password/register', { email, password }, 'No se ha podido crear la cuenta');
+/** Respuesta al registrarse: la sesión, o que hay que escribir el código que llega al email. */
+export type RegisterResult = LoginResponse | { verificationRequired: true };
+
+/**
+ * Empieza el registro con email y contraseña. Normalmente manda un código al email (y responde lo
+ * mismo si ya hay cuenta); sin correo configurado en el servidor, crea la cuenta y guarda el token.
+ */
+export function registerWithPassword(email: string, password: string): Promise<RegisterResult> {
+  return login<RegisterResult>(
+    '/auth/password/register',
+    { email, password },
+    'No se ha podido crear la cuenta',
+  );
+}
+
+/** Termina el registro con el código del correo y la misma contraseña, y guarda el access token. */
+export function confirmRegistration(
+  email: string,
+  code: string,
+  password: string,
+): Promise<LoginResponse> {
+  return login(
+    '/auth/password/register/confirm',
+    { email, code, password },
+    'No se ha podido crear la cuenta',
+  );
 }
 
 /** Pide el enlace para cambiar la contraseña. Responde igual exista o no la cuenta. */
@@ -415,16 +438,21 @@ export function loginWithPasskey(requestId: string, credential: unknown): Promis
   );
 }
 
-async function login(path: string, json: unknown, fallbackError: string): Promise<LoginResponse> {
+async function login<T extends object = LoginResponse>(
+  path: string,
+  json: unknown,
+  fallbackError: string,
+): Promise<T> {
   const epoch = sessionEpoch;
   // La restauración necesita este mismo cerrojo: esperarla dentro lo bloquearía.
   if (restoring && sessionRestore) await sessionRestore;
   ensureSession(epoch);
   return withSessionLock(async () => {
     ensureSession(epoch);
-    const data = await request<LoginResponse>(path, { method: 'POST', json, fallbackError }, false);
+    const data = await request<T>(path, { method: 'POST', json, fallbackError }, false);
     ensureSession(epoch);
-    setAuthToken(data.token);
+    // El registro puede responder sin sesión (hay que escribir el código del correo).
+    if ('token' in data && typeof data.token === 'string') setAuthToken(data.token);
     return data;
   });
 }

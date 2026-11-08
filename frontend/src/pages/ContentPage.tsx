@@ -3,6 +3,7 @@ import MarkerHeading from '../components/landing/MarkerHeading';
 import NetLine from '../components/landing/NetLine';
 import SiteFooter from '../components/landing/SiteFooter';
 import type { ContentPage as ContentPageData } from '../seo/pages';
+import { openSignupToCreateLeague } from '../utils/loginModal';
 
 interface ContentPageProps {
   page: ContentPageData;
@@ -15,7 +16,7 @@ interface ContentPageProps {
  * resto en texto sobre la pared para que la página no sea una fila de tarjetas iguales.
  */
 export default function ContentPage({ page }: ContentPageProps) {
-  const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
+  const openLogin = openSignupToCreateLeague;
   const [first, ...rest] = page.sections;
 
   return (

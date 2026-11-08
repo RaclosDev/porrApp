@@ -15,9 +15,13 @@ vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../hooks/useGoogleSignIn', () => ({
   useGoogleSignIn: () => signIn,
   useAppleSignIn: () => vi.fn(),
-  useEmailSignIn: () => emailSignIn,
+  useEmailSignIn: () => ({ signIn: emailSignIn, confirm: vi.fn() }),
+  usePasskeySignIn: () => vi.fn(),
 }));
-vi.mock('../../hooks/usePasskeyAutoSignIn', () => ({ usePasskeyAutoSignIn: vi.fn() }));
+vi.mock('../../hooks/usePasskeyAutoSignIn', () => ({
+  usePasskeyAutoSignIn: vi.fn(),
+  useConditionalPasskey: () => vi.fn(),
+}));
 vi.mock('@react-oauth/google', () => ({
   GoogleOAuthProvider: ({ children }: { children: ReactNode }) => children,
   GoogleLogin: ({ onSuccess }: { onSuccess: (response: { credential: string }) => void }) => (
@@ -45,7 +49,7 @@ beforeEach(() => {
   vi.mocked(fetchMyGroups).mockResolvedValue([]);
   vi.mocked(joinGroup).mockResolvedValue(league);
   signIn.mockResolvedValue(true);
-  emailSignIn.mockResolvedValue(undefined);
+  emailSignIn.mockResolvedValue('signed-in');
 });
 
 function showInvitation() {
@@ -85,10 +89,9 @@ it('no se une si falla el inicio de sesión y conserva el enlace', async () => {
 
 it('se une tras crear una cuenta con email', async () => {
   showInvitation();
-  fireEvent.click(await screen.findByRole('button', { name: 'Continuar con email' }));
-  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'nuevo@test.com' } });
+  fireEvent.change(await screen.findByLabelText('Email'), { target: { value: 'nuevo@test.com' } });
   fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'una-clave-larga' } });
-  fireEvent.click(screen.getAllByRole('button', { name: 'Crear cuenta' })[1]);
+  fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
   expect(await screen.findByText('Tu jornada')).toBeInTheDocument();
   expect(emailSignIn).toHaveBeenCalledWith('register', 'nuevo@test.com', 'una-clave-larga');
   expect(joinGroup).toHaveBeenCalledExactlyOnceWith('ABC123');

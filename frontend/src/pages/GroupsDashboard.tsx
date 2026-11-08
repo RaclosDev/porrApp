@@ -1,12 +1,10 @@
 import PaperLoading from '../components/PaperLoading';
-import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import type { CredentialResponse } from '@react-oauth/google';
-import SocialSignInButtons from '../components/SocialSignInButtons';
-import EmailSignInForm from '../components/EmailSignInForm';
+import AuthPanel from '../components/AuthPanel';
 import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
@@ -100,16 +98,13 @@ export default function GroupsDashboard() {
   if (!userName) {
     return (
       <div className="join-auth-screen paper-panel album-sheet landing-tape text-center p-6">
-        <h2 className="poster-title text-2xl mb-5">Inicia sesión para crear o unirte a una liga</h2>
-        <SocialSignInButtons
+        <AuthPanel
+          intent="login"
+          lede="Para crear una liga o unirte a la de tus amigos."
           onGoogleSuccess={handleDirectGoogleLogin}
-          onGoogleError={() => toast.error('Inicio de sesión cancelado')}
           onApple={appleSignIn}
           shape="rectangular"
         />
-        <div className="mt-5">
-          <EmailSignInForm />
-        </div>
       </div>
     );
   }

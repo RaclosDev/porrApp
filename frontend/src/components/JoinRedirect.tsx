@@ -1,8 +1,7 @@
 import PaperLoading from './PaperLoading';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import SocialSignInButtons from './SocialSignInButtons';
-import EmailSignInForm from './EmailSignInForm';
+import AuthPanel from './AuthPanel';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
@@ -118,25 +117,16 @@ export default function JoinRedirect() {
                 Unirme a la liga
               </button>
             ) : (
-              <>
-                <p className="m-0">
-                  Entra con Google, Apple o tu email para unirte a esta liga. Después te llevaremos
-                  directamente a tu porra.
-                </p>
-                <SocialSignInButtons
-                  onGoogleSuccess={(response) => accept(() => signIn(response))}
-                  onGoogleError={() =>
-                    setError('No se ha podido iniciar sesión. Puedes volver a intentarlo.')
-                  }
-                  onApple={() => accept(appleSignIn)}
-                  shape="rectangular"
-                />
-                <EmailSignInForm
-                  initialMode="register"
-                  navigateAfterLogin={false}
-                  onSignedIn={() => accept()}
-                />
-              </>
+              <AuthPanel
+                intent="signup"
+                hideHeading
+                lede="Crea tu cuenta o entra para unirte a esta liga. Después te llevaremos directamente a tu porra."
+                onGoogleSuccess={(response) => accept(() => signIn(response))}
+                onApple={() => accept(appleSignIn)}
+                signInOptions={{ navigateAfterLogin: false }}
+                onSignedIn={() => accept()}
+                shape="rectangular"
+              />
             )}
           </>
         )}
