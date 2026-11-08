@@ -1,38 +1,51 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { fetchCompetitionStandings, fetchCustomStandings } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
-import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
-import { isUfcCompetition } from '../utils/fightCard';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import type { LeagueKind } from '../context/leagueKind';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
-import { isTennisCompetition } from '../utils/tennisDraw';
 import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
 
+/** «Tabla»: la clasificación de la competición; en la UFC, la cartelera, y en el tenis, el cuadro. */
 export default function LeagueStandings() {
-  const [showComplete, setShowComplete] = useState(false);
+  const { leagueKind, groupError } = useAppContext();
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={groupError} />,
+    none: <NoLeagueState title="Tabla" what="la tabla" />,
+    unknown: <UnsupportedLeagueState />,
+    matchday: <CompetitionTable />,
+    // En la UFC no hay clasificación de equipos: la tabla es la cartelera de cada velada.
+    fightCard: <UfcCardBoard />,
+    // En el tenis tampoco: los «equipos» son jugadores y la tabla es el cuadro del torneo.
+    tennisDraw: <TennisDrawBoard />,
+    worldCup: <Navigate to="/bracket" replace />,
+    customBracket: <Navigate to="/bracket" replace />,
+    ownBracket: <Navigate to="/bracket" replace />,
+    knockoutDraw: <Navigate to="/bracket" replace />,
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[leagueKind];
+}
 
+/** Clasificación de la competición de una liga por jornadas. */
+function CompetitionTable() {
+  const [showComplete, setShowComplete] = useState(false);
   const {
     activeCompetitionId,
     activeGroupId,
     activeGroupCustomCompetition,
     activeCompetitionName,
-    activeCompetitionFormatType,
-    activeGroupPoolFormat,
     activeCompetitionExternalId,
-    activeGroupKnockoutDraw,
-    loadingGroup,
-    groupError,
+    activeCompetitionKnockoutCup: knockoutCup,
   } = useAppContext();
 
-  const isMatchDay =
-    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
-  // En la UFC no hay clasificación de equipos: la tabla es la cartelera de cada velada.
-  const isUfc = isUfcCompetition(activeCompetitionExternalId);
   // La NFL no da puntos: se ordena por victorias y se cuentan puntos anotados, no goles.
   const winLoss = activeCompetitionExternalId === 'nfl';
   // El LoL va por fases (play-in y suiza) con el balance de series: sin empates ni puntos de fútbol.
@@ -43,8 +56,6 @@ export default function LeagueStandings() {
       ? { points: 'V-D', diff: 'DG', for: 'GF', against: 'GC' }
       : { points: 'PTS', diff: 'DG', for: 'GF', against: 'GC' };
   const completeColumns = winLoss ? 5 : 6;
-  // En el tenis tampoco: los «equipos» son jugadores y la tabla es el cuadro del torneo.
-  const isTennis = isTennisCompetition(activeCompetitionExternalId);
 
   const {
     data: standings,
@@ -57,24 +68,11 @@ export default function LeagueStandings() {
       activeGroupCustomCompetition && activeGroupId
         ? fetchCustomStandings(Number(activeGroupId))
         : fetchCompetitionStandings(activeCompetitionId),
-    enabled: Boolean(activeCompetitionId && isMatchDay && !isUfc && !isTennis),
+    enabled: Boolean(activeCompetitionId),
     staleTime: 120_000,
   });
 
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  if (isGrandPrixFormat(activeGroupPoolFormat)) return <Navigate to="/" replace />;
-  if (isUfc && isMatchDay) return <UfcCardBoard />;
-  if (isTennis && isMatchDay) return <TennisDrawBoard />;
-  if (activeCompetitionFormatType && !isMatchDay) {
-    return <Navigate to="/bracket" replace />;
-  }
-
-  // Una copa por eliminatorias (Copa del Rey…) no tiene tabla: el servidor no devuelve ninguna.
   const groups = Array.isArray(standings) ? groupStandings(standings) : [];
-  const knockoutCup =
-    activeCompetitionFormatType === 'TOURNAMENT' &&
-    activeGroupKnockoutDraw &&
-    activeCompetitionExternalId !== 'nba';
 
   return (
     <section className="standings-page paper-panel album-sheet">

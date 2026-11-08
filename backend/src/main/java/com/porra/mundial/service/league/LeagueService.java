@@ -68,6 +68,9 @@ public class LeagueService {
         if (custom == (competitionId != null)) {
             throw BusinessException.badRequest("Elige una competición existente o indica una nueva");
         }
+        if (poolFormat == null) {
+            throw BusinessException.badRequest("Elige el formato de la porra");
+        }
         if (custom && (customCompetitionName.trim().length() > 100 || poolFormat == null)) {
             throw BusinessException.badRequest("La competición personalizada requiere un formato y un nombre de hasta 100 caracteres");
         }
@@ -102,7 +105,10 @@ public class LeagueService {
             if (comp.getOwnerLeague() != null) {
                 throw BusinessException.forbidden("Esta competición pertenece a otra liga");
             }
-            comp = resolveCanonicalCompetition(comp);
+            // Sin proveedor de datos la liga se quedaría sin equipos ni partidos.
+            if (comp.getExternalId() == null || comp.getExternalId().isBlank()) {
+                throw BusinessException.badRequest("Esta competición no se puede seguir: elige otra");
+            }
             if (com.porra.mundial.model.Sport.isMma(comp) && poolFormat != com.porra.mundial.model.PoolFormat.MATCH_DAY) {
                 throw BusinessException.badRequest("La UFC se juega velada a velada: elige Por veladas");
             }
@@ -150,7 +156,7 @@ public class LeagueService {
         editionRepository.save(Edition.builder()
                 .league(group)
                 .competition(comp)
-                .poolFormat(poolFormat != null ? poolFormat : com.porra.mundial.model.PoolFormat.FULL_BRACKET)
+                .poolFormat(poolFormat)
                 .lockDate(Edition.defaultLockDate(comp, poolFormat))
                 // Unas eliminatorias sorteadas ronda a ronda no pueden cerrarse de una vez.
                 // En la NBA cada serie se cierra al empezar su primer partido, y cada Gran Premio de Fórmula 1
@@ -160,8 +166,8 @@ public class LeagueService {
                         : comp.drawsKnockoutRounds() && !com.porra.mundial.model.PoolFormat.isMatchBased(poolFormat)
                         ? com.porra.mundial.model.PredictionLockMode.PER_ROUND
                         : com.porra.mundial.model.PredictionLockMode.FIXED_DATE)
-                // El pichichi es del fútbol: ni la NBA ni el LoL tienen máximo goleador.
-                .pichichi(!custom && pichichi && com.porra.mundial.model.Sport.ofExternalId(comp.getExternalId()) == com.porra.mundial.model.Sport.FOOTBALL)
+                // El único pichichi oficial es el del cuadro del Mundial.
+                .pichichi(pichichi && Edition.isWorldCupBracket(comp, poolFormat))
                 .status("ACTIVE")
                 .scoringRulesJson((com.porra.mundial.model.Sport.isTennis(comp)
                         ? com.porra.mundial.scoring.ScoringRuleSet.defaultTennis()
@@ -175,31 +181,6 @@ public class LeagueService {
         }
 
         return group;
-    }
-
-    /**
-     * Traduce competiciones legacy (sin externalId) a su equivalente canónica con
-     * proveedor de datos, para que la importación automática siempre funcione.
-     */
-    private Competition resolveCanonicalCompetition(Competition comp) {
-        if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {
-            return comp;
-        }
-        String name = comp.getName() != null ? comp.getName().toLowerCase(java.util.Locale.ROOT) : "";
-        String slug = null;
-        if (name.contains("champions")) {
-            slug = "uefa.champions";
-        } else if (name.contains("premier")) {
-            slug = "eng.1";
-        } else if (name.contains("laliga") || name.contains("la liga")) {
-            slug = "esp.1";
-        } else if (name.contains("mundial") || name.contains("world cup")) {
-            slug = Competition.WORLD_CUP_EXTERNAL_ID;
-        }
-        if (slug == null) {
-            return comp;
-        }
-        return competitionRepository.findByExternalId(slug).orElse(comp);
     }
 
     @Transactional

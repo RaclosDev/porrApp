@@ -182,7 +182,7 @@ class StandingsServiceTest {
         
         when(standingRepository.findAllByOrderByGroupNameAsc()).thenReturn(all);
         
-        var result = standingsService.getOfficialPoints();
+        var result = standingsService.getWorldCupGroupPoints();
         
         assertEquals(-1, result.get("L").get("T3_L").get("status"));
         assertEquals(-1, result.get("I").get("T3_I").get("status"));
@@ -262,7 +262,7 @@ class StandingsServiceTest {
         lenient().when(matchRepository.findAll()).thenReturn(List.of(worldCupGroupMatch, cupMatchStillToPlay));
         givenWorldCupMatches(worldCupGroupMatch);
 
-        var result = standingsService.getOfficialPoints();
+        var result = standingsService.getWorldCupGroupPoints();
 
         assertEquals(-1, result.get("L").get("T3_L").get("status"));
         assertEquals(0, result.get("A").get("T3_A").get("status"));

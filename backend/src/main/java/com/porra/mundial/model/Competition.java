@@ -15,6 +15,9 @@ public class Competition {
     /** Identificador del Mundial 2026 en ESPN. */
     public static final String WORLD_CUP_EXTERNAL_ID = "fifa.world";
 
+    /** Temporada del Mundial que se juega en la app: el rango de fechas que se pide a ESPN. */
+    public static final String WORLD_CUP_SEASON = "2026";
+
     /**
      * Formato de las competiciones por veladas (la UFC): cada velada es una jornada con su nombre, sin
      * numeración de jornadas ni cuadro.
@@ -62,8 +65,17 @@ public class Competition {
      * pronostica sobre sus cruces reales, no sobre el cuadro del Mundial.
      */
     public boolean hasOwnBracket() {
-        if (ownerLeague != null || externalId == null || WORLD_CUP_EXTERNAL_ID.equals(externalId)) return false;
+        if (ownerLeague != null || externalId == null || isWorldCup()) return false;
         return "TOURNAMENT".equals(formatType) || LEAGUES_WITH_KNOCKOUTS.contains(externalId);
+    }
+
+    /** El Mundial: la única competición con grupos, terceros, cuadro y pichichi oficiales. */
+    public boolean isWorldCup() {
+        return isWorldCup(externalId);
+    }
+
+    public static boolean isWorldCup(String externalId) {
+        return WORLD_CUP_EXTERNAL_ID.equalsIgnoreCase(externalId);
     }
 
     /** Fórmula 1: se sincroniza y se predice Gran Premio a Gran Premio, no partido a partido. */

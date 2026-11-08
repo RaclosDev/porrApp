@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   endSession,
   fetchMe,
-  fetchStandings,
+  fetchWorldCupStandings,
   getAuthToken,
   initSession,
   isRedeemingHandoff,
@@ -77,7 +77,7 @@ describe('sesión con refresh token', () => {
       return authHeader(init) === 'Bearer nuevo' ? json(200, {}) : json(401);
     });
 
-    await Promise.all([fetchMe(), fetchStandings(), fetchMe()]);
+    await Promise.all([fetchMe(), fetchWorldCupStandings(), fetchMe()]);
 
     expect(
       fetchMock.mock.calls.filter(([url]) => url === '/api/auth/session/refresh'),
@@ -284,13 +284,13 @@ describe('sesión con refresh token', () => {
     });
 
     const restored = initSession();
-    const standings = fetchStandings();
+    const standings = fetchWorldCupStandings();
 
     await expect(restored).resolves.toBe('restored');
     await standings;
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       '/api/auth/session/refresh',
-      '/api/standings',
+      '/api/world-cup/standings',
     ]);
   });
 
@@ -319,14 +319,14 @@ describe('sesión con refresh token', () => {
       const restored = initSession();
       // Mientras se canjea no se sabe si hay cuenta: la app no enseña la portada de visitante.
       expect(isRedeemingHandoff()).toBe(true);
-      const standings = fetchStandings();
+      const standings = fetchWorldCupStandings();
 
       await expect(restored).resolves.toBe('restored');
       expect(isRedeemingHandoff()).toBe(false);
       await standings;
       expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
         '/api/auth/session/handoff',
-        '/api/standings',
+        '/api/world-cup/standings',
       ]);
       // El código va en su cookie: ni en la URL ni en una cabecera.
       expect(authHeader(fetchMock.mock.calls[0][1])).toBeUndefined();

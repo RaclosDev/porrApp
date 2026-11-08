@@ -43,8 +43,31 @@ export function NoLeagueState({ title, what }: { title: string; what: string }) 
 }
 
 /**
- * Pantalla de una liga: sin liga activa no enseña nada de ninguna competición (antes caía en el
- * Mundial), sino el aviso para unirse o crear una. Mientras se elige o llega la liga, carga.
+ * Liga de una clase que esta versión de la app no reconoce (`unknown`): no se enseña la pantalla de
+ * otra clase en su lugar, solo el aviso.
+ */
+export function UnsupportedLeagueState() {
+  return (
+    <section className="view-section active">
+      <div
+        className="paper-panel album-sheet text-center py-10 px-6 max-w-140 mx-auto my-5"
+        role="status"
+      >
+        <h2 className="poster-title mt-0 mb-2 text-[1.5rem]">Esta liga no se puede abrir aquí</h2>
+        <p className="text-muted text-[0.92rem] mt-0 mb-5">
+          Actualiza la app o elige otra de tus ligas.
+        </p>
+        <Link to="/mis-ligas" className="glass-btn primary-btn py-2.5 px-5 font-extrabold">
+          Ir a Mis ligas
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Pantalla de una liga: sin liga activa no enseña nada de ninguna competición, sino el aviso para
+ * unirse o crear una. Mientras se elige o llega la liga, carga.
  */
 export function RequireLeague({
   title,

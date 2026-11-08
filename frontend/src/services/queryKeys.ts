@@ -56,10 +56,10 @@ export const queryKeys = {
   /** También cuelga de matchdayStats, para refrescarse con cada predicción nueva de la liga. */
   roundParticipants: (groupId: Id, matchIds: string) =>
     key('matchdayStats', asText(groupId), 'participants', matchIds),
-  standings: () => key('standings'),
-  odds: () => key('odds'),
-  topScorers: () => key('topScorers'),
-  officialBracket: () => key('officialBracket'),
+  worldCupStandings: () => key('worldCupStandings'),
+  worldCupGroupOdds: () => key('worldCupGroupOdds'),
+  worldCupTopScorers: () => key('worldCupTopScorers'),
+  worldCupOfficialBracket: () => key('worldCupOfficialBracket'),
   predictionScore: (predictionId?: Id) => key('predictionScore', asText(predictionId)),
   matches: (competitionId?: Id) => key('matches', competitionId),
   radar: (competitionId?: Id) => key('radar', competitionId),

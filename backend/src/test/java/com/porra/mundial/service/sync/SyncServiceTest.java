@@ -91,7 +91,7 @@ class SyncServiceTest {
                 officialMatchdayService, formulaOneSyncService);
         when(competitionRepository.findAll()).thenReturn(List.of(worldCup));
         when(competitionRepository.findById(5L)).thenReturn(Optional.of(laLiga));
-        when(sportsDataProviderRegistry.getProviderForCompetition(anyString())).thenReturn(provider);
+        when(sportsDataProviderRegistry.findProviderForCompetition(anyString())).thenReturn(java.util.Optional.of(provider));
         when(provider.getProviderName()).thenReturn("ESPN");
         when(provider.isAvailable()).thenReturn(true);
         when(matchEventProcessor.teamCache()).thenReturn(new HashMap<>());
@@ -205,7 +205,7 @@ class SyncServiceTest {
         when(client.<byte[]>send(any(java.net.http.HttpRequest.class), any())).thenReturn(response);
         var actualProvider = new com.porra.mundial.sports.EspnSportsDataProvider(client, JSON,
                 io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry.ofDefaults());
-        when(sportsDataProviderRegistry.getProviderForCompetition(anyString())).thenReturn(actualProvider);
+        when(sportsDataProviderRegistry.findProviderForCompetition(anyString())).thenReturn(java.util.Optional.of(actualProvider));
 
         syncService.syncAll();
         assertEquals("error", syncService.getLastSyncStatus());
@@ -323,7 +323,7 @@ class SyncServiceTest {
 
         syncService.syncAll();
         assertEquals("error", syncService.getLastSyncStatus());
-        assertEquals("FIFA World Cup 2026: base de datos caída", syncService.getLastErrorMessage());
+        assertEquals(SyncService.WORLD_CUP_REFRESH + ": base de datos caída", syncService.getLastErrorMessage());
 
         // La siguiente pasada no trae cambios del Mundial, pero el recálculo sigue pendiente.
         when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026")).thenReturn(JSON.createArrayNode());

@@ -133,7 +133,8 @@ it('recupera el borrador al recargar y no deja saltarse pasos pendientes', async
   expect(screen.getByText('Paso 5 de 6')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Atrás' }));
   expect(screen.getByRole('radio', { name: 'Por rondas' })).toBeChecked();
-  expect(screen.getByRole('checkbox', { name: /pichichi/ })).not.toBeChecked();
+  // El pichichi se juega con los goleadores del Mundial: la Champions no lo ofrece.
+  expect(screen.queryByRole('checkbox', { name: /pichichi/ })).not.toBeInTheDocument();
 });
 
 it('enseña el error del servidor y conserva el borrador para reintentar con la misma clave', async () => {

@@ -9,6 +9,9 @@ import type { Match } from '../../types/api';
 import { appContext, matchdayFixture } from '../context/fixtures';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
+vi.mock('../../context/leagueData', () => ({
+  useWorldCupData: () => ({ groupOdds: {}, groupStandings: {} }),
+}));
 vi.mock('../../services/api', () => ({
   fetchCompetitionStandings: vi.fn(),
   fetchCustomStandings: vi.fn(),
@@ -59,6 +62,7 @@ describe('useLeagueHomeData', () => {
         activeGroupId: '5',
         activeCompetitionId: 2,
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         activeGroupPicksMatches: true,
         activeGroupMultiCompetition: true,
         allGames: [competitionMatch(90, 'Jornada 16', '2099-11-08T21:00:00+01:00')],
@@ -96,6 +100,7 @@ describe('useLeagueHomeData', () => {
         activeGroupId: '5',
         activeCompetitionId: 2,
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         allGames: [competitionMatch(90, 'Jornada 16', '2099-11-08T21:00:00+01:00')],
       }),
     );
@@ -121,6 +126,7 @@ describe('useLeagueHomeData', () => {
         activeCompetitionId: 3,
         activeCompetitionExternalId: 'lol.worlds',
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         allGames: [competitionMatch(91, 'group', '2099-11-08T21:00:00+01:00')],
       }),
     );

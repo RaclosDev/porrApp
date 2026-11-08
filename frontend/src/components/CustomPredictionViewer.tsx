@@ -21,11 +21,11 @@ export default function CustomPredictionViewer({
   predictionId: string | number;
   onClose: () => void;
 }) {
-  const { activeGroupId, activeGroupCustomCompetition, activeGroupKnockoutDraw, allGames } =
-    useAppContext();
+  const { activeGroupId, activeGroupCustomCompetition, leagueKind, allGames } = useAppContext();
+  const knockoutDraw = leagueKind === 'knockoutDraw';
   // En unas eliminatorias sorteadas ronda a ronda cada lista es una ronda real con sus cruces.
-  const lock = useCustomLock(activeGroupKnockoutDraw ? activeGroupId : null);
-  const knockoutRounds = activeGroupKnockoutDraw ? (lock.state?.knockoutRounds ?? []) : null;
+  const lock = useCustomLock(knockoutDraw ? activeGroupId : null);
+  const knockoutRounds = knockoutDraw ? (lock.state?.knockoutRounds ?? []) : null;
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(dialogRef, { active: true, onEscape: onClose });
 

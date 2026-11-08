@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { withLeagueKind } from './leagueKind';
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
 
@@ -11,7 +12,7 @@ for (const width of [390, 1440]) {
       localStorage.setItem('activeGroupId', '1');
       localStorage.setItem('activeCompetitionId', '2');
     });
-    const group = {
+    const group = withLeagueKind('worldCup', {
       id: 1,
       name: 'Liga local',
       adminUserId: 7,
@@ -22,7 +23,7 @@ for (const width of [390, 1440]) {
       poolFormat: 'FULL_BRACKET',
       pichichi: false,
       isLocked: false,
-    };
+    });
     await page.route('**/*', (route) => {
       const url = new URL(route.request().url());
       if (url.origin !== 'http://127.0.0.1:4173') return route.abort();
@@ -38,7 +39,7 @@ for (const width of [390, 1440]) {
         },
         '/api/groups/1': group,
         '/api/groups/mine': [group],
-        '/api/teams/odds': {
+        '/api/world-cup/group-odds': {
           A: ['Mexico', 'Sudafrica', 'Chequia', 'Corea del Sur'].map((name, index) => ({
             id: index + 1,
             name,
@@ -47,8 +48,8 @@ for (const width of [390, 1440]) {
             probability: 25,
           })),
         },
-        '/api/standings': {},
-        '/api/standings/official-bracket': {},
+        '/api/world-cup/standings': {},
+        '/api/world-cup/official-bracket': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

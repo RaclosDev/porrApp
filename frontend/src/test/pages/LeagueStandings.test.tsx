@@ -38,6 +38,7 @@ beforeEach(() => {
       activeCompetitionId: 4,
       activeCompetitionName: 'Champions League',
       activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'matchday',
     }),
   );
   vi.clearAllMocks();
@@ -96,6 +97,7 @@ it('shows the LoL phases with their win-loss record and points to Jornadas for t
       activeCompetitionName: 'Worlds',
       activeCompetitionExternalId: 'lol.worlds',
       activeGroupPoolFormat: 'MATCH_DAY',
+      leagueKind: 'matchday',
     }),
   );
   vi.mocked(fetchCompetitionStandings).mockResolvedValue([

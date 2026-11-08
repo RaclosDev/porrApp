@@ -87,7 +87,7 @@ class CompetitionImportTransactionTest {
     void prepareProvider() throws Exception {
         competitionId = competitions.findByExternalId("esp.1").orElseThrow().getId();
         provider = mock(SportsDataProvider.class);
-        when(providers.getProviderForCompetition(anyString())).thenReturn(provider);
+        when(providers.findProviderForCompetition(anyString())).thenReturn(java.util.Optional.of(provider));
         when(provider.isAvailable()).thenReturn(true);
         when(provider.fetchTeams("esp.1")).thenReturn(json.readTree("""
                 [{"team":{"id":"991001","displayName":"Import Home"}},

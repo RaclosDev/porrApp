@@ -56,8 +56,8 @@ public class OfficialResultsService {
             String champion) {
     }
 
-    /** Cuadro oficial con la forma de un pronóstico, para el visor y las estadísticas. */
-    public PredictionDataDTO officialBracket() {
+    /** Cuadro oficial del Mundial con la forma de un pronóstico, para el visor y las estadísticas. */
+    public PredictionDataDTO worldCupBracket() {
         return current().bracket();
     }
 
@@ -110,7 +110,7 @@ public class OfficialResultsService {
         Match thirdPlaceMatch = knockout.stream().filter(THIRD_PLACE).findFirst().orElse(null);
         bracket.setThirdPlaceWinner(thirdPlaceMatch != null ? winnerName(thirdPlaceMatch) : null);
 
-        return new OfficialResults(bracket, standingsService.getOfficialPoints(), orderedTeamsPerGroup, bestThirds,
+        return new OfficialResults(bracket, standingsService.getWorldCupGroupPoints(), orderedTeamsPerGroup, bestThirds,
                 winnersOf(knockout, ROUND_OF_32), winnersOf(knockout, ROUND_OF_16),
                 winnersOf(knockout, QUARTER_FINALS), winnersOf(knockout, SEMI_FINALS),
                 finalMatch != null ? winnerName(finalMatch) : null);

@@ -55,15 +55,12 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         return "ESPN";
     }
 
+    /** Solo las competiciones de ESPN que conoce por su id: ni nombres ni competiciones sin id. */
     @Override
     public boolean supports(String competitionCode) {
-        if (competitionCode == null || competitionCode.isBlank()) return true;
-        String lower = competitionCode.toLowerCase().trim();
-        if (KNOWN_SLUGS.contains(lower) || OTHER_SPORT_PATHS.containsKey(lower)) return true;
-        return lower.contains("laliga") || lower.contains("champions") || lower.contains("premier")
-                || lower.contains("world cup") || lower.contains("mundial") || lower.contains("serie a")
-                || lower.contains("bundesliga") || lower.contains("ligue 1") || lower.contains("copa")
-                || lower.contains("libertadores") || lower.contains("mls");
+        if (competitionCode == null || competitionCode.isBlank()) return false;
+        String slug = competitionCode.toLowerCase(java.util.Locale.ROOT).trim();
+        return KNOWN_SLUGS.contains(slug) || OTHER_SPORT_PATHS.containsKey(slug);
     }
 
     @Override
@@ -71,10 +68,7 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         String slug = resolveSlug(competitionSlug);
         String url = siteUrl(slug) + "/scoreboard";
 
-        if ("fifa.world".equalsIgnoreCase(slug)) {
-            String dateParam = (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) ? dateRange : "2026";
-            url += "?dates=" + dateParam + "&limit=1000";
-        } else if (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) {
+        if (dateRange != null && !dateRange.isBlank() && !dateRange.contains("-")) {
             url += "?dates=" + dateRange + "&limit=1000";
         } else {
             url += "?limit=1000";
@@ -257,26 +251,11 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         return BASE_SITE_URL + sportPath(slug);
     }
 
+    /** Id de ESPN de la competición; sin id no se adivina ninguna liga. */
     private String resolveSlug(String code) {
-        if (code == null || code.isBlank()) return "esp.1";
-        String lower = code.toLowerCase().trim();
-        if (KNOWN_SLUGS.contains(lower)) return lower;
-
-        if (lower.contains("laliga") || lower.contains("la liga") || lower.contains("primera")) return "esp.1";
-        if (lower.contains("segunda") || lower.contains("hypermotion")) return "esp.2";
-        if (lower.contains("champions")) return "uefa.champions";
-        if (lower.contains("europa league") || (lower.contains("europa") && !lower.contains("conf"))) return "uefa.europa";
-        if (lower.contains("conference")) return "uefa.europa.conf";
-        if (lower.contains("copa del rey")) return "esp.copa_del_rey";
-        if (lower.contains("premier")) return "eng.1";
-        if (lower.contains("serie a")) return "ita.1";
-        if (lower.contains("bundesliga")) return "ger.1";
-        if (lower.contains("ligue 1")) return "fra.1";
-        if (lower.contains("world cup") || lower.contains("mundial")) return "fifa.world";
-        if (lower.contains("libertadores")) return "conmebol.libertadores";
-        if (lower.contains("mex") || lower.contains("liga mx")) return "mex.1";
-        if (lower.contains("mls")) return "usa.1";
-
-        return lower;
+        if (code == null || code.isBlank()) {
+            throw new IllegalArgumentException("Falta el id de la competición en ESPN");
+        }
+        return code.toLowerCase(java.util.Locale.ROOT).trim();
     }
 }

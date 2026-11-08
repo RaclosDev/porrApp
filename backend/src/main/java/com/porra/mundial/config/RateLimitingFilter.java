@@ -105,7 +105,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private boolean isRateLimitedPath(String path, String method) {
         if (path == null) return false;
-        return path.startsWith("/api/standings") ||
+        return path.startsWith("/api/world-cup") ||
                path.startsWith("/api/matches") ||
                path.startsWith("/api/predictions") ||
                path.startsWith("/api/leaderboard") ||

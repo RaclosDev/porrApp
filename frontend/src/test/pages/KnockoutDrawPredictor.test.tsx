@@ -66,7 +66,7 @@ describe('KnockoutDrawPredictor', () => {
       appContext({
         activeGroupId: '10',
         activeGroupName: 'Champions 2027',
-        activeGroupKnockoutDraw: true,
+        leagueKind: 'knockoutDraw',
         activeGroupIsLocked: false,
         userName: 'Tester',
         allGames: [
@@ -143,7 +143,7 @@ describe('KnockoutDrawPredictor', () => {
         appContext({
           activeGroupId: '20',
           activeGroupName: 'Playoffs 2027',
-          activeGroupKnockoutDraw: true,
+          leagueKind: 'knockoutDraw',
           activeGroupIsLocked: false,
           activeCompetitionExternalId: 'nba',
           userName: 'Tester',
