@@ -109,4 +109,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Query("SELECT DISTINCT m.competition.id FROM Match m WHERE (m.finished = FALSE OR m.finished IS NULL)"
             + " AND m.matchDate BETWEEN :from AND :to")
     List<Long> findCompetitionIdsWithOpenMatchesBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** Inicio de la última pelea de cada velada (ronda) de la competición: {@code [ronda, fecha]}. */
+    @Query("SELECT m.round, MAX(m.matchDate) FROM Match m WHERE m.competition.id = :competitionId"
+            + " AND m.round IN :rounds GROUP BY m.round")
+    List<Object[]> lastMatchDateByRound(@Param("competitionId") Long competitionId,
+                                        @Param("rounds") Collection<String> rounds);
 }

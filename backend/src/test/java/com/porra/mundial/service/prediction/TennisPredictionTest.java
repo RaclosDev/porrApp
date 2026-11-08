@@ -38,6 +38,7 @@ class TennisPredictionTest {
     @Mock private MembershipRepository membershipRepository;
     @Mock private MatchScoringCalculator matchScoringCalculator;
     @Mock private ScoreInvalidationService scoreInvalidationService;
+    @Mock private com.porra.mundial.repository.FightRepository fightRepository;
 
     @InjectMocks
     private MatchPredictionService service;

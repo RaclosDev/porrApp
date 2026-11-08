@@ -11,6 +11,7 @@ import { formatMatchDate, type SaveAction } from './customCompetition';
 import {
   BRACKET_LOCK_MODES,
   DRAWN_KNOCKOUT_LOCK_MODES,
+  FIGHT_NIGHT_LOCK_MODES,
   SERIES_LOCK_MODES,
   LOCK_UNIT_MINUTES,
   matchdayLockModes,
@@ -27,12 +28,15 @@ function describe(
   matchday: boolean,
   knockoutDraw = false,
   multiCompetition = false,
+  fightNights = false,
   series = false,
 ): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
   const margin = offsetMinutes ? ` · ${describeLockOffset(offsetMinutes)}` : '';
   const modes = matchday
-    ? matchdayLockModes(multiCompetition)
+    ? fightNights
+      ? FIGHT_NIGHT_LOCK_MODES
+      : matchdayLockModes(multiCompetition)
     : series
       ? SERIES_LOCK_MODES
       : knockoutDraw
@@ -82,7 +86,11 @@ export default function CustomLockCard({
 
   const offsetMinutes = Math.max(0, Math.round(amount)) * LOCK_UNIT_MINUTES[unit];
   let modes = BRACKET_LOCK_MODES;
-  if (matchday) modes = matchdayLockModes(Boolean(group.multiCompetition));
+  const fightNights = group.formatType === 'EVENTS';
+  if (matchday)
+    modes = fightNights
+      ? FIGHT_NIGHT_LOCK_MODES
+      : matchdayLockModes(Boolean(group.multiCompetition));
   else if (series) modes = SERIES_LOCK_MODES;
   else if (group.knockoutDraw) modes = DRAWN_KNOCKOUT_LOCK_MODES;
   else if (!allowProgressive) {
@@ -98,6 +106,7 @@ export default function CustomLockCard({
       true,
       false,
       Boolean(group.multiCompetition),
+      fightNights,
     );
   } else if (current && lock.configured) {
     status = describe(
@@ -105,6 +114,7 @@ export default function CustomLockCard({
       current.offsetMinutes,
       false,
       group.knockoutDraw,
+      false,
       false,
       series,
     );

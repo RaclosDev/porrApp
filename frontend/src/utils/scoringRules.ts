@@ -36,6 +36,25 @@ const MATCHDAY: ScoringSection = {
   ],
 };
 
+/** UFC: cada pelea suma por el ganador y, encima, por el método y el asalto. */
+const FIGHTS: ScoringSection = {
+  id: 'fights',
+  title: 'Cada pelea',
+  fields: [
+    { key: 'fightWinnerPoints', label: 'Ganador', hint: 'Aciertas quién gana la pelea.' },
+    {
+      key: 'fightMethodPoints',
+      label: 'Método',
+      hint: 'Se suma al ganador si aciertas cómo acaba: KO/TKO, sumisión o decisión.',
+    },
+    {
+      key: 'fightRoundPoints',
+      label: 'Asalto',
+      hint: 'Se suma si además aciertas el asalto de un KO/TKO o una sumisión.',
+    },
+  ],
+};
+
 /** NFL: se predice quién gana, sin marcador ni empate. */
 const WINNER_MATCHDAY: ScoringSection = {
   id: 'matches',
@@ -278,9 +297,10 @@ export function scoringSections(
   nbaSeries = false,
   winnerOnly = false,
   sport: Sport | null = null,
+  fights = false,
 ): ScoringSection[] {
   if (sport === 'TENNIS') return [TENNIS];
-  if (format === 'MATCH_DAY') return [winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
+  if (format === 'MATCH_DAY') return [fights ? FIGHTS : winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
   if (format === 'SURVIVOR') return [SURVIVOR];
   if (format === 'GRAND_PRIX') return [GRAND_PRIX];
   if (nbaSeries) return [NBA_SERIES, NBA_EXACT];
@@ -311,6 +331,9 @@ export const DEFAULT_SCORING_RULES: ScoringRules = {
   survivorRoundPoints: 1,
   survivorLives: 1,
   survivorDrawSurvives: 0,
+  fightWinnerPoints: 3,
+  fightMethodPoints: 2,
+  fightRoundPoints: 2,
   f1ExactPositionPoints: 10,
   f1PodiumPoints: 4,
   f1PolePoints: 5,

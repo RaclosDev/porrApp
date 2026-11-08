@@ -6,7 +6,8 @@
 export type PoolFormat =
   'FULL_BRACKET' | 'KNOCKOUTS_ONLY' | 'MATCH_DAY' | 'SURVIVOR' | 'GRAND_PRIX';
 /** RACE: Fórmula 1, Gran Premio a Gran Premio. */
-type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT' | 'RACE';
+/** `EVENTS`: competición por veladas (la UFC), cada velada es una jornada con su nombre. */
+type CompetitionFormat = 'LEAGUE' | 'TOURNAMENT' | 'RACE' | 'EVENTS';
 export type PaymentStatus = 'PAID' | 'PENDING';
 
 export interface StatusResponse {
@@ -47,7 +48,13 @@ export interface UserPreferences {
 
 /** Deporte de una competición oficial (`Sport` en el servidor). */
 export type Sport =
-  'FOOTBALL' | 'LEAGUE_OF_LEGENDS' | 'FORMULA_1' | 'BASKETBALL' | 'AMERICAN_FOOTBALL' | 'TENNIS';
+  | 'FOOTBALL'
+  | 'LEAGUE_OF_LEGENDS'
+  | 'FORMULA_1'
+  | 'BASKETBALL'
+  | 'AMERICAN_FOOTBALL'
+  | 'TENNIS'
+  | 'MMA';
 
 /** Cuadro de un torneo de tenis (`CompetitionDTO.TennisInfo` en el servidor). */
 export interface TennisInfo {
@@ -383,6 +390,12 @@ export interface ScoringRules {
   survivorLives: number;
   /** Superviviente: 1 si un empate también supera la jornada. */
   survivorDrawSurvives: number;
+  /** UFC: ganador acertado. */
+  fightWinnerPoints: number;
+  /** UFC: se suma si además aciertas el método. */
+  fightMethodPoints: number;
+  /** UFC: se suma si además aciertas el asalto de un KO/TKO o una sumisión. */
+  fightRoundPoints: number;
   /** Playoffs de la NBA: por partido del play-in acertado. */
   nbaPlayInPoints: number;
   /** Playoffs de la NBA: por serie acertada en cada ronda. */
@@ -474,6 +487,8 @@ export interface LeagueScoring {
   sport?: Sport | null;
   /** Eliminatorias sorteadas ronda a ronda: se puntúa cada cruce acertado según su ronda. */
   knockoutDraw?: boolean;
+  /** Liga de la UFC: se puntúan ganador, método y asalto de cada pelea. */
+  fights?: boolean;
   /** Playoffs de la NBA: puntos por serie acertada y extra por acertar en cuántos partidos. */
   nbaSeries?: boolean;
   poolFormat: PoolFormat | null;
@@ -538,6 +553,11 @@ export interface MatchdayFixture {
   predHomeScore: number | null;
   predAwayScore: number | null;
   predSign: string | null;
+  /** Pelea de la UFC: método (KO_TKO, SUBMISSION, DECISION) y asalto elegidos. */
+  predMethod?: string | null;
+  predRound?: number | null;
+  /** Datos de pelea; solo en las ligas de la UFC. */
+  fight?: FightInfo | null;
   locked: boolean;
   lockReason: string | null;
   /** Cuándo se cierra el pronóstico; puede ser antes de que empiece el partido. */
@@ -553,6 +573,33 @@ export interface MatchdayPredictionInput {
   homeScore: number | null;
   awayScore: number | null;
   sign: '1' | 'X' | '2' | string | null;
+  /** Pelea de la UFC: método y asalto, opcionales. */
+  method?: FightMethod | null;
+  round?: number | null;
+}
+
+/** Métodos que se pueden predecir en una pelea. */
+export type FightMethod = 'KO_TKO' | 'SUBMISSION' | 'DECISION';
+
+/** Datos de una pelea de la UFC (`FightInfoDTO`). */
+export interface FightInfo {
+  eventId: string;
+  eventName: string | null;
+  /** Bloque de la cartelera. */
+  segment: 'MAIN' | 'PRELIMS' | 'EARLY_PRELIMS' | null;
+  /** 1 es la pelea estelar. */
+  order: number | null;
+  weightClass: string | null;
+  scheduledRounds: number | null;
+  homeRecord: string | null;
+  awayRecord: string | null;
+  /** Cómo acabó; null si no ha acabado. */
+  resultMethod: FightMethod | 'DRAW' | 'NO_CONTEST' | 'DISQUALIFICATION' | 'OTHER' | null;
+  resultDetail: string | null;
+  resultRound: number | null;
+  resultClock: string | null;
+  /** '1' ganó la esquina roja (local), '2' la azul; null sin ganador. */
+  winner: '1' | '2' | null;
 }
 
 /** Elección de una jornada en una liga superviviente. */
@@ -596,6 +643,9 @@ export interface FriendPrediction {
   homeScore: number | null;
   awayScore: number | null;
   sign: string | null;
+  /** Pelea de la UFC: método y asalto elegidos. */
+  method?: string | null;
+  round?: number | null;
   pointsAwarded: number | null;
   isExactScore: boolean | null;
   isCorrectSign: boolean | null;
