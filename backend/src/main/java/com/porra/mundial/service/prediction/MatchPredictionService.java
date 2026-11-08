@@ -427,7 +427,7 @@ public class MatchPredictionService {
                     throw BusinessException.badRequest("En el modo superviviente se elige un equipo que gane, sin marcador ni empate.");
                 }
                 if (!survivorRounds.add(MatchRound.label(match))) {
-                    throw BusinessException.badRequest("Solo puedes elegir un equipo por jornada.");
+                    throw BusinessException.badRequest("Solo puedes elegir un equipo por " + roundWord(match) + ".");
                 }
                 checkSurvivorPick(edition, match, sign, survivorPicks, calendar, now);
             }
@@ -603,7 +603,7 @@ public class MatchPredictionService {
                         || (otherMatch.getStatus() != null && !otherMatch.getStatus().isOpenForPrediction())
                         || (otherLock != null && !otherLock.isAfter(now));
                 if (otherLocked) {
-                    throw BusinessException.conflict("Tu elección de esta jornada ya está cerrada.");
+                    throw BusinessException.conflict("Tu elección de esta " + roundWord(otherMatch) + " ya está cerrada.");
                 }
                 matchPredictionRepository.delete(other);
                 continue;
@@ -616,6 +616,12 @@ public class MatchPredictionService {
                 throw BusinessException.conflict(String.format("Ya elegiste a %s en %s.", team.getName(), at));
             }
         }
+    }
+
+    /** La NFL se juega por semanas; el resto, por jornadas. */
+    private static String roundWord(Match match) {
+        return match.getCompetition() != null && NflSchedule.isNfl(match.getCompetition().getExternalId())
+                ? "semana" : "jornada";
     }
 
     /** Tenis: no hay empate y, si se dan los sets, tienen que ser un resultado posible (2-1, 3-0…). */

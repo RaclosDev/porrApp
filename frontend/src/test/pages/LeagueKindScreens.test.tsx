@@ -340,7 +340,8 @@ describe('Ranking para cada clase de liga', () => {
     matchday: ROUTES['/jornadas'],
     fightCard: ROUTES['/jornadas'],
     tennisDraw: ROUTES['/jornadas'],
-    grandPrix: ROUTES['/'],
+    // Las predicciones de cada uno se ven en cada Gran Premio; abrir la fila llevaría a las propias.
+    grandPrix: null,
     loading: null,
     error: null,
     none: null,

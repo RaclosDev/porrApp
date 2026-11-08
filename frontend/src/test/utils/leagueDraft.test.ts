@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { Competition } from '../../types/api';
 import { DEFAULT_SCORING_RULES, SCORING_MAX_POINTS } from '../../utils/scoringRules';
 import {
+  allowsCustomCompetition,
   buildCreateRequest,
   competitionUnavailableReason,
   competitionsOfSport,
@@ -388,6 +389,12 @@ describe('borrador de liga', () => {
     expect(lockModesFor(draft, withF1)).toEqual([]);
     expect(draft.lockMode).toBeNull();
     expect(formatUnavailableReason('MATCH_DAY', draft, withF1)).toMatch(/Gran Premio/);
+
+    // Sin pilotos ni Grandes Premios que añadir a mano, no hay Fórmula 1 personalizada.
+    expect(allowsCustomCompetition('FORMULA_1')).toBe(false);
+    expect(allowsCustomCompetition('FOOTBALL')).toBe(true);
+    const custom = normalizeDraft({ ...emptyDraft(), sport: 'FORMULA_1', custom: true }, withF1);
+    expect(custom.custom).toBe(false);
     const laLiga = normalizeDraft({ ...emptyDraft(), sport: 'FOOTBALL', competitionId: 1 }, withF1);
     expect(formatUnavailableReason('GRAND_PRIX', laLiga, withF1)).toMatch(/Fórmula 1/);
 

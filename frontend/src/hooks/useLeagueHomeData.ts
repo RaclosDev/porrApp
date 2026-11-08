@@ -11,6 +11,7 @@ import { queryKeys } from '../services/queryKeys';
 import { computeCustomGroupTables } from '../utils/customBracket';
 import { KNOCKOUT_ROUNDS, computeSwissStandings } from '../utils/officialTournament';
 import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
+import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
 import { normalizeCountryName } from '../utils/constants';
 import {
   currentRoundMatches,
@@ -114,8 +115,9 @@ export function useLeagueHomeData(): LeagueHomeData {
   const knockoutDraw = leagueKind === 'knockoutDraw';
   // En la UFC no hay tabla de equipos (los «equipos» son luchadores): su tabla es la cartelera.
   const ufc = leagueKind === 'fightCard';
-  // La NFL no da puntos: se enseña el balance de victorias y derrotas.
-  const winLoss = activeCompetitionExternalId === 'nfl';
+  // La NFL y la NBA no dan puntos: se enseña el balance de victorias y derrotas.
+  const winLoss =
+    activeCompetitionExternalId === 'nfl' || isNbaRegularSeason(activeCompetitionExternalId);
   const lol = isLolCompetition(activeCompetitionExternalId);
   // En el tenis, igual: su tabla es el cuadro del torneo.
   const tennis = leagueKind === 'tennisDraw';

@@ -35,8 +35,9 @@ export default function MatchdaySummary({
   onStep,
   fightCard = false,
 }: MatchdaySummaryProps) {
-  const round = fightCard ? 'Velada' : 'Jornada';
-  const unit = fightCard ? ['pelea', 'peleas'] : ['partido', 'partidos'];
+  // La UFC va por veladas de peleas; la NFL (y las ligas de varias competiciones), por semanas: «Semana 9».
+  const round = fightCard ? 'Velada' : /^Semana \d/.test(matchday.label) ? 'Semana' : 'Jornada';
+  const items = fightCard ? ['pelea', 'peleas'] : ['partido', 'partidos'];
   // Hora fijada al montar: basta para distinguir una jornada abierta de una en juego.
   const [now] = useState(() => Date.now());
   // «En juego» solo cuando ya ha empezado algún partido; antes, la jornada sigue abierta.
@@ -59,7 +60,7 @@ export default function MatchdaySummary({
             <span className={`lb-matchday-status is-${status.tone}`}>{status.text}</span>
             {matchday.matchCount > 0 && (
               <span className="lb-matchday-meta">
-                {matchday.matchCount} {matchday.matchCount === 1 ? unit[0] : unit[1]}
+                {matchday.matchCount} {matchday.matchCount === 1 ? items[0] : items[1]}
               </span>
             )}
           </div>

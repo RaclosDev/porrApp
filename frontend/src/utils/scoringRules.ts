@@ -55,7 +55,7 @@ const FIGHTS: ScoringSection = {
   ],
 };
 
-/** NFL: se predice quién gana, sin marcador ni empate. */
+/** NFL y NBA: se predice quién gana, sin marcador ni empate. */
 const WINNER_MATCHDAY: ScoringSection = {
   id: 'matches',
   title: 'Cada partido',
@@ -63,7 +63,7 @@ const WINNER_MATCHDAY: ScoringSection = {
     {
       key: 'correctSignPoints',
       label: 'Ganador acertado',
-      hint: 'Aciertas quién gana el partido. Si acaba en empate, no suma nadie.',
+      hint: 'Aciertas quién gana el partido. En la NFL, si acaba en empate, no suma nadie.',
     },
   ],
 };
@@ -163,6 +163,22 @@ const SURVIVOR: ScoringSection = {
       kind: 'toggle',
     },
   ],
+};
+
+/** Superviviente de la NFL: se juega por semanas. */
+const SURVIVOR_WEEKS: ScoringSection = {
+  ...SURVIVOR,
+  fields: SURVIVOR.fields.map((field) =>
+    field.key === 'survivorRoundPoints'
+      ? {
+          ...field,
+          label: 'Semana superada',
+          hint: 'Puntos por cada semana en que tu equipo gana.',
+        }
+      : field.key === 'survivorDrawSurvives'
+        ? { ...field, hint: 'Si tu equipo empata, sigues vivo y la semana cuenta como superada.' }
+        : field,
+  ),
 };
 
 /** Superviviente sin empates (las series del LoL siempre las gana alguien): sin la regla del empate. */
@@ -327,6 +343,7 @@ export function scoringSections(
   if (format === 'MATCH_DAY' && sport === 'LEAGUE_OF_LEGENDS') return [LOL_MATCHDAY];
   if (format === 'MATCH_DAY') return [fights ? FIGHTS : winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
   if (format === 'SURVIVOR' && sport === 'LEAGUE_OF_LEGENDS') return [SURVIVOR_NO_DRAWS];
+  if (format === 'SURVIVOR' && sport === 'AMERICAN_FOOTBALL') return [SURVIVOR_WEEKS];
   if (format === 'SURVIVOR') return [SURVIVOR];
   if (format === 'GRAND_PRIX') return [GRAND_PRIX];
   if (nbaSeries) return [NBA_SERIES, NBA_EXACT];

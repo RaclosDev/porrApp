@@ -7,6 +7,10 @@ const NBA_EXTERNAL_ID = 'nba';
 export const isNbaCompetition = (externalId: string | null | undefined) =>
   externalId === NBA_EXTERNAL_ID;
 
+/** Temporada regular de la NBA: partido a partido, por semanas, con su tabla por conferencias. */
+export const isNbaRegularSeason = (externalId: string | null | undefined) =>
+  externalId === 'nba.regular';
+
 /** Rondas que son series de la NBA (o partidos del play-in), no cruces de fútbol. */
 export const isSeriesRound = (round: KnockoutRound | undefined) => (round?.bestOf ?? 0) > 0;
 

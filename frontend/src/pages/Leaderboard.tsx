@@ -23,7 +23,7 @@ interface RankingLayout {
   /** Cuadro propio: sus columnas de rondas. */
   ownBracket: boolean;
   /** Adónde lleva tocar una fila: sus predicciones o el visor de su cuadro. */
-  openRow: '/' | '/jornadas' | 'viewer' | null;
+  openRow: '/jornadas' | 'viewer' | null;
   /** Enlaces a Más elegidos y Buscador, que comparan los cuadros con el oficial del Mundial. */
   worldCupInsights: boolean;
   /** Enlace a las estadísticas por partido y columna de puntos de jornada (no en la Fórmula 1). */
@@ -66,8 +66,9 @@ const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
   matchday: MATCHDAY_RANKING,
   fightCard: MATCHDAY_RANKING,
   tennisDraw: MATCHDAY_RANKING,
-  // En una liga de Fórmula 1 las predicciones de cada Gran Premio están en el inicio.
-  grandPrix: { ...MATCHDAY_RANKING, openRow: '/', matchStats: false },
+  // En la Fórmula 1 no hay una página con las predicciones de cada participante: se ven en cada Gran
+  // Premio, en «Predicciones de la liga». Abrir una fila llevaría a las propias.
+  grandPrix: { ...MATCHDAY_RANKING, openRow: null, matchStats: false },
   loading: NO_RANKING,
   error: NO_RANKING,
   none: NO_RANKING,
@@ -315,7 +316,7 @@ function Leaderboard() {
                   sortColumn={sortColumn}
                   sortDirection={sortDirection}
                   onSort={handleSort}
-                  onOpenRow={openRow}
+                  onOpenRow={layout.openRow ? openRow : undefined}
                 />
               </div>
             </div>

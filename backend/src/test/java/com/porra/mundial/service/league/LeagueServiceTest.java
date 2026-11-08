@@ -7,6 +7,7 @@ import com.porra.mundial.model.League;
 import com.porra.mundial.model.Membership;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Edition;
 import com.porra.mundial.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -367,6 +368,34 @@ class LeagueServiceTest {
         assertEquals("AMIGOS", dto.getJoinCode());
         assertEquals("Reglas internas", dto.getRules());
         assertEquals(1L, dto.getAdminUserId());
+    }
+
+    @Test
+    @DisplayName("Una liga de varias competiciones lista cada una, la principal primero, para ver su tabla")
+    void multiCompetitionLeagueListsItsCompetitions() {
+        Competition laliga = Competition.builder().id(2L).name("LaLiga").externalId("esp.1").build();
+        Competition premier = Competition.builder().id(4L).name("Premier League").externalId("eng.1").build();
+        Competition champions = Competition.builder().id(3L).name("Champions League").externalId("uefa.champions").build();
+        Edition edition = Edition.builder().id(7L).competition(laliga).multiCompetition(true).build();
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(competitionRepository.findByEditionId(7L)).thenReturn(List.of(premier, laliga, champions));
+
+        var dto = leagueService.toResponse(league, true);
+
+        assertEquals(List.of("esp.1", "uefa.champions", "eng.1"),
+                dto.getCompetitions().stream().map(c -> c.externalId()).toList());
+        assertEquals("Champions League", dto.getCompetitions().get(1).name());
+    }
+
+    @Test
+    @DisplayName("Una liga de una sola competición no lista competiciones")
+    void singleCompetitionLeagueListsNone() {
+        Competition laliga = Competition.builder().id(2L).name("LaLiga").externalId("esp.1").build();
+        Edition edition = Edition.builder().id(7L).competition(laliga).build();
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+
+        assertNull(leagueService.toResponse(league, true).getCompetitions());
+        verify(competitionRepository, never()).findByEditionId(any());
     }
 
     @Test

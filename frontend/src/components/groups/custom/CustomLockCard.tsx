@@ -30,14 +30,14 @@ function describe(
   multiCompetition = false,
   fightNights = false,
   series = false,
-  nfl = false,
+  competitionExternalId: string | null = null,
 ): string {
   if (mode === 'FIXED_DATE') return 'Fecha fija';
   const margin = offsetMinutes ? ` · ${describeLockOffset(offsetMinutes)}` : '';
   const modes = matchday
     ? fightNights
       ? FIGHT_NIGHT_LOCK_MODES
-      : matchdayLockModes(multiCompetition, nfl)
+      : matchdayLockModes(multiCompetition, competitionExternalId)
     : series
       ? SERIES_LOCK_MODES
       : knockoutDraw
@@ -88,11 +88,10 @@ export default function CustomLockCard({
   const offsetMinutes = Math.max(0, Math.round(amount)) * LOCK_UNIT_MINUTES[unit];
   let modes = BRACKET_LOCK_MODES;
   const fightNights = group.formatType === 'EVENTS';
-  const nfl = group.competitionExternalId === 'nfl';
   if (matchday)
     modes = fightNights
       ? FIGHT_NIGHT_LOCK_MODES
-      : matchdayLockModes(Boolean(group.multiCompetition), nfl);
+      : matchdayLockModes(Boolean(group.multiCompetition), group.competitionExternalId);
   else if (series) modes = SERIES_LOCK_MODES;
   else if (group.knockoutDraw) modes = DRAWN_KNOCKOUT_LOCK_MODES;
   else if (!allowProgressive) {
@@ -110,7 +109,7 @@ export default function CustomLockCard({
       Boolean(group.multiCompetition),
       fightNights,
       false,
-      nfl,
+      group.competitionExternalId,
     );
   } else if (current && lock.configured) {
     status = describe(

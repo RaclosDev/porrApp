@@ -78,8 +78,11 @@ public class LeagueSummaryService {
                 || edition.getCompetition() == null) {
             return 0;
         }
+        // Con cierre por jornada (o por semana, en la NFL) un partido de dentro de diez días se cierra con el
+        // primero de su jornada: se buscan dos ventanas y luego se cuenta lo que se cierra en la próxima semana.
+        Instant deadline = now.plus(PENDING_WINDOW);
         List<Match> upcoming = MatchSelectionService.competitionIds(matchSelectionService, edition).stream()
-                .flatMap(id -> matchRepository.findUnfinishedStartingBetween(id, now, now.plus(PENDING_WINDOW)).stream())
+                .flatMap(id -> matchRepository.findUnfinishedStartingBetween(id, now, deadline.plus(PENDING_WINDOW)).stream())
                 .filter(m -> !MatchdayLock.awaitingTeams(m))
                 .filter(m -> m.getStatus() == null || m.getStatus().isOpenForPrediction())
                 .toList();
@@ -88,7 +91,10 @@ public class LeagueSummaryService {
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, upcoming,
                 MatchdayLock.needsWholeCalendar(edition) ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : upcoming);
         List<Long> open = upcoming.stream()
-                .filter(m -> !lockTimes.containsKey(m.getId()) || lockTimes.get(m.getId()).isAfter(now))
+                .filter(m -> {
+                    Instant lock = lockTimes.getOrDefault(m.getId(), m.getMatchDate());
+                    return lock == null || lock.isAfter(now) && lock.isBefore(deadline);
+                })
                 .map(Match::getId)
                 .toList();
         if (open.isEmpty()) return 0;
