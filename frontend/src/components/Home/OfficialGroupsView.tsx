@@ -1,6 +1,7 @@
 import PaperLoading from '../PaperLoading';
 import { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { useWorldCupData } from '../../context/leagueData';
 import GroupStandingsCard from './GroupStandingsCard';
 import GroupMatchesModal from '../GroupMatchesModal';
 import BestThirdsPanel from './BestThirdsPanel';
@@ -17,18 +18,18 @@ import InkStamp from '../InkStamp';
  * tablas de posiciones por grupo, panel de mejores terceros, partidos en directo y pichichi.
  */
 export default function OfficialGroupsView() {
+  const { allGames, loading: loadingOfficial, matchRadar } = useAppContext();
   const {
     groupOdds,
-    officialPoints,
-    allGames,
-    loading,
-    matchRadar,
+    groupStandings: officialPoints,
+    loading: loadingWorldCup,
+    pichichi: activeGroupPichichi,
     topScorers,
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
-    activeGroupPichichi,
-  } = useAppContext();
+  } = useWorldCupData();
+  const loading = loadingOfficial || loadingWorldCup;
 
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
 

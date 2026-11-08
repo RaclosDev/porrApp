@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBracket } from '../../hooks/useBracket';
+import { useWorldCupData } from '../../context/leagueData';
 import { useAppContext, useBracketDraft } from '../../context/AppContext';
 import * as api from '../../services/api';
 import {
@@ -14,6 +15,7 @@ import type { PredictionSummary } from '../../types/api';
 import { readJsonDraft, writeDraft } from '../../utils/drafts';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn(), useBracketDraft: vi.fn() }));
+vi.mock('../../context/leagueData', () => ({ useWorldCupData: vi.fn() }));
 vi.mock('../../services/api', () => ({
   createPrediction: vi.fn(),
   fetchMyPredictions: vi.fn(),
@@ -92,6 +94,14 @@ describe('useBracket: hidratación desde fetchMyPredictions', () => {
     };
     vi.mocked(useAppContext).mockImplementation(
       () => context as unknown as ReturnType<typeof useAppContext>,
+    );
+    // Los datos del Mundial también salen del mismo objeto.
+    vi.mocked(useWorldCupData).mockImplementation(
+      () =>
+        ({
+          groupOdds: context.groupOdds,
+          groupStandings: context.officialPoints,
+        }) as unknown as ReturnType<typeof useWorldCupData>,
     );
     // El borrador del cuadro lee del mismo objeto, para que los tests puedan cambiarlo.
     vi.mocked(useBracketDraft).mockImplementation(

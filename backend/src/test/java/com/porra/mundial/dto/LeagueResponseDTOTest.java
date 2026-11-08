@@ -23,7 +23,8 @@ class LeagueResponseDTOTest {
     private final Edition edition = Edition.builder()
             .id(5L)
             .league(league)
-            .competition(Competition.builder().id(1L).name("Mundial 2026").formatType("TOURNAMENT").build())
+            .competition(Competition.builder().id(1L).name("Mundial 2026").formatType("TOURNAMENT")
+                    .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build())
             .poolFormat(PoolFormat.KNOCKOUTS_ONLY)
             .status("ACTIVE")
             .pichichi(true)
@@ -46,6 +47,10 @@ class LeagueResponseDTOTest {
         assertEquals("TOURNAMENT", dto.getFormatType());
         assertTrue(dto.getPichichi());
         assertEquals("Admin", dto.getAdminParticipantName());
+        // Fuera del cuadro del Mundial no hay pichichi, aunque la edición lo tenga marcado.
+        edition.setPoolFormat(PoolFormat.MATCH_DAY);
+        assertFalse(LeagueResponseDTO.of(league, edition, true).getPichichi());
+        edition.setPoolFormat(PoolFormat.KNOCKOUTS_ONLY);
         assertEquals("Sin rencores", dto.getRules());
     }
 

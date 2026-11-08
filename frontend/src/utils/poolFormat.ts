@@ -5,10 +5,6 @@ export function isMatchBasedFormat(format: PoolFormat | string | null | undefine
   return format === 'MATCH_DAY' || format === 'SURVIVOR';
 }
 
-/** Fórmula 1: se predice Gran Premio a Gran Premio (podio, pole y vuelta rápida). */
-export const isGrandPrixFormat = (format: PoolFormat | string | null | undefined): boolean =>
-  format === 'GRAND_PRIX';
-
 /** Nombre de una liga de tenis de varios torneos en lugar del de un torneo. */
 const TENNIS_SCOPE_NAMES: Record<TennisScope, string> = {
   ALL: 'Tenis: todos los torneos',

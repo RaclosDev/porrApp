@@ -13,6 +13,7 @@ describe('Leaderboard accessibility', () => {
       appContext({
         activeGroupId: '1',
         activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
         leaderboardData: [participantScore({ name: 'Carlos', total: 25 })],
       }),
     );

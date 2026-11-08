@@ -39,7 +39,7 @@ import {
   type MatchSign,
   type StatusFilter,
 } from '../utils/matchday';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { MATCH_KINDS } from '../context/leagueKind';
 
 interface SaveVariables {
   groupId: string;
@@ -63,14 +63,13 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     activeGroupId,
     activeGroupIsLocked,
     activeGroupPoolFormat,
-    activeCompetitionFormatType,
+    leagueKind,
     userId,
     userName,
     isAuthenticated,
   } = context;
 
-  const isMatchDay =
-    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
+  const isMatchDay = MATCH_KINDS[leagueKind];
 
   const isSurvivor = activeGroupPoolFormat === 'SURVIVOR';
 
@@ -111,16 +110,10 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     draftRef.current = null;
   }, [storageKey]);
 
-  // Redirigir a mis-ligas si no hay liga seleccionada, o al inicio si no es modalidad por jornadas (ej. Mundial)
+  // Sin liga seleccionada, a Mis ligas. Las demás clases de liga no llegan aquí (MatchdayPredictor).
   useEffect(() => {
-    if (!activeGroupId && isAuthenticated) {
-      navigate('/mis-ligas');
-      return;
-    }
-    if (activeGroupPoolFormat && !isMatchDay) {
-      navigate('/');
-    }
-  }, [activeGroupId, activeGroupPoolFormat, isMatchDay, isAuthenticated, navigate]);
+    if (!activeGroupId && isAuthenticated) navigate('/mis-ligas');
+  }, [activeGroupId, isAuthenticated, navigate]);
 
   const enabled = Boolean(activeGroupId && isMatchDay);
 

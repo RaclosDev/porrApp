@@ -21,9 +21,7 @@ import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
 import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
 import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
-import { isMatchBasedFormat, isGrandPrixFormat } from '../utils/poolFormat';
-import { isUfcCompetition } from '../utils/fightCard';
-import { isTennisCompetition } from '../utils/tennisDraw';
+import { leagueNavItems, showsFillBracketButton } from './layout/leagueNav';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -38,9 +36,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const {
     userName,
     viewerPredictionId,
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    activeCompetitionExternalId,
+    leagueKind,
     loading,
     isDemoMode,
     enterDemoMode,
@@ -48,9 +44,6 @@ function Layout({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     userGroups,
     userGroupsLoaded,
-    loadingGroup,
-    choosingLeague,
-    activeGroupWorldCup,
   } = useAppContext();
   // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
   const myPrediction = useMyLeaguePrediction();
@@ -74,11 +67,6 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isUserLoggedIn = isAuthenticated && Boolean(userName);
   const sessionPending = useSessionHandoffPending();
   useIosSessionHandoff();
-  const isMatchDayLeague =
-    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
-  const isGrandPrixLeague = isGrandPrixFormat(activeGroupPoolFormat);
-  const isUfcLeague = isUfcCompetition(activeCompetitionExternalId);
-  const isTennisLeague = isTennisCompetition(activeCompetitionExternalId);
 
   const location = useLocation();
   const isDemo = isDemoMode;
@@ -195,9 +183,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                 <ActiveLeagueDropdown />
 
                 {loading ||
-                choosingLeague ||
-                isMatchDayLeague ||
-                isGrandPrixLeague ||
+                !showsFillBracketButton(leagueKind) ||
                 (userName && myPrediction) ? null : (
                   <button
                     id="btn-complete-my-prediction-header"
@@ -219,16 +205,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {!isLanding && !isInviteAuthScreen && (
-          <MainNav
-            isDemo={isDemo}
-            isMatchDayLeague={isMatchDayLeague}
-            isGrandPrixLeague={isGrandPrixLeague}
-            isUfcLeague={isUfcLeague}
-            isTennisLeague={isTennisLeague}
-            isNavLocked={isNavLocked}
-            showGroups={activeGroupWorldCup}
-            formatPending={loadingGroup || choosingLeague}
-          />
+          <MainNav items={leagueNavItems(leagueKind, isDemo)} isNavLocked={isNavLocked} />
         )}
 
         {!isInviteAuthScreen && (

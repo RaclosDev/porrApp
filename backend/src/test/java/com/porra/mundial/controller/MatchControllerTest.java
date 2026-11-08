@@ -41,17 +41,11 @@ class MatchControllerTest {
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
     @Test
-    void getRadarMatches_ReturnsRadarMap() throws Exception {
-        Mockito.when(matchService.getLiveMatches(Mockito.any())).thenReturn(List.of());
-        Mockito.when(matchService.getLiveMatches()).thenReturn(List.of());
-        Mockito.when(matchService.getLastMatches(Mockito.eq(5), Mockito.any())).thenReturn(List.of());
-        Mockito.when(matchService.getLastMatches(5)).thenReturn(List.of());
-        Mockito.when(matchService.getNextMatches(Mockito.eq(5), Mockito.any())).thenReturn(List.of());
-        Mockito.when(matchService.getNextMatches(5)).thenReturn(List.of());
-
-        mockMvc.perform(get("/api/matches/radar"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.live").isArray());
+    void withoutCompetitionThereAreNoMatches() throws Exception {
+        // Antes devolvía los partidos de todas las competiciones mezclados.
+        mockMvc.perform(get("/api/matches/radar")).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/matches")).andExpect(status().isBadRequest());
+        Mockito.verifyNoInteractions(matchService);
     }
 
     @Test
@@ -104,10 +98,10 @@ class MatchControllerTest {
     void listsOnlyWhatTheServiceKeepsPublic() throws Exception {
         Match privateMatch = Match.builder()
                 .competition(Competition.builder().id(9L).build()).build();
-        Mockito.when(matchService.getAllMatches()).thenReturn(List.of(privateMatch));
+        Mockito.when(matchService.getMatchesByCompetition(9L)).thenReturn(List.of(privateMatch));
         Mockito.when(matchService.publicOnly(List.of(privateMatch))).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/matches"))
+        mockMvc.perform(get("/api/matches?competitionId=9"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
     }

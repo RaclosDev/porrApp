@@ -80,9 +80,9 @@ public class StandingsService {
         return GroupTiebreaker.sort(standings, allGroupMatches);
     }
 
-    /** grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). */
+    /** Grupos del Mundial: grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). */
     @org.springframework.cache.annotation.Cacheable(value = "officialPoints", sync = true)
-    public Map<String, Map<String, Map<String, Integer>>> getOfficialPoints() {
+    public Map<String, Map<String, Map<String, Integer>>> getWorldCupGroupPoints() {
         Map<String, Map<String, Map<String, Integer>>> result = new TreeMap<>();
         List<GroupStanding> allStandings = getAllStandings();
 
@@ -221,14 +221,10 @@ public class StandingsService {
         Map<Long, List<Object>> previousStandings = new HashMap<>();
         existingByTeam.forEach((teamId, gs) -> previousStandings.put(teamId, scoringFields(gs)));
 
-        List<Team> allTeams = teamRepository.findAll().stream()
-                .filter(team -> team.getCompetition() == null).toList();
+        List<Team> worldCupTeams = teamRepository.findAll().stream().filter(Team::isWorldCupGroupTeam).toList();
         Map<String, List<GroupStanding>> standingsByGroup = new TreeMap<>();
 
-        for (Team team : allTeams) {
-            if (team.getGroupName() == null || "-".equals(team.getGroupName()) || Team.PLACEHOLDER_NAME.equalsIgnoreCase(team.getName())) {
-                continue;
-            }
+        for (Team team : worldCupTeams) {
             String groupName = team.getGroupName().toUpperCase().trim();
             int[] stats = teamStats.getOrDefault(team.getId(), new int[5]);
             GroupStanding standing = existingByTeam.get(team.getId());

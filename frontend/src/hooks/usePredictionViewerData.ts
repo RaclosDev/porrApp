@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPrediction } from '../services/api';
-import { officialBracketQuery, predictionScoreQuery } from '../services/queries';
+import { worldCupOfficialBracketQuery, predictionScoreQuery } from '../services/queries';
 import { checkIsKnockoutPhase, injectQualifiedTeams, normalizePart } from '../utils/predictionData';
 import {
   EMPTY_OFFICIAL_BRACKET,
@@ -49,7 +49,7 @@ export function usePredictionViewerData(
 
   // Cuadro oficial compartido con el resto de la app; el WebSocket lo invalida.
   const officialQuery = useQuery({
-    ...officialBracketQuery(),
+    ...worldCupOfficialBracketQuery(),
     enabled: Boolean(viewerPredictionId),
   });
   const rawOfficialBracket =

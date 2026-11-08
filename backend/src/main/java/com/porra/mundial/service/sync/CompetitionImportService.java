@@ -131,7 +131,8 @@ public class CompetitionImportService {
         if (slug == null || slug.isBlank()) {
             throw new IllegalArgumentException("La competición no tiene proveedor externo configurado");
         }
-        SportsDataProvider provider = sportsDataProviderRegistry.getProviderForCompetition(competition.getExternalId());
+        SportsDataProvider provider = sportsDataProviderRegistry.findProviderForCompetition(competition.getExternalId())
+                .orElseThrow(() -> new IllegalArgumentException("Ningún proveedor de datos sigue " + competition.getName()));
         LocalDate today = LocalDate.now();
         Set<String> seenEventIds = new HashSet<>();
         List<JsonNode> selected = new ArrayList<>();

@@ -4,13 +4,13 @@ import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import BracketCanvas, { TeamSlot } from '../components/BracketCanvas';
+import BracketCanvas, { TeamSlot, WORLD_CUP_ROUND_LABELS } from '../components/BracketCanvas';
 import BracketTeamStatus from '../components/BracketTeamStatus';
 import {
   buildBracketData,
   isMatchInRound,
   matchTeamNames,
-  nextKnockoutMatch,
+  nextWorldCupKnockoutMatch,
   slotName,
   type BracketSlot,
 } from '../utils/bracketBuilder';
@@ -24,57 +24,53 @@ import OfficialMobileCenter from '../components/official/OfficialMobileCenter';
 import CustomTournamentHome from './CustomTournamentHome';
 import OfficialTournamentHome from './OfficialTournamentHome';
 import KnockoutDrawResults from './KnockoutDrawResults';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
+import { useWorldCupData } from '../context/leagueData';
+import type { LeagueKind } from '../context/leagueKind';
 
-/** Cuadro oficial: los cruces reales del torneo, con los terceros resueltos en vivo. */
+/** «Resultados»: el cuadro o los cruces reales de cada clase de liga. */
 function OfficialBracket() {
-  const {
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    activeGroupCustomCompetition,
-    activeGroupWorldCup,
-    activeGroupKnockoutDraw,
-    loadingGroup,
-    groupError,
-  } = useAppContext();
-
-  const isMatchDay =
-    isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
-
-  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
-  if (activeGroupCustomCompetition && !isMatchDay) return <CustomTournamentHome />;
-  if (activeCompetitionFormatType && isMatchDay) {
-    return <Navigate to="/tabla" replace />;
-  }
-  if (activeGroupKnockoutDraw) return <KnockoutDrawResults />;
-  // El cuadro con grupos, terceros y pichichi es el del Mundial: solo para sus ligas.
-  if (!activeGroupWorldCup) return <OfficialTournamentHome />;
-
-  return <OfficialBracketView />;
+  const { leagueKind, groupError } = useAppContext();
+  const views: Record<LeagueKind, ReactNode> = {
+    loading: <LeagueLoadState />,
+    error: <LeagueLoadState error={groupError} />,
+    none: <NoLeagueState title="Resultados" what="los resultados" />,
+    unknown: <UnsupportedLeagueState />,
+    worldCup: <WorldCupOfficialBracket />,
+    customBracket: <CustomTournamentHome />,
+    ownBracket: <OfficialTournamentHome />,
+    knockoutDraw: <KnockoutDrawResults />,
+    matchday: <Navigate to="/tabla" replace />,
+    fightCard: <Navigate to="/tabla" replace />,
+    tennisDraw: <Navigate to="/tabla" replace />,
+    // Fórmula 1: los resultados de cada Gran Premio están en el inicio.
+    grandPrix: <Navigate to="/" replace />,
+  };
+  return views[leagueKind];
 }
 
-function OfficialBracketView() {
+/** Cuadro oficial del Mundial: los cruces reales, con los terceros resueltos en vivo. */
+function WorldCupOfficialBracket() {
+  const { allGames, matchRadar } = useAppContext();
   const {
-    officialPoints,
+    groupStandings,
     groupOdds,
-    allGames,
-    matchRadar,
+    pichichi,
     topScorers,
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
-    activeGroupPichichi,
-  } = useAppContext();
+  } = useWorldCupData();
 
   const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
   const [activeTab, setActiveTab] = useState<'cuadro' | 'grupos'>('cuadro');
 
   const part = useMemo(
-    () => buildBracketData(officialPoints, groupOdds, allGames),
-    [officialPoints, groupOdds, allGames],
+    () => buildBracketData(groupStandings, groupOdds, allGames),
+    [groupStandings, groupOdds, allGames],
   );
 
-  const featuredMatch = useMemo(() => nextKnockoutMatch(allGames), [allGames]);
+  const featuredMatch = useMemo(() => nextWorldCupKnockoutMatch(allGames), [allGames]);
 
   const { leftRounds, rightRounds } = useMemo(() => {
     const toMatches = (arr: BracketSlot[][] | undefined): CanvasMatch<BracketSlot>[] =>
@@ -211,7 +207,7 @@ function OfficialBracketView() {
         setActiveTab={setActiveTab}
         activePanel={activePanel}
         setActivePanel={setActivePanel}
-        activeGroupPichichi={activeGroupPichichi}
+        activeGroupPichichi={pichichi}
       />
 
       {activeTab === 'grupos' ? (
@@ -236,6 +232,7 @@ function OfficialBracketView() {
 
           <div>
             <BracketCanvas
+              roundLabels={WORLD_CUP_ROUND_LABELS}
               leftRounds={leftRounds}
               rightRounds={rightRounds}
               renderSlot={renderSlot}

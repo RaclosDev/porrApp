@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { withLeagueKind } from './leagueKind';
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
 
@@ -16,7 +17,7 @@ for (const viewport of [
       localStorage.setItem('activeGroupId', '1');
       localStorage.setItem('activeCompetitionId', '2');
     });
-    const league = {
+    const league = withLeagueKind('customBracket', {
       id: 1,
       name: 'Liga de prueba',
       adminUserId: 7,
@@ -27,7 +28,7 @@ for (const viewport of [
       poolFormat: 'FULL_BRACKET',
       pichichi: false,
       isLocked: false,
-    };
+    });
     await page.route('**/*', (route) => {
       const url = new URL(route.request().url());
       if (url.origin !== 'http://127.0.0.1:4173') return route.abort();
@@ -59,9 +60,9 @@ for (const viewport of [
           customRounds: [['Rayo', 'Club', 'Sur', 'Peña'], ['Rayo', null], ['Rayo']],
           champion: 'Rayo',
         },
-        '/api/standings': {},
-        '/api/standings/official-bracket': {},
-        '/api/teams/odds': {},
+        '/api/world-cup/standings': {},
+        '/api/world-cup/official-bracket': {},
+        '/api/world-cup/group-odds': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

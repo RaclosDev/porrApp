@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import type { Group } from '../src/types/api';
+import { withLeagueKind } from './leagueKind';
 
-const league: Group = {
+const league: Group = withLeagueKind('worldCup', {
   id: 1,
   name: 'Liga de prueba',
   joinCode: null,
@@ -10,6 +11,7 @@ const league: Group = {
   createdAt: null,
   competitionId: 2,
   competitionName: 'Competición de prueba',
+  competitionExternalId: 'fifa.world',
   formatType: 'TOURNAMENT',
   poolFormat: 'FULL_BRACKET',
   pichichi: false,
@@ -17,7 +19,7 @@ const league: Group = {
   isLocked: false,
   rules: null,
   imageUrl: null,
-};
+});
 
 for (const viewport of [
   { name: 'desktop', width: 1440, height: 900 },
@@ -58,15 +60,19 @@ for (const viewport of [
             return route.fulfill({
               json:
                 path === '/tabla'
-                  ? { ...league, formatType: 'LEAGUE', poolFormat: 'MATCH_DAY' }
+                  ? withLeagueKind('matchday', {
+                      ...league,
+                      formatType: 'LEAGUE',
+                      poolFormat: 'MATCH_DAY',
+                    })
                   : league,
             });
           }
           const responses: Record<string, unknown> = {
             '/api/groups/featured': league,
-            '/api/standings': {},
-            '/api/standings/official-bracket': {},
-            '/api/teams/odds': {},
+            '/api/world-cup/standings': {},
+            '/api/world-cup/official-bracket': {},
+            '/api/world-cup/group-odds': {},
             '/api/matches/radar': { live: [], last: [], next: [] },
           };
           return route.fulfill({ json: responses[url.pathname] ?? [] });
