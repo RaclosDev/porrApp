@@ -179,7 +179,8 @@ function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
 const TENNIS_SCOPES: { scope: TennisScope; description: string }[] = [
   {
     scope: 'ALL',
-    description: 'Los Grand Slams, los Masters 1000 y las ATP Finals.',
+    description:
+      'Los Grand Slams, los Masters 1000, los WTA 1000, las ATP Finals y las WTA Finals.',
   },
   {
     scope: 'GRAND_SLAMS',
@@ -187,7 +188,7 @@ const TENNIS_SCOPES: { scope: TennisScope; description: string }[] = [
   },
   {
     scope: 'MASTERS_1000',
-    description: 'Los nueve Masters 1000, los WTA 1000 que se juegan con ellos y las ATP Finals.',
+    description: 'Los nueve Masters 1000, los WTA 1000, las ATP Finals y las WTA Finals.',
   },
 ];
 

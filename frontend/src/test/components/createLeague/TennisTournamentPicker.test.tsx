@@ -79,4 +79,40 @@ describe('Tenis en /crear-liga', () => {
     expect(screen.queryByRole('radio', { name: /solo los grand slams/i })).not.toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /femenino/i })).toBeInTheDocument();
   });
+
+  it('un torneo solo femenino, como las WTA Finals, se elige con su cuadro femenino', () => {
+    const wtaFinals: Competition = {
+      id: 20,
+      name: 'WTA Finals',
+      externalId: 'tennis.wta.382',
+      formatType: 'TOURNAMENT',
+      sport: 'TENNIS',
+      finished: false,
+      tennis: {
+        tournamentId: 382,
+        tournament: 'WTA Finals',
+        level: 'FINALS',
+        draw: 'WOMEN',
+        setsToWin: 2,
+        startDate: '2026-11-08T05:00:00Z',
+        endDate: '2026-11-16T04:59:00Z',
+      },
+    };
+    const finalsCtx = { competitions: [wtaFinals] };
+    const update = (patch: Partial<LeagueDraft>) =>
+      normalizeDraft({ ...emptyDraft(), sport: 'TENNIS', ...patch }, finalsCtx);
+    render(
+      <TennisTournamentPicker
+        draft={{ ...emptyDraft(), sport: 'TENNIS' }}
+        update={update}
+        errors={{}}
+        ctx={finalsCtx}
+      />,
+    );
+
+    expect(screen.getByRole('radio', { name: /wta finals/i })).toHaveAccessibleDescription(
+      /Cuadro femenino/,
+    );
+    expect(update({ competitionId: 20 }).tennisDraw).toBe('WOMEN');
+  });
 });

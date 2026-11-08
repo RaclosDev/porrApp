@@ -11,7 +11,7 @@ import type { StepProps } from './useLeagueDraft';
 
 const LEVELS: { level: TennisInfo['level']; title: string }[] = [
   { level: 'GRAND_SLAM', title: 'Grand Slam' },
-  { level: 'MASTERS_1000', title: 'Masters 1000' },
+  { level: 'MASTERS_1000', title: 'Masters 1000 y WTA 1000' },
   { level: 'FINALS', title: 'Finales de temporada' },
 ];
 
@@ -47,7 +47,7 @@ function tournaments(competitions: Competition[]) {
 
 /**
  * Paso 2 con el tenis: toda la temporada (qué torneos y qué circuito se eligen en el paso siguiente, como
- * las veladas de UFC) o un torneo (Grand Slams, Masters 1000, ATP Finals) y su cuadro. Solo salen los
+ * las veladas de UFC) o un torneo (Grand Slams, Masters 1000, WTA 1000, ATP Finals, WTA Finals) y su cuadro. Solo salen los
  * torneos que aún no han terminado.
  */
 export default function TennisTournamentPicker({ draft, update, errors, ctx }: StepProps) {
@@ -111,7 +111,11 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
                     title={info.tournament}
                     description={[
                       tennisDates(info),
-                      draws.size > 1 ? 'Cuadro masculino y femenino' : 'Cuadro masculino',
+                      draws.size > 1
+                        ? 'Cuadro masculino y femenino'
+                        : draws.has('WOMEN')
+                          ? 'Cuadro femenino'
+                          : 'Cuadro masculino',
                     ]
                       .filter(Boolean)
                       .join(' · ')}
