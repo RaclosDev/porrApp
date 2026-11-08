@@ -168,7 +168,7 @@ it('creates the account with the code from the email and goes to create the leag
   await waitFor(() => expect(close).toHaveBeenCalledWith(false));
   expect(confirmRegistration).toHaveBeenCalledWith('marta@test.com', '123456', 'una-clave-larga');
   expect(useAppStore.getState().userName).toBe('marta');
-  expect(screen.getByTestId('path')).toHaveTextContent('/crear-liga');
+  await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/crear-liga'));
 });
 
 it('shows why the code was not accepted', async () => {
