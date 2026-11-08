@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { TennisScope } from '../../types/api';
 import MatchSelectionPicker from '../matchSelection/MatchSelectionPicker';
 import {
   ALL_MATCHES,
@@ -15,7 +16,10 @@ import {
   formatCopy,
   formatUnavailableReason,
   EVENT_SERIES_LABELS,
+  TENNIS_SCOPE_LABELS,
+  TENNIS_TOUR_LABELS,
   isFightNights,
+  tennisScopeDrawChoices,
   matchSelectionApplies,
 } from './leagueDraft';
 import CardSegmentsField from './CardSegmentsField';
@@ -166,6 +170,69 @@ function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
   );
 }
 
+const TENNIS_SCOPES: { scope: TennisScope; description: string }[] = [
+  {
+    scope: 'ALL',
+    description: 'Los Grand Slams, los Masters 1000 y las ATP Finals.',
+  },
+  {
+    scope: 'GRAND_SLAMS',
+    description: 'Open de Australia, Roland Garros, Wimbledon y el US Open.',
+  },
+  {
+    scope: 'MASTERS_1000',
+    description: 'Los nueve Masters 1000, los WTA 1000 que se juegan con ellos y las ATP Finals.',
+  },
+];
+
+/**
+ * Tenis con toda la temporada: qué torneos y qué circuito sigue la liga, como las veladas de UFC. Los
+ * torneos que entran desde hoy se suman solos a medida que ESPN los publica.
+ */
+function TennisSeasonSection({ draft, update, ctx }: StepProps) {
+  const scope = draft.tennisScope ?? 'ALL';
+  const tours = tennisScopeDrawChoices(ctx, scope);
+  return (
+    <StepSection id="cl-matches" title="Torneos">
+      <fieldset className="create-league-fieldset">
+        <legend className="sr-only">Qué torneos sigue la liga</legend>
+        <div className="create-league-options">
+          {TENNIS_SCOPES.map((item) => (
+            <OptionCard
+              key={item.scope}
+              name="cl-tennis-scope"
+              value={item.scope}
+              checked={scope === item.scope}
+              onChange={() => update({ tennisScope: item.scope })}
+              title={TENNIS_SCOPE_LABELS[item.scope]}
+              description={`Desde hoy. ${item.description}`}
+            />
+          ))}
+        </div>
+      </fieldset>
+      {tours.length > 1 && (
+        <fieldset className="create-league-fieldset">
+          <legend className="create-league-section-title">Circuito</legend>
+          <div className="create-league-options is-row">
+            {(['BOTH', 'MEN', 'WOMEN'] as const)
+              .filter((tour) => tours.includes(tour))
+              .map((tour) => (
+                <OptionCard
+                  key={tour}
+                  name="cl-tennis-tour"
+                  value={tour}
+                  checked={draft.tennisDraw === tour}
+                  onChange={() => update({ tennisDraw: tour })}
+                  title={TENNIS_TOUR_LABELS[tour]}
+                />
+              ))}
+          </div>
+        </fieldset>
+      )}
+    </StepSection>
+  );
+}
+
 /**
  * Paso 2: el modo de juego. Los que no encajan con la competición se ven, con el motivo. Por
  * jornadas sobre una competición oficial, además, qué partidos entran.
@@ -202,6 +269,9 @@ export default function FormatStep(props: StepProps) {
             ? 'Después de crear la liga añades los partidos de tu competición.'
             : 'Después de crear la liga añades los equipos y los cruces de tu competición.'}
         </p>
+      )}
+      {draft.sport === 'TENNIS' && draft.tennisScope && !draft.custom && (
+        <TennisSeasonSection {...props} />
       )}
       {matchSelectionApplies(draft, ctx) &&
         (isFightNights(draft, ctx) ? (

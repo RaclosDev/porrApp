@@ -109,6 +109,8 @@ function useLeagueState() {
           competitionId: fromList.competitionId,
           competitionName: fromList.competitionName,
           multiCompetition: fromList.multiCompetition,
+          tennisScope: fromList.tennisScope,
+          tennisTour: fromList.tennisTour,
           matchSelection: fromList.matchSelection,
           competitionExternalId: fromList.competitionExternalId,
           customCompetition: fromList.customCompetition,

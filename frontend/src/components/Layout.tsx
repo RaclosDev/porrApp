@@ -23,6 +23,7 @@ import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
 import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
 import { isMatchBasedFormat, isGrandPrixFormat } from '../utils/poolFormat';
 import { isUfcCompetition } from '../utils/fightCard';
+import { isTennisCompetition } from '../utils/tennisDraw';
 
 const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
 
@@ -77,6 +78,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE';
   const isGrandPrixLeague = isGrandPrixFormat(activeGroupPoolFormat);
   const isUfcLeague = isUfcCompetition(activeCompetitionExternalId);
+  const isTennisLeague = isTennisCompetition(activeCompetitionExternalId);
 
   const location = useLocation();
   const isDemo = isDemoMode;
@@ -222,6 +224,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             isMatchDayLeague={isMatchDayLeague}
             isGrandPrixLeague={isGrandPrixLeague}
             isUfcLeague={isUfcLeague}
+            isTennisLeague={isTennisLeague}
             isNavLocked={isNavLocked}
             showGroups={activeGroupWorldCup}
             formatPending={loadingGroup || choosingLeague}

@@ -46,19 +46,21 @@ function tournaments(competitions: Competition[]) {
 }
 
 /**
- * Paso 2 con el tenis: el torneo (Grand Slams, Masters 1000, ATP Finals) y después el cuadro
- * (masculino, femenino o los dos). Solo salen los torneos que aún no han terminado.
+ * Paso 2 con el tenis: toda la temporada (qué torneos y qué circuito se eligen en el paso siguiente, como
+ * las veladas de UFC) o un torneo (Grand Slams, Masters 1000, ATP Finals) y su cuadro. Solo salen los
+ * torneos que aún no han terminado.
  */
 export default function TennisTournamentPicker({ draft, update, errors, ctx }: StepProps) {
   const available = tournaments(competitionsOfSport(ctx, 'TENNIS'));
   const selected = ctx.competitions.find((item) => item.id === draft.competitionId)?.tennis;
-  const choices = selected ? tennisDrawChoices(ctx, selected.tournamentId) : [];
+  const season = !draft.custom && draft.tennisScope != null;
+  const choices = selected && !season ? tennisDrawChoices(ctx, selected.tournamentId) : [];
 
   const choose = (tournamentId: number) => {
     const first = ctx.competitions.find(
       (item) => item.tennis?.tournamentId === tournamentId && !item.finished,
     );
-    if (first) update({ custom: false, competitionId: first.id });
+    if (first) update({ custom: false, tennisScope: null, competitionId: first.id });
   };
 
   return (
@@ -69,6 +71,21 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
         aria-describedby={errors.competition ? errorId(FIELD_IDS.competition) : undefined}
       >
         <legend className="sr-only">Torneo</legend>
+        {available.length > 0 && (
+          <div className="create-league-group">
+            <h3 className="create-league-section-title">Varios torneos</h3>
+            <div className="create-league-options">
+              <OptionCard
+                name="cl-tennis-tournament"
+                value="season"
+                checked={season}
+                onChange={() => update({ custom: false, tennisScope: draft.tennisScope ?? 'ALL' })}
+                title="Toda la temporada"
+                description="Desde hoy, varios torneos en orden y con una sola clasificación. En el paso siguiente eliges cuáles y el circuito: ATP, WTA o los dos."
+              />
+            </div>
+          </div>
+        )}
         {available.length === 0 && (
           <p className="create-league-hint">
             Ahora mismo no hay ningún torneo por jugar. Aparecerán en cuanto ESPN publique la
@@ -87,7 +104,9 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
                     key={info.tournamentId}
                     name="cl-tennis-tournament"
                     value={String(info.tournamentId)}
-                    checked={!draft.custom && selected?.tournamentId === info.tournamentId}
+                    checked={
+                      !draft.custom && !season && selected?.tournamentId === info.tournamentId
+                    }
                     onChange={() => choose(info.tournamentId)}
                     title={info.tournament}
                     description={[
@@ -118,7 +137,7 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
         <FieldError fieldId={FIELD_IDS.competition} message={errors.competition} />
       </fieldset>
 
-      {selected && !draft.custom && choices.length > 1 && (
+      {selected && !draft.custom && !season && choices.length > 1 && (
         <fieldset className="create-league-fieldset">
           <legend className="create-league-section-title">Cuadro</legend>
           <div className="create-league-options is-row">

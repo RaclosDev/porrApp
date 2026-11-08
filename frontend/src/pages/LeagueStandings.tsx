@@ -9,6 +9,8 @@ import { queryKeys } from '../services/queryKeys';
 import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
 import { isUfcCompetition } from '../utils/fightCard';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
+import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
+import { isTennisCompetition } from '../utils/tennisDraw';
 
 export default function LeagueStandings() {
   const [showComplete, setShowComplete] = useState(false);
@@ -36,6 +38,8 @@ export default function LeagueStandings() {
     ? { points: 'V', diff: 'Dif', for: 'PF', against: 'PC' }
     : { points: 'PTS', diff: 'DG', for: 'GF', against: 'GC' };
   const completeColumns = winLoss ? 5 : 6;
+  // En el tenis tampoco: los «equipos» son jugadores y la tabla es el cuadro del torneo.
+  const isTennis = isTennisCompetition(activeCompetitionExternalId);
 
   const {
     data: standings,
@@ -48,13 +52,14 @@ export default function LeagueStandings() {
       activeGroupCustomCompetition && activeGroupId
         ? fetchCustomStandings(Number(activeGroupId))
         : fetchCompetitionStandings(activeCompetitionId),
-    enabled: Boolean(activeCompetitionId && isMatchDay && !isUfc),
+    enabled: Boolean(activeCompetitionId && isMatchDay && !isUfc && !isTennis),
     staleTime: 120_000,
   });
 
   if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (isGrandPrixFormat(activeGroupPoolFormat)) return <Navigate to="/" replace />;
   if (isUfc && isMatchDay) return <UfcCardBoard />;
+  if (isTennis && isMatchDay) return <TennisDrawBoard />;
   if (activeCompetitionFormatType && !isMatchDay) {
     return <Navigate to="/bracket" replace />;
   }

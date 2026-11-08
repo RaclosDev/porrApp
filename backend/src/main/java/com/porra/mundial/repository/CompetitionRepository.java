@@ -24,6 +24,8 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
 
     Optional<Competition> findByExternalId(String externalId);
 
+    List<Competition> findByExternalIdIn(java.util.Collection<String> externalIds);
+
     /**
      * @param externalId Código slug de la competición en ESPN.
      * @return El id de la competición asociada, sin cargar la entidad.

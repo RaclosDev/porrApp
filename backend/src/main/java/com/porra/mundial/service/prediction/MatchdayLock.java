@@ -77,6 +77,7 @@ public final class MatchdayLock {
         return switch (mode(edition)) {
             case PER_DAY -> "Las predicciones de este día ya están cerradas";
             case PER_ROUND -> edition != null && edition.isMultiCompetition()
+                    && !com.porra.mundial.model.Sport.isTennis(edition.getCompetition())
                     ? "Las predicciones de esta semana ya están cerradas"
                     : "Las predicciones de esta jornada ya están cerradas";
             default -> "El plazo de predicción de este partido ha terminado";
