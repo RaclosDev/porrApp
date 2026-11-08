@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 
@@ -56,8 +57,8 @@ public class ResendEmailSender implements EmailSender {
         HttpRequest request = HttpRequest.newBuilder(ENDPOINT)
                 .timeout(Duration.ofSeconds(10))
                 .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body(email)))
+                .header("Content-Type", "application/json; charset=utf-8")
+                .POST(HttpRequest.BodyPublishers.ofString(body(email), StandardCharsets.UTF_8))
                 .build();
         client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).whenComplete((response, error) -> {
             if (error != null) {
