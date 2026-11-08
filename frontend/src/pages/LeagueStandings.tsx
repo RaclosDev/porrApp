@@ -46,8 +46,11 @@ export default function LeagueStandings() {
   return views[leagueKind];
 }
 
-/** Clasificación de la competición de una liga por jornadas. */
-function CompetitionTable() {
+/**
+ * Clasificación de la competición de la liga activa: la de una liga por jornadas o, en unas eliminatorias
+ * aún sin sortear, la de su fase de liga.
+ */
+export function CompetitionTable() {
   const [showComplete, setShowComplete] = useState(false);
   // NFL: por divisiones (como la publica la liga) o por conferencias (la carrera a los playoffs).
   const [byConference, setByConference] = useState(false);
