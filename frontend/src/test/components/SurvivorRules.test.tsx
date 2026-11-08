@@ -29,6 +29,21 @@ describe('reglas de superviviente', () => {
     expect(screen.getByLabelText('Jornada superada')).toHaveValue(1);
   });
 
+  it('en la NFL se juega por semanas', () => {
+    const draft = toDraft(DEFAULT_SCORING);
+    render(
+      <ScoringRulesPanel
+        scoring={{ ...survivor(), sport: 'AMERICAN_FOOTBALL' }}
+        draft={draft}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/en cada semana eliges un equipo/)).toBeInTheDocument();
+    expect(screen.getByText(/Gana quien supere más semanas/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Semana superada')).toHaveValue(1);
+  });
+
   it('explica las reglas de la liga y rechaza vidas fuera de rango', () => {
     const rules = { ...DEFAULT_SCORING, survivorLives: 3, survivorDrawSurvives: 1 };
     render(<ScoringRulesPanel scoring={survivor(rules)} />);

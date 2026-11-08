@@ -73,4 +73,14 @@ class MatchdayLockTest {
         assertEquals("Las predicciones de esta semana ya están cerradas",
                 MatchdayLock.reason(weekly, nextRound, saturday.plus(1, ChronoUnit.HOURS)));
     }
+
+    @Test
+    void nflLeaguesLockByWeeksAndSaySo() {
+        Edition nfl = edition(PredictionLockMode.PER_ROUND, 0);
+        nfl.setCompetition(com.porra.mundial.model.Competition.builder().externalId("nfl").build());
+        assertEquals("Las predicciones de esta semana ya están cerradas",
+                MatchdayLock.reason(nfl, nextRound, saturday.plus(1, ChronoUnit.HOURS)));
+        assertEquals("Las predicciones de esta jornada ya están cerradas",
+                MatchdayLock.reason(edition(PredictionLockMode.PER_ROUND, 0), nextRound, saturday.plus(1, ChronoUnit.HOURS)));
+    }
 }

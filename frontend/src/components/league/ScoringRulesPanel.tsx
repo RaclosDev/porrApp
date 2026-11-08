@@ -3,17 +3,19 @@ import { scoringFieldError, scoringSections, type ScoringDraft } from '../../uti
 import { allowsDraw } from '../../utils/matchday';
 
 /** Cómo se juega superviviente con las vidas y la regla del empate de esta liga. */
-function survivorRules(lives: number, drawSurvives: boolean, draws: boolean) {
+function survivorRules(lives: number, drawSurvives: boolean, draws: boolean, weeks: boolean) {
+  // La NFL se juega por semanas.
+  const round = weeks ? 'semana' : 'jornada';
   const survive = !draws
-    ? 'Si gana, superas la jornada; si pierde, fallas'
+    ? `Si gana, superas la ${round}; si pierde, fallas`
     : drawSurvives
-      ? 'Si gana o empata, superas la jornada'
-      : 'Si gana, superas la jornada; si empata o pierde, fallas';
+      ? `Si gana o empata, superas la ${round}`
+      : `Si gana, superas la ${round}; si empata o pierde, fallas`;
   const fail =
     lives > 1
       ? `Cada fallo te quita una vida y con la última quedas eliminado: empiezas con ${lives}.`
       : 'Al primer fallo quedas eliminado.';
-  return `Superviviente: en cada jornada eliges un equipo que gane, y no puedes repetir equipo en toda la temporada. ${survive}. ${fail} Elegir es obligatorio: si empiezan todos los partidos de una jornada sin que hayas elegido, cuenta como fallo. Gana quien supere más jornadas.`;
+  return `Superviviente: en cada ${round} eliges un equipo que gane, y no puedes repetir equipo en toda la temporada. ${survive}. ${fail} Elegir es obligatorio: si empiezan todos los partidos de una ${round} sin que hayas elegido, cuenta como fallo. Gana quien supere más ${round}s.`;
 }
 
 /**
@@ -59,6 +61,7 @@ export default function ScoringRulesPanel({
             Number(current('survivorLives')) || 1,
             current('survivorDrawSurvives') === '1',
             !seriesOnly,
+            scoring.sport === 'AMERICAN_FOOTBALL',
           )}
         </p>
       )}
