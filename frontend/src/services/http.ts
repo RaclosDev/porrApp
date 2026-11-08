@@ -365,6 +365,11 @@ export function loginWithGoogle(credential: string): Promise<LoginResponse> {
   return login('/auth/google/login', { credential }, 'Error al iniciar sesión con Google');
 }
 
+/** Inicia sesión con el ID token de «Iniciar sesión con Apple» y guarda el access token. */
+export function loginWithApple(idToken: string, name?: string): Promise<LoginResponse> {
+  return login('/auth/apple/login', { idToken, name }, 'Error al iniciar sesión con Apple');
+}
+
 /** Crea una cuenta con email y contraseña, sin Google, y guarda el access token. */
 export function registerWithPassword(email: string, password: string): Promise<LoginResponse> {
   return login('/auth/password/register', { email, password }, 'No se ha podido crear la cuenta');

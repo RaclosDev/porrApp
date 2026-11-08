@@ -14,8 +14,10 @@ const changeGroup = vi.hoisted(() => vi.fn());
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../hooks/useGoogleSignIn', () => ({
   useGoogleSignIn: () => signIn,
+  useAppleSignIn: () => vi.fn(),
   useEmailSignIn: () => emailSignIn,
 }));
+vi.mock('../../hooks/usePasskeyAutoSignIn', () => ({ usePasskeyAutoSignIn: vi.fn() }));
 vi.mock('@react-oauth/google', () => ({
   GoogleOAuthProvider: ({ children }: { children: ReactNode }) => children,
   GoogleLogin: ({ onSuccess }: { onSuccess: (response: { credential: string }) => void }) => (

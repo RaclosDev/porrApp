@@ -4,6 +4,7 @@ import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.PasskeyRepository;
 import com.porra.mundial.repository.RefreshTokenFamilyRepository;
 import com.porra.mundial.repository.UserAccountRepository;
+import com.porra.mundial.service.account.AppleCredentialVerifier.AppleIdentity;
 import com.porra.mundial.service.account.GoogleCredentialVerifier.GoogleIdentity;
 import com.porra.mundial.service.account.SessionService.SessionTokens;
 import lombok.RequiredArgsConstructor;
@@ -14,10 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
- * Inicio de sesión con Google: verifica el ID token, encuentra la cuenta por el {@code sub} de
+ * Inicio de sesión con Google o Apple: verifica el ID token, encuentra la cuenta por el {@code sub} de
  * Google (la crea la primera vez, con un apodo único a partir del nombre de Google) y abre una
  * sesión.
  * <p>
@@ -31,7 +33,10 @@ import java.util.Optional;
 public class AuthService {
 
     private final UserAccountRepository userAccountRepository;
+    private static final int MAX_BASE_NAME_LENGTH = 40;
+
     private final GoogleCredentialVerifier googleCredentialVerifier;
+    private final AppleCredentialVerifier appleCredentialVerifier;
     private final SessionService sessionService;
     private final RefreshTokenFamilyRepository refreshTokenFamilyRepository;
     private final PasskeyRepository passkeyRepository;
@@ -46,6 +51,60 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token de Google inválido");
         }
         return sessionService.start(findOrRegister(google));
+    }
+
+    /**
+     * Inicio de sesión con Apple. La cuenta se busca por el {@code sub} de Apple; la primera vez se
+     * asocia por email verificado a la cuenta que ya lo tenga (de Google o con contraseña) o se crea.
+     *
+     * @param name nombre que Apple da al navegador solo la primera vez; propone el apodo
+     */
+    @Transactional
+    public SessionTokens loginWithApple(String idToken, String name) {
+        AppleIdentity apple = appleCredentialVerifier.verify(idToken);
+        if (apple.subject() == null || apple.subject().isBlank() || apple.email() == null || apple.email().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token de Apple inválido");
+        }
+        if (!apple.emailVerified()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "La dirección de correo de Apple no está verificada.");
+        }
+        Optional<UserAccount> bySubject = userAccountRepository.findByAppleSub(apple.subject());
+        if (bySubject.isPresent()) {
+            return sessionService.start(bySubject.get());
+        }
+
+        String email = apple.email().trim().toLowerCase(Locale.ROOT);
+        Optional<UserAccount> byEmail = userAccountRepository.findByGoogleEmail(email);
+        if (byEmail.isPresent()) {
+            UserAccount user = byEmail.get();
+            if (user.getAppleSub() != null) {
+                log.warn("El email del usuario {} lo usa ahora otra cuenta de Apple; no se inicia sesión.", user.getId());
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Este email ya está asociado a otra cuenta de Apple. Escribe al administrador de la porra.");
+            }
+            if (user.getPasswordHash() != null) {
+                claimPasswordAccount(user);
+            }
+            user.setAppleSub(apple.subject());
+            return sessionService.start(user);
+        }
+
+        String baseName = name != null && !name.isBlank() ? name.trim() : email.split("@")[0];
+        UserAccount user = userAccountRepository.save(UserAccount.builder()
+                .appleSub(apple.subject())
+                .googleEmail(email)
+                .participantName(uniqueParticipantName(baseName))
+                .build());
+        return sessionService.start(user);
+    }
+
+    private String uniqueParticipantName(String name) {
+        String baseName = name.length() > MAX_BASE_NAME_LENGTH ? name.substring(0, MAX_BASE_NAME_LENGTH) : name;
+        String participantName = baseName;
+        for (int suffix = 1; userAccountRepository.existsByParticipantNameIgnoreCase(participantName); suffix++) {
+            participantName = baseName + suffix;
+        }
+        return participantName;
     }
 
     private UserAccount findOrRegister(GoogleIdentity google) {
@@ -75,7 +134,7 @@ public class AuthService {
     }
 
     /**
-     * Google demuestra que el email es de quien entra; el registro con contraseña no lo comprobó.
+     * Google o Apple demuestran que el email es de quien entra; el registro con contraseña no lo comprobó.
      * Para que nadie conserve una cuenta creada con un email ajeno, la cuenta pasa a Google: se
      * borra la contraseña, se cierran sus sesiones y se quitan sus llaves de acceso.
      */

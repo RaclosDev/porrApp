@@ -15,6 +15,8 @@ import type { LoginResponse } from '../../types/api';
 
 vi.mock('../../services/api', () => ({
   loginWithGoogle: vi.fn(),
+  loginWithApple: vi.fn(),
+  whenSessionRestored: vi.fn(() => null),
   startPasskeyLogin: vi.fn(),
   loginWithPasskey: vi.fn(),
   loginWithPassword: vi.fn(),
@@ -46,6 +48,8 @@ const renderModal = () =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
+  useAppStore.setState({ isAuthenticated: false, userName: '' });
   vi.mocked(passkeysSupported).mockReturnValue(true);
 });
 
@@ -152,4 +156,44 @@ it('shows the server error next to the form when the password is wrong', async (
   expect(await screen.findByRole('alert')).toHaveTextContent('Email o contraseña incorrectos.');
   expect(loginWithPassword).toHaveBeenCalledWith('marta@test.com', 'otra-clave');
   expect(close).not.toHaveBeenCalled();
+});
+
+it('asks for the passkey on its own when this device already signed in with one', async () => {
+  localStorage.setItem('passkey_on_device', '1');
+  vi.mocked(startPasskeyLogin).mockResolvedValue({
+    requestId: 'req-2',
+    options: { publicKey: { challenge: 'AA' } },
+  });
+  vi.mocked(getPasskey).mockResolvedValue({ id: 'abc' });
+  vi.mocked(loginWithPasskey).mockResolvedValue(session);
+
+  renderModal();
+
+  await waitFor(() => expect(close).toHaveBeenCalledWith(false));
+  expect(startPasskeyLogin).toHaveBeenCalledOnce();
+});
+
+it('stops asking on its own after the automatic passkey is cancelled twice', async () => {
+  localStorage.setItem('passkey_on_device', '1');
+  vi.mocked(startPasskeyLogin).mockResolvedValue({
+    requestId: 'req-3',
+    options: { publicKey: {} },
+  });
+  vi.mocked(getPasskey).mockRejectedValue(new DOMException('cancelado', 'NotAllowedError'));
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const { unmount } = renderModal();
+    await waitFor(() => expect(getPasskey).toHaveBeenCalledTimes(Math.min(attempt, 2)));
+    unmount();
+  }
+
+  expect(startPasskeyLogin).toHaveBeenCalledTimes(2);
+  expect(close).not.toHaveBeenCalled();
+});
+
+it('does not ask for a passkey on its own on a device that never used one', async () => {
+  renderModal();
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(startPasskeyLogin).not.toHaveBeenCalled();
 });

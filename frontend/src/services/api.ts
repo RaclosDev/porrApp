@@ -12,6 +12,7 @@ export {
   endSession,
   prepareSessionHandoff,
   loginWithGoogle,
+  loginWithApple,
   startPasskeyLogin,
   loginWithPasskey,
   loginWithPassword,

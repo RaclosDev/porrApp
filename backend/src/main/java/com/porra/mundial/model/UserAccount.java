@@ -32,6 +32,10 @@ public class UserAccount {
     @Column(name = "google_sub", unique = true)
     private String googleSub;
 
+    /** Identificador de la cuenta de Apple (claim "sub"); null si nunca ha entrado con Apple. */
+    @Column(name = "apple_sub", unique = true)
+    private String appleSub;
+
     /**
      * Email de la cuenta (Ej: raclo@gmail.com): el verificado de Google, que se actualiza si cambia
      * en Google, o el que dio al registrarse con contraseña. El nombre es histórico.

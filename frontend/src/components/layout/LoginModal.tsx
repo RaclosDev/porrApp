@@ -1,12 +1,13 @@
 import type { CredentialResponse } from '@react-oauth/google';
-import GoogleSignInButton from '../GoogleSignInButton';
+import SocialSignInButtons from '../SocialSignInButtons';
 import EmailSignInForm from '../EmailSignInForm';
 import toast from 'react-hot-toast';
 import { Link, type NavigateFunction } from 'react-router-dom';
 import { useRef, useState } from 'react';
 import { KeyRound } from 'lucide-react';
 import { useDialogFocus } from '../../hooks/useDialogFocus';
-import { usePasskeySignIn } from '../../hooks/useGoogleSignIn';
+import { useAppleSignIn, usePasskeySignIn } from '../../hooks/useGoogleSignIn';
+import { usePasskeyAutoSignIn } from '../../hooks/usePasskeyAutoSignIn';
 import { passkeysSupported } from '../../utils/webauthn';
 
 interface LoginModalProps {
@@ -18,7 +19,7 @@ interface LoginModalProps {
   showMyPredictionModal: boolean;
 }
 
-/** Diálogo para iniciar sesión con Google, email y contraseña o llave de acceso, o probar la demo. */
+/** Diálogo para iniciar sesión con Google, Apple, email y contraseña o llave de acceso, o probar la demo. */
 export default function LoginModal({
   exitDemoMode,
   handleGoogleSuccess,
@@ -31,7 +32,14 @@ export default function LoginModal({
   // Layout ya cierra este diálogo con Escape.
   useDialogFocus(dialogRef, { active: showMyPredictionModal });
   const passkeySignIn = usePasskeySignIn();
+  const appleSignIn = useAppleSignIn();
   const [signingIn, setSigningIn] = useState(false);
+  const close = () => setShowMyPredictionModal(false);
+  usePasskeyAutoSignIn(showMyPredictionModal, close);
+
+  const signInWithApple = async () => {
+    if (await appleSignIn()) close();
+  };
 
   const signInWithPasskey = async () => {
     setSigningIn(true);
@@ -56,22 +64,21 @@ export default function LoginModal({
         </h3>
         <div>
           <p className="mb-7.5 text-[1rem] text-muted leading-[1.5]">
-            Inicia sesión con Google o con tu email para ver tus ligas y rellenar tu porra.
+            Entra con Google, Apple o tu email para ver tus ligas y rellenar tu porra.
           </p>
           <div className="flex justify-center mb-5">
-            {/* El diálogo siempre está montado: el SDK de Google solo se carga al abrirlo. */}
+            {/* El diálogo siempre está montado: los SDK de Google y Apple solo se cargan al abrirlo. */}
             {showMyPredictionModal && (
-              <GoogleSignInButton
-                onSuccess={handleGoogleSuccess}
-                onError={() => toast.error('Inicio de sesión cancelado o fallido')}
-                theme="outline"
+              <SocialSignInButtons
+                onGoogleSuccess={handleGoogleSuccess}
+                onGoogleError={() => toast.error('Inicio de sesión cancelado o fallido')}
+                onApple={signInWithApple}
                 shape="pill"
-                text="continue_with"
               />
             )}
           </div>
           <div className="mb-5">
-            <EmailSignInForm onSignedIn={() => setShowMyPredictionModal(false)} />
+            <EmailSignInForm onSignedIn={close} />
           </div>
           {passkeysSupported() && (
             <div className="flex flex-col items-center gap-1.5 mb-5">
