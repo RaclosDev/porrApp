@@ -1,6 +1,12 @@
 import { Fragment } from 'react';
 import type { FightInfo } from '../../types/api';
-import { FIGHT_OUTCOME_LABELS, fightResultParts, type FightOutcome } from '../../utils/fights';
+import {
+  FIGHT_OUTCOME_LABELS,
+  fightResultParts,
+  judgesScoresText,
+  titleLabel,
+  type FightOutcome,
+} from '../../utils/fights';
 
 /** Insignia del resultado de un luchador: W en azul, L en rojo; D y NC, neutras. */
 export function FightBadge({
@@ -50,5 +56,33 @@ export function FightResultLine({
         </Fragment>
       ))}
     </Tag>
+  );
+}
+
+/** Etiqueta dorada de una pelea con título en juego: «Por el título». Nada si no lo hay. */
+export function FightTitleTag({ fight }: { fight: FightInfo | null | undefined }) {
+  const label = titleLabel(fight);
+  if (!label) return null;
+  return (
+    <span className="fight-title-tag" title={fight?.title ?? undefined}>
+      {label}
+    </span>
+  );
+}
+
+/** Tarjetas de los jueces de una decisión: «Jueces: 30-27, 29-28, 30-27». Nada si no las hay. */
+export function FightJudgesLine({
+  fight,
+  className = '',
+}: {
+  fight: FightInfo | null | undefined;
+  className?: string;
+}) {
+  const scores = judgesScoresText(fight);
+  if (!scores) return null;
+  return (
+    <p className={`fight-judges${className ? ` ${className}` : ''}`}>
+      Jueces: <span className="fight-judges-scores">{scores}</span>
+    </p>
   );
 }

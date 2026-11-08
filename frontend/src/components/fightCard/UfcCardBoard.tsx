@@ -18,13 +18,14 @@ import {
   roundsFromMatchdays,
 } from '../../utils/matchday';
 import {
+  boutBilling,
   fightOutcomes,
   methodRoundText,
   segmentLabel,
   weightClassLabel,
   type FightOutcome,
 } from '../../utils/fights';
-import { FightBadge, FightResultLine } from '../fight/FightResult';
+import { FightBadge, FightJudgesLine, FightResultLine, FightTitleTag } from '../fight/FightResult';
 import {
   cardSummary,
   groupCard,
@@ -174,7 +175,8 @@ function Bout({ fixture, stats }: { fixture: MatchdayFixture; stats?: MatchStats
       >
         <div className="ufc-bout-top">
           <p className="ufc-bout-meta">
-            {fight.order === 1 && <strong>Pelea estelar</strong>}
+            {boutBilling(fight) && <strong>{boutBilling(fight)}</strong>}
+            <FightTitleTag fight={fight} />
             {fight.weightClass && <span>{weightClassLabel(fight.weightClass)}</span>}
             {fight.scheduledRounds && <span>{fight.scheduledRounds} asaltos</span>}
           </p>
@@ -206,6 +208,7 @@ function Bout({ fixture, stats }: { fixture: MatchdayFixture; stats?: MatchStats
         </div>
 
         {outcomes && <FightResultLine fight={fight} className="ufc-bout-result" />}
+        {outcomes && <FightJudgesLine fight={fight} />}
         {!cancelled && <LeagueSplitBar fixture={fixture} stats={stats} />}
         <OwnPick fixture={fixture} />
       </article>

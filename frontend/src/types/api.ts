@@ -688,6 +688,8 @@ export interface FightInfo {
   /** 1 es la pelea estelar. */
   order: number | null;
   weightClass: string | null;
+  /** Título en juego como lo da ESPN («UFC Heavyweight Title»); null o ausente si no hay título. */
+  title?: string | null;
   scheduledRounds: number | null;
   homeRecord: string | null;
   awayRecord: string | null;
@@ -696,6 +698,8 @@ export interface FightInfo {
   resultDetail: string | null;
   resultRound: number | null;
   resultClock: string | null;
+  /** Tarjetas de los jueces de una decisión: «30-27 | 29-28 | 30-27». */
+  judgesScores?: string | null;
   /** '1' ganó la esquina roja (local), '2' la azul; null sin ganador. */
   winner: '1' | '2' | null;
 }

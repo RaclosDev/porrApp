@@ -57,6 +57,15 @@ describe('FightCard', () => {
     expect(screen.queryByText('KO/TKO')).not.toBeInTheDocument();
   });
 
+  it('marca el título en juego y el coestelar', () => {
+    renderCard({
+      fight: fight({ order: 2, title: 'UFC Lightweight Title' }),
+    });
+
+    expect(screen.getByText('Coestelar')).toBeInTheDocument();
+    expect(screen.getByText('Por el título')).toHaveAttribute('title', 'UFC Lightweight Title');
+  });
+
   it('elegir un luchador guarda solo el ganador', () => {
     const onPick = renderCard();
 

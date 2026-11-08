@@ -88,6 +88,13 @@ const logosOf = (matches: Match[]) => {
 };
 
 /**
+ * Título de la ronda de tenis en la portada: con el torneo delante («Masters de París · Final»). En una
+ * liga de varios torneos la ronda ya lo trae («Masters de París 2026 · Final»).
+ */
+const tennisRoundTitle = (label: string, tournament: string | null) =>
+  label.includes(' · ') || !tournament ? label : `${tournament} · ${label}`;
+
+/**
  * Datos de la portada de una liga en cualquier formato: los partidos que tocan y una tabla corta de
  * equipos. Cada formato solo cambia de dónde salen; la portada los pinta siempre igual.
  */
@@ -101,6 +108,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     activeGroupPicksMatches,
     activeGroupMultiCompetition,
     activeCompetitionExternalId,
+    activeCompetitionName,
   } = useAppContext();
   const format = HOME_SOURCE[leagueKind];
   const knockoutDraw = leagueKind === 'knockoutDraw';
@@ -187,9 +195,11 @@ export function useLeagueHomeData(): LeagueHomeData {
           title:
             !round || !label
               ? 'Partidos'
-              : label === round || label.startsWith('Semana')
-                ? label
-                : `Partidos ${label}`,
+              : tennis
+                ? tennisRoundTitle(label, activeCompetitionName)
+                : label === round || label.startsWith('Semana')
+                  ? label
+                  : `Partidos ${label}`,
           items: matches,
           to: '/jornadas',
           action: 'hacer tu predicción',
@@ -298,6 +308,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     winLoss,
     lol,
     tennis,
+    activeCompetitionName,
     ufc,
   ]);
 

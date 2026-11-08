@@ -141,4 +141,25 @@ class UfcDataProviderTest {
         assertEquals("EARLY_PRELIMS", UfcDataProvider.segment("prelims2"));
         assertEquals("MAIN", UfcDataProvider.segment("main"));
     }
+
+    @Test
+    void titleComesFromTheBoutTypesOrItsNote() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals("UFC Heavyweight Title", UfcDataProvider.title(mapper.readTree(
+                "{\"types\":[{\"id\":\"378\",\"text\":\"UFC Heavyweight Title\"}],\"note\":\"Heavyweight - Main Event - Title Fight\"}")));
+        assertEquals("Title Fight", UfcDataProvider.title(mapper.readTree("{\"note\":\"Women's Bantamweight - Title Fight\"}")));
+        assertNull(UfcDataProvider.title(mapper.readTree("{\"note\":\"Lightweight - Main Event\"}")));
+        assertNull(UfcDataProvider.title(mapper.readTree("{\"types\":[{\"text\":\"Five Rounds\"}]}")));
+    }
+
+    @Test
+    void judgesScoresKeepOnlyTheScorecards() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals("30-27 | 29-28 | 30-27",
+                UfcDataProvider.judgesScores(mapper.readTree("{\"judgesScores\":\"30-27 | 29-28 | 30-27\"}")));
+        assertEquals("48-47 | 47-48 | 48-47",
+                UfcDataProvider.judgesScores(mapper.readTree("{\"judgesScores\":\"48-47 | 47-48 | 48-47\"}")));
+        assertNull(UfcDataProvider.judgesScores(mapper.readTree("{}")));
+        assertNull(UfcDataProvider.judgesScores(mapper.readTree("{\"judgesScores\":\"<b>x</b>\"}")));
+    }
 }
