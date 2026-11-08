@@ -83,6 +83,13 @@ describe('borrador de liga', () => {
     expect(formatUnavailableReason('FULL_BRACKET', draft, nflCtx)).not.toBeNull();
   });
 
+  it('el LoL se explica con series, sin 1X2 ni empate', () => {
+    const lol = draftWith({ competitionId: 4 });
+    expect(formatCopy('MATCH_DAY', lol, ctx).text).toContain('el resultado (2-1, 3-0…)');
+    expect(formatCopy('MATCH_DAY', lol, ctx).text).not.toContain('X');
+    expect(formatCopy('SURVIVOR', lol, ctx).text).not.toContain('empate');
+  });
+
   it('agrupa por deporte y deja coherente la competición al cambiarlo', () => {
     expect(sportChoices(ctx)).toEqual(['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'OTHER']);
     expect(competitionsOfSport(ctx, 'LEAGUE_OF_LEGENDS').map((item) => item.name)).toEqual([

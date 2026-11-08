@@ -182,6 +182,15 @@
     white-space: nowrap;
   }
 
+  /* Series del LoL: «Al mejor de 5» como etiqueta, sin partirse entre dos líneas. */
+  .md-best-of {
+    padding: 0 6px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   /* La fecha y su cierre: si no caben en una línea, el cierre baja entero a la siguiente. */
   .md-match-top > span:first-child {
     flex-wrap: wrap;

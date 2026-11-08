@@ -68,6 +68,24 @@ const WINNER_MATCHDAY: ScoringSection = {
   ],
 };
 
+/** LoL: se predice quién gana cada serie y, al mejor de tres o de cinco, también su resultado. */
+const LOL_MATCHDAY: ScoringSection = {
+  id: 'matches',
+  title: 'Cada serie',
+  fields: [
+    {
+      key: 'correctSignPoints',
+      label: 'Ganador acertado',
+      hint: 'Aciertas quién gana la serie.',
+    },
+    {
+      key: 'exactScorePoints',
+      label: 'Resultado de la serie',
+      hint: 'Aciertas además el resultado (3-1) de una serie al mejor de tres o de cinco. Vale esto en vez del ganador.',
+    },
+  ],
+};
+
 const GROUPS: ScoringSection = {
   id: 'groups',
   title: 'Fase de grupos',
@@ -145,6 +163,12 @@ const SURVIVOR: ScoringSection = {
       kind: 'toggle',
     },
   ],
+};
+
+/** Superviviente sin empates (las series del LoL siempre las gana alguien): sin la regla del empate. */
+const SURVIVOR_NO_DRAWS: ScoringSection = {
+  ...SURVIVOR,
+  fields: SURVIVOR.fields.filter((field) => field.key !== 'survivorDrawSurvives'),
 };
 
 const GRAND_PRIX: ScoringSection = {
@@ -300,7 +324,9 @@ export function scoringSections(
   fights = false,
 ): ScoringSection[] {
   if (sport === 'TENNIS') return [TENNIS];
+  if (format === 'MATCH_DAY' && sport === 'LEAGUE_OF_LEGENDS') return [LOL_MATCHDAY];
   if (format === 'MATCH_DAY') return [fights ? FIGHTS : winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
+  if (format === 'SURVIVOR' && sport === 'LEAGUE_OF_LEGENDS') return [SURVIVOR_NO_DRAWS];
   if (format === 'SURVIVOR') return [SURVIVOR];
   if (format === 'GRAND_PRIX') return [GRAND_PRIX];
   if (nbaSeries) return [NBA_SERIES, NBA_EXACT];
