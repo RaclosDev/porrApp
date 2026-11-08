@@ -24,14 +24,29 @@ class TennisScopeTest {
         var masters = TennisTournaments.externalIds(TennisScope.MASTERS_1000, TennisTour.ATP);
         assertThat(masters).contains("tennis.atp.42", "tennis.atp.13", "tennis.atp.339")
                 .doesNotContain("tennis.atp.172").allMatch(id -> id.startsWith("tennis.atp."));
-        // Los cuadros femeninos solo están en los torneos mixtos: ni Montecarlo ni las Finals.
+        // En la WTA: los WTA 1000 (con un Masters o solos, como Doha y Pekín) y las WTA Finals; ni Montecarlo
+        // ni las ATP Finals, que solo tienen cuadro masculino.
         assertThat(TennisTournaments.externalIds(TennisScope.MASTERS_1000, TennisTour.WTA))
-                .doesNotContain("tennis.wta.42", "tennis.wta.339").contains("tennis.wta.413");
+                .doesNotContain("tennis.wta.42", "tennis.wta.339")
+                .contains("tennis.wta.413", "tennis.wta.256", "tennis.wta.959", "tennis.wta.381", "tennis.wta.382");
     }
 
     @Test
-    void everyTournamentIsInTheWholeSeason() {
-        assertThat(TennisTournaments.externalIds(TennisScope.ALL, TennisTour.ATP)).hasSize(TennisTournaments.ALL.size());
+    void everyDrawIsInTheWholeSeason() {
+        int draws = TennisTournaments.ALL.stream().mapToInt(tournament -> tournament.draws().size()).sum();
+        assertThat(TennisTournaments.externalIds(TennisScope.ALL, TennisTour.BOTH)).hasSize(draws);
+        assertThat(TennisTournaments.externalIds(TennisScope.ALL, TennisTour.ATP))
+                .contains("tennis.atp.339").doesNotContain("tennis.atp.382", "tennis.atp.256");
+    }
+
+    @Test
+    void aWomenOnlyTournamentIsNamedWithoutItsDraw() {
+        var finals = TennisTournaments.parse("tennis.wta.382").orElseThrow();
+        assertThat(finals.tournament().competitionName(finals.draw())).isEqualTo("WTA Finals");
+        assertThat(finals.setsToWin()).isEqualTo(2);
+        assertThat(TennisTournaments.parse("tennis.atp.382")).isEmpty();
+        var roland = TennisTournaments.parse("tennis.wta.172").orElseThrow();
+        assertThat(roland.tournament().competitionName(roland.draw())).isEqualTo("Roland Garros · femenino");
     }
 
     @Test

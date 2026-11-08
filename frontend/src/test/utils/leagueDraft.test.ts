@@ -83,6 +83,13 @@ describe('borrador de liga', () => {
     expect(formatUnavailableReason('FULL_BRACKET', draft, nflCtx)).not.toBeNull();
   });
 
+  it('el LoL se explica con series, sin 1X2 ni empate', () => {
+    const lol = draftWith({ competitionId: 4 });
+    expect(formatCopy('MATCH_DAY', lol, ctx).text).toContain('el resultado (2-1, 3-0…)');
+    expect(formatCopy('MATCH_DAY', lol, ctx).text).not.toContain('X');
+    expect(formatCopy('SURVIVOR', lol, ctx).text).not.toContain('empate');
+  });
+
   it('agrupa por deporte y deja coherente la competición al cambiarlo', () => {
     expect(sportChoices(ctx)).toEqual(['FOOTBALL', 'LEAGUE_OF_LEGENDS', 'OTHER']);
     expect(competitionsOfSport(ctx, 'LEAGUE_OF_LEGENDS').map((item) => item.name)).toEqual([
@@ -397,5 +404,33 @@ describe('borrador de liga', () => {
     storeDraft(ready);
     expect(readStoredDraft().sport).toBe('FORMULA_1');
     expect(readStoredDraft().poolFormat).toBe('GRAND_PRIX');
+  });
+});
+
+describe('borrador de liga de la NFL', () => {
+  const nflCtx = {
+    competitions: [
+      competition({ id: 14, name: 'NFL', externalId: 'nfl', sport: 'AMERICAN_FOOTBALL' }),
+    ],
+  };
+  const nflDraft = (patch: Partial<LeagueDraft>) =>
+    normalizeDraft(
+      { ...emptyDraft(), sport: 'AMERICAN_FOOTBALL', competitionId: 14, ...patch },
+      nflCtx,
+    );
+
+  it('cierra por semanas, del jueves al lunes, y no por jornadas', () => {
+    const weekly = lockModesFor(nflDraft({ poolFormat: 'MATCH_DAY' }), nflCtx).find(
+      (mode) => mode.value === 'PER_ROUND',
+    );
+    expect(weekly?.label).toBe('Por semanas');
+    expect(weekly?.hint).toMatch(/del jueves al lunes/);
+  });
+
+  it('explica que los playoffs ya van dentro de Por semanas', () => {
+    const draft = nflDraft({ poolFormat: 'MATCH_DAY' });
+    expect(formatUnavailableReason('KNOCKOUTS_ONLY', draft, nflCtx)).toMatch(/Super Bowl/);
+    expect(formatUnavailableReason('FULL_BRACKET', draft, nflCtx)).toMatch(/Super Bowl/);
+    expect(formatUnavailableReason('SURVIVOR', draft, nflCtx)).toBeNull();
   });
 });

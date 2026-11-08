@@ -20,6 +20,16 @@ describe('scoringRules', () => {
     ).toEqual(['correctSignPoints']);
   });
 
+  it('en el LoL cada serie puntúa el ganador y el resultado, y superviviente no tiene empate', () => {
+    const keys = (format: 'MATCH_DAY' | 'SURVIVOR') =>
+      scoringSections(format, false, false, false, true, 'LEAGUE_OF_LEGENDS').flatMap((s) =>
+        s.fields.map((f) => f.key),
+      );
+    expect(keys('MATCH_DAY')).toEqual(['correctSignPoints', 'exactScorePoints']);
+    expect(keys('SURVIVOR')).not.toContain('survivorDrawSurvives');
+    expect(keys('SURVIVOR')).toContain('survivorLives');
+  });
+
   it('cada formato muestra sus reglas', () => {
     expect(keysOf('MATCH_DAY', true)).toEqual([
       'exactScorePoints',
