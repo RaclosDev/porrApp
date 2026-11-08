@@ -22,7 +22,7 @@ import { isMatchBasedFormat } from '../utils/poolFormat';
 import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
 
 /** Competición del Mundial en el proveedor: solo sus ligas usan grupos, terceros y pichichi oficiales. */
-export const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
+const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
 
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
 // se unan sin fricción con el tipo de cada consulta.

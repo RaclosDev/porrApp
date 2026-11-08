@@ -9,7 +9,7 @@ const byDate = (a: Match, b: Match) => timeOf(a) - timeOf(b);
 const PLACEHOLDER_TEAMS = new Set(['', 'por definir', 'tbd', '???']);
 
 /** Equipo real: ni vacío ni un hueco «Por definir» (una carrera o un cruce aún sin rivales). */
-export const isDefinedTeam = (name: string | null | undefined) =>
+const isDefinedTeam = (name: string | null | undefined) =>
   !PLACEHOLDER_TEAMS.has((name ?? '').trim().toLowerCase());
 
 /**
