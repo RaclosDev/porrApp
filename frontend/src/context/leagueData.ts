@@ -21,6 +21,10 @@ import type { Group, MatchRadar } from '../types/api';
 import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
 import { MATCH_KINDS, leagueKindOf, type LeagueKind } from './leagueKind';
 
+/** Competiciones en las que se predice el ganador, sin empate: la NFL, la NBA y el LoL. */
+const isWinnerOnlyCompetition = (externalId: string | null | undefined): boolean =>
+  externalId === 'nfl' || externalId === 'nba' || Boolean(externalId?.startsWith('lol.'));
+
 // Valores vacíos compartidos (referencia estable). Se tipan como mutables para que
 // se unan sin fricción con el tipo de cada consulta.
 const EMPTY_OBJECT = Object.freeze({}) as Record<string, never>;
@@ -153,9 +157,15 @@ function useLeagueState() {
     activeGroupAdminId: groupInfo?.adminUserId || null,
     activeGroupPoolFormat,
     activeGroupCustomCompetition: Boolean(groupInfo?.customCompetition),
-    // NFL: se predice quién gana, sin empate, así que los votos van en dos columnas.
+    // NFL, NBA y LoL: se predice quién gana, sin empate, así que los votos van en dos columnas.
     activeGroupWinnerOnly:
-      groupInfo?.competitionExternalId === 'nfl' && !groupInfo.multiCompetition,
+      isWinnerOnlyCompetition(groupInfo?.competitionExternalId) && !groupInfo?.multiCompetition,
+    // Copa por eliminatorias (Copa del Rey…): el servidor no devuelve tabla. Los playoffs de la NBA
+    // sí tienen la de la temporada regular.
+    activeCompetitionKnockoutCup:
+      Boolean(groupInfo?.knockoutDraw) &&
+      groupInfo?.formatType === 'TOURNAMENT' &&
+      groupInfo?.competitionExternalId !== 'nba',
     // Liga por jornadas que elige sus partidos (de una o de varias competiciones).
     activeGroupPicksMatches: groupInfo?.matchSelection === 'CUSTOM',
     activeGroupMultiCompetition: Boolean(groupInfo?.multiCompetition),

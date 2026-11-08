@@ -36,6 +36,12 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
       hint: 'Cada velada es una cartelera de peleas: numeradas y Fight Night.',
       items: official.filter((item) => item.formatType === 'EVENTS'),
     },
+    {
+      id: 'races',
+      title: 'Gran Premio a Gran Premio',
+      hint: 'En cada Gran Premio se predicen el podio, la pole y la vuelta rápida.',
+      items: official.filter((item) => item.formatType === 'RACE'),
+    },
   ].filter((group) => group.items.length > 0);
 
   const nameField = (

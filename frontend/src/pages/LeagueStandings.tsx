@@ -41,7 +41,16 @@ function CompetitionTable() {
     activeGroupId,
     activeGroupCustomCompetition,
     activeCompetitionName,
+    activeCompetitionExternalId,
+    activeCompetitionKnockoutCup: knockoutCup,
   } = useAppContext();
+
+  // La NFL no da puntos: se ordena por victorias y se cuentan puntos anotados, no goles.
+  const winLoss = activeCompetitionExternalId === 'nfl';
+  const labels = winLoss
+    ? { points: 'V', diff: 'Dif', for: 'PF', against: 'PC' }
+    : { points: 'PTS', diff: 'DG', for: 'GF', against: 'GC' };
+  const completeColumns = winLoss ? 5 : 6;
 
   const {
     data: standings,
@@ -98,10 +107,14 @@ function CompetitionTable() {
       ) : !standings || !Array.isArray(standings) || standings.length === 0 ? (
         <div className="paper-panel album-sheet landing-tape standings-empty">
           <p className="standings-empty-title">
-            No hay datos de clasificación disponibles en este momento.
+            {knockoutCup
+              ? 'Esta competición se juega por eliminatorias: no tiene tabla.'
+              : 'No hay datos de clasificación disponibles en este momento.'}
           </p>
           <p className="standings-empty-copy">
-            La tabla aparecerá cuando haya partidos con resultado.
+            {knockoutCup
+              ? 'Los cruces y sus resultados están en Jornadas.'
+              : 'La tabla aparecerá cuando haya partidos con resultado.'}
           </p>
         </div>
       ) : (
@@ -117,7 +130,7 @@ function CompetitionTable() {
                 <col className="standings-stat-column" />
                 <col className="standings-stat-column" />
                 {showComplete &&
-                  Array.from({ length: 6 }, (_, i) => (
+                  Array.from({ length: completeColumns }, (_, i) => (
                     <col key={i} className="standings-stat-column" />
                   ))}
               </colgroup>
@@ -128,17 +141,17 @@ function CompetitionTable() {
                   </th>
                   <th scope="col">Equipo</th>
                   <th scope="col" className="standings-points-col">
-                    PTS
+                    {labels.points}
                   </th>
                   <th scope="col">PJ</th>
                   {showComplete && (
                     <>
-                      <th scope="col">V</th>
+                      {!winLoss && <th scope="col">V</th>}
                       <th scope="col">E</th>
                       <th scope="col">D</th>
-                      <th scope="col">DG</th>
-                      <th scope="col">GF</th>
-                      <th scope="col">GC</th>
+                      <th scope="col">{labels.diff}</th>
+                      <th scope="col">{labels.for}</th>
+                      <th scope="col">{labels.against}</th>
                     </>
                   )}
                 </tr>
@@ -193,7 +206,7 @@ function CompetitionTable() {
 
                       {showComplete && (
                         <>
-                          <td className="standings-win-cell">{row.wins}</td>
+                          {!winLoss && <td className="standings-win-cell">{row.wins}</td>}
                           <td className="standings-muted-cell">{row.ties}</td>
                           <td className="standings-loss-cell">{row.losses}</td>
                           <td
@@ -221,7 +234,9 @@ function CompetitionTable() {
           {showComplete ? (
             <div className="standings-legend">
               <span className="standings-legend-note">
-                V victorias · E empates · D derrotas · DG diferencia de marcador
+                {winLoss
+                  ? `V victorias · E empates · D derrotas · Dif diferencia de puntos · PF y PC puntos a favor y en contra`
+                  : 'V victorias · E empates · D derrotas · DG diferencia de marcador'}
               </span>
             </div>
           ) : (
