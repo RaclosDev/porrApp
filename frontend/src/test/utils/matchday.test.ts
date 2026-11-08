@@ -60,6 +60,11 @@ describe('displayRoundLabel', () => {
     expect(displayRoundLabel('Grupo A')).toBe('Grupo A');
   });
 
+  it('nombra como el servidor la fase de grupos de las Finals y el play-in', () => {
+    expect(displayRoundLabel('roundrobin')).toBe('Fase de grupos');
+    expect(displayRoundLabel('playin')).toBe('Play-in');
+  });
+
   it('nombra en castellano las rondas de la Copa del Rey antes de dieciseisavos', () => {
     expect(displayRoundLabel('qualifying')).toBe('Ronda previa');
     expect(displayRoundLabel('round1')).toBe('Primera ronda');

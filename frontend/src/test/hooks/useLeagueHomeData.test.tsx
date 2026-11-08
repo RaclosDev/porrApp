@@ -226,4 +226,26 @@ describe('useLeagueHomeData', () => {
     await waitFor(() => expect(result.current.matches.items[0]?.id).toBe(180));
     expect(result.current.matches.title).toBe('Masters de París 2026 · Final');
   });
+
+  it('una liga de temporada de tenis enseña sus partidos y no los de su competición principal', async () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '15',
+        activeCompetitionId: 19,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'tennisDraw',
+        activeGroupMultiCompetition: true,
+        // La final del Open de Australia de enero: es de la competición principal, no de la liga.
+        allGames: [competitionMatch(93, 'final', '2099-02-01T09:45:00+01:00')],
+      }),
+    );
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([]);
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    await waitFor(() => expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith(15));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.matches.items).toEqual([]);
+    expect(result.current.matches.empty).toMatch(/torneos de la liga/);
+  });
 });
