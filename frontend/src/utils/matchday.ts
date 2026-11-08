@@ -37,6 +37,23 @@ export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
 export const allowsDraw = (sport: string | null | undefined): boolean =>
   sport == null || sport === 'FOOTBALL';
 
+/** Lo que guarda el backend al puntuar un signo: pensado para el 1X2 del fútbol. */
+const SIGN_DETAILS = /^(Acierto de signo 1X2|Sin acierto en signo)/;
+
+/**
+ * Desglose de puntos de un partido sin empate (NFL, NBA…): ahí no hay «signo 1X2» sino un ganador.
+ * Los demás desgloses (series del LoL, sets del tenis, marcadores) se dejan tal cual.
+ */
+export const scoringDetailsText = (
+  details: string | null | undefined,
+  sport: string | null | undefined,
+  scored: boolean,
+): string | null => {
+  if (!details) return null;
+  if (allowsDraw(sport) || !SIGN_DETAILS.test(details)) return details;
+  return scored ? 'Ganador acertado' : 'Ganador fallado';
+};
+
 const OVERTIMES = /^(\d*)OT$/;
 const PENALTIES = /^PEN (\d+)-(\d+)$/;
 
