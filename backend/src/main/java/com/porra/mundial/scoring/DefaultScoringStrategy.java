@@ -10,21 +10,21 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Reglas de puntuacion oficiales para la Copa Mundial de la FIFA 2026 (formato 48 equipos).
- * Incluye fase de grupos (10 pts por pasar, 10 por posicion exacta), dieciseisavos (25 pts),
- * octavos (30 pts), cuartos (40 pts), semifinales (60 pts), final, tercer puesto y pichichi.
+ * Estrategia de puntuación de todas las ligas: aplica las reglas de cada edición
+ * ({@link #withRules}) a sus predicciones de partidos, cuadros, series, Grandes Premios y peleas.
+ * Sin reglas guardadas usa {@link ScoringRuleSet#defaults()}.
  */
 @Component
-public class WorldCup2026ScoringStrategy implements ScoringStrategy {
+public class DefaultScoringStrategy implements ScoringStrategy {
 
     private final ScoringRuleSet rules;
 
-    public WorldCup2026ScoringStrategy() {
-        this(ScoringRuleSet.defaultWorldCup2026());
+    public DefaultScoringStrategy() {
+        this(ScoringRuleSet.defaults());
     }
 
-    public WorldCup2026ScoringStrategy(ScoringRuleSet rules) {
-        this.rules = rules != null ? rules : ScoringRuleSet.defaultWorldCup2026();
+    public DefaultScoringStrategy(ScoringRuleSet rules) {
+        this.rules = rules != null ? rules : ScoringRuleSet.defaults();
     }
 
     public ScoringRuleSet getRules() {
@@ -33,7 +33,7 @@ public class WorldCup2026ScoringStrategy implements ScoringStrategy {
 
     @Override
     public ScoringStrategy withRules(ScoringRuleSet rules) {
-        return new WorldCup2026ScoringStrategy(rules);
+        return new DefaultScoringStrategy(rules);
     }
 
     @Override

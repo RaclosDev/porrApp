@@ -26,13 +26,13 @@ public class MatchScoringCalculator {
         if (!actualSign.equals(sign)) {
             return MatchScoreResult.zero("Sin acierto en signo (0 pts)");
         }
-        int points = (rules != null ? rules : ScoringRuleSet.defaultWorldCup2026()).getCorrectSignPoints();
+        int points = (rules != null ? rules : ScoringRuleSet.defaults()).getCorrectSignPoints();
         return new MatchScoreResult(points, false, true, false, "Acierto de signo 1X2 (" + points + " pts)");
     }
 
     public MatchScoreResult calculate(Integer predHome, Integer predAway, Integer actualHome, Integer actualAway, ScoringRuleSet rules) {
         if (rules == null) {
-            rules = ScoringRuleSet.defaultWorldCup2026();
+            rules = ScoringRuleSet.defaults();
         }
 
         if (predHome == null || predAway == null || actualHome == null || actualAway == null) {

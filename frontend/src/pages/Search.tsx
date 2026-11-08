@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import LeagueLoadState from '../components/LeagueLoadState';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useBracketInsights } from '../hooks/useBracketInsights';
@@ -77,9 +78,12 @@ function Search() {
     activeGroupPoolFormat,
     activeGroupOwnBracket,
     activeCompetitionFormatType,
+    activeGroupWorldCup,
     activeGroupId,
     userGroups,
     changeGroup,
+    loadingGroup,
+    groupError,
   } = useAppContext();
   const [params] = useSearchParams();
   const requestedGroup = params.get('group');
@@ -99,12 +103,15 @@ function Search() {
       </section>
     );
   }
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   if (activeGroupOwnBracket) {
     return <Navigate to="/" replace />;
   }
   if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE') {
     return <Navigate to="/stats" replace />;
   }
+  // El buscador recorre los cuadros del Mundial: el resto de ligas no lo tiene.
+  if (!activeGroupWorldCup) return <Navigate to="/" replace />;
   return <BracketSearch />;
 }
 

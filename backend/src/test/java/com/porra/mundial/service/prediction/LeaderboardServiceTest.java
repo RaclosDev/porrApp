@@ -19,7 +19,7 @@ import com.porra.mundial.repository.MembershipRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import com.porra.mundial.scoring.ScoringRuleSet;
-import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
+import com.porra.mundial.scoring.DefaultScoringStrategy;
 import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,7 +68,7 @@ class LeaderboardServiceTest {
     private EditionRepository editionRepository;
 
     @Spy
-    private WorldCup2026ScoringStrategy scoringStrategy = new WorldCup2026ScoringStrategy();
+    private DefaultScoringStrategy scoringStrategy = new DefaultScoringStrategy();
 
     @InjectMocks
     private LeaderboardService leaderboardService;
@@ -401,7 +401,7 @@ class LeaderboardServiceTest {
     void getLeaderboard_ScoresEachEditionWithItsOwnRules() {
         Edition defaults = Edition.builder().id(1L).pichichi(false).build();
         Edition storedDefaults = Edition.builder().id(2L).pichichi(false)
-                .scoringRulesJson(ScoringRuleSet.defaultWorldCup2026().toJson()).build();
+                .scoringRulesJson(ScoringRuleSet.defaults().toJson()).build();
         Edition custom = Edition.builder().id(3L).pichichi(false)
                 .scoringRulesJson(ScoringRuleSet.builder().championPoints(500).build().toJson()).build();
         Prediction withDefaults = championPrediction(100L, defaults);

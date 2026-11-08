@@ -86,7 +86,7 @@ class MatchPredictionServiceTest {
                 .competition(Competition.builder().id(2L).build())
                 .status("ACTIVE")
                 .poolFormat(PoolFormat.MATCH_DAY)
-                .scoringRulesJson(ScoringRuleSet.defaultWorldCup2026().toJson())
+                .scoringRulesJson(ScoringRuleSet.defaults().toJson())
                 .build();
 
         Team home = Team.builder().id(1L).name("España").build();

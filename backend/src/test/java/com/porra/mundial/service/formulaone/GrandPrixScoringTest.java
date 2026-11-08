@@ -14,7 +14,7 @@ class GrandPrixScoringTest {
 
     private static final Map<Long, String> NAMES = Map.of(1L, "L. Norris", 2L, "G. Russell", 3L, "K. Antonelli",
             4L, "C. Leclerc");
-    private final ScoringRuleSet rules = ScoringRuleSet.defaultWorldCup2026();
+    private final ScoringRuleSet rules = ScoringRuleSet.defaults();
 
     private static RaceWeekend result(Long first, Long second, Long third, Long pole, Long fastestLap) {
         return RaceWeekend.builder().matchId(9L).firstDriverId(first).secondDriverId(second).thirdDriverId(third)

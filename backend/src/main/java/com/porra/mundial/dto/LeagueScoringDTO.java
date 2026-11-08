@@ -45,7 +45,7 @@ public record LeagueScoringDTO(
                 editable,
                 ScoringRuleSet.MAX_POINTS,
                 ScoringRuleSet.forEdition(edition),
-                tennis ? ScoringRuleSet.defaultTennis() : ScoringRuleSet.defaultWorldCup2026(),
+                tennis ? ScoringRuleSet.defaultTennis() : ScoringRuleSet.defaults(),
                 com.porra.mundial.service.prediction.DrawnKnockout.applies(edition),
                 Sport.isMma(edition.getCompetition()),
                 com.porra.mundial.service.prediction.DrawnKnockout.applies(edition)

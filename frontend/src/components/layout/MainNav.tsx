@@ -7,6 +7,8 @@ interface MainNavProps {
   /** Liga de Fórmula 1: su inicio son los Grandes Premios. */
   isGrandPrixLeague?: boolean;
   isNavLocked: boolean;
+  /** La liga es del Mundial: la única con pestaña de fase de grupos. */
+  showGroups?: boolean;
   /** Aún no se sabe el formato de la liga activa, así que tampoco qué secciones lleva. */
   formatPending?: boolean;
 }
@@ -17,6 +19,7 @@ export default function MainNav({
   isMatchDayLeague,
   isGrandPrixLeague = false,
   isNavLocked,
+  showGroups = false,
   formatPending = false,
 }: MainNavProps) {
   if (formatPending && !isDemo) {
@@ -61,14 +64,16 @@ export default function MainNav({
             >
               Resultados
             </NavLink>
-            <NavLink
-              to="/grupos"
-              onMouseEnter={() => prefetchRoute('/grupos')}
-              onFocus={() => prefetchRoute('/grupos')}
-              className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
-            >
-              Grupos
-            </NavLink>
+            {showGroups && (
+              <NavLink
+                to="/grupos"
+                onMouseEnter={() => prefetchRoute('/grupos')}
+                onFocus={() => prefetchRoute('/grupos')}
+                className={({ isActive }) => (isActive ? 'glass-btn active' : 'glass-btn')}
+              >
+                Grupos
+              </NavLink>
+            )}
             <NavLink
               to="/ranking"
               onMouseEnter={() => prefetchRoute('/ranking')}

@@ -25,6 +25,7 @@ export default function MobileBottomNav() {
     isDemoMode,
     loadingGroup,
     choosingLeague,
+    activeGroupWorldCup,
   } = useAppContext();
 
   const isDemo = isDemoMode;
@@ -37,7 +38,8 @@ export default function MobileBottomNav() {
         { to: '/demo', label: 'Inicio', icon: Home },
         { to: '/prediction', label: 'Mi Porra', icon: Pencil },
         { to: '/bracket', label: 'Resultados', icon: Swords },
-        { to: '/grupos', label: 'Grupos', icon: LayoutGrid },
+        // La fase de grupos solo existe en las ligas del Mundial.
+        ...(activeGroupWorldCup ? [{ to: '/grupos', label: 'Grupos', icon: LayoutGrid }] : []),
         { to: '/ranking', label: 'Ranking', icon: Trophy },
       ]
     : isGrandPrixFormat(activeGroupPoolFormat)

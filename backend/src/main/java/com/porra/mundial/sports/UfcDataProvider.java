@@ -118,11 +118,6 @@ public class UfcDataProvider implements SportsDataProvider {
         return state != CircuitBreaker.State.OPEN && state != CircuitBreaker.State.FORCED_OPEN;
     }
 
-    @Override
-    public JsonNode fetchScoreboardEvents(String dateRange) throws Exception {
-        return fetchScoreboardEvents(COMPETITION_ID, dateRange);
-    }
-
     /**
      * Peleas de las veladas de un año ({@code yyyy}), de las que tocan un día ({@code yyyyMMdd}, en hora
      * peninsular) o, sin rango, del año en curso.
