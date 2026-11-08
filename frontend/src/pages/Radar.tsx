@@ -1,4 +1,5 @@
 import PaperLoading from '../components/PaperLoading';
+import { finishedLabel } from '../utils/matchday';
 import { isLiveMatch } from '../utils/homeMatches';
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
@@ -56,7 +57,11 @@ function MatchRow({ match, kind }: { match: Match; kind: Kind }) {
   };
 
   const status =
-    kind === 'last' ? 'Final' : started ? match.displayClock || 'En juego' : timeOf(date);
+    kind === 'last'
+      ? finishedLabel(match.displayClock)
+      : started
+        ? match.displayClock || 'En juego'
+        : timeOf(date);
 
   return (
     <li className={`radar-match${started ? ' is-live' : ''}`}>

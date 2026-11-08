@@ -4,11 +4,13 @@ import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.CompetitionDTO;
 import com.porra.mundial.dto.LeagueStandingDTO;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.Sport;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.sports.EspnSportsDataProvider;
 import com.porra.mundial.sports.LolEsportsDataProvider;
+import com.porra.mundial.sports.NflSchedule;
 import com.porra.mundial.sports.TennisDataProvider;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -93,16 +95,27 @@ public class CompetitionService {
                 && !tennisDataProvider.supports(competition.getExternalId())
                 && !com.porra.mundial.sports.UfcDataProvider.isUfcCompetition(competition.getExternalId())) {
             try {
-                standings = parseEspnStandings(espnSportsDataProvider.fetchStandings(competition.getExternalId()));
+                JsonNode espnStandings = espnSportsDataProvider.fetchStandings(competition.getExternalId());
+                standings = NflSchedule.isNfl(competition.getExternalId())
+                        ? parseNflStandings(espnStandings) : parseEspnStandings(espnStandings);
             } catch (Exception e) {
                 log.warn("No se pudo obtener la clasificación de ESPN para {}: {}", competition.getExternalId(), e.getMessage());
             }
         }
-        if (standings.isEmpty()) {
+        if (standings.isEmpty() && !isKnockoutCup(competition)) {
             standings = standingsFromMatches(competitionId);
         }
         standings.sort(Comparator.comparingInt(LeagueStandingDTO::getRank));
         return standings;
+    }
+
+    /**
+     * Copa de fútbol que se juega solo por eliminatorias (Copa del Rey…): no tiene tabla. Sumar sus partidos
+     * daría una de cien equipos con uno o dos partidos cada uno, que no dice nada.
+     */
+    static boolean isKnockoutCup(Competition competition) {
+        return "TOURNAMENT".equals(competition.getFormatType()) && competition.drawsKnockoutRounds()
+                && Sport.ofExternalId(competition.getExternalId()) == Sport.FOOTBALL;
     }
 
     public List<LeagueStandingDTO> getCustomStandings(Long competitionId) {
@@ -139,6 +152,51 @@ public class CompetitionService {
                     .build());
         }
         return standings;
+    }
+
+    /**
+     * La NFL en una sola tabla: ESPN la da por conferencias (AFC y NFC) y sin partidos jugados ni puntos.
+     * Se ordena como la liga, por porcentaje de victorias (el empate vale media), y luego por diferencia y
+     * puntos a favor. Los puntos de la tabla son las victorias: en la NFL no hay otros.
+     */
+    static List<LeagueStandingDTO> parseNflStandings(JsonNode root) {
+        List<LeagueStandingDTO> standings = new ArrayList<>();
+        if (root == null) return standings;
+        List<JsonNode> groups = new ArrayList<>();
+        if (root.path("children").size() > 0) root.path("children").forEach(groups::add);
+        else groups.add(root);
+        for (JsonNode group : groups) {
+            for (JsonNode entry : group.path("standings").path("entries")) {
+                Map<String, Integer> stats = new HashMap<>();
+                for (JsonNode stat : entry.path("stats")) {
+                    stats.put(stat.path("name").asText(""), stat.path("value").asInt(0));
+                }
+                int wins = stats.getOrDefault("wins", 0);
+                int losses = stats.getOrDefault("losses", 0);
+                int ties = stats.getOrDefault("ties", 0);
+                standings.add(LeagueStandingDTO.builder()
+                        .teamName(entry.path("team").path("displayName").asText(entry.path("team").path("name").asText("Equipo")))
+                        .teamLogo(entry.path("team").path("logos").path(0).path("href").asText(null))
+                        .points(wins)
+                        .gamesPlayed(wins + losses + ties)
+                        .wins(wins)
+                        .ties(ties)
+                        .losses(losses)
+                        .goalDiff(stats.getOrDefault("pointDifferential", 0))
+                        .goalsFor(stats.getOrDefault("pointsFor", 0))
+                        .goalsAgainst(stats.getOrDefault("pointsAgainst", 0))
+                        .build());
+            }
+        }
+        standings.sort(Comparator.comparingDouble(CompetitionService::winShare).reversed()
+                .thenComparing(Comparator.comparingInt(LeagueStandingDTO::getGoalDiff).reversed())
+                .thenComparing(Comparator.comparingInt(LeagueStandingDTO::getGoalsFor).reversed()));
+        for (int i = 0; i < standings.size(); i++) standings.get(i).setRank(i + 1);
+        return standings;
+    }
+
+    private static double winShare(LeagueStandingDTO row) {
+        return row.getGamesPlayed() == 0 ? 0 : (row.getWins() + row.getTies() / 2.0) / row.getGamesPlayed();
     }
 
     /** Clasificación calculada con los partidos terminados: puntos, diferencia de goles y goles a favor. */

@@ -13,6 +13,8 @@ import {
   roundsFromMatchdays,
   sortNumberedRounds,
   allowsDraw,
+  finishedLabel,
+  resultNote,
   survivorUsedTeams,
   withSign,
   withoutSaved,
@@ -102,6 +104,24 @@ describe('round lists', () => {
     expect(allowsDraw('AMERICAN_FOOTBALL')).toBe(false);
     expect(allowsDraw('FOOTBALL')).toBe(true);
     expect(allowsDraw(undefined)).toBe(true);
+  });
+
+  it('solo deja predecir el empate en el fútbol', () => {
+    expect(allowsDraw('LEAGUE_OF_LEGENDS')).toBe(false);
+    expect(allowsDraw('BASKETBALL')).toBe(false);
+    expect(allowsDraw('TENNIS')).toBe(false);
+    expect(allowsDraw(null)).toBe(true);
+  });
+
+  it('dice si un partido acabó en la prórroga o en los penaltis', () => {
+    expect(resultNote('OT')).toBe('prórroga');
+    expect(resultNote('2OT')).toBe('2 prórrogas');
+    expect(resultNote('AET')).toBe('prórroga');
+    expect(resultNote('PEN 4-2')).toBe('4-2 en penaltis');
+    expect(resultNote("90'")).toBeNull();
+    expect(resultNote(null)).toBeNull();
+    expect(finishedLabel('OT')).toBe('Final · prórroga');
+    expect(finishedLabel('0:00')).toBe('Final');
   });
 
   it('falls back to the last round when everything has finished', () => {

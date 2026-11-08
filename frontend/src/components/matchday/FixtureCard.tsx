@@ -4,6 +4,7 @@ import SignVoters from '../voters/SignVoters';
 import type { MatchdayFixture, MatchVoters } from '../../types/api';
 import {
   allowsDraw,
+  resultNote,
   formatMatchDate,
   isLiveFixture,
   tennisLoserSets,
@@ -78,6 +79,7 @@ export default function FixtureCard({
         : null;
   const inPlay = fixture.status === 'LIVE' || fixture.status === 'PAUSED';
   const winnerOnly = !allowsDraw(fixture.sport);
+  const note = fixture.finished ? resultNote(fixture.displayClock) : null;
   // Terminado sin predicción: también se dice que no suma, para que cada partido cerrado tenga su balance.
   // En superviviente solo se juega un partido por jornada: los demás no tienen balance que mostrar.
   const showPoints = survivor
@@ -108,7 +110,7 @@ export default function FixtureCard({
           {fixture.finished ? (
             <span className="md-badge is-finished">
               {home != null && away != null
-                ? `Final ${home} - ${away}`
+                ? `Final ${home} - ${away}${note ? ` · ${note}` : ''}`
                 : tennisSets
                   ? 'Final · retirada o W.O.'
                   : 'Final'}

@@ -29,9 +29,37 @@ export type MatchSign = '1' | 'X' | '2';
 /** `UPCOMING`: todos los que no han terminado; `PENDING`: abiertos y sin pronóstico. */
 export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
 
-/** Si se puede predecir el empate: en la NFL (`AMERICAN_FOOTBALL`), el tenis y la UFC (`MMA`) se elige quién gana. */
+/**
+ * Si se puede predecir el empate: solo en el fútbol (y en las competiciones propias, sin deporte). En la NFL,
+ * la NBA, el LoL, el tenis y la UFC se elige quién gana.
+ */
 export const allowsDraw = (sport: string | null | undefined): boolean =>
-  sport !== 'AMERICAN_FOOTBALL' && sport !== 'TENNIS' && sport !== 'MMA';
+  sport == null || sport === 'FOOTBALL';
+
+const OVERTIMES = /^(\d*)OT$/;
+const PENALTIES = /^PEN (\d+)-(\d+)$/;
+
+/**
+ * Cómo acabó un partido terminado más allá del marcador, a partir de su `displayClock` (`MatchClock` en el
+ * servidor): «prórroga» (`OT`, `AET`), «2 prórrogas» (`2OT`) o «4-2 en penaltis» (`PEN 4-2`). Si no, null.
+ */
+export const resultNote = (displayClock: string | null | undefined): string | null => {
+  const clock = displayClock?.trim() ?? '';
+  if (clock === 'AET') return 'prórroga';
+  const overtime = OVERTIMES.exec(clock);
+  if (overtime) {
+    const count = Number(overtime[1] || 1);
+    return count > 1 ? `${count} prórrogas` : 'prórroga';
+  }
+  const penalties = PENALTIES.exec(clock);
+  return penalties ? `${penalties[1]}-${penalties[2]} en penaltis` : null;
+};
+
+/** «Final» o, si hubo prórroga o penaltis, «Final · prórroga». */
+export const finishedLabel = (displayClock: string | null | undefined): string => {
+  const note = resultNote(displayClock);
+  return note ? `Final · ${note}` : 'Final';
+};
 
 export const EMPTY_PREDICTION: DraftPrediction = { homeScore: '', awayScore: '', sign: '' };
 
