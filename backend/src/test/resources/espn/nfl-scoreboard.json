@@ -1,0 +1,337 @@
+{
+ "leagues": [
+  {
+   "slug": "nfl",
+   "calendarStartDate": "2026-08-06T07:00Z",
+   "calendarEndDate": "2027-02-16T07:59Z"
+  }
+ ],
+ "events": [
+  {
+   "id": "401873037",
+   "date": "2026-11-06T01:15Z",
+   "name": "Jacksonville Jaguars at Baltimore Ravens",
+   "season": {
+    "year": 2026,
+    "type": 2,
+    "slug": "regular-season"
+   },
+   "week": {
+    "number": 9
+   },
+   "competitions": [
+    {
+     "id": "401873037",
+     "date": "2026-11-06T01:15Z",
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true
+      }
+     },
+     "notes": [],
+     "competitors": [
+      {
+       "id": "33",
+       "homeAway": "home",
+       "score": "10",
+       "winner": false,
+       "team": {
+        "id": "33",
+        "displayName": "Baltimore Ravens",
+        "abbreviation": "BAL"
+       }
+      },
+      {
+       "id": "30",
+       "homeAway": "away",
+       "score": "33",
+       "winner": true,
+       "team": {
+        "id": "30",
+        "displayName": "Jacksonville Jaguars",
+        "abbreviation": "JAX"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401873038",
+   "date": "2026-11-08T14:30Z",
+   "name": "Cincinnati Bengals at Atlanta Falcons",
+   "season": {
+    "year": 2026,
+    "type": 2,
+    "slug": "regular-season"
+   },
+   "week": {
+    "number": 9
+   },
+   "competitions": [
+    {
+     "id": "401873038",
+     "date": "2026-11-08T14:30Z",
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false
+      }
+     },
+     "notes": [
+      {
+       "type": "event",
+       "headline": "NFL Madrid Game"
+      }
+     ],
+     "competitors": [
+      {
+       "id": "1",
+       "homeAway": "home",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "1",
+        "displayName": "Atlanta Falcons",
+        "abbreviation": "ATL"
+       }
+      },
+      {
+       "id": "4",
+       "homeAway": "away",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "4",
+        "displayName": "Cincinnati Bengals",
+        "abbreviation": "CIN"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401872910",
+   "date": "2027-01-16T05:00Z",
+   "name": "TBD at TBD",
+   "season": {
+    "year": 2026,
+    "type": 3,
+    "slug": "post-season"
+   },
+   "week": {
+    "number": 1
+   },
+   "competitions": [
+    {
+     "id": "401872910",
+     "date": "2027-01-16T05:00Z",
+     "status": {
+      "type": {
+       "name": "STATUS_SCHEDULED",
+       "state": "pre",
+       "completed": false
+      }
+     },
+     "notes": [
+      {
+       "type": "event",
+       "headline": "Wild Card Playoffs"
+      }
+     ],
+     "competitors": [
+      {
+       "id": "-1",
+       "homeAway": "home",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "-1",
+        "displayName": "TBD",
+        "abbreviation": "TBD"
+       }
+      },
+      {
+       "id": "-2",
+       "homeAway": "away",
+       "score": "0",
+       "winner": false,
+       "team": {
+        "id": "-2",
+        "displayName": "TBD",
+        "abbreviation": "TBD"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401831718",
+   "date": "2026-02-04T01:00Z",
+   "name": "NFC  at AFC ",
+   "season": {
+    "year": 2025,
+    "type": 3,
+    "slug": "post-season"
+   },
+   "week": {
+    "number": 4
+   },
+   "competitions": [
+    {
+     "id": "401831718",
+     "date": "2026-02-04T01:00Z",
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true
+      }
+     },
+     "notes": [
+      {
+       "type": "event",
+       "headline": "Pro Bowl Games"
+      }
+     ],
+     "competitors": [
+      {
+       "id": "31",
+       "homeAway": "home",
+       "score": "52",
+       "winner": false,
+       "team": {
+        "id": "31",
+        "displayName": "AFC",
+        "abbreviation": "AFC"
+       }
+      },
+      {
+       "id": "32",
+       "homeAway": "away",
+       "score": "66",
+       "winner": true,
+       "team": {
+        "id": "32",
+        "displayName": "NFC",
+        "abbreviation": "NFC"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401773001",
+   "date": "2025-08-07T23:00Z",
+   "name": "Indianapolis Colts at Baltimore Ravens",
+   "season": {
+    "year": 2025,
+    "type": 1,
+    "slug": "preseason"
+   },
+   "week": {
+    "number": 2
+   },
+   "competitions": [
+    {
+     "id": "401773001",
+     "date": "2025-08-07T23:00Z",
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true
+      }
+     },
+     "notes": [],
+     "competitors": [
+      {
+       "id": "33",
+       "homeAway": "home",
+       "score": "24",
+       "winner": true,
+       "team": {
+        "id": "33",
+        "displayName": "Baltimore Ravens",
+        "abbreviation": "BAL"
+       }
+      },
+      {
+       "id": "11",
+       "homeAway": "away",
+       "score": "16",
+       "winner": false,
+       "team": {
+        "id": "11",
+        "displayName": "Indianapolis Colts",
+        "abbreviation": "IND"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401772988",
+   "date": "2026-02-08T23:30Z",
+   "name": "Seattle Seahawks at New England Patriots",
+   "season": {
+    "year": 2025,
+    "type": 3,
+    "slug": "post-season"
+   },
+   "week": {
+    "number": 5
+   },
+   "competitions": [
+    {
+     "id": "401772988",
+     "date": "2026-02-08T23:30Z",
+     "status": {
+      "type": {
+       "name": "STATUS_FINAL",
+       "state": "post",
+       "completed": true
+      }
+     },
+     "notes": [
+      {
+       "type": "event",
+       "headline": "Super Bowl LX"
+      }
+     ],
+     "competitors": [
+      {
+       "id": "17",
+       "homeAway": "home",
+       "score": "13",
+       "winner": false,
+       "team": {
+        "id": "17",
+        "displayName": "New England Patriots",
+        "abbreviation": "NE"
+       }
+      },
+      {
+       "id": "26",
+       "homeAway": "away",
+       "score": "29",
+       "winner": true,
+       "team": {
+        "id": "26",
+        "displayName": "Seattle Seahawks",
+        "abbreviation": "SEA"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

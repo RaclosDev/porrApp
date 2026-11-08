@@ -27,7 +27,8 @@ public final class MatchRound {
     private static final String WEEK_PREFIX_LABEL = "Semana ";
     /** Rango vacío para las jornadas que no son de una fecha. */
     private static final Instant NO_DAY = Instant.EPOCH;
-    private static final Pattern NUMBERED_MATCHDAY = Pattern.compile("(?i)jornada\\s+(\\d{1,4})");
+    /** «Jornada 13» o, en la NFL, «Semana 9». */
+    private static final Pattern NUMBERED_MATCHDAY = Pattern.compile("(?i)(?:jornada|semana)\\s+(\\d{1,4})");
 
     /** Nombre visible de las rondas eliminatorias (las de la Champions también se juegan por jornadas). */
     private static final Map<String, String> KNOCKOUT_LABELS = Map.of(
@@ -115,7 +116,7 @@ public final class MatchRound {
                 NO_ROUND.equals(name));
     }
 
-    /** Número de una jornada "Jornada N", o null si la etiqueta no es de ese tipo. */
+    /** Número de una jornada "Jornada N" (o "Semana N" de la NFL), o null si la etiqueta no es de ese tipo. */
     public static Integer matchdayNumber(String label) {
         if (label == null) return null;
         Matcher m = NUMBERED_MATCHDAY.matcher(label.trim());

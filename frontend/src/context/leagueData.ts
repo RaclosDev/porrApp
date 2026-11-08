@@ -139,6 +139,9 @@ function useLeagueState() {
         (groupInfo?.formatType === 'TOURNAMENT' &&
           Boolean(groupInfo?.competitionExternalId) &&
           groupInfo?.competitionExternalId !== 'fifa.world')),
+    // NFL: se predice quién gana, sin empate, así que los votos van en dos columnas.
+    activeGroupWinnerOnly:
+      groupInfo?.competitionExternalId === 'nfl' && !groupInfo.multiCompetition,
     // Eliminatorias que se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda.
     activeGroupKnockoutDraw: Boolean(groupInfo?.knockoutDraw),
     // Liga por jornadas que elige sus partidos (de una o de varias competiciones).

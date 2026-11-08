@@ -24,6 +24,10 @@ export type MatchSign = '1' | 'X' | '2';
 /** `UPCOMING`: todos los que no han terminado; `PENDING`: abiertos y sin pronóstico. */
 export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
 
+/** Si se puede predecir el empate: en la NFL (`AMERICAN_FOOTBALL`) y en el tenis se elige quién gana. */
+export const allowsDraw = (sport: string | null | undefined): boolean =>
+  sport !== 'AMERICAN_FOOTBALL' && sport !== 'TENNIS';
+
 export const EMPTY_PREDICTION: DraftPrediction = { homeScore: '', awayScore: '', sign: '' };
 
 /** Jornada visible de un partido; es la misma etiqueta que usa el backend (`MatchRound.label`). */
@@ -102,8 +106,9 @@ interface RoundList {
   current: string | null;
 }
 
+/** «Jornada 13» o, en la NFL, «Semana 9» (no «Semana 2026-11-02», que es de varias competiciones). */
 const matchdayNumber = (label: string): number | null => {
-  const match = /^jornada\s+(\d+)$/i.exec(label.trim());
+  const match = /^(?:jornada|semana)\s+(\d+)$/i.exec(label.trim());
   return match ? Number(match[1]) : null;
 };
 
