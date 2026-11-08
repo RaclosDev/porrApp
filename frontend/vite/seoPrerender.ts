@@ -105,7 +105,9 @@ const landingMarkup = () =>
 const contentMarkup = (page: ContentPage) =>
   `<main><h1>${escapeHtml(`${page.h1} ${page.h1Marked}`)}</h1>` +
   paragraphs([page.lede]) +
-  `<p><a href="/demo">Ver una porra de ejemplo</a></p>` +
+  (page.download
+    ? `<p><a href="${page.download.href}" download>${escapeHtml(page.download.label)}</a></p>`
+    : `<p><a href="/demo">Ver una porra de ejemplo</a></p>`) +
   page.sections
     .map((section) => `<h2>${escapeHtml(section.heading)}</h2>${paragraphs(section.paragraphs)}`)
     .join('') +

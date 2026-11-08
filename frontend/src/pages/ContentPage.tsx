@@ -33,9 +33,15 @@ export default function ContentPage({ page }: ContentPageProps) {
           <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
             Crear mi liga
           </button>
-          <Link to="/demo" className="landing-btn">
-            Ver una porra de ejemplo
-          </Link>
+          {page.download ? (
+            <a href={page.download.href} download className="landing-btn">
+              {page.download.label}
+            </a>
+          ) : (
+            <Link to="/demo" className="landing-btn">
+              Ver una porra de ejemplo
+            </Link>
+          )}
         </div>
       </section>
 
