@@ -331,6 +331,7 @@ public class MatchPredictionService {
         Set<String> survivorRounds = new HashSet<>();
         MatchSelection selection = MatchSelectionService.selects(edition) ? matchSelectionService.of(edition) : null;
         EventSeries series = MatchSelectionService.series(edition);
+        Set<CardSegment> segments = MatchSelectionService.segments(edition);
         Set<Long> leagueCompetitions = Set.copyOf(MatchSelectionService.competitionIds(matchSelectionService, edition));
 
         // Dos consultas para toda la jornada en vez de dos por partido.
@@ -342,6 +343,7 @@ public class MatchPredictionService {
                 ? new HashMap<>()
                 : matchPredictionRepository.findByPredictionIdAndMatchIdIn(prediction.getId(), matchIds).stream()
                         .collect(Collectors.toMap(mp -> mp.getMatch().getId(), mp -> mp, (a, b) -> a));
+        Map<Long, String> fightSegments = segments == null ? Map.of() : matchSelectionService.fightSegments(matchIds);
 
         for (MatchPredictionItemDTO item : items) {
             if (item.getMatchId() == null) continue;
@@ -352,7 +354,8 @@ public class MatchPredictionService {
             if (match.getCompetition() == null || !leagueCompetitions.contains(match.getCompetition().getId())) {
                 throw BusinessException.badRequest("El partido no pertenece a la competición de esta liga.");
             }
-            if (selection != null && !selection.contains(match) || !EventSeries.includes(series, match.getRound())) {
+            if (selection != null && !selection.contains(match) || !EventSeries.includes(series, match.getRound())
+                    || !CardSegment.includes(segments, fightSegments.get(match.getId()))) {
                 throw BusinessException.badRequest("Ese partido no entra en esta liga.");
             }
 

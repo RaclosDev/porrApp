@@ -6,6 +6,7 @@ import {
   leagueCompetitionIds,
 } from '../matchSelection/matchSelection';
 import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
+import { describeSegments } from '../../utils/fights';
 import { LeagueAvatar } from '../Avatar';
 import { describeLockOffset } from '../groups/custom/lockModes';
 import {
@@ -125,6 +126,15 @@ export default function SummaryStep({
             value: matchesText,
             step: 'format' as LeagueStepId,
           },
+          ...(fightNights
+            ? [
+                {
+                  label: 'Peleas',
+                  value: describeSegments(draft.cardSegments),
+                  step: 'format' as LeagueStepId,
+                },
+              ]
+            : []),
         ]
       : []),
     { label: 'Cierre', value: describeLock(draft, ctx), step: 'rules' },

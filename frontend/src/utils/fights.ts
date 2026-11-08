@@ -1,5 +1,5 @@
 /** Textos de las peleas de la UFC: métodos, bloques de la cartelera, pesos y resultados. */
-import type { FightInfo, FightMethod, MatchdayFixture } from '../types/api';
+import type { CardSegment, FightInfo, FightMethod, MatchdayFixture } from '../types/api';
 
 export const FIGHT_METHOD_LABELS: Record<FightMethod, string> = {
   KO_TKO: 'KO/TKO',
@@ -7,7 +7,7 @@ export const FIGHT_METHOD_LABELS: Record<FightMethod, string> = {
   DECISION: 'Decisión',
 };
 
-const SEGMENT_LABELS: Record<string, string> = {
+export const SEGMENT_LABELS: Record<CardSegment, string> = {
   MAIN: 'Cartelera estelar',
   PRELIMS: 'Preliminares',
   EARLY_PRELIMS: 'Preliminares tempranos',
@@ -15,6 +15,24 @@ const SEGMENT_LABELS: Record<string, string> = {
 
 export const segmentLabel = (segment: FightInfo['segment']) =>
   (segment && SEGMENT_LABELS[segment]) || 'Preliminares';
+
+/** Partes de la cartelera en el orden de la velada: de las primeras peleas a la estelar. */
+export const CARD_SEGMENTS: readonly CardSegment[] = ['EARLY_PRELIMS', 'PRELIMS', 'MAIN'];
+
+/** Nombre con que las anuncia la UFC, para reconocerlas. */
+export const SEGMENT_UFC_NAMES: Record<CardSegment, string> = {
+  EARLY_PRELIMS: 'Early Prelims',
+  PRELIMS: 'Prelims',
+  MAIN: 'Main Card',
+};
+
+/** Texto de las partes elegidas: «Toda la velada» con las tres. */
+export const describeSegments = (segments: readonly CardSegment[]) =>
+  segments.length === CARD_SEGMENTS.length
+    ? 'Toda la velada'
+    : CARD_SEGMENTS.filter((segment) => segments.includes(segment))
+        .map((segment) => SEGMENT_LABELS[segment])
+        .join(', ');
 
 const WEIGHT_CLASSES: Record<string, string> = {
   strawweight: 'Peso paja',

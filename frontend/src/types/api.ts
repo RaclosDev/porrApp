@@ -364,10 +364,15 @@ export interface MatchSelectionView {
 /** UFC: veladas numeradas («UFC 334») o el resto (Fight Night y demás sin número). */
 export type EventSeries = 'NUMBERED' | 'FIGHT_NIGHT';
 
+/** UFC: partes de la cartelera de una velada (estelar, preliminares y preliminares tempranos). */
+export type CardSegment = 'EARLY_PRELIMS' | 'PRELIMS' | 'MAIN';
+
 export interface MatchSelectionRequest {
   mode: MatchSelectionMode;
   /** UFC con todas las veladas: solo las de una serie; sin ella, las que ya tenía (al crear, todas). */
   eventSeries?: EventSeries;
+  /** UFC: partes de la cartelera que entran; sin ellas, las que ya tenía (al crear, la velada completa). */
+  cardSegments?: CardSegment[];
   /** Competiciones de la liga, con la principal; sin ellas, las que ya tenía. */
   competitionIds?: number[];
   teamIds?: number[];
@@ -593,7 +598,7 @@ export interface FightInfo {
   eventId: string;
   eventName: string | null;
   /** Bloque de la cartelera. */
-  segment: 'MAIN' | 'PRELIMS' | 'EARLY_PRELIMS' | null;
+  segment: CardSegment | null;
   /** 1 es la pelea estelar. */
   order: number | null;
   weightClass: string | null;

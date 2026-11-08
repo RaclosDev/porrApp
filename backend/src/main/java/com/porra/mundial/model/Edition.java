@@ -80,6 +80,11 @@ public class Edition {
     @Column(name = "event_series", length = 20)
     private EventSeries eventSeries;
 
+    /** UFC: partes de la cartelera de cada velada que entran en la liga; null para la velada completa. */
+    @Convert(converter = CardSegmentsConverter.class)
+    @Column(name = "card_segments", length = 40)
+    private java.util.Set<CardSegment> cardSegments;
+
     /**
      * Si la liga junta partidos de varias competiciones oficiales (las guarda {@code edition_competitions};
      * {@link #competition} es la principal). Sus jornadas son semanas de lunes a domingo.

@@ -18,6 +18,7 @@ import {
   isFightNights,
   matchSelectionApplies,
 } from './leagueDraft';
+import CardSegmentsField from './CardSegmentsField';
 import { FieldError, OptionCard, StepSection } from './parts';
 import type { StepProps } from './useLeagueDraft';
 
@@ -65,7 +66,7 @@ function MatchesSection({ draft, update, errors, ctx }: StepProps) {
  * sola. Una velada se guarda como sus peleas elegidas a mano; las que se añadan después a su cartelera
  * entran solas.
  */
-function FightNightsSection({ draft, update, errors }: StepProps) {
+function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
   const competitionId = draft.competitionId;
   const calendar = useSelectableCalendar(competitionId == null ? [] : [competitionId]);
   const nights = useMemo(
@@ -160,6 +161,7 @@ function FightNightsSection({ draft, update, errors }: StepProps) {
         </div>
       )}
       <FieldError fieldId={FIELD_IDS.matches} message={errors.matches} />
+      <CardSegmentsField draft={draft} update={update} errors={errors} ctx={ctx} />
     </StepSection>
   );
 }

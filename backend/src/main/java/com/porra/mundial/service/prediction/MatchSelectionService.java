@@ -3,12 +3,14 @@ package com.porra.mundial.service.prediction;
 import com.porra.mundial.dto.MatchSelectionDTO;
 import com.porra.mundial.dto.MatchSelectionRequest;
 import com.porra.mundial.exception.BusinessException;
+import com.porra.mundial.model.CardSegment;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.EditionCompetition;
 import com.porra.mundial.model.EditionFollowedTeam;
 import com.porra.mundial.model.EditionMatchChoice;
 import com.porra.mundial.model.EventSeries;
+import com.porra.mundial.model.Fight;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchSelectionMode;
 import com.porra.mundial.model.PoolFormat;
@@ -19,6 +21,7 @@ import com.porra.mundial.repository.EditionCompetitionRepository;
 import com.porra.mundial.repository.EditionFollowedTeamRepository;
 import com.porra.mundial.repository.EditionMatchChoiceRepository;
 import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.repository.FightRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.util.AppTime;
@@ -73,10 +76,38 @@ public class MatchSelectionService {
     private final EditionMatchChoiceRepository choiceRepository;
     private final EditionCompetitionRepository editionCompetitionRepository;
     private final ScoreInvalidationService scoreInvalidationService;
+    private final FightRepository fightRepository;
 
     /** Si la liga elige sus partidos; si no, entran todos y no hace falta consultar nada. */
     public static boolean selects(Edition edition) {
-        return edition != null && (edition.getMatchSelection() == MatchSelectionMode.CUSTOM || since(edition) != null);
+        return edition != null && (edition.getMatchSelection() == MatchSelectionMode.CUSTOM || since(edition) != null
+                || segments(edition) != null);
+    }
+
+    /**
+     * Partes de la cartelera de cada velada que sigue una liga de la UFC (estelar, preliminares,
+     * preliminares tempranas). Null para la velada completa, y en el resto de ligas.
+     */
+    public static Set<CardSegment> segments(Edition edition) {
+        if (edition == null || edition.isMultiCompetition() || !Sport.isMma(edition.getCompetition())) return null;
+        return CardSegment.normalized(edition.getCardSegments());
+    }
+
+    /** Parte de la cartelera de cada pelea de la lista (las que no la tienen no aparecen). */
+    public Map<Long, String> fightSegments(Collection<Long> matchIds) {
+        if (matchIds.isEmpty()) return Map.of();
+        Map<Long, String> result = new HashMap<>();
+        for (Fight fight : fightRepository.findByMatchIdIn(matchIds)) {
+            if (fight.getCardSegment() != null) result.put(fight.getMatchId(), fight.getCardSegment());
+        }
+        return result;
+    }
+
+    /** Los partidos de la lista que caen en las partes de la cartelera que sigue la liga. */
+    private List<Match> inSegments(Set<CardSegment> segments, List<Match> matches) {
+        if (segments == null || matches.isEmpty()) return matches;
+        Map<Long, String> bySegment = fightSegments(matches.stream().map(Match::getId).toList());
+        return matches.stream().filter(m -> CardSegment.includes(segments, bySegment.get(m.getId()))).toList();
     }
 
     /**
@@ -168,7 +199,7 @@ public class MatchSelectionService {
     /** Los partidos de la lista que entran en la liga. */
     @Transactional(readOnly = true)
     public List<Match> filter(Edition edition, List<Match> matches) {
-        List<Match> selected = of(edition).filter(matches);
+        List<Match> selected = inSegments(segments(edition), of(edition).filter(matches));
         Instant since = since(edition);
         if (since == null) return selected;
         EventSeries series = series(edition);
@@ -246,7 +277,8 @@ public class MatchSelectionService {
     /** Si un partido entra en la liga. */
     @Transactional(readOnly = true)
     public boolean contains(Edition edition, Match match) {
-        return coversCompetition(edition, match) && of(edition).contains(match) && inWindow(edition, match);
+        return coversCompetition(edition, match) && of(edition).contains(match) && inWindow(edition, match)
+                && !inSegments(segments(edition), List.of(match)).isEmpty();
     }
 
     /** Calendario de una competición oficial para elegir partidos al crear una liga: entran todos. */
@@ -336,10 +368,22 @@ public class MatchSelectionService {
         }
         MatchSelection requestedSelection = new MatchSelection(mode, requestedTeams,
                 new HashSet<>(request.includedOrEmpty()), new HashSet<>(request.excludedOrEmpty()));
-        Predicate<Match> requested = match -> in(match, requestedSet) && requestedSelection.contains(match);
+        // UFC: las partes de la cartelera pedidas, o las que ya tenía; en el resto de ligas no aplican.
+        boolean mma = !multi && Sport.isMma(edition.getCompetition());
+        if (request.cardSegments() != null && request.cardSegments().stream().noneMatch(Objects::nonNull)) {
+            throw BusinessException.badRequest("Elige al menos una parte de la cartelera");
+        }
+        Set<CardSegment> beforeSegments = segments(edition);
+        Set<CardSegment> requestedSegments = !mma ? null
+                : request.cardSegments() != null ? CardSegment.normalized(request.cardSegments()) : beforeSegments;
+        Map<Long, String> fightSegments = beforeSegments == null && requestedSegments == null ? Map.of()
+                : fightSegments(calendar.stream().map(Match::getId).toList());
+        Predicate<Match> requested = match -> in(match, requestedSet) && requestedSelection.contains(match)
+                && CardSegment.includes(requestedSegments, fightSegments.get(match.getId()));
 
         MatchSelection beforeSelection = of(edition);
-        Predicate<Match> before = match -> in(match, beforeSet) && beforeSelection.contains(match);
+        Predicate<Match> before = match -> in(match, beforeSet) && beforeSelection.contains(match)
+                && CardSegment.includes(beforeSegments, fightSegments.get(match.getId()));
         Map<Long, Integer> predictions = predictionCounts(edition);
         Instant now = Instant.now();
         // Cierre de cada partido con la selección actual (la jornada o el día son los de la liga).
@@ -402,6 +446,10 @@ public class MatchSelectionService {
                         + ": tiene partidos cerrados con predicciones");
             }
         }
+        // Ni una parte de la cartelera con peleas cerradas y predicciones.
+        if (wanted.values().stream().anyMatch(m -> !CardSegment.includes(requestedSegments, fightSegments.get(m.getId())))) {
+            throw BusinessException.conflict("No puedes quitar esa parte de la cartelera: tiene peleas cerradas con predicciones");
+        }
         if (mode == MatchSelectionMode.CUSTOM && wanted.isEmpty()) {
             throw BusinessException.badRequest("Elige al menos un equipo o un partido");
         }
@@ -416,6 +464,7 @@ public class MatchSelectionService {
         boolean followsSeries = mode == MatchSelectionMode.ALL && !multi && Sport.isMma(edition.getCompetition());
         edition.setEventSeries(!followsSeries ? null
                 : request.eventSeries() != null ? request.eventSeries() : edition.getEventSeries());
+        edition.setCardSegments(requestedSegments);
         persistCompetitions(edition, multi ? competitions : List.of());
         persist(edition, MatchSelection.normalized(mode, requestedTeams, requestedCalendar, wanted.keySet()));
 

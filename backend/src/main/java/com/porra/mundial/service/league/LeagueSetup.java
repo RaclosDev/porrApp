@@ -35,7 +35,7 @@ public record LeagueSetup(String rules, Boolean entryFee, ScoringRuleSet scoring
     public LeagueSetup {
         rules = rules == null || rules.isBlank() ? null : rules.trim();
         if (matchSelection != null && matchSelection.mode() == MatchSelectionMode.ALL
-                && matchSelection.eventSeries() == null) {
+                && matchSelection.eventSeries() == null && matchSelection.cardSegments() == null) {
             matchSelection = null;
         }
     }

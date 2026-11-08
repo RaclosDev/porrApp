@@ -1,5 +1,6 @@
 package com.porra.mundial.dto;
 
+import com.porra.mundial.model.CardSegment;
 import com.porra.mundial.model.EventSeries;
 import com.porra.mundial.model.MatchSelectionMode;
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +17,9 @@ import java.util.List;
  *                       o vacío: las que ya tenía
  * @param eventSeries    UFC con {@code ALL}: solo las veladas numeradas o solo las Fight Night. Nulo: la
  *                       que ya tenía (al crear la liga, todas)
+ * @param cardSegments   UFC: partes de la cartelera de cada velada que entran (estelar, preliminares,
+ *                       preliminares tempranas). Nulo: las que ya tenía (al crear la liga, la velada
+ *                       completa); vacío no vale
  */
 public record MatchSelectionRequest(
         @NotNull(message = "Elige qué partidos entran en la liga") MatchSelectionMode mode,
@@ -23,7 +27,13 @@ public record MatchSelectionRequest(
         @Size(max = 2000, message = "Demasiados partidos") List<Long> includedMatchIds,
         @Size(max = 2000, message = "Demasiados partidos") List<Long> excludedMatchIds,
         @Size(max = 8, message = "Como mucho 8 competiciones") List<Long> competitionIds,
-        EventSeries eventSeries) {
+        EventSeries eventSeries,
+        @Size(max = 3, message = "Elige como mucho las tres partes de la cartelera") List<CardSegment> cardSegments) {
+
+    public MatchSelectionRequest(MatchSelectionMode mode, List<Long> teamIds, List<Long> includedMatchIds,
+                                 List<Long> excludedMatchIds, List<Long> competitionIds, EventSeries eventSeries) {
+        this(mode, teamIds, includedMatchIds, excludedMatchIds, competitionIds, eventSeries, null);
+    }
 
     public MatchSelectionRequest(MatchSelectionMode mode, List<Long> teamIds, List<Long> includedMatchIds,
                                  List<Long> excludedMatchIds, List<Long> competitionIds) {

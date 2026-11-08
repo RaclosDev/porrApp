@@ -12,6 +12,7 @@ import com.porra.mundial.model.Fight;
 import com.porra.mundial.model.FightMethod;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
+import com.porra.mundial.model.CardSegment;
 import com.porra.mundial.model.EventSeries;
 import com.porra.mundial.model.MatchSelectionMode;
 import com.porra.mundial.model.MatchStatusNormalized;
@@ -20,6 +21,7 @@ import com.porra.mundial.model.PredictionLockMode;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.model.UserAccount;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.FightRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
@@ -86,6 +88,7 @@ class UfcFightCardIntegrationTest {
     @Autowired private CompetitionRepository competitions;
     @Autowired private MatchRepository matches;
     @Autowired private FightRepository fights;
+    @Autowired private EditionRepository editions;
     @Autowired private MatchPredictionRepository matchPredictions;
     @Autowired private UserAccountRepository users;
     @Autowired private ApplicationEvents events;
@@ -252,6 +255,50 @@ class UfcFightCardIntegrationTest {
                 .contains("Rojo Numerada", "Rojo Noche");
         assertThatThrownBy(() -> predict(ana, numbered, "ufc-x2", "1", null, null))
                 .isInstanceOf(BusinessException.class).hasMessageContaining("no entra");
+    }
+
+    @Test
+    @DisplayName("Una liga puede seguir solo algunas partes de la cartelera de cada velada")
+    void cardSegments() {
+        Bout main = new Bout("c1", "Rojo Parte Estelar", "Azul Parte Estelar", "main", 1, 5);
+        Bout prelim = new Bout("c2", "Rojo Parte Previa", "Azul Parte Previa", "prelims1", 2, 3);
+        Bout early = new Bout("c3", "Rojo Parte Temprana", "Azul Parte Temprana", "prelims2", 3, 3);
+        sync("e7", "UFC 336: Partes", saturday, List.of(main, prelim, early), Map.of());
+
+        UserAccount ana = user();
+        League mainOnly = create(ana, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null, null,
+                null, List.of(CardSegment.MAIN)));
+        League prelims = create(ana, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null, null,
+                null, List.of(CardSegment.PRELIMS, CardSegment.EARLY_PRELIMS)));
+        League whole = create(ana, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null, null,
+                null, List.of(CardSegment.values())));
+
+        assertThat(fixtures(ana, mainOnly)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
+                .contains("Rojo Parte Estelar").doesNotContain("Rojo Parte Previa", "Rojo Parte Temprana");
+        assertThat(fixtures(ana, prelims)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
+                .contains("Rojo Parte Previa", "Rojo Parte Temprana").doesNotContain("Rojo Parte Estelar");
+        assertThat(fixtures(ana, whole)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
+                .contains("Rojo Parte Estelar", "Rojo Parte Previa", "Rojo Parte Temprana");
+        // Las tres partes son la velada completa: no se guarda nada, como en las ligas de antes.
+        assertThat(editions.findByLeagueId(whole.getId()).get(0).getCardSegments()).isNull();
+        assertThatThrownBy(() -> predict(ana, mainOnly, "ufc-c2", "1", null, null))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("no entra");
+        predict(ana, mainOnly, "ufc-c1", "1", null, null);
+
+        // Una sola velada con solo la estelar: una preliminar que se añade después tampoco entra.
+        List<Long> night = List.of(matches.findByExternalId("ufc-c1").orElseThrow().getId(),
+                matches.findByExternalId("ufc-c2").orElseThrow().getId(),
+                matches.findByExternalId("ufc-c3").orElseThrow().getId());
+        League single = create(ana, new MatchSelectionRequest(MatchSelectionMode.CUSTOM, List.of(), night, List.of(),
+                null, null, List.of(CardSegment.MAIN)));
+        sync("e7", "UFC 336: Partes", saturday,
+                List.of(main, prelim, early, new Bout("c4", "Rojo Parte Nueva", "Azul Parte Nueva", "prelims1", 4, 3)), Map.of());
+        assertThat(fixtures(ana, single)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
+                .containsExactly("Rojo Parte Estelar");
+
+        assertThatThrownBy(() -> create(ana, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null,
+                null, null, List.of()))).isInstanceOf(BusinessException.class)
+                .hasMessageContaining("al menos una parte");
     }
 
     @Test
