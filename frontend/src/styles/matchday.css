@@ -259,6 +259,41 @@
     line-height: 1.25;
   }
 
+  /* Tenis: quien pierde el partido, más apagado, y los juegos de cada set a la derecha. */
+  .md-team-name.is-loser {
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .md-set-games {
+    display: inline-flex;
+    gap: 4px;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .md-set-game {
+    position: relative;
+    min-width: 1.4em;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .md-set-game.is-won {
+    font-weight: 800;
+    color: var(--text-main);
+  }
+
+  /* El tie-break, pegado arriba a la derecha sin mover la columna del set. */
+  .md-set-game sup {
+    position: absolute;
+    top: -0.25em;
+    left: calc(50% + 0.45em);
+    font-size: 0.62em;
+  }
+
   .md-signs {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
