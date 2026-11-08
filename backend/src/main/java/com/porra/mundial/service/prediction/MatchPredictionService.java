@@ -330,6 +330,7 @@ public class MatchPredictionService {
         }
         Set<String> survivorRounds = new HashSet<>();
         MatchSelection selection = MatchSelectionService.selects(edition) ? matchSelectionService.of(edition) : null;
+        EventSeries series = MatchSelectionService.series(edition);
         Set<Long> leagueCompetitions = Set.copyOf(MatchSelectionService.competitionIds(matchSelectionService, edition));
 
         // Dos consultas para toda la jornada en vez de dos por partido.
@@ -351,7 +352,7 @@ public class MatchPredictionService {
             if (match.getCompetition() == null || !leagueCompetitions.contains(match.getCompetition().getId())) {
                 throw BusinessException.badRequest("El partido no pertenece a la competición de esta liga.");
             }
-            if (selection != null && !selection.contains(match)) {
+            if (selection != null && !selection.contains(match) || !EventSeries.includes(series, match.getRound())) {
                 throw BusinessException.badRequest("Ese partido no entra en esta liga.");
             }
 

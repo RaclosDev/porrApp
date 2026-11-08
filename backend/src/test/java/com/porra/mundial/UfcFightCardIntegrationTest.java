@@ -12,6 +12,7 @@ import com.porra.mundial.model.Fight;
 import com.porra.mundial.model.FightMethod;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.Match;
+import com.porra.mundial.model.EventSeries;
 import com.porra.mundial.model.MatchSelectionMode;
 import com.porra.mundial.model.MatchStatusNormalized;
 import com.porra.mundial.model.PoolFormat;
@@ -227,6 +228,30 @@ class UfcFightCardIntegrationTest {
         League league = create(ana, null);
         assertThat(fixtures(ana, league)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
                 .containsExactlyInAnyOrder("Rojo Estelar", "Rojo Previo");
+    }
+
+    @Test
+    @DisplayName("Una liga de todas las veladas puede seguir solo las numeradas o solo las Fight Night")
+    void eventSeries() {
+        sync("e5", "UFC 335: Numerada", saturday, List.of(new Bout("x1", "Rojo Numerada", "Azul Numerada", "main", 1, 5)), Map.of());
+        sync("e6", "UFC Fight Night: Noche", saturday.plus(7, ChronoUnit.DAYS),
+                List.of(new Bout("x2", "Rojo Noche", "Azul Noche", "main", 1, 5)), Map.of());
+
+        UserAccount ana = user();
+        League numbered = create(ana, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null, null,
+                EventSeries.NUMBERED));
+        League fightNights = create(ana, new MatchSelectionRequest(MatchSelectionMode.ALL, null, null, null, null,
+                EventSeries.FIGHT_NIGHT));
+        League all = create(ana, null);
+
+        assertThat(fixtures(ana, numbered)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
+                .contains("Rojo Numerada").doesNotContain("Rojo Noche");
+        assertThat(fixtures(ana, fightNights)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
+                .contains("Rojo Noche").doesNotContain("Rojo Numerada");
+        assertThat(fixtures(ana, all)).extracting(MatchdayFixturePredictionDTO::getHomeTeam)
+                .contains("Rojo Numerada", "Rojo Noche");
+        assertThatThrownBy(() -> predict(ana, numbered, "ufc-x2", "1", null, null))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("no entra");
     }
 
     @Test

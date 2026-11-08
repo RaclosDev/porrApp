@@ -359,8 +359,13 @@ export interface MatchSelectionView {
   keptMatches: number;
 }
 
+/** UFC: veladas numeradas («UFC 334») o el resto (Fight Night y demás sin número). */
+export type EventSeries = 'NUMBERED' | 'FIGHT_NIGHT';
+
 export interface MatchSelectionRequest {
   mode: MatchSelectionMode;
+  /** UFC con todas las veladas: solo las de una serie; sin ella, las que ya tenía (al crear, todas). */
+  eventSeries?: EventSeries;
   /** Competiciones de la liga, con la principal; sin ellas, las que ya tenía. */
   competitionIds?: number[];
   teamIds?: number[];
