@@ -474,7 +474,7 @@ public class MatchEventProcessor {
     /** Separación máxima entre partidos de una misma jornada. */
     private static final long SAME_MATCHDAY_DAYS = 4;
     /** Más allá de este parón se da por empezada otra temporada y no se sigue numerando. */
-    private static final long NEW_SEASON_GAP_DAYS = 45;
+    private static final long NEW_SEASON_GAP_DAYS = 60;
 
     /**
      * Jornada de un partido de liga nuevo, siguiendo la numeración "Jornada N" que ya tenga la competición:

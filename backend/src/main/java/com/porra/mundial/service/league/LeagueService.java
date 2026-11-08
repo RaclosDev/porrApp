@@ -120,6 +120,11 @@ public class LeagueService {
             if (comp.drawsKnockoutRounds() && poolFormat == com.porra.mundial.model.PoolFormat.FULL_BRACKET) {
                 throw BusinessException.badRequest("Los cruces de esta competición se sortean ronda a ronda: elige Solo eliminatorias");
             }
+            // Una liga regular (LaLiga, Premier, NFL…) no tiene cuadro: el asistente ya no lo ofrece.
+            if ("LEAGUE".equalsIgnoreCase(comp.getFormatType()) && !comp.isWorldCup() && !comp.drawsKnockoutRounds()
+                    && !poolFormat.isMatchBased() && poolFormat != com.porra.mundial.model.PoolFormat.GRAND_PRIX) {
+                throw BusinessException.badRequest("Esta competición se juega por jornadas: no tiene cuadro que rellenar");
+            }
             // De la NBA solo se pronostican los playoffs, serie a serie.
             if (comp.playsSeries() && poolFormat != com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY) {
                 throw BusinessException.badRequest("De la NBA se pronostican los playoffs: elige el modo Playoffs");

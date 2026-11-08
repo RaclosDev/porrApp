@@ -61,7 +61,7 @@ public class OfficialMatchdayService {
         int relabeled = 0;
         for (var entry : footballData.competitionCodes().entrySet()) {
             try {
-                relabeled += refresh(entry.getKey(), entry.getValue());
+                relabeled += Math.max(0, refresh(entry.getKey(), entry.getValue()));
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 return;
@@ -72,6 +72,18 @@ public class OfficialMatchdayService {
         if (relabeled > 0) clearCaches();
     }
 
+    /**
+     * {@link #refresh} no ha podido relacionar la mayoría de los partidos con el calendario oficial (en la
+     * Champions todos los horarios tienen varios partidos y no se aprende ningún equipo): no toca nada.
+     */
+    static final int NOT_COVERED = -1;
+
+    /**
+     * Pone la jornada oficial a los partidos de una liga.
+     *
+     * @return partidos cuya jornada ha cambiado, o {@link #NOT_COVERED} si el calendario oficial no cubre
+     *         la mayoría de los partidos de la temporada
+     */
     int refresh(String slug, String code) throws Exception {
         Competition competition = competitionRepository.findByExternalId(slug).orElse(null);
         if (competition == null || !"LEAGUE".equalsIgnoreCase(competition.getFormatType())) return 0;
@@ -79,6 +91,11 @@ public class OfficialMatchdayService {
         if (fixtures.isEmpty()) return 0;
         Integer changed = new TransactionTemplate(transactionManager).execute(status -> {
             Assignment assignment = assignMatchdays(matchRepository.findByCompetitionId(competition.getId()), fixtures);
+            if (!assignment.coversSeason()) {
+                log.info("Jornadas oficiales de {}: solo {} de {} partidos emparejados; se deducen por fechas",
+                        slug, assignment.matchdays().size(), assignment.seasonMatches());
+                return NOT_COVERED;
+            }
             int count = 0;
             for (var assigned : assignment.matchdays().entrySet()) {
                 String round = MatchEventProcessor.MATCHDAY_PREFIX + assigned.getValue();
@@ -97,7 +114,12 @@ public class OfficialMatchdayService {
     }
 
     /** Jornada oficial de cada partido emparejado, con los totales para el registro. */
-    record Assignment(Map<Match, Integer> matchdays, int seasonMatches, int linkedTeams) {}
+    record Assignment(Map<Match, Integer> matchdays, int seasonMatches, int linkedTeams) {
+        /** Se ha emparejado al menos la mitad de los partidos de la temporada. */
+        boolean coversSeason() {
+            return seasonMatches > 0 && matchdays.size() * 2 >= seasonMatches;
+        }
+    }
 
     /**
      * Empareja los partidos propios con el calendario oficial. Los equipos de ambos proveedores se
@@ -237,7 +259,7 @@ public class OfficialMatchdayService {
             return 0;
         }
         String code = footballData.isEnabled() ? footballData.competitionCodes().get(competition.getExternalId()) : null;
-        int changed;
+        int changed = NOT_COVERED;
         if (code != null) {
             try {
                 changed = refresh(competition.getExternalId(), code);
@@ -248,7 +270,9 @@ public class OfficialMatchdayService {
                 log.warn("No se pudieron leer las jornadas oficiales de {}: {}", competition.getExternalId(), error.getMessage());
                 return 0;
             }
-        } else {
+        }
+        // Sin calendario oficial, o si no casa con el de ESPN (Champions), se deducen por fechas.
+        if (changed == NOT_COVERED) {
             Integer inferred = new TransactionTemplate(transactionManager).execute(status -> {
                 int count = 0;
                 for (var assigned : inferMatchdays(matchRepository.findByCompetitionId(competition.getId())).entrySet()) {
@@ -269,8 +293,11 @@ public class OfficialMatchdayService {
         return changed;
     }
 
-    /** Parón a partir del cual se da por empezada otra temporada. */
-    private static final Duration NEW_SEASON_GAP = Duration.ofDays(45);
+    /**
+     * Parón a partir del cual se da por empezada otra temporada. Entre temporadas pasan unos 80 días; el parón
+     * de la MLS por el Mundial de 2026 fue de 52, y no es otra temporada.
+     */
+    private static final Duration NEW_SEASON_GAP = Duration.ofDays(60);
 
     /**
      * Jornadas de la temporada en curso cuando no hay calendario oficial: en orden de fecha, una jornada se
