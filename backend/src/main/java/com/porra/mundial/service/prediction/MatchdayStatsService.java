@@ -6,6 +6,7 @@ import com.porra.mundial.dto.MatchVotersDTO;
 import com.porra.mundial.dto.MatchVotersDTO.Voter;
 import com.porra.mundial.dto.MatchdayStatsDTO;
 import com.porra.mundial.dto.MatchdayStatsDTO.MatchStats;
+import com.porra.mundial.dto.MatchdayStatsDTO.MethodCount;
 import com.porra.mundial.dto.MatchdayStatsDTO.ScoreCount;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Match;
@@ -48,6 +49,9 @@ public class MatchdayStatsService {
 
     /** Marcadores que se devuelven por partido. */
     static final int TOP_SCORES = 3;
+
+    /** Métodos de victoria que se pueden pronosticar en una pelea de la UFC, en el orden de la pantalla. */
+    private static final List<String> FIGHT_METHODS = List.of("KO_TKO", "SUBMISSION", "DECISION");
 
     /** Partidos por petición de votantes: los de una jornada larga caben de sobra. */
     static final int MAX_VOTER_MATCHES = 60;
@@ -315,7 +319,10 @@ public class MatchdayStatsService {
         int exactHits = 0;
         int signHits = 0;
         Map<String, ScoreCount> scores = new LinkedHashMap<>();
+        Map<String, Integer> methods = new LinkedHashMap<>();
         for (MatchPrediction mp : predictions) {
+            String method = mp.getPredictedMethod();
+            if (method != null && FIGHT_METHODS.contains(method)) methods.merge(method, 1, Integer::sum);
             boolean hasScore = mp.getHomeScore() != null && mp.getAwayScore() != null;
             String sign = hasScore ? sign(mp.getHomeScore(), mp.getAwayScore()) : normalizeSign(mp.getPredictionSign());
             if ("1".equals(sign)) homeWins++;
@@ -359,7 +366,12 @@ public class MatchdayStatsService {
                 awayWins,
                 topScores,
                 finished ? exactHits : null,
-                finished ? signHits : null);
+                finished ? signHits : null,
+                methods.entrySet().stream()
+                        .map(entry -> new MethodCount(entry.getKey(), entry.getValue()))
+                        .sorted(Comparator.comparingInt(MethodCount::count).reversed()
+                                .thenComparing(count -> FIGHT_METHODS.indexOf(count.method())))
+                        .toList());
     }
 
     private static String sign(int home, int away) {

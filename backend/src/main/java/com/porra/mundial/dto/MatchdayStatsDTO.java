@@ -25,6 +25,8 @@ public record MatchdayStatsDTO(long members, List<MatchStats> matches) {
      * @param topScores    marcadores más repetidos, de más a menos
      * @param exactHits    aciertos del marcador exacto; null si el partido no ha terminado
      * @param signHits     aciertos del signo; null si el partido no ha terminado
+     * @param methods      UFC: cuántos eligieron cada método (KO_TKO, SUBMISSION, DECISION), de más a
+     *                     menos; vacío en el resto de deportes
      */
     public record MatchStats(
             Long matchId,
@@ -44,10 +46,15 @@ public record MatchdayStatsDTO(long members, List<MatchStats> matches) {
             int awayWins,
             List<ScoreCount> topScores,
             Integer exactHits,
-            Integer signHits) {
+            Integer signHits,
+            List<MethodCount> methods) {
     }
 
     /** Un marcador pronosticado y cuántos lo han puesto. */
     public record ScoreCount(int home, int away, int count) {
+    }
+
+    /** Un método de victoria pronosticado en una pelea de la UFC y cuántos lo han elegido. */
+    public record MethodCount(String method, int count) {
     }
 }

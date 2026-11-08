@@ -12,7 +12,7 @@ const matchday = {
   pointsByPrediction: {},
 } as unknown as MatchdayPoints;
 
-function renderSummary(myRank: number | null) {
+function renderSummary(myRank: number | null, fightCard = false) {
   render(
     <MemoryRouter>
       <MatchdaySummary
@@ -26,6 +26,7 @@ function renderSummary(myRank: number | null) {
         canGoNext={false}
         onSelect={vi.fn()}
         onStep={vi.fn()}
+        fightCard={fightCard}
       />
     </MemoryRouter>,
   );
@@ -49,5 +50,14 @@ describe('MatchdaySummary', () => {
     renderSummary(null);
 
     expect(screen.getByLabelText('Tus puntos en esta jornada: 7')).not.toHaveTextContent('º');
+  });
+
+  it('en la UFC habla de veladas y peleas, no de jornadas y partidos', () => {
+    renderSummary(3, true);
+
+    expect(screen.getByText('Velada actual')).toBeInTheDocument();
+    expect(screen.getByText('10 peleas')).toBeInTheDocument();
+    expect(screen.getByLabelText('Seleccionar velada')).toBeInTheDocument();
+    expect(screen.getByLabelText('Tus puntos en esta velada: 7, puesto 3')).toBeInTheDocument();
   });
 });

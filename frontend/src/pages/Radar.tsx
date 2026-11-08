@@ -5,6 +5,8 @@ import { useAppContext } from '../context/AppContext';
 import { openStats } from '../utils/navigation';
 import Flag from '../components/Flag';
 import type { Match, MatchRadar } from '../types/api';
+import { fightOutcomes } from '../utils/fights';
+import { FightBadge, FightResultLine } from '../components/fight/FightResult';
 
 type Kind = 'live' | 'next' | 'last';
 type Tab = 'next' | 'last';
@@ -47,11 +49,17 @@ const hasScore = (m: Match) => m.homeScore !== null && m.awayScore !== null;
 function MatchRow({ match, kind }: { match: Match; kind: Kind }) {
   const date = new Date(match.date ?? 0);
   const started = kind === 'live' && date <= new Date();
-  const showScore = kind === 'last' || (kind === 'live' && hasScore(match));
+  // Una pelea de la UFC no tiene marcador: cada luchador lleva su W o L.
+  const fight = kind === 'last' ? fightOutcomes(match.fight, match.finished) : null;
+  const showScore = !match.fight && (kind === 'last' || (kind === 'live' && hasScore(match)));
   const home = match.homeScore ?? 0;
   const away = match.awayScore ?? 0;
   const outcome = (side: 'home' | 'away') => {
-    if (kind !== 'last' || home === away) return '';
+    if (fight) {
+      const mark = fight[side];
+      return mark === 'W' ? ' is-winner' : mark === 'L' ? ' is-loser' : '';
+    }
+    if (match.fight || kind !== 'last' || home === away) return '';
     return (side === 'home') === home > away ? ' is-winner' : ' is-loser';
   };
 
@@ -68,6 +76,7 @@ function MatchRow({ match, kind }: { match: Match; kind: Kind }) {
           </span>
           <span className="radar-match-name">{match.home}</span>
           {showScore && <span className="radar-match-score">{match.homeScore}</span>}
+          {fight && <FightBadge outcome={fight.home} size="sm" />}
         </span>
         <span className={`radar-match-team${outcome('away')}`}>
           <span className="radar-match-crest">
@@ -75,7 +84,9 @@ function MatchRow({ match, kind }: { match: Match; kind: Kind }) {
           </span>
           <span className="radar-match-name">{match.away}</span>
           {showScore && <span className="radar-match-score">{match.awayScore}</span>}
+          {fight && <FightBadge outcome={fight.away} size="sm" />}
         </span>
+        {fight && <FightResultLine fight={match.fight} className="radar-match-fight" as="span" />}
       </span>
     </li>
   );

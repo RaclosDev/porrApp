@@ -3,23 +3,31 @@ package com.porra.mundial.service.prediction;
 import com.porra.mundial.dto.MatchSelectionDTO;
 import com.porra.mundial.dto.MatchSelectionRequest;
 import com.porra.mundial.exception.BusinessException;
+import com.porra.mundial.model.CardSegment;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.EditionCompetition;
 import com.porra.mundial.model.EditionFollowedTeam;
 import com.porra.mundial.model.EditionMatchChoice;
+import com.porra.mundial.model.EventSeries;
+import com.porra.mundial.model.Fight;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.MatchSelectionMode;
 import com.porra.mundial.model.PoolFormat;
 import com.porra.mundial.model.Sport;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.model.TennisScope;
+import com.porra.mundial.model.TennisTour;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionCompetitionRepository;
 import com.porra.mundial.repository.EditionFollowedTeamRepository;
 import com.porra.mundial.repository.EditionMatchChoiceRepository;
 import com.porra.mundial.repository.EditionRepository;
+import com.porra.mundial.repository.FightRepository;
 import com.porra.mundial.repository.MatchPredictionRepository;
 import com.porra.mundial.repository.MatchRepository;
+import com.porra.mundial.sports.TennisTournaments;
+import com.porra.mundial.util.AppTime;
 import com.porra.mundial.util.MatchRound;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -29,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -70,10 +79,104 @@ public class MatchSelectionService {
     private final EditionMatchChoiceRepository choiceRepository;
     private final EditionCompetitionRepository editionCompetitionRepository;
     private final ScoreInvalidationService scoreInvalidationService;
+    private final FightRepository fightRepository;
 
     /** Si la liga elige sus partidos; si no, entran todos y no hace falta consultar nada. */
     public static boolean selects(Edition edition) {
-        return edition != null && edition.getMatchSelection() == MatchSelectionMode.CUSTOM;
+        return edition != null && (edition.getMatchSelection() == MatchSelectionMode.CUSTOM || since(edition) != null
+                || segments(edition) != null || tennisSince(edition) != null);
+    }
+
+    /**
+     * Una liga de tenis de varios torneos cubre los partidos desde el día en que se creó: los de ediciones
+     * pasadas de sus torneos (cada torneo guarda todos sus años) ya no se pueden predecir. Null en el resto.
+     */
+    public static Instant tennisSince(Edition edition) {
+        if (edition == null || edition.getTennisScope() == null || edition.getCreatedAt() == null) return null;
+        return AppTime.startOfDay(AppTime.day(edition.getCreatedAt()));
+    }
+
+    /** Si el partido cae en lo que cubre una liga de tenis de varios torneos (siempre en el resto de ligas). */
+    public static boolean inTennisWindow(Edition edition, Match match) {
+        Instant since = tennisSince(edition);
+        // Un partido aún sin fecha es de una ronda por jugar: entra.
+        return since == null || match.getMatchDate() == null || !match.getMatchDate().isBefore(since);
+    }
+
+    /**
+     * Partes de la cartelera de cada velada que sigue una liga de la UFC (estelar, preliminares,
+     * preliminares tempranas). Null para la velada completa, y en el resto de ligas.
+     */
+    public static Set<CardSegment> segments(Edition edition) {
+        if (edition == null || edition.isMultiCompetition() || !Sport.isMma(edition.getCompetition())) return null;
+        return CardSegment.normalized(edition.getCardSegments());
+    }
+
+    /** Parte de la cartelera de cada pelea de la lista (las que no la tienen no aparecen). */
+    public Map<Long, String> fightSegments(Collection<Long> matchIds) {
+        if (matchIds.isEmpty()) return Map.of();
+        Map<Long, String> result = new HashMap<>();
+        for (Fight fight : fightRepository.findByMatchIdIn(matchIds)) {
+            if (fight.getCardSegment() != null) result.put(fight.getMatchId(), fight.getCardSegment());
+        }
+        return result;
+    }
+
+    /** Los partidos de la lista que caen en las partes de la cartelera que sigue la liga. */
+    private List<Match> inSegments(Set<CardSegment> segments, List<Match> matches) {
+        if (segments == null || matches.isEmpty()) return matches;
+        Map<Long, String> bySegment = fightSegments(matches.stream().map(Match::getId).toList());
+        return matches.stream().filter(m -> CardSegment.includes(segments, bySegment.get(m.getId()))).toList();
+    }
+
+    /**
+     * Una liga de la UFC con todas las veladas cubre las que acaban desde que se creó: las anteriores ya no
+     * se pueden predecir y solo llenarían el selector de veladas, también la de anoche si la liga se crea el
+     * domingo por la mañana. Una velada entra o queda fuera entera (ver {@link #roundsEndingFrom}): la que
+     * ya ha empezado al crear la liga entra si le queda alguna pelea. Null en el resto de ligas.
+     */
+    public static Instant since(Edition edition) {
+        if (edition == null || edition.getMatchSelection() != MatchSelectionMode.ALL || edition.getCreatedAt() == null
+                || edition.isMultiCompetition() || !Sport.isMma(edition.getCompetition())) {
+            return null;
+        }
+        return edition.getCreatedAt();
+    }
+
+    /**
+     * Serie de veladas que sigue una liga de la UFC con todas las veladas: solo las numeradas o solo las
+     * Fight Night. Null para todas, y en el resto de ligas.
+     */
+    public static EventSeries series(Edition edition) {
+        return since(edition) == null ? null : edition.getEventSeries();
+    }
+
+    private static boolean onOrAfter(Match match, Instant since) {
+        return since == null || (match.getMatchDate() != null && !match.getMatchDate().isBefore(since));
+    }
+
+    /**
+     * Veladas (rondas) cuya última pelea empieza desde {@code since}. Se mira la velada entera y no cada
+     * pelea: una velada que cruza la medianoche no se parte en preliminares fuera y cartelera estelar dentro.
+     */
+    private Set<String> roundsEndingFrom(Edition edition, Collection<String> rounds, Instant since) {
+        if (rounds.isEmpty() || edition.getCompetition() == null) return Set.of();
+        Set<String> result = new HashSet<>();
+        for (Object[] row : matchRepository.lastMatchDateByRound(edition.getCompetition().getId(), rounds)) {
+            if (row[1] instanceof Instant last && !last.isBefore(since)) result.add((String) row[0]);
+        }
+        return result;
+    }
+
+    /** Si el partido cae en las veladas que cubre la liga (siempre, salvo en las de la UFC). */
+    private boolean inWindow(Edition edition, Match match) {
+        if (!inTennisWindow(edition, match)) return false;
+        Instant since = since(edition);
+        if (since == null) return true;
+        EventSeries series = series(edition);
+        if (match.getRound() == null) return series == null && onOrAfter(match, since);
+        return EventSeries.includes(series, match.getRound())
+                && roundsEndingFrom(edition, List.of(match.getRound()), since).contains(match.getRound());
     }
 
     /**
@@ -117,7 +220,19 @@ public class MatchSelectionService {
     /** Los partidos de la lista que entran en la liga. */
     @Transactional(readOnly = true)
     public List<Match> filter(Edition edition, List<Match> matches) {
-        return of(edition).filter(matches);
+        List<Match> selected = inSegments(segments(edition), of(edition).filter(matches));
+        if (tennisSince(edition) != null) {
+            selected = selected.stream().filter(match -> inTennisWindow(edition, match)).toList();
+        }
+        Instant since = since(edition);
+        if (since == null) return selected;
+        EventSeries series = series(edition);
+        Set<String> rounds = roundsEndingFrom(edition, selected.stream().map(Match::getRound)
+                .filter(round -> round != null && EventSeries.includes(series, round))
+                .collect(Collectors.toSet()), since);
+        return selected.stream()
+                .filter(m -> m.getRound() != null ? rounds.contains(m.getRound()) : series == null && onOrAfter(m, since))
+                .toList();
     }
 
     /**
@@ -186,7 +301,8 @@ public class MatchSelectionService {
     /** Si un partido entra en la liga. */
     @Transactional(readOnly = true)
     public boolean contains(Edition edition, Match match) {
-        return coversCompetition(edition, match) && of(edition).contains(match);
+        return coversCompetition(edition, match) && of(edition).contains(match) && inWindow(edition, match)
+                && !inSegments(segments(edition), List.of(match)).isEmpty();
     }
 
     /** Calendario de una competición oficial para elegir partidos al crear una liga: entran todos. */
@@ -243,10 +359,18 @@ public class MatchSelectionService {
     public MatchSelectionDTO apply(Edition edition, MatchSelectionRequest request) {
         requireSelectable(edition);
         List<Long> beforeCompetitions = competitionIds(edition);
-        List<Long> requestedCompetitions = requestedCompetitions(edition, request, beforeCompetitions);
-        List<Competition> competitions = officialCompetitions(requestedCompetitions);
-        boolean multi = requestedCompetitions.size() > 1;
         MatchSelectionMode mode = request.mode();
+        // Tenis con todos los partidos: varios torneos (los cuadros del alcance) o uno solo.
+        boolean tennis = Sport.isTennis(edition.getCompetition());
+        TennisScope scope = !tennis || mode != MatchSelectionMode.ALL ? null
+                : request.tennisScope() != null ? request.tennisScope() : edition.getTennisScope();
+        TennisTour tour = scope == null ? null
+                : request.tennisTour() != null ? request.tennisTour()
+                : edition.getTennisTour() != null ? edition.getTennisTour() : TennisTour.BOTH;
+        List<Long> requestedCompetitions = scope != null ? scopeCompetitions(edition, scope, tour)
+                : requestedCompetitions(edition, request, beforeCompetitions);
+        List<Competition> competitions = officialCompetitions(requestedCompetitions, scope == null);
+        boolean multi = requestedCompetitions.size() > 1;
         // Los dos cuadros de un torneo de tenis se juntan enteros; el resto, eligiendo equipos o partidos.
         if (multi && mode != MatchSelectionMode.CUSTOM
                 && Sport.ofExternalId(competitions.get(0).getExternalId()) != Sport.TENNIS) {
@@ -276,10 +400,22 @@ public class MatchSelectionService {
         }
         MatchSelection requestedSelection = new MatchSelection(mode, requestedTeams,
                 new HashSet<>(request.includedOrEmpty()), new HashSet<>(request.excludedOrEmpty()));
-        Predicate<Match> requested = match -> in(match, requestedSet) && requestedSelection.contains(match);
+        // UFC: las partes de la cartelera pedidas, o las que ya tenía; en el resto de ligas no aplican.
+        boolean mma = !multi && Sport.isMma(edition.getCompetition());
+        if (request.cardSegments() != null && request.cardSegments().stream().noneMatch(Objects::nonNull)) {
+            throw BusinessException.badRequest("Elige al menos una parte de la cartelera");
+        }
+        Set<CardSegment> beforeSegments = segments(edition);
+        Set<CardSegment> requestedSegments = !mma ? null
+                : request.cardSegments() != null ? CardSegment.normalized(request.cardSegments()) : beforeSegments;
+        Map<Long, String> fightSegments = beforeSegments == null && requestedSegments == null ? Map.of()
+                : fightSegments(calendar.stream().map(Match::getId).toList());
+        Predicate<Match> requested = match -> in(match, requestedSet) && requestedSelection.contains(match)
+                && CardSegment.includes(requestedSegments, fightSegments.get(match.getId()));
 
         MatchSelection beforeSelection = of(edition);
-        Predicate<Match> before = match -> in(match, beforeSet) && beforeSelection.contains(match);
+        Predicate<Match> before = match -> in(match, beforeSet) && beforeSelection.contains(match)
+                && CardSegment.includes(beforeSegments, fightSegments.get(match.getId()));
         Map<Long, Integer> predictions = predictionCounts(edition);
         Instant now = Instant.now();
         // Cierre de cada partido con la selección actual (la jornada o el día son los de la liga).
@@ -287,6 +423,8 @@ public class MatchSelectionService {
                 calendar.stream().filter(before).toList());
         // Desde aquí, la jornada es la de la liga tal como queda (por semanas si junta varias competiciones).
         edition.setMultiCompetition(multi);
+        edition.setTennisScope(scope);
+        edition.setTennisTour(tour);
         Function<Match, Object> group = MatchdayLock.groupKey(edition);
 
         Map<Long, Match> wanted = new LinkedHashMap<>();
@@ -342,6 +480,10 @@ public class MatchSelectionService {
                         + ": tiene partidos cerrados con predicciones");
             }
         }
+        // Ni una parte de la cartelera con peleas cerradas y predicciones.
+        if (wanted.values().stream().anyMatch(m -> !CardSegment.includes(requestedSegments, fightSegments.get(m.getId())))) {
+            throw BusinessException.conflict("No puedes quitar esa parte de la cartelera: tiene peleas cerradas con predicciones");
+        }
         if (mode == MatchSelectionMode.CUSTOM && wanted.isEmpty()) {
             throw BusinessException.badRequest("Elige al menos un equipo o un partido");
         }
@@ -352,6 +494,11 @@ public class MatchSelectionService {
                 .map(Match::getId)
                 .collect(Collectors.toSet());
 
+        // UFC con todas las veladas: la serie pedida, o la que ya tenía; con otra selección no aplica.
+        boolean followsSeries = mode == MatchSelectionMode.ALL && !multi && Sport.isMma(edition.getCompetition());
+        edition.setEventSeries(!followsSeries ? null
+                : request.eventSeries() != null ? request.eventSeries() : edition.getEventSeries());
+        edition.setCardSegments(requestedSegments);
         persistCompetitions(edition, multi ? competitions : List.of());
         persist(edition, MatchSelection.normalized(mode, requestedTeams, requestedCalendar, wanted.keySet()));
 
@@ -380,9 +527,76 @@ public class MatchSelectionService {
         return ids;
     }
 
+    /**
+     * Cuadros de una liga de tenis de varios torneos, con el de la liga primero: tiene que ser uno de
+     * ellos. Están todos aunque ESPN aún no haya publicado su próxima edición: sus partidos entran solos
+     * cuando la sincronización los carga.
+     */
+    private List<Long> scopeCompetitions(Edition edition, TennisScope scope, TennisTour tour) {
+        List<String> externalIds = TennisTournaments.externalIds(scope, tour);
+        Long primary = edition.getCompetition().getId();
+        if (!externalIds.contains(edition.getCompetition().getExternalId())) {
+            throw BusinessException.badRequest("El torneo de la liga no entra en los torneos que sigue");
+        }
+        Map<String, Long> byExternalId = competitionRepository.findByExternalIdIn(externalIds).stream()
+                .filter(item -> item.getOwnerLeague() == null)
+                .collect(Collectors.toMap(Competition::getExternalId, Competition::getId, (left, right) -> left));
+        List<Long> ids = new ArrayList<>(List.of(primary));
+        externalIds.stream()
+                .map(byExternalId::get)
+                .filter(id -> id != null && !Objects.equals(id, primary))
+                .forEach(ids::add);
+        return ids;
+    }
+
+    /**
+     * Barrida diaria: añade a cada liga de tenis de varios torneos los cuadros de su alcance que aún no
+     * tiene (un torneo nuevo en el catálogo). Nunca quita ninguno.
+     *
+     * @return cuadros añadidos entre todas las ligas
+     */
+    @Transactional
+    public int syncTennisScopes() {
+        int added = 0;
+        for (Edition edition : editionRepository.findActiveWithTennisScope()) {
+            TennisTour tour = edition.getTennisTour() != null ? edition.getTennisTour() : TennisTour.BOTH;
+            Set<Long> current = new HashSet<>(competitionIds(edition));
+            List<Long> missing = scopeCompetitionsOrNone(edition, tour).stream()
+                    .filter(id -> !current.contains(id))
+                    .toList();
+            if (missing.isEmpty()) continue;
+            List<EditionCompetition> rows = new ArrayList<>();
+            if (!edition.isMultiCompetition()) {
+                // Una liga de un solo cuadro no guardaba su principal en edition_competitions.
+                rows.add(new EditionCompetition(new EditionCompetition.Key(edition.getId(),
+                        edition.getCompetition().getId())));
+                edition.setMultiCompetition(true);
+                editionRepository.save(edition);
+            }
+            missing.forEach(id -> rows.add(new EditionCompetition(new EditionCompetition.Key(edition.getId(), id))));
+            editionCompetitionRepository.saveAll(rows);
+            added += missing.size();
+            scoreInvalidationService.evictLeaderboardAfterCommit(edition.getLeague().getId());
+        }
+        return added;
+    }
+
+    private List<Long> scopeCompetitionsOrNone(Edition edition, TennisTour tour) {
+        try {
+            return scopeCompetitions(edition, edition.getTennisScope(), tour);
+        } catch (BusinessException error) {
+            return List.of();
+        }
+    }
+
     /** Competiciones oficiales del mismo deporte que la primera, en el orden pedido. */
     private List<Competition> officialCompetitions(List<Long> ids) {
-        if (ids.size() > MAX_COMPETITIONS) {
+        return officialCompetitions(ids, true);
+    }
+
+    /** Lo mismo; sin límite para los cuadros de una liga de tenis de varios torneos. */
+    private List<Competition> officialCompetitions(List<Long> ids, boolean limited) {
+        if (limited && ids.size() > MAX_COMPETITIONS) {
             throw BusinessException.badRequest("Como mucho " + MAX_COMPETITIONS + " competiciones");
         }
         Map<Long, Competition> found = competitionRepository.findAllById(ids).stream()

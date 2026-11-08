@@ -286,6 +286,13 @@ export interface LeagueSummary {
   pendingPredictions: number;
 }
 
+/** Una de las competiciones de una liga que junta varias. */
+export interface LeagueCompetition {
+  id: number;
+  name: string;
+  externalId: string | null;
+}
+
 export interface Group {
   id: number;
   name: string;
@@ -316,6 +323,8 @@ export interface Group {
   matchSelection?: MatchSelectionMode | null;
   /** Junta partidos de varias competiciones (la de `competitionId` es la principal); sus jornadas son semanas. */
   multiCompetition?: boolean;
+  /** En una liga de varias competiciones, cada una (la principal primero) para ver su tabla. */
+  competitions?: LeagueCompetition[] | null;
   /** Tenis de varios torneos: cuáles sigue; null en una liga de un solo torneo. */
   tennisScope?: TennisScope | null;
   /** Tenis de varios torneos: cuadros que sigue. */
@@ -386,7 +395,7 @@ export interface MatchSelectionView {
   keptMatches: number;
 }
 
-/** UFC: veladas numeradas («UFC 334») o el resto (Fight Night y demás sin número). */
+/** UFC: veladas numeradas y especiales («UFC 334», «UFC Freedom 250») o las Fight Night. */
 export type EventSeries = 'NUMBERED' | 'FIGHT_NIGHT';
 
 /** Tenis: torneos de una liga de varios (todos, Grand Slams o Masters 1000 con las ATP Finals). */

@@ -50,10 +50,13 @@ describe('scoringRules', () => {
     expect(nba).not.toContain('roundOf16Points');
   });
 
-  it('las reglas del cuadro, las de jornadas, las de superviviente, las de la NBA y las de Fórmula 1 cubren todas las del backend', () => {
+  it('las reglas del cuadro, las de jornadas, las de peleas, las de superviviente, las de la NBA y las de Fórmula 1 cubren todas las del backend', () => {
     const shown = new Set([
       ...keysOf('FULL_BRACKET', true),
       ...keysOf('MATCH_DAY', true),
+      ...scoringSections('MATCH_DAY', false, false, false, false, null, true).flatMap((section) =>
+        section.fields.map((field) => field.key),
+      ),
       ...keysOf('SURVIVOR', false),
       ...keysOf('GRAND_PRIX', false),
       ...scoringSections('KNOCKOUTS_ONLY', false, true, true).flatMap((section) =>

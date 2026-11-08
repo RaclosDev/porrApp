@@ -7,6 +7,8 @@ import com.porra.mundial.service.notification.*;
 import com.porra.mundial.service.prediction.*;
 import com.porra.mundial.service.sync.*;
 import com.porra.mundial.service.tournament.*;
+import org.mockito.Answers;
+import org.springframework.cache.CacheManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,6 +28,7 @@ class DataInitializerTest {
     @Mock KnockoutBracketService knockout;
     @Mock ObjectMapper mapper;
     @Mock InitialSyncExecutor executor;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS) CacheManager cacheManager;
     @InjectMocks DataInitializer initializer;
 
     @Test
