@@ -150,7 +150,11 @@ it('en una liga de la UFC enseña la cartelera de la velada actual, no una tabla
   expect(within(main).getByText('Pelea estelar')).toBeVisible();
   expect(within(main).getByText('27-1-0')).toBeVisible();
   expect(within(main).getByText('Récord: 27 victorias, 1 derrota y 0 empates')).toBeInTheDocument();
-  expect(within(main).getByText(/Gana Islam Makhachev por Sumisión/)).toBeVisible();
+  expect(within(main).getByText('Sumisión (mataleón)')).toBeVisible();
+  expect(within(main).getByText('Asalto 3')).toBeVisible();
+  expect(within(main).getByText('2:10')).toBeVisible();
+  expect(within(main).getByTitle('Victoria')).toHaveTextContent('W');
+  expect(within(main).getByTitle('Derrota')).toHaveTextContent('L');
   // Reparto de la liga, método favorito y aciertos.
   expect(within(main).getByText('75 %')).toBeVisible();
   expect(within(main).getByText('25 %')).toBeVisible();

@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import PaperLoading from '../PaperLoading';
 import { useAppContext } from '../../context/AppContext';
 import { useMatchdayStats } from '../../hooks/useMatchdayStats';
@@ -18,11 +18,13 @@ import {
   roundsFromMatchdays,
 } from '../../utils/matchday';
 import {
-  fightResultText,
+  fightOutcomes,
   methodRoundText,
   segmentLabel,
   weightClassLabel,
+  type FightOutcome,
 } from '../../utils/fights';
+import { FightBadge, FightResultLine } from '../fight/FightResult';
 import {
   cardSummary,
   groupCard,
@@ -38,19 +40,18 @@ function Fighter({
   photo,
   record,
   corner,
-  winner,
-  loser,
+  outcome,
 }: {
   name: string;
   photo: string | null;
   record: string | null | undefined;
   corner: 'red' | 'blue';
-  winner: boolean;
-  loser: boolean;
+  /** W, L, D o NC al acabar; null antes. */
+  outcome: FightOutcome | null;
 }) {
   return (
     <div
-      className={`ufc-fighter is-${corner}${winner ? ' is-winner' : ''}${loser ? ' is-loser' : ''}`}
+      className={`ufc-fighter is-${corner}${outcome === 'W' ? ' is-winner' : ''}${outcome === 'L' ? ' is-loser' : ''}`}
     >
       {photo ? (
         <img className="ufc-fighter-photo" src={photo} alt="" loading="lazy" />
@@ -62,11 +63,7 @@ function Fighter({
       <span className="ufc-fighter-copy">
         <span className="ufc-fighter-name">
           {name}
-          {winner && (
-            <span className="ufc-fighter-win">
-              <Check size={12} strokeWidth={3} aria-hidden="true" /> Gana
-            </span>
-          )}
+          {outcome && <FightBadge outcome={outcome} size="sm" />}
         </span>
         {record && (
           <span className="ufc-fighter-record">
@@ -160,7 +157,7 @@ function OwnPick({ fixture }: { fixture: MatchdayFixture }) {
 function Bout({ fixture, stats }: { fixture: MatchdayFixture; stats?: MatchStats }) {
   const fight = fixture.fight!;
   const cancelled = fixture.status === 'CANCELLED';
-  const decided = Boolean(fixture.finished && fight.winner);
+  const outcomes = cancelled ? null : fightOutcomes(fight, fixture.finished);
   const status = cancelled
     ? 'Cancelada'
     : fixture.finished
@@ -194,8 +191,7 @@ function Bout({ fixture, stats }: { fixture: MatchdayFixture; stats?: MatchStats
             photo={fixture.homeTeamLogo}
             record={fight.homeRecord}
             corner="red"
-            winner={decided && fight.winner === '1'}
-            loser={decided && fight.winner === '2'}
+            outcome={outcomes?.home ?? null}
           />
           <span className="ufc-bout-vs" aria-hidden="true">
             vs
@@ -205,14 +201,11 @@ function Bout({ fixture, stats }: { fixture: MatchdayFixture; stats?: MatchStats
             photo={fixture.awayTeamLogo}
             record={fight.awayRecord}
             corner="blue"
-            winner={decided && fight.winner === '2'}
-            loser={decided && fight.winner === '1'}
+            outcome={outcomes?.away ?? null}
           />
         </div>
 
-        {fixture.finished && !cancelled && (
-          <p className="ufc-bout-result">{fightResultText(fixture)}</p>
-        )}
+        {outcomes && <FightResultLine fight={fight} className="ufc-bout-result" />}
         {!cancelled && <LeagueSplitBar fixture={fixture} stats={stats} />}
         <OwnPick fixture={fixture} />
       </article>

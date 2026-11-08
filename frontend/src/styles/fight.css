@@ -1,0 +1,120 @@
+@layer components {
+  /* Resultado de una pelea de la UFC: insignias W/L/D/NC y método, asalto y tiempo. */
+  .fight-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fight-badge.is-sm {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 5px;
+    font-size: 0.64rem;
+  }
+
+  /* Blanco sobre estos fondos: 6,7:1 (azul), 6,5:1 (rojo) y 7,6:1 (gris). */
+  .fight-badge.is-w {
+    background: #1d4ed8;
+  }
+
+  .fight-badge.is-l {
+    background: #b91c1c;
+  }
+
+  .fight-badge.is-d,
+  .fight-badge.is-nc {
+    background: #4b5563;
+  }
+
+  .fight-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 0;
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* « · » con sus espacios: también se oye y se copia separado. */
+  .fight-result-sep {
+    margin: 0 2px;
+    white-space: pre;
+  }
+
+  .fight-result-method {
+    font-weight: 800;
+    color: var(--text-main);
+  }
+}
+
+@layer components {
+  /* Portada y Partidos: la línea del resultado bajo los luchadores. */
+  .home-match-fight {
+    justify-content: center;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  .radar-match-fight {
+    margin-top: 4px;
+  }
+}
+
+@layer components {
+  /* Visor de predicciones: el nombre se corta con la insignia al lado. */
+  .friends-predictions-team > .friends-predictions-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .friends-predictions-fight {
+    justify-content: center;
+    padding: 0 20px 8px;
+    text-align: center;
+  }
+}
+
+@layer components {
+  /* Jornadas: la insignia en la esquina del botón de cada luchador. */
+  .md-fight-corner {
+    position: relative;
+  }
+
+  .md-fight-corner > .fight-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+  }
+
+  .md-fight-outcome {
+    margin-top: 10px;
+    font-size: 0.85rem;
+  }
+}
+
+@layer components {
+  /* Cartelera de la pestaña Tabla. */
+  .ufc-bout-result {
+    margin-top: 10px;
+    font-size: 0.85rem;
+  }
+}

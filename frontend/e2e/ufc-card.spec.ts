@@ -153,6 +153,31 @@ async function mockUfcLeague(page: Page) {
         ],
       },
       '/api/matches/radar': { live: [], last: [], next: [] },
+      // Los partidos de la competición, como los da MatchResponseDTO: con su pelea.
+      '/api/matches': fixtures.map((f) => ({
+        id: f.matchId,
+        home: f.homeTeam,
+        away: f.awayTeam,
+        home_team_id: null,
+        away_team_id: null,
+        homeLogo: null,
+        awayLogo: null,
+        homeTeamLogo: null,
+        awayTeamLogo: null,
+        homeScore: f.finished ? (f.fight.winner === '1' ? 1 : 0) : null,
+        awayScore: f.finished ? (f.fight.winner === '2' ? 1 : 0) : null,
+        home_score: f.finished ? (f.fight.winner === '1' ? 1 : 0) : null,
+        away_score: f.finished ? (f.fight.winner === '2' ? 1 : 0) : null,
+        date: f.matchDate,
+        finished: f.finished,
+        round: f.round,
+        groupName: null,
+        winner: null,
+        displayClock: null,
+        isStartingSoon: false,
+        status: f.finished ? 'FINISHED' : 'TIMED',
+        fight: f.fight,
+      })),
     };
     return route.fulfill({ json: responses[url.pathname] ?? [] });
   });
@@ -174,7 +199,9 @@ test('the Tabla tab of a UFC league is the fight card, with the league split and
   await expect(page.getByRole('table')).toHaveCount(0);
 
   const finished = page.getByRole('article', { name: 'Iker Ibarra contra Pol Puig' });
-  await expect(finished).toContainText('Gana Iker Ibarra por KO/TKO (Punches) en el asalto 2');
+  await expect(finished).toContainText('KO/TKO (puñetazos) · Asalto 2 · Tiempo: 4:39');
+  await expect(finished.getByTitle('Victoria')).toHaveText(/W/);
+  await expect(finished.getByTitle('Derrota')).toHaveText(/L/);
   await expect(finished).toContainText('80 %');
   await expect(finished).toContainText('Método favorito: KO/TKO (75 %)');
   await expect(finished).toContainText('+3 puntos');
@@ -183,6 +210,40 @@ test('the Tabla tab of a UFC league is the fight card, with the league split and
   await expect(main).toContainText('Pelea estelar');
   await expect(main).toContainText('se verá cuando se cierre la predicción');
   await expect(main).toContainText('Tu predicción: Ángel Azul');
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('the home page shows a finished UFC fight with W and L badges and how it ended, not a score', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await mockUfcLeague(page);
+
+  await page.goto('/');
+
+  const card = page.locator('.home-match-card').filter({ hasText: 'Iker Ibarra' });
+  await expect(card).toBeVisible();
+  await expect(card).not.toContainText('1 - 0');
+  await expect(card.getByTitle('Victoria')).toHaveText(/W/);
+  await expect(card.getByTitle('Derrota')).toHaveText(/L/);
+  await expect(card).toContainText('KO/TKO (puñetazos) · Asalto 2 · Tiempo: 4:39');
+  // W en azul y L en rojo, con texto blanco.
+  const colors = await card
+    .locator('.fight-badge')
+    .evaluateAll((badges) =>
+      badges.map((badge) => [
+        getComputedStyle(badge).backgroundColor,
+        getComputedStyle(badge).color,
+      ]),
+    );
+  expect(colors).toEqual([
+    ['rgb(29, 78, 216)', 'rgb(255, 255, 255)'],
+    ['rgb(185, 28, 28)', 'rgb(255, 255, 255)'],
+  ]);
 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);

@@ -15,6 +15,10 @@ public interface FightRepository extends JpaRepository<Fight, Long> {
 
     List<Fight> findByMatchIdIn(Collection<Long> matchIds);
 
+    /** Peleas de los partidos de unas competiciones (las de la UFC). */
+    @Query("select f from Fight f, Match m where m.id = f.matchId and m.competition.id in :competitionIds")
+    List<Fight> findByCompetitionIdIn(@Param("competitionIds") Collection<Long> competitionIds);
+
     /**
      * Ligas de una sola velada: las que eligen sus peleas a mano y tienen alguna de esa velada. Las peleas
      * que se añadan después a la cartelera entran solas en ellas.

@@ -113,9 +113,12 @@ describe('FightCard', () => {
       'is-active',
     );
     expect(screen.getByRole('button', { name: 'Asalto 3' })).toHaveClass('is-result');
-    expect(
-      screen.getByText('Gana Tom Nolan por KO/TKO (Elbows) en el asalto 3 (1:28)'),
-    ).toBeInTheDocument();
+    // Sin «0 - 1»: W y L en cada luchador, y debajo el método, el asalto y el tiempo.
+    expect(screen.getByText('W').closest('.fight-badge')).toHaveClass('is-w');
+    expect(screen.getByText('L').closest('.fight-badge')).toHaveClass('is-l');
+    expect(screen.getByText('KO/TKO (codazos)')).toBeInTheDocument();
+    expect(screen.getByText('1:28')).toBeInTheDocument();
+    expect(screen.getByText('Asalto 3', { selector: '.fight-result span' })).toBeInTheDocument();
     expect(screen.getByText(/Ganador \+3 · Método \+2 · Asalto \+2/)).toBeInTheDocument();
     expect(screen.getByText('+7 pts')).toBeInTheDocument();
   });
