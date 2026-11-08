@@ -62,6 +62,33 @@
     font-weight: 800;
     color: var(--text-main);
   }
+
+  /* Título en juego: ámbar 900 sobre ámbar 100 (8,9:1), como el oro de un cinturón. */
+  .fight-title-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border: 1px solid #d97706;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #78350f;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .fight-judges {
+    margin: 2px 0 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fight-judges-scores {
+    font-weight: 700;
+    color: var(--text-main);
+  }
 }
 
 @layer components {

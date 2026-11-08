@@ -65,6 +65,7 @@ public class FightCardService {
         changed |= set(f.getCardSegment(), text(ufc, "segment"), f::setCardSegment);
         changed |= set(f.getBoutOrder(), number(ufc, "order"), f::setBoutOrder);
         changed |= set(f.getWeightClass(), text(ufc, "weightClass"), f::setWeightClass);
+        changed |= set(f.getTitle(), text(ufc, "title"), f::setTitle);
         changed |= set(f.getScheduledRounds(), number(ufc, "rounds"), f::setScheduledRounds);
         changed |= set(f.getHomeRecord(), text(ufc, "homeRecord"), f::setHomeRecord);
         changed |= set(f.getAwayRecord(), text(ufc, "awayRecord"), f::setAwayRecord);
@@ -73,6 +74,7 @@ public class FightCardService {
         changed |= resultChanged;
         changed |= set(f.getResultDetail(), text(ufc, "methodDetail"), f::setResultDetail);
         changed |= set(f.getResultClock(), text(ufc, "clock"), f::setResultClock);
+        changed |= set(f.getJudgesScores(), text(ufc, "judgesScores"), f::setJudgesScores);
         if (changed) fightRepository.save(f);
         if (created) includeInSingleEventLeagues(f);
 

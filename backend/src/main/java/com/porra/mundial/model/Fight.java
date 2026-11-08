@@ -36,6 +36,10 @@ public class Fight {
     @Column(name = "weight_class", length = 60)
     private String weightClass;
 
+    /** Título en juego tal como lo da ESPN («UFC Heavyweight Title»); null si no hay título. */
+    @Column(name = "title", length = 60)
+    private String title;
+
     /** Asaltos previstos (3 o 5). */
     @Column(name = "scheduled_rounds")
     private Integer scheduledRounds;
@@ -61,4 +65,8 @@ public class Fight {
     /** Tiempo del asalto en que acabó («1:28»). */
     @Column(name = "result_clock", length = 10)
     private String resultClock;
+
+    /** Tarjetas de los jueces de una decisión, separadas por «|» («30-27 | 29-28 | 30-27»). */
+    @Column(name = "judges_scores", length = 40)
+    private String judgesScores;
 }

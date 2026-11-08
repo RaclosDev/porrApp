@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { matchdayFixture } from '../context/fixtures';
 import type { FightInfo } from '../../types/api';
 import {
+  boutBilling,
+  judgesScoresText,
+  titleLabel,
   fightMethodText,
   fightOutcomes,
   fightResultParts,
@@ -120,6 +123,40 @@ describe('textos de pelea', () => {
   it('resume el método y el asalto elegidos', () => {
     expect(methodRoundText('SUBMISSION', 2)).toBe('Sumisión · asalto 2');
     expect(methodRoundText(null, null)).toBe('');
+  });
+});
+
+describe('cartel de una pelea', () => {
+  it('marca el título en juego, también el interino', () => {
+    expect(titleLabel(fight({ title: 'UFC Heavyweight Title' }))).toBe('Por el título');
+    expect(titleLabel(fight({ title: 'UFC Interim Lightweight Title' }))).toBe(
+      'Por el título interino',
+    );
+    expect(titleLabel(fight({ title: null }))).toBeNull();
+    expect(titleLabel(fight())).toBeNull();
+  });
+
+  it('llama estelar a la primera pelea y coestelar a la segunda de la cartelera estelar', () => {
+    expect(boutBilling(fight({ order: 1 }))).toBe('Pelea estelar');
+    expect(boutBilling(fight({ order: 2 }))).toBe('Coestelar');
+    expect(boutBilling(fight({ order: 2, segment: 'PRELIMS' }))).toBeNull();
+    expect(boutBilling(fight({ order: 5 }))).toBeNull();
+  });
+
+  it('da las tarjetas de los jueces solo en las decisiones', () => {
+    expect(
+      judgesScoresText(fight({ resultMethod: 'DECISION', judgesScores: '30-27 | 29-28 | 30-27' })),
+    ).toBe('30-27, 29-28, 30-27');
+    expect(
+      judgesScoresText(fight({ resultMethod: 'KO_TKO', judgesScores: '30-27 | 29-28 | 30-27' })),
+    ).toBeNull();
+    // ESPN las da desde la esquina roja: si gana la azul, se giran.
+    expect(
+      judgesScoresText(
+        fight({ resultMethod: 'DECISION', winner: '2', judgesScores: '28-29 | 29-28 | 28-29' }),
+      ),
+    ).toBe('29-28, 28-29, 29-28');
+    expect(judgesScoresText(fight({ resultMethod: 'DECISION' }))).toBeNull();
   });
 });
 
