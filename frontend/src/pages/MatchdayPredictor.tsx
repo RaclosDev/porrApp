@@ -1,7 +1,7 @@
 import PaperLoading from '../components/PaperLoading';
 import LeagueLoadState from '../components/LeagueLoadState';
-import { useEffect, type ReactNode } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { type ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import MatchFriendsPredictionsModal from '../components/MatchFriendsPredictionsModal';
 import MatchdayHeader from '../components/matchday/MatchdayHeader';
@@ -13,6 +13,7 @@ import FightCard from '../components/matchday/FightCard';
 import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
+import { useRequestedGroup } from '../hooks/useRequestedGroup';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
 import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
@@ -44,36 +45,6 @@ function MatchdayPredictor() {
     grandPrix: <Navigate to="/" replace />,
   };
   return views[context.leagueKind];
-}
-
-/**
- * Abre la liga de `?group=ID` (p. ej. desde un recordatorio) si el usuario es miembro.
- * Devuelve `true` mientras la petición está pendiente, para no pintar (ni redirigir desde)
- * la liga que estaba activa antes de cambiar.
- */
-function useRequestedGroup({
-  userGroups,
-  userGroupsLoaded,
-  activeGroupId,
-  changeGroup,
-}: ReturnType<typeof useAppContext>) {
-  const [params, setParams] = useSearchParams();
-  const requested = params.get('group');
-  useEffect(() => {
-    // Hasta que llegan las ligas, `userGroups` es una lista vacía: esperar o se descartaría la petición.
-    if (!requested || !userGroupsLoaded) return;
-    const group = userGroups.find((candidate) => String(candidate.id) === requested);
-    if (group && String(activeGroupId) !== requested) changeGroup(group.id);
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        next.delete('group');
-        return next;
-      },
-      { replace: true },
-    );
-  }, [requested, userGroups, userGroupsLoaded, activeGroupId, changeGroup, setParams]);
-  return Boolean(requested);
 }
 
 /**

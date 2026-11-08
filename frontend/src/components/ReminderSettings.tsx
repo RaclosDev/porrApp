@@ -12,8 +12,8 @@ import { PUSH_CONFIG_QUERY_KEY } from './layout/PushReminderPrompt';
 import { errorMessage } from '../utils/errors';
 
 /**
- * Preferencias de avisos: recordatorio una hora antes del cierre de cada partido sin predicción y
- * aviso cuando alguien se une a una de tus ligas.
+ * Preferencias de avisos: recordatorio una hora antes del cierre de cada partido sin predicción,
+ * aviso cuando alguien se une a una de tus ligas y aviso al terminar una jornada.
  */
 export default function ReminderSettings() {
   const queryClient = useQueryClient();
@@ -34,7 +34,7 @@ export default function ReminderSettings() {
       ? 'Las notificaciones están bloqueadas en este navegador: actívalas en sus ajustes.'
       : permission === 'unsupported'
         ? 'Este navegador no admite notificaciones.'
-        : 'Te avisamos antes de que cierre un partido sin tu predicción y cuando alguien entra en tus ligas.';
+        : 'Te avisamos antes de que cierre un partido sin tu predicción, cuando alguien entra en tus ligas y cuando termina una jornada.';
 
   const toggle = async (key: keyof PushPreferences, enabled: boolean) => {
     setSaving(true);
@@ -76,6 +76,18 @@ export default function ReminderSettings() {
         />
         <span className="text-[0.9rem] font-bold text-main">
           Avisarme cuando alguien se una a mis ligas
+        </span>
+      </label>
+      <label className="flex items-center gap-2.5 cursor-pointer">
+        <input
+          type="checkbox"
+          className="w-5 h-5 accent-[var(--ink)]"
+          checked={config.matchdayFinishedEnabled}
+          disabled={saving}
+          onChange={(event) => void toggle('matchdayFinishedEnabled', event.target.checked)}
+        />
+        <span className="text-[0.9rem] font-bold text-main">
+          Avisarme cuando termine una jornada, con el ranking
         </span>
       </label>
       <span className="text-[0.74rem] text-muted">{hint}</span>

@@ -20,7 +20,12 @@ vi.mock('../../services/api', () => ({
   deletePasskey: vi.fn(),
   fetchPushConfig: vi
     .fn()
-    .mockResolvedValue({ publicKey: null, remindersEnabled: true, memberJoinedEnabled: true }),
+    .mockResolvedValue({
+      publicKey: null,
+      remindersEnabled: true,
+      memberJoinedEnabled: true,
+      matchdayFinishedEnabled: true,
+    }),
   setPushPreferences: vi.fn(),
 }));
 
