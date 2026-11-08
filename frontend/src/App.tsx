@@ -6,6 +6,7 @@ import { leaderPredictionId } from './utils/demoPrediction';
 import Layout from './components/Layout';
 import PwaUpdater from './components/PwaUpdater';
 import PushNavigation from './components/PushNavigation';
+import ScrollOnNavigate from './components/ScrollOnNavigate';
 import CookieConsent from './components/layout/CookieConsent';
 import RouteHead from './components/layout/RouteHead';
 import { RequireLeague } from './components/NoLeagueState';
@@ -179,6 +180,7 @@ function App() {
       <Router>
         <PwaUpdater />
         <PushNavigation />
+        <ScrollOnNavigate />
         <RouteHead />
         <CookieConsent />
         <ConfirmDialog />
