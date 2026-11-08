@@ -120,7 +120,7 @@ class SyncQueryCountTest {
             if (wanted) events.getOrDefault(slug, List.of()).forEach(array::add);
             return array;
         });
-        when(providerRegistry.getProviderForCompetition(anyString())).thenReturn(provider);
+        when(providerRegistry.findProviderForCompetition(anyString())).thenReturn(java.util.Optional.of(provider));
     }
 
     private record Measure(long statements, long matchLoads, long standingLoads) {

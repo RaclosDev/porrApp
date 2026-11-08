@@ -9,8 +9,6 @@ import {
 } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import { computeCustomGroupTables } from '../utils/customBracket';
-import { isUfcCompetition } from '../utils/fightCard';
-import { isTennisCompetition } from '../utils/tennisDraw';
 import { KNOCKOUT_ROUNDS, computeSwissStandings } from '../utils/officialTournament';
 import { normalizeCountryName } from '../utils/constants';
 import {
@@ -22,11 +20,27 @@ import {
 import { displayRoundLabel } from '../utils/matchday';
 import { useSortedGroups } from './useSortedGroups';
 import type { Match } from '../types/api';
-import { isMatchBasedFormat } from '../utils/poolFormat';
+import type { LeagueKind } from '../context/leagueKind';
 
 const MINI_TABLE_SIZE = 5;
 
-type LeagueHomeFormat = 'matchday' | 'custom' | 'worldcup' | 'official';
+/** De dónde salen los partidos y la tabla de la portada; `null`: la clase no tiene esta portada. */
+type LeagueHomeSource = 'matchday' | 'custom' | 'worldCup' | 'official' | null;
+
+const HOME_SOURCE: Record<LeagueKind, LeagueHomeSource> = {
+  matchday: 'matchday',
+  fightCard: 'matchday',
+  tennisDraw: 'matchday',
+  customBracket: 'custom',
+  worldCup: 'worldCup',
+  ownBracket: 'official',
+  knockoutDraw: 'official',
+  grandPrix: null,
+  loading: null,
+  error: null,
+  none: null,
+  unknown: null,
+};
 
 export interface MiniStandingRow {
   /** Nombre original del equipo: identifica la fila y su escudo. */
@@ -54,20 +68,11 @@ interface LeagueHomeData {
   loading: boolean;
 }
 
-/** Formato de la liga activa, que decide de dónde salen los partidos y la tabla de la portada. */
-export function useLeagueHomeFormat(): LeagueHomeFormat {
-  const {
-    activeGroupPoolFormat,
-    activeCompetitionFormatType,
-    activeGroupCustomCompetition,
-    activeGroupWorldCup,
-  } = useAppContext();
-  if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE')
-    return 'matchday';
-  if (activeGroupCustomCompetition) return 'custom';
-  // Grupos, terceros y pichichi oficiales solo si la liga es del Mundial; nunca por defecto.
-  return activeGroupWorldCup ? 'worldcup' : 'official';
-}
+const NO_HOME: Omit<LeagueHomeData, 'loading'> = {
+  subtitle: '',
+  matches: { title: '', items: [], to: '/', action: '', allTo: '/', empty: '' },
+  standings: null,
+};
 
 const logosOf = (matches: Match[]) => {
   const logos: Record<string, string> = {};
@@ -85,32 +90,34 @@ const logosOf = (matches: Match[]) => {
  * equipos. Cada formato solo cambia de dónde salen; la portada los pinta siempre igual.
  */
 export function useLeagueHomeData(): LeagueHomeData {
-  const format = useLeagueHomeFormat();
   const {
+    leagueKind,
     allGames: competitionGames,
     activeCompetitionId,
     activeGroupId,
     activeGroupCustomCompetition,
-    activeGroupKnockoutDraw,
     activeGroupPicksMatches,
     activeGroupMultiCompetition,
     activeCompetitionExternalId,
   } = useAppContext();
+  const format = HOME_SOURCE[leagueKind];
+  const knockoutDraw = leagueKind === 'knockoutDraw';
   // En la UFC no hay tabla de equipos (los «equipos» son luchadores): su tabla es la cartelera.
-  const ufc = isUfcCompetition(activeCompetitionExternalId);
+  const ufc = leagueKind === 'fightCard';
+  // La NFL no da puntos: se enseña el balance de victorias y derrotas.
   const winLoss = activeCompetitionExternalId === 'nfl';
   // En el tenis, igual: su tabla es el cuadro del torneo.
-  const tennis = isTennisCompetition(activeCompetitionExternalId);
+  const tennis = leagueKind === 'tennisDraw';
   // En unas eliminatorias (Champions…) la fase de liga no se pronostica: la portada enseña los cruces.
   const allGames = useMemo(
     () =>
-      activeGroupKnockoutDraw
+      knockoutDraw
         ? competitionGames.filter(
             // En los playoffs de la NBA el play-in también se pronostica.
             (match) => KNOCKOUT_ROUNDS.includes(match.round) || match.round === 'playin',
           )
         : competitionGames,
-    [competitionGames, activeGroupKnockoutDraw],
+    [competitionGames, knockoutDraw],
   );
   const groupId = activeGroupId ? Number(activeGroupId) : null;
   const sortedGroups = useSortedGroups();
@@ -201,11 +208,14 @@ export function useLeagueHomeData(): LeagueHomeData {
       };
     }
 
+    // Sin portada de partidos (Fórmula 1, sin liga o aún cargando): nada que enseñar.
+    if (format === null) return NO_HOME;
+
     const { finished, matches } = upcomingMatches(allGames);
     const groupName = nextGroupName(allGames);
     let standings: LeagueHomeData['standings'] = null;
 
-    if (format === 'worldcup' && groupName && sortedGroups[groupName]) {
+    if (format === 'worldCup' && groupName && sortedGroups[groupName]) {
       standings = {
         title: `Grupo ${groupName}`,
         to: '/grupos',
@@ -235,7 +245,7 @@ export function useLeagueHomeData(): LeagueHomeData {
             value: `${row.points} pts`,
           })),
         };
-    } else if (format === 'official' && !activeGroupKnockoutDraw) {
+    } else if (format === 'official' && !knockoutDraw) {
       const swiss = computeSwissStandings(allGames);
       if (swiss.length > 0)
         standings = {
@@ -271,7 +281,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     leagueStandings,
     sortedGroups,
     customTeams,
-    activeGroupKnockoutDraw,
+    knockoutDraw,
     activeGroupMultiCompetition,
     winLoss,
     tennis,

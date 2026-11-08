@@ -137,6 +137,6 @@ public class LeagueResponseDTO {
                 .multiCompetition(edition.isMultiCompetition())
                 .tennisScope(edition.getTennisScope() != null ? edition.getTennisScope().name() : null)
                 .tennisTour(edition.getTennisTour() != null ? edition.getTennisTour().name() : null)
-                .pichichi(edition.isPichichi());
+                .pichichi(edition.scoresPichichi());
     }
 }

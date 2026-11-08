@@ -19,6 +19,7 @@ import {
   type ScoringDraft,
 } from '../../utils/scoringRules';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
+import { isWorldCupCompetition } from '../../context/leagueKind';
 import { isNbaCompetition } from '../../utils/nbaPlayoffs';
 import {
   BRACKET_LOCK_MODES,
@@ -412,11 +413,14 @@ export function formatUnavailableReason(
   return null;
 }
 
-/** Torneo oficial con cuadro propio (no el Mundial) o competición personalizada: se cierra cruce a cruce. */
+/**
+ * Competición personalizada o torneo oficial con cuadro propio: se cierra cruce a cruce. El cuadro
+ * del Mundial se cierra de una vez, antes del torneo.
+ */
 const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
   if (draft.custom) return true;
   const competition = selectedCompetition(draft, ctx);
-  return competition?.formatType === 'TOURNAMENT' && competition.externalId !== 'fifa.world';
+  return competition?.formatType === 'TOURNAMENT' && !isWorldCupCompetition(competition.externalId);
 };
 
 /** Cierres que admite el formato elegido. Superviviente se pronostica partido a partido: como jornadas. */
@@ -444,14 +448,12 @@ function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode 
 }
 
 /**
- * El pichichi solo se pronostica en el cuadro de un torneo oficial de fútbol con cuadro fijo (el
- * Mundial): en unas eliminatorias sorteadas ronda a ronda no se puntúa.
+ * El pichichi se puntúa con los goleadores oficiales del Mundial: solo en su cuadro (ni en sus
+ * jornadas ni en otros torneos).
  */
 export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   !draft.custom &&
-  !isKnockoutDraw(draft, ctx) &&
-  draft.sport === 'FOOTBALL' &&
-  selectedCompetition(draft, ctx)?.formatType === 'TOURNAMENT' &&
+  isWorldCupCompetition(selectedCompetition(draft, ctx)?.externalId) &&
   draft.poolFormat != null &&
   !isMatchBasedFormat(draft.poolFormat);
 

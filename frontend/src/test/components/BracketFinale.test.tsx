@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import BracketCanvas, { TeamSlot } from '../../components/BracketCanvas';
+import BracketCanvas, { TeamSlot, WORLD_CUP_ROUND_LABELS } from '../../components/BracketCanvas';
 import { BracketFinalMatch } from '../../components/BracketFinale';
 
 describe('Bracket finale', () => {
@@ -38,6 +38,7 @@ describe('Bracket finale', () => {
       <BracketCanvas
         leftRounds={rounds}
         rightRounds={rounds}
+        roundLabels={WORLD_CUP_ROUND_LABELS}
         renderSlot={(name, context) => <TeamSlot name={name} onClick={() => pick(context)} />}
         renderFinal={() => <p>Final destacada y tercer puesto</p>}
       />,

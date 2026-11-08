@@ -64,7 +64,11 @@ describe('league home', () => {
   });
 
   it('keeps every panel as a skeleton until the ranking and the matches arrive', () => {
-    renderHome({ activeGroupPoolFormat: 'MATCH_DAY', loadingLeaderboard: true });
+    renderHome({
+      leagueKind: 'matchday',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      loadingLeaderboard: true,
+    });
 
     // La cabecera de la liga ya se sabe; los paneles aparecen todos a la vez, no uno a uno.
     expect(screen.getByRole('heading', { name: 'Liga de amigos' })).toBeInTheDocument();
@@ -74,7 +78,7 @@ describe('league home', () => {
   });
 
   it('shows the top five of the ranking with plain positions, without medals', () => {
-    renderHome({ activeGroupPoolFormat: 'MATCH_DAY' });
+    renderHome({ leagueKind: 'matchday', activeGroupPoolFormat: 'MATCH_DAY' });
     const ranking = screen.getByRole('list', { name: 'Top del ranking' });
     const rows = within(ranking).getAllByRole('listitem');
     expect(rows).toHaveLength(5);
@@ -84,6 +88,7 @@ describe('league home', () => {
 
   it('gives a bracket league the same home, with upcoming matches instead of the bracket', () => {
     renderHome({
+      leagueKind: 'worldCup',
       activeCompetitionExternalId: 'fifa.world',
       allGames: [
         match({
@@ -116,6 +121,7 @@ describe('league home', () => {
 
   it('shows the swiss stage as the team table of an official tournament', () => {
     renderHome({
+      leagueKind: 'ownBracket',
       activeCompetitionExternalId: 'lol.worlds',
       allGames: [
         match({
@@ -138,7 +144,11 @@ describe('league home', () => {
       { rank: 1, teamName: 'Betis', teamLogo: null, gamesPlayed: 3, points: 9 },
       { rank: 2, teamName: 'Sevilla', teamLogo: null, gamesPlayed: 3, points: 6 },
     ] as Awaited<ReturnType<typeof api.fetchCompetitionStandings>>);
-    renderHome({ activeGroupPoolFormat: 'MATCH_DAY', activeCompetitionId: 5 });
+    renderHome({
+      leagueKind: 'matchday',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      activeCompetitionId: 5,
+    });
     const table = await screen.findByRole('list', { name: 'Tabla' });
     expect(within(table).getAllByRole('listitem')[1]).toHaveTextContent('2Sevilla3 PJ6 pts');
   });

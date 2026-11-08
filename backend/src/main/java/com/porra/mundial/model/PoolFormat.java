@@ -32,21 +32,21 @@ public enum PoolFormat {
         return format == GRAND_PRIX;
     }
 
-    /** Si el formato de una edición se juega partido a partido; null cuenta como cuadro. */
+    /** Si el formato de una edición se juega partido a partido; sin formato, no. */
     public static boolean isMatchBased(PoolFormat format) {
         return format != null && format.isMatchBased();
     }
 
-    /** null o desconocido → FULL_BRACKET. */
+    /** El formato con ese nombre; null si falta o no existe (no se elige ninguno por defecto). */
     public static PoolFormat fromString(String val) {
         if (val == null || val.isBlank()) {
-            return FULL_BRACKET;
+            return null;
         }
         for (PoolFormat format : values()) {
             if (format.name().equalsIgnoreCase(val.trim())) {
                 return format;
             }
         }
-        return FULL_BRACKET;
+        return null;
     }
 }

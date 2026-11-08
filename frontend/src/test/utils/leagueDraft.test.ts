@@ -116,11 +116,15 @@ describe('borrador de liga', () => {
   });
 
   it('al cambiar de competición quita el formato y el pichichi que ya no encajan', () => {
+    // El pichichi se juega con los goleadores del Mundial: solo en su cuadro.
     const tournament = draftWith({
-      competitionId: 2,
+      competitionId: 3,
       poolFormat: 'KNOCKOUTS_ONLY',
       pichichi: true,
     });
+    expect(
+      draftWith({ competitionId: 2, poolFormat: 'KNOCKOUTS_ONLY', pichichi: true }).pichichi,
+    ).toBe(false);
     expect(tournament.pichichi).toBe(true);
     const custom = normalizeDraft({ ...tournament, custom: true }, ctx);
     expect(custom.competitionId).toBeNull();
