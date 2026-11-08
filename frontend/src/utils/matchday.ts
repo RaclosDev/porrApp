@@ -9,6 +9,7 @@ import type {
   MatchdayPredictionInput,
   SurvivorStatus,
 } from '../types/api';
+import { parseTennisScore, tennisScoreText } from './tennisScore';
 
 /** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
 export interface DraftPrediction {
@@ -55,8 +56,13 @@ export const resultNote = (displayClock: string | null | undefined): string | nu
   return penalties ? `${penalties[1]}-${penalties[2]} en penaltis` : null;
 };
 
-/** «Final» o, si hubo prórroga o penaltis, «Final · prórroga». */
+/**
+ * «Final» o, si hubo prórroga o penaltis, «Final · prórroga». En el tenis, con los juegos de cada set:
+ * «Final · 6-4 3-6 7-6(5)».
+ */
 export const finishedLabel = (displayClock: string | null | undefined): string => {
+  const tennis = parseTennisScore(displayClock);
+  if (tennis) return `Final · ${tennisScoreText(tennis)}`;
   const note = resultNote(displayClock);
   return note ? `Final · ${note}` : 'Final';
 };
