@@ -47,6 +47,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     userGroupsLoaded,
     loadingGroup,
     choosingLeague,
+    activeGroupWorldCup,
   } = useAppContext();
   // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
   const myPrediction = useMyLeaguePrediction();
@@ -218,6 +219,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             isMatchDayLeague={isMatchDayLeague}
             isGrandPrixLeague={isGrandPrixLeague}
             isNavLocked={isNavLocked}
+            showGroups={activeGroupWorldCup}
             formatPending={loadingGroup || choosingLeague}
           />
         )}

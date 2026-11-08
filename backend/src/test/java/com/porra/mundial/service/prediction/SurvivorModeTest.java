@@ -9,7 +9,7 @@ import com.porra.mundial.model.*;
 import com.porra.mundial.repository.*;
 import com.porra.mundial.scoring.MatchScoringCalculator;
 import com.porra.mundial.scoring.ScoringRuleSet;
-import com.porra.mundial.scoring.WorldCup2026ScoringStrategy;
+import com.porra.mundial.scoring.DefaultScoringStrategy;
 import com.porra.mundial.service.tournament.OfficialResultsService;
 import com.porra.mundial.service.tournament.TopScorerService;
 import org.junit.jupiter.api.BeforeEach;
@@ -201,7 +201,7 @@ class SurvivorModeTest {
             Edition edition = Edition.builder().id(100L).league(League.builder().id(10L).build())
                     .competition(Competition.builder().id(2L).build()).status("ACTIVE")
                     .poolFormat(PoolFormat.SURVIVOR)
-                    .scoringRulesJson(ScoringRuleSet.defaultWorldCup2026().toJson()).build();
+                    .scoringRulesJson(ScoringRuleSet.defaults().toJson()).build();
             prediction = Prediction.builder().id(50L).user(user).edition(edition).build();
             round5 = match(501, "Jornada 5", MADRID, BETIS, soon);
             otherRound5 = match(502, "Jornada 5", BARCA, SEVILLA, soon.plus(1, ChronoUnit.HOURS));
@@ -328,7 +328,7 @@ class SurvivorModeTest {
         @Mock MatchPredictionRepository matchPredictionRepository;
         @Mock MembershipRepository membershipRepository;
         @Mock EditionRepository editionRepository;
-        @Spy WorldCup2026ScoringStrategy scoringStrategy = new WorldCup2026ScoringStrategy();
+        @Spy DefaultScoringStrategy scoringStrategy = new DefaultScoringStrategy();
         @InjectMocks LeaderboardService leaderboardService;
 
         @Test

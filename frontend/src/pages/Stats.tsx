@@ -1,4 +1,5 @@
 import { useAppContext } from '../context/AppContext';
+import LeagueLoadState from '../components/LeagueLoadState';
 import { useBracketInsights } from '../hooks/useBracketInsights';
 import InsightsHeader from '../components/insights/InsightsHeader';
 import BracketInsightsGate from '../components/insights/BracketInsightsGate';
@@ -27,8 +28,12 @@ function Stats() {
     activeGroupPoolFormat,
     activeCompetitionFormatType,
     activeGroupOwnBracket,
+    activeGroupWorldCup,
+    loadingGroup,
+    groupError,
   } = useAppContext();
 
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   // Lo más elegido compara con el cuadro del Mundial; los cuadros propios (LoL, personalizadas) no lo tienen.
   if (activeGroupOwnBracket) {
     return <Navigate to="/" replace />;
@@ -46,6 +51,8 @@ function Stats() {
       </section>
     );
   }
+  // Las estadísticas de cuadro son las del Mundial: el resto de ligas no las tiene.
+  if (!activeGroupWorldCup) return <Navigate to="/" replace />;
   return <BracketStatsPage />;
 }
 

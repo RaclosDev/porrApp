@@ -1,5 +1,6 @@
 package com.porra.mundial.service.tournament;
 
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.service.prediction.ScoreInvalidationService;
 import com.porra.mundial.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -77,7 +78,7 @@ public class TopScorerService {
     public void refresh() {
         if (!refreshLock.tryLock()) return;
         try {
-            JsonNode events = sportsDataProvider.fetchScoreboardEvents(WC_DATE_RANGE);
+            JsonNode events = sportsDataProvider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, WC_DATE_RANGE);
             if (events == null) return;
 
             Map<String, int[]> playerGoals = new LinkedHashMap<>();

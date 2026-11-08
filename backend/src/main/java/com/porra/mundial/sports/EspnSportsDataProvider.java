@@ -67,11 +67,6 @@ public class EspnSportsDataProvider implements SportsDataProvider {
     }
 
     @Override
-    public JsonNode fetchScoreboardEvents(String dateRange) throws Exception {
-        return fetchScoreboardEvents("fifa.world", dateRange);
-    }
-
-    @Override
     public JsonNode fetchScoreboardEvents(String competitionSlug, String dateRange) throws Exception {
         String slug = resolveSlug(competitionSlug);
         String url = siteUrl(slug) + "/scoreboard";

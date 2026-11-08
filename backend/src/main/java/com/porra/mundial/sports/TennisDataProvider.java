@@ -113,11 +113,6 @@ public class TennisDataProvider implements SportsDataProvider {
         return state != CircuitBreaker.State.OPEN && state != CircuitBreaker.State.FORCED_OPEN;
     }
 
-    @Override
-    public JsonNode fetchScoreboardEvents(String dateRange) {
-        throw new UnsupportedOperationException("El tenis necesita el torneo");
-    }
-
     /**
      * Partidos que se pronostican del torneo. {@code dateRange} admite un año (yyyy: la edición de ese
      * año), un día (yyyyMMdd: la edición en curso si ese día se juega) o nada (la edición actual).

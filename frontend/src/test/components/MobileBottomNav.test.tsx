@@ -11,6 +11,7 @@ const mockContext = vi.hoisted(() => ({
   userGroupsLoaded: true,
   isDemoMode: false,
   loadingGroup: false,
+  activeGroupWorldCup: false,
 }));
 
 vi.mock('../../context/AppContext', () => ({
@@ -32,6 +33,7 @@ describe('MobileBottomNav', () => {
       activeCompetitionFormatType: null,
       isDemoMode: false,
       loadingGroup: false,
+      activeGroupWorldCup: false,
     });
   });
 
@@ -59,5 +61,15 @@ describe('MobileBottomNav', () => {
     renderNav();
 
     expect(screen.getByRole('link', { name: 'Mi Porra' })).toBeInTheDocument();
+  });
+
+  it.each([
+    [true, 1],
+    [false, 0],
+  ])('la demo enseña Grupos solo si su liga es del Mundial (%s)', (worldCup, groupsLinks) => {
+    mockContext.isDemoMode = true;
+    mockContext.activeGroupWorldCup = worldCup;
+    renderNav();
+    expect(screen.queryAllByRole('link', { name: /Grupos/ })).toHaveLength(groupsLinks);
   });
 });

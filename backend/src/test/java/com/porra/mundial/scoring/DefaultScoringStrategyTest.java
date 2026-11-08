@@ -19,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 25 / 30 / 40 / 60 por cada equipo acertado en 1/16, octavos, cuartos y semis, 200 campeón,
  * 150 subcampeón, 100 tercero, 75 cuarto y 200 el pichichi (repartidos si hay empate).
  */
-class WorldCup2026ScoringStrategyTest {
+class DefaultScoringStrategyTest {
 
     private static final List<String> GROUP_A = List.of("España", "Alemania", "Japón", "Costa Rica");
 
-    private final WorldCup2026ScoringStrategy strategy = new WorldCup2026ScoringStrategy();
+    private final DefaultScoringStrategy strategy = new DefaultScoringStrategy();
 
     /** Contexto con el grupo A ya jugado y lo demás vacío; cada test cambia lo que necesita. */
     private static final class Scenario {
@@ -41,7 +41,7 @@ class WorldCup2026ScoringStrategyTest {
         List<String> finalists = new ArrayList<>();
         String champion;
 
-        ParticipantScoreDTO score(WorldCup2026ScoringStrategy strategy) {
+        ParticipantScoreDTO score(DefaultScoringStrategy strategy) {
             ParticipantScoreDTO score = ParticipantScoreDTO.builder()
                     .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).total(0)
                     .log(new ArrayList<>()).exactMatches(new HashMap<>()).passedTeams(new HashMap<>())
@@ -332,7 +332,7 @@ class WorldCup2026ScoringStrategyTest {
         s.participant.setChampion("España");
         s.champion = "España";
 
-        ParticipantScoreDTO score = s.score(new WorldCup2026ScoringStrategy(rules));
+        ParticipantScoreDTO score = s.score(new DefaultScoringStrategy(rules));
 
         assertThat(score.getR1()).as("solo los 10 por pasar").isEqualTo(20);
         assertThat(score.getFinals()).isEqualTo(500);

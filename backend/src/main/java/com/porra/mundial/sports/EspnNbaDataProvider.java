@@ -94,11 +94,6 @@ public class EspnNbaDataProvider implements SportsDataProvider {
         return espn.isAvailable();
     }
 
-    @Override
-    public JsonNode fetchScoreboardEvents(String dateRange) throws Exception {
-        return fetchScoreboardEvents(Competition.NBA_EXTERNAL_ID, dateRange);
-    }
-
     /**
      * Partidos de play-in y playoffs. {@code dateRange} admite un año (yyyy: abril a junio de ese año), un
      * día (yyyyMMdd; fuera de abril a junio no hay nada que pedir) o nada (los playoffs de este año).

@@ -165,7 +165,7 @@ public class LeagueService {
                 .status("ACTIVE")
                 .scoringRulesJson((com.porra.mundial.model.Sport.isTennis(comp)
                         ? com.porra.mundial.scoring.ScoringRuleSet.defaultTennis()
-                        : com.porra.mundial.scoring.ScoringRuleSet.defaultWorldCup2026()).toJson())
+                        : com.porra.mundial.scoring.ScoringRuleSet.defaults()).toJson())
                 .build());
 
         if (comp.getExternalId() != null && !comp.getExternalId().isBlank()) {

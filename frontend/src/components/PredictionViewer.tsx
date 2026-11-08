@@ -35,7 +35,8 @@ const HIDDEN_ROUNDS = { 0: false, 1: false, 2: false, 3: false };
  * terceros y cuadro de eliminatorias con los puntos obtenidos.
  */
 function PredictionViewer(props: PredictionViewerProps) {
-  const { activeGroupOwnBracket, viewerPredictionId, setViewerPredictionId } = useAppContext();
+  const { activeGroupOwnBracket, activeGroupWorldCup, viewerPredictionId, setViewerPredictionId } =
+    useAppContext();
   const id = props.predictionId || viewerPredictionId;
   if (activeGroupOwnBracket && id) {
     return (
@@ -45,6 +46,8 @@ function PredictionViewer(props: PredictionViewerProps) {
       />
     );
   }
+  // Grupos, terceros y cruces del Mundial: solo para sus ligas, nunca como visor por defecto.
+  if (!activeGroupWorldCup) return null;
   return <WorldCupPredictionViewer {...props} />;
 }
 

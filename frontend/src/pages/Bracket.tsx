@@ -1,4 +1,5 @@
 import LeagueLoadState from '../components/LeagueLoadState';
+import { isGrandPrixFormat, isMatchBasedFormat } from '../utils/poolFormat';
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
@@ -17,7 +18,16 @@ import KnockoutDrawPredictor from './KnockoutDrawPredictor';
 function Bracket() {
   // Las competiciones personalizadas y los torneos oficiales con cuadro propio (Worlds de LoL…) se
   // pronostican sobre sus cruces; el editor de grupos y terceros es solo del Mundial.
-  const { activeGroupOwnBracket, activeGroupKnockoutDraw } = useAppContext();
+  const {
+    activeGroupOwnBracket,
+    activeGroupKnockoutDraw,
+    activeGroupWorldCup,
+    activeGroupPoolFormat,
+    activeCompetitionFormatType,
+    loadingGroup,
+    groupError,
+  } = useAppContext();
+  if (loadingGroup || groupError) return <LeagueLoadState error={groupError} />;
   // Champions, Copa del Rey…: los cruces se sortean ronda a ronda y se pronostican igual.
   if (activeGroupKnockoutDraw) {
     return <KnockoutDrawPredictor />;
@@ -25,6 +35,13 @@ function Bracket() {
   if (activeGroupOwnBracket) {
     return <CustomBracket />;
   }
+  // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
+  if (isGrandPrixFormat(activeGroupPoolFormat)) return <Navigate to="/" replace />;
+  if (isMatchBasedFormat(activeGroupPoolFormat) || activeCompetitionFormatType === 'LEAGUE') {
+    return <Navigate to="/jornadas" replace />;
+  }
+  // El editor de grupos, terceros y cruces es el del Mundial: solo para sus ligas, nunca por defecto.
+  if (!activeGroupWorldCup) return <Navigate to="/" replace />;
   return <WorldCupBracket />;
 }
 

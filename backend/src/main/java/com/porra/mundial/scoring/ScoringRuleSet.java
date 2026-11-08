@@ -130,7 +130,8 @@ public class ScoringRuleSet {
     @Builder.Default
     private int fightRoundPoints = 2;
 
-    public static ScoringRuleSet defaultWorldCup2026() {
+    /** Reglas con las que nace una liga (salvo las de tenis): los valores por defecto de cada regla. */
+    public static ScoringRuleSet defaults() {
         return ScoringRuleSet.builder().build();
     }
 
@@ -145,9 +146,9 @@ public class ScoringRuleSet {
                 .build();
     }
 
-    /** Reglas guardadas en la edición; las del Mundial 2026 si no tiene. */
+    /** Reglas guardadas en la edición; las de por defecto si no tiene. */
     public static ScoringRuleSet forEdition(Edition edition) {
-        return edition != null ? fromJson(edition.getScoringRulesJson()) : defaultWorldCup2026();
+        return edition != null ? fromJson(edition.getScoringRulesJson()) : defaults();
     }
 
     /** Aplica las modalidades activas sin alterar los valores configurados por el administrador. */
@@ -159,14 +160,14 @@ public class ScoringRuleSet {
 
     public static ScoringRuleSet fromJson(String json) {
         if (json == null || json.isBlank()) {
-            return defaultWorldCup2026();
+            return defaults();
         }
         try {
             return MAPPER.readValue(json, ScoringRuleSet.class);
         } catch (tools.jackson.core.JacksonException e) {
             // Puntuar con otras reglas sin avisar escondería el fallo: queda en el log.
-            log.error("Reglas de puntuación ilegibles; se aplican las del Mundial 2026: {}", e.getMessage());
-            return defaultWorldCup2026();
+            log.error("Reglas de puntuación ilegibles; se aplican las de por defecto: {}", e.getMessage());
+            return defaults();
         }
     }
 
@@ -180,7 +181,7 @@ public class ScoringRuleSet {
             throw BusinessException.badRequest("Faltan las reglas de puntuación.");
         }
         // Jackson convertiría 2.5 en 2: los decimales se rechazan antes de leer las reglas.
-        for (String rule : defaultWorldCup2026().asMap().keySet()) {
+        for (String rule : defaults().asMap().keySet()) {
             JsonNode value = body.get(rule);
             if (value != null && !(value.isIntegralNumber() && value.canConvertToInt())) {
                 throw BusinessException.badRequest(String.format(

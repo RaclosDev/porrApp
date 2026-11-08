@@ -77,7 +77,10 @@ function Leaderboard() {
     // En una liga de Fórmula 1 las predicciones de cada Gran Premio están en el inicio.
     if (isGrandPrixFormat(activeGroupPoolFormat)) navigate('/');
     else if (isMatchday) navigate('/jornadas');
-    else state.setViewerPredictionId(row.id ?? null);
+    // El visor es el de un cuadro (del Mundial o propio); las eliminatorias ronda a ronda, en Resultados.
+    else if (state.activeGroupWorldCup || state.activeGroupOwnBracket)
+      state.setViewerPredictionId(row.id ?? null);
+    else navigate('/bracket');
   };
 
   const shareButton = (className: string, iconSize: number) => (
@@ -135,8 +138,8 @@ function Leaderboard() {
               </button>
             ))}
           </div>
-          {/* Más elegidos y Buscador comparan con el Mundial: no aplican a los cuadros propios. */}
-          {!state.activeGroupOwnBracket && (
+          {/* Más elegidos y Buscador: los de jornadas o los que comparan con el Mundial. */}
+          {(isMatchday || state.activeGroupWorldCup) && (
             <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
               <Link to="/stats" className="ranking-secondary-link">
                 <BarChart3 size={16} aria-hidden="true" />

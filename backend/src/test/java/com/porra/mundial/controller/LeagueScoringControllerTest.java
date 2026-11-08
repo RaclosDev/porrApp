@@ -51,7 +51,7 @@ class LeagueScoringControllerTest {
 
     private static LeagueScoringDTO scoring(ScoringRuleSet rules, boolean editable) {
         return new LeagueScoringDTO("FULL_BRACKET", true, editable, ScoringRuleSet.MAX_POINTS, rules,
-                ScoringRuleSet.defaultWorldCup2026(), false, false, false, "FOOTBALL");
+                ScoringRuleSet.defaults(), false, false, false, "FOOTBALL");
     }
 
     private void putScoring(Principal principal, String body, int expectedStatus) throws Exception {
@@ -64,7 +64,7 @@ class LeagueScoringControllerTest {
     @Test
     @DisplayName("La puntuación se lee sin sesión: el servicio decide si la liga es visible")
     void readsTheScoringWithoutLogin() throws Exception {
-        when(leagueScoringService.getScoring(1L, null)).thenReturn(scoring(ScoringRuleSet.defaultWorldCup2026(), false));
+        when(leagueScoringService.getScoring(1L, null)).thenReturn(scoring(ScoringRuleSet.defaults(), false));
 
         mockMvc.perform(get("/api/groups/1/scoring"))
                 .andExpect(status().isOk())

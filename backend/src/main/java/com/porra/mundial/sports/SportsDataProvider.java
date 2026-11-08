@@ -30,24 +30,13 @@ public interface SportsDataProvider {
     }
 
     /**
-     * Recupera el listado de eventos y partidos para un rango de fechas o temporada.
-     *
-     * @param dateRange Rango en formato YYYYMMDD-YYYYMMDD o fecha YYYYMMDD.
-     * @return Árbol JSON con los eventos del torneo.
-     * @throws Exception Si la llamada de red falla o la respuesta no es válida.
-     */
-    JsonNode fetchScoreboardEvents(String dateRange) throws Exception;
-
-    /**
-     * Recupera el listado de eventos de una competición concreta.
+     * Recupera el listado de eventos de una competición: siempre se dice cuál, ninguna va por defecto.
      *
      * @param competitionSlug Slug o código oficial (ej. "esp.1", "uefa.champions", "fifa.world").
      * @param dateRange       Fecha o rango opcional.
      * @return Árbol JSON con los eventos.
      */
-    default JsonNode fetchScoreboardEvents(String competitionSlug, String dateRange) throws Exception {
-        return fetchScoreboardEvents(dateRange);
-    }
+    JsonNode fetchScoreboardEvents(String competitionSlug, String dateRange) throws Exception;
 
     /** Evento concreto, independiente del calendario de la temporada. */
     default JsonNode fetchEvent(String competitionSlug, String eventId) throws Exception {
