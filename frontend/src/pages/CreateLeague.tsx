@@ -186,7 +186,7 @@ export default function CreateLeague() {
   if (created) {
     return (
       <section className="view-section active create-league">
-        <div className="paper-panel album-sheet landing-tape create-league-sheet">
+        <div className="paper-panel album-sheet create-league-sheet">
           <h1 className="poster-title create-league-title">Liga creada</h1>
           <LeagueInvitePanel group={created.group} imageFailed={created.imageFailed} />
         </div>
@@ -216,7 +216,7 @@ export default function CreateLeague() {
       <WizardSteps current={current} reachable={reachable} onSelect={goTo} />
 
       <form
-        className="paper-panel album-sheet landing-tape create-league-sheet"
+        className="paper-panel album-sheet create-league-sheet"
         onSubmit={handleSubmit}
         noValidate
         aria-labelledby="create-league-step-title"
