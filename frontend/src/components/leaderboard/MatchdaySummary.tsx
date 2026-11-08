@@ -34,6 +34,8 @@ export default function MatchdaySummary({
 }: MatchdaySummaryProps) {
   // Hora fijada al montar: basta para distinguir una jornada abierta de una en juego.
   const [now] = useState(() => Date.now());
+  // La NFL (y las ligas de varias competiciones) van por semanas: «Semana 9», no «Jornada 9».
+  const unit = /^Semana \d/.test(matchday.label) ? 'Semana' : 'Jornada';
   // «En juego» solo cuando ya ha empezado algún partido; antes, la jornada sigue abierta.
   const status = matchday.finished
     ? { text: 'Finalizada', tone: 'finished' }
@@ -47,7 +49,7 @@ export default function MatchdaySummary({
         <div className="lb-matchday-heading">
           <span className="lb-matchday-eyebrow">
             <CalendarDays size={14} aria-hidden="true" />
-            {selected?.current ? 'Jornada actual' : 'Jornada seleccionada'}
+            {selected?.current ? `${unit} actual` : `${unit} seleccionada`}
           </span>
           <strong className="lb-matchday-title">{displayRoundLabel(matchday.label)}</strong>
           <div className="lb-matchday-title-row">

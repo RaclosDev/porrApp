@@ -144,6 +144,41 @@ describe('Leaderboard Component', () => {
     expect(shareImage?.querySelector('.share-image-ranking-row')).toHaveTextContent('Pablo');
   });
 
+  it('en la NFL habla de la semana actual', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: sampleLeaderboard.map(participantScore),
+        leaderboardMatchdays: [
+          {
+            date: null,
+            label: 'Semana 9',
+            current: true,
+            finished: false,
+            matchCount: 15,
+            pointsByPrediction: {},
+          },
+        ],
+        loading: false,
+        activeGroupName: 'NFL Pick em',
+        activeGroupId: '1',
+        activeGroupPichichi: false,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'matchday',
+        activeGroupAdminId: 1,
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Semana actual')).toBeInTheDocument();
+  });
+
   it('muestra la jornada actual y permite navegar por las jornadas', () => {
     vi.mocked(useAppContext).mockReturnValue(
       appContext({

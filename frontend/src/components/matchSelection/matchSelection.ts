@@ -150,7 +150,7 @@ export const PICK_MODES: { value: PickMode; title: string; text: string }[] = [
   {
     value: 'PICK',
     title: 'Elegidos a mano',
-    text: 'Solo los partidos que marques, por ejemplo los destacados de cada jornada.',
+    text: 'Solo los partidos que marques, por ejemplo los más destacados.',
   },
 ];
 
