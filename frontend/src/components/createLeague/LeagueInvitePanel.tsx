@@ -11,10 +11,10 @@ function nextAction(group: Group): { to: string; label: string } {
     return { to: '/', label: 'Predecir el próximo Gran Premio' };
   }
   if (group.poolFormat === 'SURVIVOR') {
-    return { to: '/jornadas', label: 'Elegir mi equipo de la jornada' };
+    return { to: '/jornadas', label: 'Elegir mi equipo' };
   }
   if (group.poolFormat === 'MATCH_DAY') {
-    return { to: '/jornadas', label: 'Hacer mis predicciones de la jornada' };
+    return { to: '/jornadas', label: 'Hacer mis predicciones' };
   }
   return { to: '/prediction', label: 'Rellenar mi porra' };
 }
@@ -32,14 +32,9 @@ export default function LeagueInvitePanel({
   return (
     <div className="create-league-done">
       <p className="create-league-done-name marker-ink">«{group.name}»</p>
-      <p className="create-league-hint">
-        Comparte el código o el enlace para que tus amigos se unan y empiecen a hacer sus
-        predicciones.
-      </p>
       {imageFailed && (
         <p className="create-league-error" role="alert">
-          La liga está creada, pero la imagen no se pudo subir. Puedes ponerla desde Administrar en
-          Mis ligas.
+          La imagen no se pudo subir. Ponla desde Administrar.
         </p>
       )}
 
@@ -51,16 +46,14 @@ export default function LeagueInvitePanel({
             <button
               type="button"
               className="glass-btn create-league-small-btn"
-              onClick={() => void copyWithToast(code, `Código "${code}" copiado al portapapeles`)}
+              onClick={() => void copyWithToast(code, `Código ${code} copiado`)}
             >
               Copiar código
             </button>
             <button
               type="button"
               className="glass-btn create-league-small-btn"
-              onClick={() =>
-                void copyWithToast(joinLink(code), 'Enlace de invitación copiado al portapapeles')
-              }
+              onClick={() => void copyWithToast(joinLink(code), 'Enlace copiado')}
             >
               Copiar enlace
             </button>

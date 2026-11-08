@@ -86,7 +86,7 @@ describe('borrador de liga', () => {
 
   it('el LoL se explica con series, sin 1X2 ni empate', () => {
     const lol = draftWith({ competitionId: 4 });
-    expect(formatCopy('MATCH_DAY', lol, ctx).text).toContain('el resultado (2-1, 3-0…)');
+    expect(formatCopy('MATCH_DAY', lol, ctx).text).toContain('el resultado');
     expect(formatCopy('MATCH_DAY', lol, ctx).text).not.toContain('X');
     expect(formatCopy('SURVIVOR', lol, ctx).text).not.toContain('empate');
   });
@@ -459,7 +459,7 @@ describe('borrador de liga de la NFL', () => {
       (mode) => mode.value === 'PER_ROUND',
     );
     expect(weekly?.label).toBe('Por semanas');
-    expect(weekly?.hint).toMatch(/del jueves al lunes/);
+    expect(weekly?.hint).toMatch(/de jueves a lunes/);
   });
 
   it('explica que los playoffs ya van dentro de Por semanas', () => {

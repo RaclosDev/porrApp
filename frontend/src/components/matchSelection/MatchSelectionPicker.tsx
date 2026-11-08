@@ -156,7 +156,7 @@ export default function MatchSelectionPicker({
       {primaryCompetition && otherCompetitions && otherCompetitions.length > 0 && (
         <details className="match-picker-competitions" open={multi || undefined}>
           <summary>
-            <span>Juntar partidos de otras competiciones</span>
+            <span>Añadir otras competiciones</span>
             {multi && (
               <span className="match-picker-count">
                 {value.competitionIds.length} competiciones
@@ -166,8 +166,7 @@ export default function MatchSelectionPicker({
           <fieldset>
             <legend className="sr-only">Competiciones de la liga</legend>
             <p className="match-picker-hint">
-              Un Clásico, un derbi de la Premier y un partido de Champions en la misma liga. Las
-              jornadas pasan a ser semanas, de lunes a domingo.
+              Las jornadas pasan a ser semanas, de lunes a domingo.
             </p>
             <div className="match-picker-team-list">
               <label className="match-picker-team is-checked">

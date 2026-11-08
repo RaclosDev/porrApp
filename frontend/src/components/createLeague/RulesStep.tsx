@@ -27,10 +27,7 @@ function LockSection({ draft, update, errors, ctx }: StepProps) {
   const modes = lockModesFor(draft, ctx);
   if (draft.poolFormat === 'GRAND_PRIX') {
     return (
-      <p className="create-league-hint">
-        Cada Gran Premio se cierra al empezar la clasificación, que decide la pole. Hasta entonces
-        puedes cambiar tu predicción.
-      </p>
+      <p className="create-league-hint">Cada Gran Premio se cierra al empezar la clasificación.</p>
     );
   }
   if (modes.length === 0) return null;
@@ -108,7 +105,7 @@ function LockSection({ draft, update, errors, ctx }: StepProps) {
             </select>
           </div>
           <p id="cl-lock-amount-hint" className="create-league-hint">
-            0 es justo cuando empieza. Máximo 30 días.
+            0 = justo al empezar. Máximo 30 días.
           </p>
           <FieldError fieldId={FIELD_IDS.lockAmount} message={errors.lockAmount} />
         </div>
@@ -144,12 +141,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
             checked={draft.pichichi}
             onChange={(event) => update({ pichichi: event.target.checked })}
           />
-          <span>
-            Incluir la predicción del pichichi
-            <span className="create-league-hint">
-              Cada participante elige al máximo goleador del torneo.
-            </span>
-          </span>
+          <span>Predecir también el pichichi</span>
         </label>
       )}
       <fieldset className="create-league-fieldset">
@@ -160,14 +152,14 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
             value="default"
             checked={!draft.customScoring}
             onChange={() => update({ customScoring: false })}
-            title="La de siempre"
+            title="Por defecto"
           />
           <OptionCard
             name="cl-scoring"
             value="custom"
             checked={draft.customScoring}
             onChange={() => update({ customScoring: true })}
-            title={draft.poolFormat === 'SURVIVOR' ? 'Personalizar reglas' : 'Personalizar puntos'}
+            title="Personalizar"
           />
         </div>
       </fieldset>
@@ -183,7 +175,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
           onClick={() => update({ scoring: toDraft(defaults) })}
         >
           <RotateCcw size={14} aria-hidden="true" />
-          Volver a los valores por defecto
+          Restaurar valores por defecto
         </button>
       )}
       <FieldError fieldId={FIELD_IDS.scoring} message={errors.scoring} />
@@ -212,16 +204,10 @@ export default function RulesStep(props: StepProps) {
           <span>
             La liga tiene cuota
             <span className="create-league-hint">
-              El pago se hace fuera de PorrApp. Tú apuntas quién ha pagado y la clasificación marca
-              a quien no.
+              Se paga fuera de PorrApp; tú marcas quién ha pagado.
             </span>
           </span>
         </label>
-      </StepSection>
-      <StepSection id="cl-visibility" title="Visibilidad">
-        <p className="create-league-hint">
-          Privada: solo entra quien tenga el código o el enlace de invitación.
-        </p>
       </StepSection>
     </>
   );

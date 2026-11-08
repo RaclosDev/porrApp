@@ -73,7 +73,6 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
         <legend className="sr-only">Torneo</legend>
         {available.length > 0 && (
           <div className="create-league-group">
-            <h3 className="create-league-section-title">Varios torneos</h3>
             <div className="create-league-options">
               <OptionCard
                 name="cl-tennis-tournament"
@@ -81,16 +80,13 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
                 checked={season}
                 onChange={() => update({ tennisScope: draft.tennisScope ?? 'ALL' })}
                 title="Toda la temporada"
-                description="Desde hoy, varios torneos en orden y con una sola clasificación. En el paso siguiente eliges cuáles y el circuito: ATP, WTA o los dos."
+                description="Varios torneos y una sola clasificación. Eliges cuáles en el paso siguiente."
               />
             </div>
           </div>
         )}
         {available.length === 0 && (
-          <p className="create-league-hint">
-            Ahora mismo no hay ningún torneo por jugar. Aparecerán en cuanto ESPN publique la
-            próxima edición.
-          </p>
+          <p className="create-league-hint">Ahora no hay torneos por jugar.</p>
         )}
         {LEVELS.map(({ level, title }) => {
           const items = available.filter(({ info }) => info.level === level);
@@ -126,10 +122,7 @@ export default function TennisTournamentPicker({ draft, update, errors, ctx }: S
         <div className="create-league-group">
           <h3 className="create-league-section-title">Tu propia competición</h3>
           {/* Una competición propia no tiene rondas ni sets de tenis: se predeciría con 1X2 y empate. */}
-          <p className="create-league-hint">
-            ¿El torneo del club o de los amigos? Vuelve a «Deporte» y elige «Otro deporte»: añades
-            tú los jugadores, los partidos y los resultados.
-          </p>
+          <p className="create-league-hint">Para el torneo del club, elige «Otro deporte».</p>
         </div>
         <FieldError fieldId={FIELD_IDS.competition} message={errors.competition} />
       </fieldset>

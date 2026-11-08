@@ -191,7 +191,7 @@ export function sportChoices(ctx: DraftContext): SportChoice[] {
 
 /** Por qué no se puede crear una liga sobre esta competición, o null si se puede. */
 export const competitionUnavailableReason = (competition: Competition) =>
-  competition.finished ? 'Ya ha terminado: no quedan partidos por jugar.' : null;
+  competition.finished ? 'Ya ha terminado.' : null;
 
 export const competitionsOfSport = (ctx: DraftContext, sport: SportChoice | null) =>
   openCompetitions(ctx).filter((item) => competitionSport(item) === sport);
@@ -297,42 +297,42 @@ export const formatsForSport = (sport: SportChoice | null): PoolFormat[] =>
 const FORMAT_COPY: Record<PoolFormat, { title: string; text: string }> = {
   MATCH_DAY: {
     title: 'Por jornadas',
-    text: 'En cada jornada predices quién gana cada partido: 1, X o 2. Cada acierto suma y gana quien más puntos lleve al final.',
+    text: 'Predices el 1X2 de cada partido, jornada a jornada.',
   },
   SURVIVOR: {
     title: 'Superviviente',
-    text: 'En cada jornada eliges un equipo que gane, sin repetir equipo. Si no gana, o si no eliges, quedas fuera; la liga puede dar vidas extra o salvar el empate. Gana quien aguante más jornadas.',
+    text: 'Cada jornada eliges un equipo que gane, sin repetir. Si no gana, quedas fuera.',
   },
   FULL_BRACKET: {
     title: 'Cuadro completo',
-    text: 'Antes de empezar rellenas la fase de grupos y el cuadro hasta el campeón. Suma cada equipo que aciertas en cada ronda.',
+    text: 'Antes de empezar rellenas los grupos y el cuadro hasta el campeón.',
   },
   KNOCKOUTS_ONLY: {
     title: 'Solo eliminatorias',
-    text: 'Rellenas el cuadro desde la primera eliminatoria hasta la final, sin fase de grupos.',
+    text: 'Rellenas el cuadro desde la primera eliminatoria hasta la final.',
   },
   GRAND_PRIX: {
     title: 'Gran Premio a Gran Premio',
-    text: 'Antes de cada clasificación predices el podio, la pole y la vuelta rápida. Los resultados llegan solos al acabar la carrera y gana quien más puntos sume en la temporada.',
+    text: 'En cada carrera predices el podio, la pole y la vuelta rápida.',
   },
 };
 
 /** Un torneo de tenis se juega partido a partido, desde octavos. */
 const TENNIS_COPY = {
   title: 'Partido a partido',
-  text: 'Desde octavos eliges quién gana cada partido y, si te atreves, en cuántos sets. Cada ronda vale más que la anterior y cada partido se cierra al empezar.',
+  text: 'Desde octavos eliges quién gana cada partido y, si quieres, en cuántos sets.',
 };
 
 /** Solo eliminatorias en una competición que las sortea ronda a ronda (Champions, Copa del Rey…). */
 const KNOCKOUT_DRAW_COPY = {
   title: 'Solo eliminatorias',
-  text: 'Tras cada sorteo eliges quién pasa cada eliminatoria, ronda a ronda hasta el campeón. En las de ida y vuelta cuenta quién pasa, no cada partido.',
+  text: 'Tras cada sorteo eliges quién pasa cada eliminatoria, hasta el campeón.',
 };
 
 /** Por veladas (la UFC): en cada velada se predice cada pelea. */
 const FIGHT_NIGHTS_COPY = {
   title: 'Por veladas',
-  text: 'En cada velada predices quién gana cada pelea y, si quieres, cómo acaba (KO/TKO, sumisión o decisión) y en qué asalto. Cada acierto suma.',
+  text: 'Predices quién gana cada pelea y, si quieres, cómo acaba y en qué asalto.',
 };
 
 /** La competición elegida se juega por veladas (la UFC), no por jornadas. */
@@ -342,7 +342,7 @@ export const isFightNights = (draft: LeagueDraft, ctx: DraftContext) =>
 /** Playoffs de la NBA: series del play-in a las Finales. */
 const NBA_PLAYOFFS_COPY = {
   title: 'Playoffs',
-  text: 'Eliges quién gana cada serie, del play-in a las Finales, y en cuántos partidos (4-0, 4-1…). Cada serie se cierra al empezar su primer partido.',
+  text: 'Eliges quién gana cada serie, del play-in a las Finales, y en cuántos partidos.',
 };
 
 /** La competición elegida son los playoffs de la NBA. */
@@ -357,11 +357,11 @@ export const isKnockoutDraw = (draft: LeagueDraft, ctx: DraftContext) =>
 const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string }>> = {
   MATCH_DAY: {
     title: 'Por semanas',
-    text: 'Cada semana, y en los playoffs hasta la Super Bowl, predices quién gana cada partido. Cada acierto suma y gana quien más puntos lleve al final.',
+    text: 'Predices quién gana cada partido, semana a semana hasta la Super Bowl.',
   },
   SURVIVOR: {
     title: 'Superviviente',
-    text: 'Cada semana eliges un equipo que gane, sin repetir equipo. Si pierde, o si no eliges, quedas fuera; la liga puede dar vidas extra. Gana quien aguante más semanas.',
+    text: 'Cada semana eliges un equipo que gane, sin repetir. Si pierde, quedas fuera.',
   },
 };
 
@@ -369,11 +369,11 @@ const NFL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
 const NBA_SEASON_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string }>> = {
   MATCH_DAY: {
     title: 'Por semanas',
-    text: 'Cada semana de la temporada regular, Copa NBA incluida, predices quién gana cada partido. Cada acierto suma y gana quien más puntos lleve al final.',
+    text: 'Predices quién gana cada partido, semana a semana, Copa NBA incluida.',
   },
   SURVIVOR: {
     title: 'Superviviente',
-    text: 'Cada semana eliges un partido y el equipo que lo gana, sin repetir equipo. Si pierde, o si no eliges, quedas fuera; la liga puede dar vidas extra. Gana quien aguante más semanas.',
+    text: 'Cada semana eliges un equipo que gane, sin repetir. Si pierde, quedas fuera.',
   },
 };
 
@@ -381,11 +381,11 @@ const NBA_SEASON_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: 
 const LOL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string }>> = {
   MATCH_DAY: {
     title: 'Por jornadas',
-    text: 'En cada jornada predices quién gana cada serie y, si te atreves, el resultado (2-1, 3-0…). Cada acierto suma y gana quien más puntos lleve al final.',
+    text: 'Predices quién gana cada serie y, si quieres, el resultado.',
   },
   SURVIVOR: {
     title: 'Superviviente',
-    text: 'En cada jornada eliges un equipo que gane su serie, sin repetir equipo. Si pierde, o si no eliges, quedas fuera; la liga puede dar vidas extra. Gana quien aguante más jornadas.',
+    text: 'Cada jornada eliges un equipo que gane su serie, sin repetir. Si pierde, quedas fuera.',
   },
 };
 
@@ -408,62 +408,81 @@ export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftCon
   );
 }
 
-/** Por qué un formato no se puede elegir con esta competición, o null si se puede. */
-export function formatUnavailableReason(
+/**
+ * Por qué un formato no se puede elegir con esta competición. `hidden`: no encaja nunca con ella (la
+ * UFC con cuadro, la Liga con cuadro…) y ni se ofrece; si no, se ve desactivado con el motivo.
+ */
+function formatBlock(
   format: PoolFormat,
   draft: LeagueDraft,
   ctx: DraftContext,
-): string | null {
+): { reason: string; hidden: boolean } | null {
+  const hide = (reason: string) => ({ reason, hidden: true });
   if (draft.sport === 'TENNIS' && format !== 'MATCH_DAY') {
-    return 'En tenis se predice partido a partido.';
+    return hide('En tenis se predice partido a partido.');
   }
   if (format === 'SURVIVOR' && draft.custom) {
     // Sin resultados automáticos no se sabría quién cae.
-    return 'Necesita una competición oficial: los resultados llegan solos y así se sabe quién cae.';
+    return { reason: 'Solo con una competición oficial.', hidden: false };
   }
   const competition = selectedCompetition(draft, ctx);
   if (competition?.formatType === 'EVENTS' && format !== 'MATCH_DAY') {
-    return 'La UFC se juega velada a velada: elige Por veladas.';
+    return hide('La UFC se juega velada a velada.');
   }
   const formulaOne = competition?.formatType === 'RACE';
-  if (format === 'GRAND_PRIX' && !formulaOne) return 'Solo para la Fórmula 1.';
+  if (format === 'GRAND_PRIX' && !formulaOne) return hide('Solo para la Fórmula 1.');
   if (format !== 'GRAND_PRIX' && formulaOne) {
-    return 'La Fórmula 1 se juega Gran Premio a Gran Premio.';
+    return hide('La Fórmula 1 se juega Gran Premio a Gran Premio.');
   }
   if (format !== 'KNOCKOUTS_ONLY' && isNbaCompetition(competition?.externalId)) {
-    return 'De los playoffs de la NBA se pronostica serie a serie: para predecir partidos, elige NBA · Temporada regular.';
+    return hide('Los playoffs de la NBA se juegan serie a serie.');
   }
   if (!isMatchBasedFormat(format) && isNbaRegularSeason(competition?.externalId)) {
-    return 'La temporada regular se juega partido a partido: para rellenar el cuadro, elige NBA · Playoffs.';
+    return hide('La temporada regular se juega partido a partido: el cuadro es NBA · Playoffs.');
   }
   const closesAt = competition?.bracketClosesAt?.[format];
   if (closesAt && Date.parse(closesAt) <= Date.now()) {
-    return format === 'KNOCKOUTS_ONLY'
-      ? 'Las eliminatorias ya han empezado y nadie podría enviar su predicción: elige Por jornadas.'
-      : 'La competición ya ha empezado y nadie podría enviar su predicción: elige Por jornadas.';
+    return {
+      reason:
+        format === 'KNOCKOUTS_ONLY'
+          ? 'Las eliminatorias ya han empezado.'
+          : 'La competición ya ha empezado.',
+      hidden: false,
+    };
   }
   if (format === 'FULL_BRACKET' && competition?.knockoutDraw) {
-    return 'Los cruces se sortean ronda a ronda: elige Solo eliminatorias.';
+    return hide('Los cruces se sortean ronda a ronda.');
   }
   if (
     format === 'FULL_BRACKET' &&
     competition?.formatType === 'TOURNAMENT' &&
     competition.groupStage === false
   ) {
-    return 'Este torneo no tiene fase de grupos: elige Solo eliminatorias.';
+    return hide('Este torneo no tiene fase de grupos.');
   }
   if (!isMatchBasedFormat(format) && competition?.externalId === 'nfl') {
-    return 'Los playoffs ya entran en Por semanas, ronda a ronda hasta la Super Bowl.';
+    return hide('Los playoffs ya entran en Por semanas, hasta la Super Bowl.');
   }
   if (
     !isMatchBasedFormat(format) &&
     competition?.formatType === 'LEAGUE' &&
     !competition.knockoutDraw
   ) {
-    return 'En PorrApp esta competición se juega por jornadas: no tiene cuadro que rellenar.';
+    return hide('Esta competición se juega por jornadas: no tiene cuadro.');
   }
   return null;
 }
+
+/** Por qué un formato no se puede elegir con esta competición, o null si se puede. */
+export const formatUnavailableReason = (
+  format: PoolFormat,
+  draft: LeagueDraft,
+  ctx: DraftContext,
+): string | null => formatBlock(format, draft, ctx)?.reason ?? null;
+
+/** Modos que se ofrecen con lo elegido: los que nunca encajan con la competición no salen. */
+export const formatsOffered = (draft: LeagueDraft, ctx: DraftContext): PoolFormat[] =>
+  formatsForSport(draft.sport).filter((format) => !formatBlock(format, draft, ctx)?.hidden);
 
 /**
  * Competición personalizada o torneo oficial con cuadro propio: se cierra cruce a cruce. El cuadro
@@ -678,7 +697,7 @@ export function validateStep(
       errors.customName = `Como máximo ${CUSTOM_NAME_MAX} caracteres.`;
   }
   if (step === 'format' && !draft.poolFormat) {
-    errors.poolFormat = 'Elige cómo se juega la liga.';
+    errors.poolFormat = 'Elige un modo de juego.';
   } else if (step === 'format' && matchSelectionApplies(draft, ctx)) {
     const problem =
       isFightNights(draft, ctx) && draft.matches.mode !== 'ALL' && !draft.matches.included.length
