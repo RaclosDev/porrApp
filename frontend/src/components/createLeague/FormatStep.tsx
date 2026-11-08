@@ -71,7 +71,7 @@ function MatchesSection({ draft, update, errors, ctx }: StepProps) {
 }
 
 /**
- * UFC: la liga cubre todas las veladas desde hoy (o solo las numeradas, o solo las Fight Night) o una
+ * UFC: la liga cubre todas las veladas desde hoy (o numeradas y especiales, o solo las Fight Night) o una
  * sola. Una velada se guarda como sus peleas elegidas a mano; las que se añadan después a su cartelera
  * entran solas.
  */
@@ -115,7 +115,7 @@ function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
             checked={!single && !draft.eventSeries}
             onChange={() => update({ matches: ALL_MATCHES, eventSeries: null })}
             title="Todas las veladas"
-            description="Desde hoy, todas las que vengan: las numeradas y las Fight Night."
+            description="Desde hoy, todas las que vengan: numeradas, especiales y Fight Night."
           />
           <OptionCard
             name="cl-nights"
@@ -123,7 +123,7 @@ function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
             checked={!single && draft.eventSeries === 'NUMBERED'}
             onChange={() => update({ matches: ALL_MATCHES, eventSeries: 'NUMBERED' })}
             title={EVENT_SERIES_LABELS.NUMBERED}
-            description="Desde hoy, solo las veladas con número, como UFC 334."
+            description="Desde hoy, las numeradas, como UFC 334, y los eventos especiales, como UFC Freedom 250."
           />
           <OptionCard
             name="cl-nights"
@@ -131,7 +131,7 @@ function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
             checked={!single && draft.eventSeries === 'FIGHT_NIGHT'}
             onChange={() => update({ matches: ALL_MATCHES, eventSeries: 'FIGHT_NIGHT' })}
             title={EVENT_SERIES_LABELS.FIGHT_NIGHT}
-            description="Desde hoy, solo las UFC Fight Night y demás veladas sin número."
+            description="Desde hoy, solo las UFC Fight Night."
           />
           <OptionCard
             name="cl-nights"

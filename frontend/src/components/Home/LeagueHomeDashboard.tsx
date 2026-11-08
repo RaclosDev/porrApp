@@ -367,7 +367,7 @@ export default function LeagueHomeDashboard() {
             >
               <span className="font-bold text-[var(--stamp-red)]">
                 Te {pending === 1 ? 'falta 1 predicción' : `faltan ${pending} predicciones`} para
-                los próximos partidos
+                {leagueKind === 'fightCard' ? ' las próximas peleas' : ' los próximos partidos'}
               </span>
               <span className="shrink-0 font-bold">Predecir →</span>
             </button>

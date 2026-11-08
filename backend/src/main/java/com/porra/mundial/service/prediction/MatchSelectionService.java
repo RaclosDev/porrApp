@@ -130,16 +130,17 @@ public class MatchSelectionService {
     }
 
     /**
-     * Una liga de la UFC con todas las veladas cubre las que acaban desde el día en que se creó: las
-     * anteriores ya no se pueden predecir y solo llenarían el selector de veladas. Una velada entra o queda
-     * fuera entera (ver {@link #roundsEndingFrom}). Null en el resto de ligas.
+     * Una liga de la UFC con todas las veladas cubre las que acaban desde que se creó: las anteriores ya no
+     * se pueden predecir y solo llenarían el selector de veladas, también la de anoche si la liga se crea el
+     * domingo por la mañana. Una velada entra o queda fuera entera (ver {@link #roundsEndingFrom}): la que
+     * ya ha empezado al crear la liga entra si le queda alguna pelea. Null en el resto de ligas.
      */
     public static Instant since(Edition edition) {
         if (edition == null || edition.getMatchSelection() != MatchSelectionMode.ALL || edition.getCreatedAt() == null
                 || edition.isMultiCompetition() || !Sport.isMma(edition.getCompetition())) {
             return null;
         }
-        return AppTime.startOfDay(AppTime.day(edition.getCreatedAt()));
+        return edition.getCreatedAt();
     }
 
     /**

@@ -147,7 +147,8 @@ export default function FightCard({
       {sign && !cancelled && (
         <>
           <p className="md-fight-label" id={`fight-method-${fixture.matchId}`}>
-            Método <span className="md-fight-optional">(opcional, suma más)</span>
+            Método {/* Con la pelea cerrada ya no se elige: el aviso sobra. */}
+            {!locked && <span className="md-fight-optional">(opcional, suma más)</span>}
           </p>
           <div
             className="md-signs md-fight-options"
@@ -174,7 +175,7 @@ export default function FightCard({
           {finish && (
             <>
               <p className="md-fight-label" id={`fight-round-${fixture.matchId}`}>
-                Asalto <span className="md-fight-optional">(opcional)</span>
+                Asalto {!locked && <span className="md-fight-optional">(opcional)</span>}
               </p>
               <div
                 className="md-signs md-fight-options md-fight-rounds"

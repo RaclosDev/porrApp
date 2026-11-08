@@ -93,7 +93,7 @@ export type TennisDraw = 'MEN' | 'WOMEN' | 'BOTH';
 
 /** UFC: qué veladas sigue una liga con todas (sin serie, todas). */
 export const EVENT_SERIES_LABELS: Record<EventSeries, string> = {
-  NUMBERED: 'Solo las numeradas',
+  NUMBERED: 'Numeradas y especiales',
   FIGHT_NIGHT: 'Solo las Fight Night',
 };
 
@@ -221,7 +221,7 @@ export interface LeagueDraft {
   tennisDraw: TennisDraw;
   /** Tenis: la liga sigue varios torneos (todos, Grand Slams o Masters 1000); null para uno solo. */
   tennisScope: TennisScope | null;
-  /** UFC con todas las veladas: solo las numeradas o solo las Fight Night; null para todas. */
+  /** UFC con todas las veladas: numeradas y especiales, o solo las Fight Night; null para todas. */
   eventSeries: EventSeries | null;
   /** UFC: partes de la cartelera de cada velada que entran (las tres, la velada completa). */
   cardSegments: CardSegment[];
