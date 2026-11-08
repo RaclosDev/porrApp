@@ -58,6 +58,9 @@ vi.mock('../../components/Home/LeagueHomeDashboard', () => ({
 vi.mock('../../components/grandPrix/GrandPrixPage', () => ({
   default: () => <p>Grandes Premios</p>,
 }));
+vi.mock('../../components/grandPrix/FormulaOneStandings', () => ({
+  default: () => <p>Mundial de F1</p>,
+}));
 vi.mock('../../components/fightCard/UfcCardBoard', () => ({
   default: () => <p>Cartelera</p>,
 }));
@@ -269,7 +272,7 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Tabla de equipos',
       fightCard: 'Cartelera',
       tennisDraw: 'Cuadro del torneo',
-      grandPrix: ROUTES['/'],
+      grandPrix: 'Mundial de F1',
     },
   },
   {

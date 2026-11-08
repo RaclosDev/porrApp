@@ -41,7 +41,8 @@
   padding: 0;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(230px, 1fr);
+  /* Cuatro rondas caben sin desplazar en la tarjeta de escritorio (unos 950 px). */
+  grid-auto-columns: minmax(220px, 1fr);
   gap: 14px;
   min-width: min-content;
 }
@@ -143,4 +144,33 @@
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+/* Juegos de cada set de un jugador; en negrita los sets que gana y el tie-break perdido en pequeño. */
+.tennis-draw-games {
+  display: inline-flex;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.82rem;
+  color: var(--text-muted, #596371);
+}
+
+.tennis-draw-games > span {
+  position: relative;
+  line-height: 1.4;
+  min-width: 1.1em;
+  text-align: center;
+}
+
+.tennis-draw-games > .is-won {
+  font-weight: 800;
+  color: var(--ink, #111827);
+}
+
+.tennis-draw-games sup {
+  position: absolute;
+  top: 0;
+  left: calc(100% - 1px);
+  line-height: 1;
+  font-size: 0.62em;
 }

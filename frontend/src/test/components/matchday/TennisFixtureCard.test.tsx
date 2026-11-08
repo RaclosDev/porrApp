@@ -99,4 +99,47 @@ describe('FixtureCard de tenis', () => {
 
     expect(screen.getByText('En juego · 1-0')).toBeInTheDocument();
   });
+
+  it('muestra los juegos de cada set con el tie-break de quien lo pierde', () => {
+    renderCard(
+      {
+        finished: true,
+        status: 'FINISHED',
+        actualHomeScore: 2,
+        actualAwayScore: 1,
+        winnerSign: '1',
+        displayClock: '6-7(5) 6-4 6-3',
+      },
+      EMPTY,
+      true,
+    );
+
+    expect(screen.getByText('Final')).toBeInTheDocument();
+    const sinner = screen.getByLabelText('Juegos de Jannik Sinner por set');
+    expect(sinner).toHaveTextContent('656');
+    expect(sinner.querySelector('sup')).toHaveTextContent('5');
+    expect(screen.getByLabelText('Juegos de Carlos Alcaraz por set')).toHaveTextContent('743');
+    expect(screen.getByText('Carlos Alcaraz')).toHaveClass('is-loser');
+  });
+
+  it('distingue un W.O. de una retirada', () => {
+    renderCard({ finished: true, winnerSign: '2', displayClock: 'WO' }, EMPTY, true);
+    expect(screen.getByText('Final · W.O.')).toBeInTheDocument();
+  });
+
+  it('enseña cómo iba el partido cuando hay retirada', () => {
+    renderCard({ finished: true, winnerSign: '1', displayClock: '6-4 2-1 RET' }, EMPTY, true);
+    expect(screen.getByText('Final · retirada')).toBeInTheDocument();
+    expect(screen.getByLabelText('Juegos de Jannik Sinner por set')).toHaveTextContent('62');
+  });
+
+  it('en juego enseña los juegos del set que se está jugando', () => {
+    renderCard(
+      { status: 'LIVE', actualHomeScore: 1, actualAwayScore: 0, displayClock: '6-4 3-2' },
+      EMPTY,
+      true,
+    );
+    expect(screen.getByText('En juego')).toBeInTheDocument();
+    expect(screen.getByLabelText('Juegos de Carlos Alcaraz por set')).toHaveTextContent('42');
+  });
 });
