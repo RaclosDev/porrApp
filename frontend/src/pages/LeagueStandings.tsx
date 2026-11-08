@@ -11,6 +11,7 @@ import type { LeagueKind } from '../context/leagueKind';
 import UfcCardBoard from '../components/fightCard/UfcCardBoard';
 import TennisDrawBoard from '../components/tennisDraw/TennisDrawBoard';
 import { groupStandings, isLolCompetition } from '../utils/standingsGroups';
+import { standingsZones, zoneOf } from '../utils/standingsZones';
 
 /** «Tabla»: la clasificación de la competición; en la UFC, la cartelera, y en el tenis, el cuadro. */
 export default function LeagueStandings() {
@@ -73,6 +74,10 @@ function CompetitionTable() {
   });
 
   const groups = Array.isArray(standings) ? groupStandings(standings) : [];
+  // Las zonas (octavos, playoff, descenso…) son de una tabla única, no de grupos.
+  const zones =
+    groups.length === 1 && !groups[0].title ? standingsZones(activeCompetitionExternalId) : [];
+  const tableSize = groups[0]?.rows.length ?? 0;
 
   return (
     <section className="standings-page paper-panel album-sheet">
@@ -173,11 +178,17 @@ function CompetitionTable() {
                   <tbody>
                     {group.rows.map((row) => {
                       const podium = row.rank >= 1 && row.rank <= 3 ? ` is-podium-${row.rank}` : '';
+                      const zone = zoneOf(zones, row.rank, tableSize);
 
                       return (
-                        <tr key={`${row.rank}-${row.teamName}`} className="standings-row">
-                          <td className="standings-rank-cell">
+                        <tr
+                          key={`${row.rank}-${row.teamName}`}
+                          className="standings-row"
+                          data-zone={zone?.tone}
+                        >
+                          <td className="standings-rank-cell" title={zone?.label}>
                             <span className={`standings-rank${podium}`}>{row.rank}</span>
+                            {zone && <span className="sr-only">{`, ${zone.label}`}</span>}
                           </td>
 
                           <td
@@ -251,6 +262,16 @@ function CompetitionTable() {
               </div>
             </div>
           ))}
+
+          {zones.length > 0 && (
+            <ul className="standings-zones" aria-label="Zonas de la tabla">
+              {zones.map((zone) => (
+                <li key={zone.label} data-zone={zone.tone}>
+                  {zone.label}
+                </li>
+              ))}
+            </ul>
+          )}
 
           {lol ? (
             <div className="standings-legend">
