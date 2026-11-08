@@ -421,6 +421,47 @@
     font-weight: 800;
   }
 
+  /* NFL: equipos que descansan en la semana elegida. */
+  .md-bye-teams {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: var(--text-main);
+  }
+
+  .md-bye-title {
+    font-weight: 800;
+    color: var(--text-muted);
+  }
+
+  .md-bye-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .md-bye-team {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+
+  .md-bye-team img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+
   /* UFC: una pelea con sus dos esquinas y, si se quiere, el método y el asalto. */
   .md-fight-meta {
     display: flex;

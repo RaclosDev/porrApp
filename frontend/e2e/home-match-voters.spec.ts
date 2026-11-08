@@ -117,3 +117,63 @@ test('a started match on the league home opens who picked each option, with filt
   await expect(page).toHaveURL(/\/jornadas/);
   expect(errors).toEqual([]);
 });
+
+test('a cup match decided on penalties says so on the league home card', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem('has_session', '1');
+    localStorage.setItem('passkey_prompt_answered:7', '1');
+  });
+  const league = withLeagueKind('matchday', {
+    id: 1,
+    name: 'Copa de los viernes',
+    adminUserId: 7,
+    competitionId: 8,
+    competitionName: 'Copa del Rey',
+    formatType: 'TOURNAMENT',
+    poolFormat: 'MATCH_DAY',
+    pichichi: false,
+    isLocked: false,
+  });
+  const played = new Date(Date.now() - 3 * 3_600_000).toISOString();
+  await page.route('**/*', (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin !== 'http://127.0.0.1:4173') return route.abort();
+    if (!url.pathname.startsWith('/api/')) return route.continue();
+    const responses: Record<string, unknown> = {
+      '/api/auth/session/refresh': { token: 'local-fixture' },
+      '/api/users/me': {
+        userId: 7,
+        participantName: 'Auditor',
+        profileSetupCompleted: true,
+        lastSelectedGroupId: 1,
+        avatarUrl: null,
+      },
+      '/api/groups/1': league,
+      '/api/groups/mine': [league],
+      '/api/matches': [
+        {
+          id: 1,
+          home: 'Atlético Tordesillas',
+          away: 'Mirandés',
+          date: played,
+          finished: true,
+          round: 'round1',
+          status: 'FINISHED',
+          displayClock: 'PEN 2-4',
+          home_score: 3,
+          away_score: 3,
+          homeScore: 3,
+          awayScore: 3,
+        },
+      ],
+      '/api/matches/radar': { live: [], last: [], next: [] },
+    };
+    return route.fulfill({ json: responses[url.pathname] ?? [] });
+  });
+
+  await page.goto('/');
+  const card = page.locator('.home-match-card', { hasText: 'Atlético Tordesillas' });
+  await expect(card.locator('.home-match-score')).toHaveText('3 - 3');
+  await expect(card.locator('.home-match-note')).toHaveText('2-4 en penaltis');
+});
