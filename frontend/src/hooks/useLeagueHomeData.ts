@@ -20,6 +20,7 @@ import {
   upcomingMatches,
 } from '../utils/homeMatches';
 import { displayRoundLabel, sortFightCard } from '../utils/matchday';
+import { knockoutDrawPendingText } from '../utils/knockoutDrawPending';
 import { useSortedGroups } from './useSortedGroups';
 import { nflOverall, nflRecord } from '../utils/nflStandings';
 import type { Match } from '../types/api';
@@ -293,12 +294,15 @@ export function useLeagueHomeData(): LeagueHomeData {
     return {
       subtitle: 'Predicciones del cuadro',
       matches: {
-        title: finished ? 'Últimos resultados' : 'Próximos partidos',
+        title: finished && matches.length > 0 ? 'Últimos resultados' : 'Próximos partidos',
         items: matches,
         to: '/bracket',
         action: 'ver resultados',
         allTo: '/bracket',
-        empty: 'Aún no hay partidos programados.',
+        // Antes del sorteo no hay cruces: se explica cuándo empiezan, no que no haya partidos.
+        empty: knockoutDraw
+          ? knockoutDrawPendingText(activeCompetitionExternalId)
+          : 'Aún no hay partidos programados.',
       },
       standings,
     };
@@ -316,6 +320,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     lol,
     tennis,
     activeCompetitionName,
+    activeCompetitionExternalId,
     ufc,
   ]);
 

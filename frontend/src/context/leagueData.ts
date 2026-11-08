@@ -20,6 +20,7 @@ import { useAppStore } from '../store/useAppStore';
 import type { Group, LeagueCompetition, MatchRadar } from '../types/api';
 import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
 import { MATCH_KINDS, leagueKindOf, type LeagueKind } from './leagueKind';
+import { isKnockoutOnlyCup } from '../utils/knockoutDrawPending';
 import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
 
 /** Competiciones en las que se predice el ganador, sin empate: la NFL, la NBA y el LoL. */
@@ -168,9 +169,9 @@ function useLeagueState() {
     // Copa por eliminatorias (Copa del Rey…): el servidor no devuelve tabla. Los playoffs de la NBA
     // sí tienen la de la temporada regular.
     activeCompetitionKnockoutCup:
-      Boolean(groupInfo?.knockoutDraw) &&
       groupInfo?.formatType === 'TOURNAMENT' &&
-      groupInfo?.competitionExternalId !== 'nba',
+      groupInfo?.competitionExternalId !== 'nba' &&
+      (Boolean(groupInfo?.knockoutDraw) || isKnockoutOnlyCup(groupInfo?.competitionExternalId)),
     // Liga por jornadas que elige sus partidos (de una o de varias competiciones).
     activeGroupPicksMatches: groupInfo?.matchSelection === 'CUSTOM',
     activeGroupMultiCompetition: Boolean(groupInfo?.multiCompetition),
