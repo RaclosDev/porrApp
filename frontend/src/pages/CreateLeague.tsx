@@ -205,16 +205,12 @@ export default function CreateLeague() {
             Paso {current + 1} de {LEAGUE_STEPS.length}
           </p>
         </div>
-        <div className="create-league-header-links">
+        {/* Solo al empezar: quien venía a unirse se da cuenta aquí, no a mitad del asistente. */}
+        {current === 0 && (
           <Link to="/mis-ligas?unirse" className="create-league-link is-dark">
             Tengo un código
           </Link>
-          {JSON.stringify(draft) !== EMPTY && (
-            <button type="button" className="create-league-link is-dark" onClick={startOver}>
-              Empezar de nuevo
-            </button>
-          )}
-        </div>
+        )}
       </header>
 
       <WizardSteps current={current} reachable={reachable} onSelect={goTo} />
@@ -294,6 +290,16 @@ export default function CreateLeague() {
             {isLast ? (submitting ? 'Creando liga…' : 'Crear liga') : 'Siguiente'}
           </button>
         </div>
+        {JSON.stringify(draft) !== EMPTY && (
+          <button
+            type="button"
+            className="create-league-link create-league-restart"
+            onClick={startOver}
+            disabled={submitting}
+          >
+            Empezar de nuevo
+          </button>
+        )}
       </form>
     </section>
   );
