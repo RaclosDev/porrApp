@@ -67,12 +67,7 @@ export default function CompetitionStep({ draft, update, errors, ctx }: StepProp
   );
 
   if (draft.sport === 'TENNIS') {
-    return (
-      <>
-        <TennisTournamentPicker draft={draft} update={update} errors={errors} ctx={ctx} />
-        {draft.custom && nameField}
-      </>
-    );
+    return <TennisTournamentPicker draft={draft} update={update} errors={errors} ctx={ctx} />;
   }
 
   if (draft.sport === 'OTHER') {
