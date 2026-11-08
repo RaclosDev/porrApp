@@ -58,6 +58,9 @@ vi.mock('../../components/Home/LeagueHomeDashboard', () => ({
 vi.mock('../../components/grandPrix/GrandPrixPage', () => ({
   default: () => <p>Grandes Premios</p>,
 }));
+vi.mock('../../components/grandPrix/FormulaOneStandings', () => ({
+  default: () => <p>Mundial de F1</p>,
+}));
 vi.mock('../../components/fightCard/UfcCardBoard', () => ({
   default: () => <p>Cartelera</p>,
 }));
@@ -269,7 +272,7 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Tabla de equipos',
       fightCard: 'Cartelera',
       tennisDraw: 'Cuadro del torneo',
-      grandPrix: ROUTES['/'],
+      grandPrix: 'Mundial de F1',
     },
   },
   {
@@ -337,7 +340,8 @@ describe('Ranking para cada clase de liga', () => {
     matchday: ROUTES['/jornadas'],
     fightCard: ROUTES['/jornadas'],
     tennisDraw: ROUTES['/jornadas'],
-    grandPrix: ROUTES['/'],
+    // Las predicciones de cada uno se ven en cada Gran Premio; abrir la fila llevaría a las propias.
+    grandPrix: null,
     loading: null,
     error: null,
     none: null,

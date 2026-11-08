@@ -281,6 +281,12 @@ const POOL_FORMAT_ORDER: PoolFormat[] = [
   'GRAND_PRIX',
 ];
 
+/**
+ * Si el deporte admite una competición personalizada. La Fórmula 1 no: se predice sobre los pilotos y
+ * los Grandes Premios que llegan de ESPN, y no hay forma de añadirlos a mano.
+ */
+export const allowsCustomCompetition = (sport: SportChoice | null) => sport !== 'FORMULA_1';
+
 /** Modos que se ofrecen para el deporte elegido: la Fórmula 1 solo se juega por Grandes Premios. */
 export const formatsForSport = (sport: SportChoice | null): PoolFormat[] =>
   sport === 'FORMULA_1'
@@ -518,7 +524,8 @@ export const matchSelectionApplies = (draft: LeagueDraft, ctx: DraftContext) =>
  * femenina entra como segunda competición de la liga.
  */
 function normalizeTennis(next: LeagueDraft, ctx: DraftContext) {
-  if (next.custom) next.tennisScope = null;
+  // Una competición propia no sabe de rondas ni de sets: se juega como «Otro deporte», no como tenis.
+  next.custom = false;
   if (next.tennisScope) {
     // Varios torneos: la principal es el próximo cuadro del alcance (el masculino si son los dos).
     const choices = tennisScopeDrawChoices(ctx, next.tennisScope);
@@ -566,6 +573,7 @@ export function normalizeDraft(draft: LeagueDraft, ctx: DraftContext): LeagueDra
   if (chosen && (competitionSport(chosen) !== next.sport || (chosen.finished && !next.tennisScope)))
     next.competitionId = null;
   if (next.sport !== 'TENNIS') next.tennisScope = null;
+  if (!allowsCustomCompetition(next.sport)) next.custom = false;
   if (next.custom) next.competitionId = null;
   if (next.sport === 'TENNIS') normalizeTennis(next, ctx);
   if (next.poolFormat && formatUnavailableReason(next.poolFormat, next, ctx))

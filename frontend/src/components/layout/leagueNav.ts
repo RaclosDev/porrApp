@@ -33,6 +33,7 @@ const MATCHDAYS: LeagueNavItem = { to: '/jornadas', label: 'Jornadas', icon: Cal
 const TABLE: LeagueNavItem = { to: '/tabla', label: 'Tabla', icon: ListOrdered };
 const FIGHT_CARD: LeagueNavItem = { to: '/tabla', label: 'Cartelera', icon: ListOrdered };
 const TENNIS_DRAW: LeagueNavItem = { to: '/tabla', label: 'Cuadro', icon: ListOrdered };
+const F1_STANDINGS: LeagueNavItem = { to: '/tabla', label: 'Mundial', icon: ListOrdered };
 const WORLD_CUP_GROUPS: LeagueNavItem = {
   to: '/grupos',
   label: 'Grupos',
@@ -66,7 +67,7 @@ const LEAGUE_NAV: Record<LeagueKind, readonly LeagueNavItem[] | null> = {
   matchday: MATCHDAY_NAV,
   fightCard: [HOME, MATCHDAYS, RANKING, FIGHT_CARD, MY_LEAGUES],
   tennisDraw: [HOME, MATCHDAYS, RANKING, TENNIS_DRAW, MY_LEAGUES],
-  grandPrix: [GRAND_PRIX, RANKING, MY_LEAGUES],
+  grandPrix: [GRAND_PRIX, RANKING, F1_STANDINGS, MY_LEAGUES],
 };
 
 /** Secciones que se enseñan; en la demo el inicio es /demo y no hay Mis Ligas. */
