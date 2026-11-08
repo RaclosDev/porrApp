@@ -4,9 +4,9 @@ import { Link } from 'react-router-dom';
 import PaperLoading from '../PaperLoading';
 import { TeamSlot } from '../BracketCanvas';
 import { useAppContext } from '../../context/AppContext';
-import { fetchMatchdayFixtures } from '../../services/api';
+import { fetchCompetitions, fetchMatchdayFixtures } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
-import type { MatchdayFixture } from '../../types/api';
+import type { Competition, MatchdayFixture } from '../../types/api';
 import { formatMatchDate, hasLiveMatch, isLiveFixture } from '../../utils/matchday';
 import {
   GROUP_STAGE,
@@ -243,13 +243,30 @@ function GroupTable({
   );
 }
 
+const START_DAY = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' });
+
+/** «Empieza el 14 de noviembre.»: cuándo arranca el torneo de la liga, si ESPN ya tiene la edición. */
+function startsOn(competitions: Competition[] | undefined, competitionId: number | null) {
+  const start = competitions?.find((item) => item.id === competitionId)?.tennis?.startDate;
+  const date = start ? new Date(start) : null;
+  if (!date || Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) return null;
+  return `Empieza el ${START_DAY.format(date)}.`;
+}
+
 /**
  * Pestaña Cuadro de una liga de tenis: las rondas desde octavos, ronda a ronda y con quién pasa, y en
  * las ATP Finals los dos grupos con su clasificación y debajo semifinales y final. Se ve con el
  * ganador real o con lo que ha predicho el usuario.
  */
 export default function TennisDrawBoard() {
-  const { activeGroupId, activeCompetitionName, userId, userName } = useAppContext();
+  const {
+    activeGroupId,
+    activeGroupName,
+    activeCompetitionId,
+    activeCompetitionName,
+    userId,
+    userName,
+  } = useAppContext();
   const [view, setView] = useState<DrawView>('results');
   const [selected, setSelected] = useState<string | null>(null);
   const groupId = activeGroupId ?? '';
@@ -264,6 +281,14 @@ export default function TennisDrawBoard() {
   const fixtures = fixturesQuery.data ?? EMPTY;
   const draws = useMemo(() => tennisDraws(fixtures, view), [fixtures, view]);
   const draw = draws.find((d) => (d.name ?? '') === selected) ?? draws[0];
+  // Sin cuadro todavía: la fecha de inicio del torneo, de la lista de competiciones (ya en caché).
+  const competitionsQuery = useQuery({
+    queryKey: queryKeys.competitions(),
+    queryFn: fetchCompetitions,
+    enabled: fixturesQuery.isSuccess && !draw && activeCompetitionName != null,
+    staleTime: 10 * 60_000,
+  });
+  const startText = draw ? null : startsOn(competitionsQuery.data, activeCompetitionId);
   // Quién está ya en semifinales: en las ATP Finals, los que pasan de cada grupo.
   const semifinals = (draw?.rounds.find((round) => round.label === 'Semifinales')?.slots ?? [])
     .map((slot) => slot.fixture)
@@ -274,7 +299,8 @@ export default function TennisDrawBoard() {
       <header className="standings-head">
         <div className="standings-head-copy">
           <span className="standings-eyebrow">Cuadro</span>
-          <h1 className="standings-title">{activeCompetitionName || 'Tenis'}</h1>
+          {/* En una liga de varios torneos, el nombre de la liga: cada torneo sale en el selector. */}
+          <h1 className="standings-title">{activeCompetitionName || activeGroupName || 'Tenis'}</h1>
         </div>
         {draws.length > 0 && (
           <div className="standings-toggle" role="group" aria-label="Qué enseña el cuadro">
@@ -321,6 +347,7 @@ export default function TennisDrawBoard() {
       ) : !draw ? (
         <div className="paper-panel album-sheet landing-tape standings-empty">
           <p className="standings-empty-title">El cuadro aún no está publicado.</p>
+          {startText && <p className="standings-empty-copy">{startText}</p>}
           <p className="standings-empty-copy">
             Los partidos aparecerán aquí en cuanto ESPN publique el cuadro del torneo: desde octavos
             o, en las ATP Finals, desde la fase de grupos.

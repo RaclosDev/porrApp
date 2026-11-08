@@ -137,4 +137,47 @@ describe('useLeagueHomeData', () => {
     expect(result.current.standings?.title).toBe('Tabla · Fase suiza');
     expect(result.current.standings?.rows.map((r) => r.value)).toEqual(['3-1', '3-2']);
   });
+
+  it('en el tenis la ronda de la portada lleva el torneo delante', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '5',
+        activeCompetitionId: 41,
+        activeCompetitionName: 'Masters de París',
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'tennisDraw',
+        allGames: [competitionMatch(92, 'final', '2099-11-08T15:00:00+01:00')],
+      }),
+    );
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    expect(result.current.matches.title).toBe('Masters de París · Final');
+  });
+
+  it('en una liga de varios torneos de tenis la ronda ya trae el torneo', async () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        activeGroupId: '6',
+        activeCompetitionId: 41,
+        activeGroupPoolFormat: 'MATCH_DAY',
+        leagueKind: 'tennisDraw',
+        activeGroupPicksMatches: true,
+        activeGroupMultiCompetition: true,
+      }),
+    );
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue([
+      matchdayFixture({
+        matchId: 180,
+        round: 'Masters de París 2026 · Final',
+        matchDate: '2099-11-08T15:00:00+01:00',
+        competitionName: 'Masters de París',
+      }),
+    ]);
+
+    const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
+
+    await waitFor(() => expect(result.current.matches.items[0]?.id).toBe(180));
+    expect(result.current.matches.title).toBe('Masters de París 2026 · Final');
+  });
 });
