@@ -4,6 +4,7 @@
  * Se ve con el ganador real o con el que ha predicho el usuario.
  */
 import type { MatchdayFixture } from '../types/api';
+import { parseTennisScore } from './tennisScore';
 
 /** Id externo de las competiciones de tenis (`tennis.atp.172`, `tennis.wta.189`). */
 const TENNIS_PREFIX = 'tennis.';
@@ -145,6 +146,8 @@ interface GroupRow {
   lost: number;
   setsWon: number;
   setsLost: number;
+  gamesWon: number;
+  gamesLost: number;
 }
 
 export interface DrawGroup {
@@ -179,14 +182,25 @@ const setsOf = (fixture: MatchdayFixture, view: DrawView) =>
 
 /**
  * Clasificación de un grupo: victorias, luego (entre dos empatados) quién ganó el duelo y después el
- * porcentaje de sets ganados, como en las ATP Finals (sin los juegos, que no llegan).
+ * porcentaje de sets y el de juegos ganados, como en las ATP Finals.
  */
 function standings(fixtures: MatchdayFixture[], view: DrawView): GroupRow[] {
   const rows = new Map<string, GroupRow>();
   const row = (key: string, name: string, logo: string | null) => {
     let found = rows.get(key);
     if (!found) {
-      found = { key, name, logo, played: 0, won: 0, lost: 0, setsWon: 0, setsLost: 0 };
+      found = {
+        key,
+        name,
+        logo,
+        played: 0,
+        won: 0,
+        lost: 0,
+        setsWon: 0,
+        setsLost: 0,
+        gamesWon: 0,
+        gamesLost: 0,
+      };
       rows.set(key, found);
     }
     return found;
@@ -214,9 +228,19 @@ function standings(fixtures: MatchdayFixture[], view: DrawView): GroupRow[] {
       away.setsWon += sets.away;
       away.setsLost += sets.home;
     }
+    // Los juegos solo se conocen del resultado real.
+    const games = view === 'results' ? parseTennisScore(fixture.displayClock) : null;
+    for (const set of games?.sets ?? []) {
+      home.gamesWon += set.home;
+      home.gamesLost += set.away;
+      away.gamesWon += set.away;
+      away.gamesLost += set.home;
+    }
   }
   const setRatio = (r: GroupRow) =>
     r.setsWon + r.setsLost ? r.setsWon / (r.setsWon + r.setsLost) : 0;
+  const gameRatio = (r: GroupRow) =>
+    r.gamesWon + r.gamesLost ? r.gamesWon / (r.gamesWon + r.gamesLost) : 0;
   const list = [...rows.values()];
   return list.sort((a, b) => {
     if (b.won !== a.won) return b.won - a.won;
@@ -225,7 +249,12 @@ function standings(fixtures: MatchdayFixture[], view: DrawView): GroupRow[] {
       if (duels.has(`${a.key}>${b.key}`)) return -1;
       if (duels.has(`${b.key}>${a.key}`)) return 1;
     }
-    return setRatio(b) - setRatio(a) || a.lost - b.lost || a.name.localeCompare(b.name, 'es');
+    return (
+      setRatio(b) - setRatio(a) ||
+      gameRatio(b) - gameRatio(a) ||
+      a.lost - b.lost ||
+      a.name.localeCompare(b.name, 'es')
+    );
   });
 }
 

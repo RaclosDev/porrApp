@@ -15,8 +15,10 @@ import com.porra.mundial.repository.*;
 import com.porra.mundial.scoring.MatchScoreResult;
 import com.porra.mundial.scoring.MatchScoringCalculator;
 import com.porra.mundial.scoring.ScoringRuleSet;
+import com.porra.mundial.scoring.LolSeriesScoring;
 import com.porra.mundial.scoring.TennisScoring;
 import com.porra.mundial.util.MatchRound;
+import com.porra.mundial.sports.NflSchedule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -176,7 +178,7 @@ public class MatchPredictionService {
 
                 // Si el partido está terminado o tiene marcador oficial y no se había evaluado
                 if (TennisScoring.applies(match) ? TennisScoring.decided(match)
-                        : hasScorableResult(match) && match.getHomeScore() != null && match.getAwayScore() != null) {
+                        : hasScorableResult(match) && hasResultToScore(match)) {
                     MatchScoreResult scoreResult = scorePrediction(mp, match, fight, rules);
                     if (scoreResult != null) {
                         pointsAwarded = scoreResult.totalPoints();
@@ -188,10 +190,16 @@ public class MatchPredictionService {
             }
 
             boolean tennis = TennisScoring.applies(match);
+            boolean lol = LolSeriesScoring.applies(match);
             result.add(MatchdayFixturePredictionDTO.builder()
                     .matchId(match.getId())
-                    .setsToWin(tennis ? TennisScoring.setsToWin(match.getCompetition()) : null)
-                    .winnerSign(tennis ? TennisScoring.winnerSign(match) : null)
+                    // En el LoL, el resultado de la serie (2-1, 3-0) se elige como los sets del tenis; en
+                    // superviviente solo se elige un equipo.
+                    .setsToWin(tennis ? Integer.valueOf(TennisScoring.setsToWin(match.getCompetition()))
+                            : lol && (edition == null || edition.getPoolFormat() != PoolFormat.SURVIVOR)
+                                    ? LolSeriesScoring.gamesToWin(match) : null)
+                    .bestOf(lol ? match.getBestOf() : null)
+                    .winnerSign(tennis || lol ? TennisScoring.winnerSign(match) : null)
                     .homeTeam(match.getHomeTeam() != null ? match.getHomeTeam().getName() : Team.PLACEHOLDER_NAME)
                     .awayTeam(match.getAwayTeam() != null ? match.getAwayTeam().getName() : Team.PLACEHOLDER_NAME)
                     .homeTeamId(match.getHomeTeam() != null ? match.getHomeTeam().getId() : null)
@@ -410,6 +418,7 @@ public class MatchPredictionService {
                 throw BusinessException.badRequest("La predicción debe incluir un marcador completo o un signo 1, X o 2.");
             }
             if (TennisScoring.applies(match)) checkTennisPick(match, item, sign);
+            if (LolSeriesScoring.applies(match) && !survivor) checkSeriesPick(match, item);
             if ("X".equals(sign) && !Sport.allowsDraws(match)) {
                 throw BusinessException.badRequest("En este deporte se predice quién gana: no hay empate.");
             }
@@ -461,8 +470,7 @@ public class MatchPredictionService {
         }
         invalidateSurvivorEditions(match);
         // En tenis solo puntúa el partido terminado; una retirada o un W.O. tienen ganador sin marcador.
-        if (TennisScoring.applies(match) ? !TennisScoring.decided(match)
-                : match.getHomeScore() == null || match.getAwayScore() == null) return;
+        if (!hasResultToScore(match)) return;
 
         List<MatchPrediction> predictions = matchPredictionRepository.findByMatchId(match.getId());
         // El partido puede llegar sin sesión (sincronización): se mira por su id si es una pelea.
@@ -501,6 +509,16 @@ public class MatchPredictionService {
         }
     }
 
+    /**
+     * Si el partido ya tiene un resultado con el que puntuar. El tenis y el LoL, solo al terminar y con
+     * ganador: un set o una partida de ventaja no es una victoria.
+     */
+    private static boolean hasResultToScore(Match match) {
+        if (TennisScoring.applies(match)) return TennisScoring.decided(match);
+        if (LolSeriesScoring.applies(match)) return LolSeriesScoring.decided(match);
+        return match.getHomeScore() != null && match.getAwayScore() != null;
+    }
+
     private static boolean hasScorableResult(Match match) {
         return Boolean.TRUE.equals(match.getFinished())
                 || match.getStatus() == com.porra.mundial.model.MatchStatusNormalized.LIVE
@@ -524,8 +542,7 @@ public class MatchPredictionService {
         for (MatchPrediction mp : all) {
             Match match = mp.getMatch();
             if (match == null || !Boolean.TRUE.equals(match.getFinished())
-                    || (TennisScoring.applies(match) ? !TennisScoring.decided(match)
-                            : match.getHomeScore() == null || match.getAwayScore() == null)) {
+                    || !hasResultToScore(match)) {
                 continue;
             }
             MatchScoreResult result = scorePrediction(mp, match, fights.get(match.getId()), rules);
@@ -593,8 +610,10 @@ public class MatchPredictionService {
             }
             Team used = SurvivorRules.pickedTeam(other);
             if (used != null && Objects.equals(used.getId(), team.getId())) {
-                throw BusinessException.conflict(String.format("Ya elegiste a %s en %s.", team.getName(),
-                        MatchRound.label(otherMatch)));
+                String usedRound = MatchRound.label(otherMatch);
+                // NFL: «en la Semana 9» / «en la Ronda divisional»; en el fútbol, «en Jornada 9».
+                String at = NflSchedule.isRoundLabel(usedRound) ? "la " + usedRound : usedRound;
+                throw BusinessException.conflict(String.format("Ya elegiste a %s en %s.", team.getName(), at));
             }
         }
     }
@@ -607,6 +626,22 @@ public class MatchPredictionService {
         if (item.getHomeScore() != null && item.getAwayScore() != null && !TennisScoring.validSets(
                 item.getHomeScore(), item.getAwayScore(), TennisScoring.setsToWin(match.getCompetition()))) {
             throw BusinessException.badRequest("Ese resultado en sets no es posible en este partido.");
+        }
+    }
+
+    /**
+     * LoL: el resultado de la serie, si se da, tiene que ser posible al mejor de su número de partidas
+     * (2-0 o 2-1 al mejor de tres). Al mejor de uno solo se elige quién gana.
+     */
+    private static void checkSeriesPick(Match match, MatchPredictionItemDTO item) {
+        if (item.getHomeScore() == null || item.getAwayScore() == null) return;
+        Integer gamesToWin = LolSeriesScoring.gamesToWin(match);
+        if (gamesToWin == null) {
+            throw BusinessException.badRequest("En esta serie solo se elige quién gana.");
+        }
+        if (!TennisScoring.validSets(item.getHomeScore(), item.getAwayScore(), gamesToWin)) {
+            throw BusinessException.badRequest("Ese resultado no es posible en una serie al mejor de "
+                    + match.getBestOf() + ".");
         }
     }
 
@@ -676,6 +711,10 @@ public class MatchPredictionService {
             return SurvivorRules.score(prediction.getPredictionSign(), match.getHomeScore(), match.getAwayScore(),
                     SurvivorRules.pickedTeam(prediction.getPredictionSign(), match),
                     SurvivorRules.Settings.of(prediction.getPrediction().getEdition()));
+        }
+        if (LolSeriesScoring.applies(match)) {
+            return LolSeriesScoring.score(prediction.getPredictionSign(), prediction.getHomeScore(),
+                    prediction.getAwayScore(), match, rules);
         }
         if (TennisScoring.applies(match)) {
             return TennisScoring.score(prediction.getPredictionSign(), prediction.getHomeScore(),

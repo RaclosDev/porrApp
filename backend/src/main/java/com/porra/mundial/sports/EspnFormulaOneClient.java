@@ -22,6 +22,8 @@ public class EspnFormulaOneClient {
     private static final String SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard";
     private static final String CORE_EVENTS = "https://sports.core.api.espn.com/v2/sports/racing/leagues/f1/events/";
 
+    private static final String STANDINGS = "https://site.api.espn.com/apis/v2/sports/racing/f1/standings";
+
     private final EspnSportsDataProvider espn;
 
     public boolean isAvailable() {
@@ -36,6 +38,16 @@ public class EspnFormulaOneClient {
     /** Gran Premio en curso o el siguiente (lo que ESPN muestra por defecto). */
     public JsonNode currentEvents() throws Exception {
         return events(espn.fetchEspnJson(SCOREBOARD));
+    }
+
+    /**
+     * Mundial de pilotos y de constructores de la temporada en curso: {@code children[]} con
+     * «Driver Standings» y «Constructor Standings», cada uno con {@code standings.entries[]}.
+     */
+    public JsonNode standings() throws Exception {
+        JsonNode children = espn.fetchEspnJson(STANDINGS).path("children");
+        if (!children.isArray()) throw new IOException("ESPN devolvió un Mundial de F1 sin clasificaciones");
+        return children;
     }
 
     /** Pilotos de una sesión con su escudería, dorsal y color ({@code items[].vehicle}). */

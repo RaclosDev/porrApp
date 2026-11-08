@@ -236,6 +236,21 @@ class LeagueServiceTest {
     }
 
     @Test
+    void aRegularLeagueHasNoBracketToFillIn() {
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        Competition laLiga = Competition.builder().id(3L).externalId("esp.1").formatType("LEAGUE").build();
+        when(competitionRepository.findById(3L)).thenReturn(Optional.of(laLiga));
+
+        for (var format : java.util.List.of(com.porra.mundial.model.PoolFormat.FULL_BRACKET,
+                com.porra.mundial.model.PoolFormat.KNOCKOUTS_ONLY)) {
+            BusinessException error = assertThrows(BusinessException.class, () -> leagueService.createLeague(
+                    NewLeague.of("LaLiga", "admin@test.com", 3L, format)));
+            assertEquals("Esta competición se juega por jornadas: no tiene cuadro que rellenar", error.getMessage());
+        }
+        verify(leagueRepository, org.mockito.Mockito.never()).save(any(League.class));
+    }
+
+    @Test
     @DisplayName("updateLeague rechaza si el nombre está vacío")
     void updateGroup_ThrowsIfEmpty() {
         when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));

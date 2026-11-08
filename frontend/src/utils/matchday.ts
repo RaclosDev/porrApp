@@ -9,6 +9,7 @@ import type {
   MatchdayPredictionInput,
   SurvivorStatus,
 } from '../types/api';
+import { parseTennisScore, tennisScoreText } from './tennisScore';
 
 /** Pronóstico en edición de un partido; los marcadores son el texto de los inputs. */
 export interface DraftPrediction {
@@ -36,6 +37,23 @@ export type StatusFilter = 'UPCOMING' | 'PENDING' | 'FINISHED';
 export const allowsDraw = (sport: string | null | undefined): boolean =>
   sport == null || sport === 'FOOTBALL';
 
+/** Lo que guarda el backend al puntuar un signo: pensado para el 1X2 del fútbol. */
+const SIGN_DETAILS = /^(Acierto de signo 1X2|Sin acierto en signo)/;
+
+/**
+ * Desglose de puntos de un partido sin empate (NFL, NBA…): ahí no hay «signo 1X2» sino un ganador.
+ * Los demás desgloses (series del LoL, sets del tenis, marcadores) se dejan tal cual.
+ */
+export const scoringDetailsText = (
+  details: string | null | undefined,
+  sport: string | null | undefined,
+  scored: boolean,
+): string | null => {
+  if (!details) return null;
+  if (allowsDraw(sport) || !SIGN_DETAILS.test(details)) return details;
+  return scored ? 'Ganador acertado' : 'Ganador fallado';
+};
+
 const OVERTIMES = /^(\d*)OT$/;
 const PENALTIES = /^PEN (\d+)-(\d+)$/;
 
@@ -55,8 +73,13 @@ export const resultNote = (displayClock: string | null | undefined): string | nu
   return penalties ? `${penalties[1]}-${penalties[2]} en penaltis` : null;
 };
 
-/** «Final» o, si hubo prórroga o penaltis, «Final · prórroga». */
+/**
+ * «Final» o, si hubo prórroga o penaltis, «Final · prórroga». En el tenis, con los juegos de cada set:
+ * «Final · 6-4 3-6 7-6(5)».
+ */
 export const finishedLabel = (displayClock: string | null | undefined): string => {
+  const tennis = parseTennisScore(displayClock);
+  if (tennis) return `Final · ${tennisScoreText(tennis)}`;
   const note = resultNote(displayClock);
   return note ? `Final · ${note}` : 'Final';
 };
@@ -104,6 +127,10 @@ const KNOCKOUT_LABELS: Record<string, string> = {
   sf: 'Semifinales',
   third: 'Tercer puesto',
   final: 'Final',
+  // Rondas de la Copa del Rey antes de dieciseisavos.
+  qualifying: 'Ronda previa',
+  round1: 'Primera ronda',
+  round2: 'Segunda ronda',
 };
 
 export function displayRoundLabel(label: string): string {

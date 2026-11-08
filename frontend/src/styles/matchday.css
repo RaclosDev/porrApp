@@ -182,6 +182,15 @@
     white-space: nowrap;
   }
 
+  /* Series del LoL: «Al mejor de 5» como etiqueta, sin partirse entre dos líneas. */
+  .md-best-of {
+    padding: 0 6px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   /* La fecha y su cierre: si no caben en una línea, el cierre baja entero a la siguiente. */
   .md-match-top > span:first-child {
     flex-wrap: wrap;
@@ -257,6 +266,41 @@
     font-weight: 700;
     color: var(--text-main);
     line-height: 1.25;
+  }
+
+  /* Tenis: quien pierde el partido, más apagado, y los juegos de cada set a la derecha. */
+  .md-team-name.is-loser {
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .md-set-games {
+    display: inline-flex;
+    gap: 4px;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .md-set-game {
+    position: relative;
+    min-width: 1.4em;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .md-set-game.is-won {
+    font-weight: 800;
+    color: var(--text-main);
+  }
+
+  /* El tie-break, pegado arriba a la derecha sin mover la columna del set. */
+  .md-set-game sup {
+    position: absolute;
+    top: -0.25em;
+    left: calc(50% + 0.45em);
+    font-size: 0.62em;
   }
 
   .md-signs {
@@ -375,6 +419,47 @@
 
   .md-survivor-status strong {
     font-weight: 800;
+  }
+
+  /* NFL: equipos que descansan en la semana elegida. */
+  .md-bye-teams {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: var(--text-main);
+  }
+
+  .md-bye-title {
+    font-weight: 800;
+    color: var(--text-muted);
+  }
+
+  .md-bye-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .md-bye-team {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+
+  .md-bye-team img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
   }
 
   /* UFC: una pelea con sus dos esquinas y, si se quiere, el método y el asalto. */

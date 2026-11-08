@@ -1,5 +1,6 @@
 package com.porra.mundial.service.sync;
 
+import com.porra.mundial.sports.LolEsportsDataProvider;
 import com.porra.mundial.sports.NflSchedule;
 import com.porra.mundial.service.prediction.MatchPredictionService;
 import com.porra.mundial.service.notification.WebSocketService;
@@ -233,8 +234,10 @@ public class MatchEventProcessor {
                         : parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fight != null ? new int[]{0, 0} : fairPlayPoints(competition, home, away, homeTeam, awayTeam);
 
+        int bestOf = competition.path(LolEsportsDataProvider.BEST_OF_FIELD).asInt(0);
+
         upsertMatch(eventId, homeTeam, awayTeam, scores, fairPlay, parseDate(event.path("date").asText(null)),
-                status, metadata, fight, batch);
+                status, metadata, bestOf > 0 ? bestOf : null, fight, batch);
     }
 
     /** Fecha del evento en hora peninsular española, o null si no se puede interpretar. */
@@ -474,7 +477,7 @@ public class MatchEventProcessor {
     /** Separación máxima entre partidos de una misma jornada. */
     private static final long SAME_MATCHDAY_DAYS = 4;
     /** Más allá de este parón se da por empezada otra temporada y no se sigue numerando. */
-    private static final long NEW_SEASON_GAP_DAYS = 45;
+    private static final long NEW_SEASON_GAP_DAYS = 60;
 
     /**
      * Jornada de un partido de liga nuevo, siguiendo la numeración "Jornada N" que ya tenga la competición:
@@ -523,7 +526,8 @@ public class MatchEventProcessor {
     }
 
     private void upsertMatch(String eventId, Team home, Team away, Scores scores, int[] fairPlay,
-                             Instant date, MatchStatus status, MatchMetadata meta, JsonNode fight, Batch batch) {
+                             Instant date, MatchStatus status, MatchMetadata meta, Integer bestOf, JsonNode fight,
+                             Batch batch) {
         Match match = matchRepository.findByExternalId(eventId)
                 .orElseGet(() -> Match.builder().externalId(eventId).build());
         Team previousHome = match.getId() == null ? null : match.getHomeTeam();
@@ -560,6 +564,8 @@ public class MatchEventProcessor {
             String matchday = inferLeagueMatchday(batch.competition, date);
             if (matchday != null) match.setRound(matchday);
         }
+        // Series del LoL: al mejor de 1, 3 o 5 partidas.
+        if (bestOf != null) updated |= setIfChanged(match.getBestOf(), bestOf, match::setBestOf);
         boolean fairPlayChanged = setIfChanged(match.getHomeFairPlay(), fairPlay[0], match::setHomeFairPlay)
                 | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
         updated |= fairPlayChanged;
