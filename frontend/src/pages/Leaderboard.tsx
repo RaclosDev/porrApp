@@ -248,6 +248,7 @@ function Leaderboard() {
                 canGoNext={canGoNextMatchday}
                 onSelect={handleSelectMatchday}
                 onStep={handleStepMatchday}
+                fightCard={state.leagueKind === 'fightCard'}
               />
             )}
 

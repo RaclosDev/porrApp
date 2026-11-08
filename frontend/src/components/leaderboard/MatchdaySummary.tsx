@@ -17,6 +17,8 @@ interface MatchdaySummaryProps {
   canGoNext: boolean;
   onSelect: (label: string) => void;
   onStep: (step: -1 | 1) => void;
+  /** Liga de la UFC: cada jornada es una velada de peleas. */
+  fightCard?: boolean;
 }
 
 /** Cabecera de la clasificación por jornadas: estado, tus puntos y puesto, y selector. */
@@ -31,11 +33,13 @@ export default function MatchdaySummary({
   canGoNext,
   onSelect,
   onStep,
+  fightCard = false,
 }: MatchdaySummaryProps) {
+  // La UFC va por veladas de peleas; la NFL (y las ligas de varias competiciones), por semanas: «Semana 9».
+  const round = fightCard ? 'Velada' : /^Semana \d/.test(matchday.label) ? 'Semana' : 'Jornada';
+  const items = fightCard ? ['pelea', 'peleas'] : ['partido', 'partidos'];
   // Hora fijada al montar: basta para distinguir una jornada abierta de una en juego.
   const [now] = useState(() => Date.now());
-  // La NFL (y las ligas de varias competiciones) van por semanas: «Semana 9», no «Jornada 9».
-  const unit = /^Semana \d/.test(matchday.label) ? 'Semana' : 'Jornada';
   // «En juego» solo cuando ya ha empezado algún partido; antes, la jornada sigue abierta.
   const status = matchday.finished
     ? { text: 'Finalizada', tone: 'finished' }
@@ -49,14 +53,14 @@ export default function MatchdaySummary({
         <div className="lb-matchday-heading">
           <span className="lb-matchday-eyebrow">
             <CalendarDays size={14} aria-hidden="true" />
-            {selected?.current ? `${unit} actual` : `${unit} seleccionada`}
+            {`${round} ${selected?.current ? 'actual' : 'seleccionada'}`}
           </span>
           <strong className="lb-matchday-title">{displayRoundLabel(matchday.label)}</strong>
           <div className="lb-matchday-title-row">
             <span className={`lb-matchday-status is-${status.tone}`}>{status.text}</span>
             {matchday.matchCount > 0 && (
               <span className="lb-matchday-meta">
-                {matchday.matchCount} {matchday.matchCount === 1 ? 'partido' : 'partidos'}
+                {matchday.matchCount} {matchday.matchCount === 1 ? items[0] : items[1]}
               </span>
             )}
           </div>
@@ -64,7 +68,7 @@ export default function MatchdaySummary({
         <div className="lb-matchday-aside">
           <span
             className="lb-matchday-me"
-            aria-label={`Tus puntos en esta jornada: ${myPoints}${myRank ? `, puesto ${myRank}` : ''}`}
+            aria-label={`Tus puntos en esta ${round.toLowerCase()}: ${myPoints}${myRank ? `, puesto ${myRank}` : ''}`}
           >
             <strong>{myPoints}</strong> pts
             {myRank && <span className="lb-matchday-rank">{myRank}º</span>}
@@ -86,7 +90,7 @@ export default function MatchdaySummary({
           className="lb-matchday-step"
           onClick={() => onStep(-1)}
           disabled={!canGoPrev}
-          aria-label="Jornada anterior"
+          aria-label={`${round} anterior`}
         >
           <ChevronLeft size={18} aria-hidden="true" />
         </button>
@@ -95,7 +99,7 @@ export default function MatchdaySummary({
           className="lb-matchday-select"
           value={selectedLabel || ''}
           onChange={(event) => onSelect(event.target.value)}
-          aria-label="Seleccionar jornada"
+          aria-label={`Seleccionar ${round.toLowerCase()}`}
         >
           {matchdays.map((option) => (
             <option key={option.label} value={option.label}>
@@ -110,7 +114,7 @@ export default function MatchdaySummary({
           className="lb-matchday-step"
           onClick={() => onStep(1)}
           disabled={!canGoNext}
-          aria-label="Jornada siguiente"
+          aria-label={`${round} siguiente`}
         >
           <ChevronRight size={18} aria-hidden="true" />
         </button>

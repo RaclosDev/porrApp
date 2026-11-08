@@ -130,6 +130,9 @@ describe('FightCard', () => {
     expect(screen.getByText('Asalto 3', { selector: '.fight-result span' })).toBeInTheDocument();
     expect(screen.getByText(/Ganador \+3 · Método \+2 · Asalto \+2/)).toBeInTheDocument();
     expect(screen.getByText('+7 pts')).toBeInTheDocument();
+    // Con la pelea cerrada ya no se invita a elegir.
+    expect(screen.getByRole('group', { name: 'Método' })).toBeInTheDocument();
+    expect(screen.queryByText(/opcional/)).not.toBeInTheDocument();
   });
 
   it('una pelea cancelada lo dice y no muestra puntos', () => {

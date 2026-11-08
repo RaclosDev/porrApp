@@ -35,7 +35,6 @@ import com.porra.mundial.service.prediction.MatchPredictionService;
 import com.porra.mundial.service.sync.MatchEventProcessor;
 import com.porra.mundial.service.sync.SyncService;
 import com.porra.mundial.service.tournament.TopScorerService;
-import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -219,10 +218,13 @@ class UfcFightCardIntegrationTest {
     }
 
     @Test
-    @DisplayName("Una velada que cruza la medianoche del día en que se crea la liga entra entera")
-    void fightNightAcrossMidnight() {
-        // Estelar a la 1:00 de hoy (hora peninsular) y preliminares dos horas antes, aún ayer.
-        Instant mainCard = AppTime.startOfDay(AppTime.day(Instant.now())).plus(1, ChronoUnit.HOURS);
+    @DisplayName("Una velada ya empezada cuando se crea la liga entra entera; la que ya acabó, no")
+    void fightNightUnderWay() {
+        // Los preliminares empezaron hace una hora y la estelar empieza dentro de una.
+        Instant mainCard = Instant.now().plus(1, ChronoUnit.HOURS);
+        // La velada de anoche: su última pelea empezó hace seis horas.
+        sync("e3b", "UFC Fight Night: Anoche", Instant.now().minus(6, ChronoUnit.HOURS), List.of(
+                new Bout("y1", "Rojo Anoche", "Azul Anoche", "main", 1, 5)), Map.of());
         sync("e4", "UFC Fight Night: Medianoche", mainCard, List.of(
                 new Bout("n1", "Rojo Estelar", "Azul Estelar", "main", 1, 5),
                 new Bout("n2", "Rojo Previo", "Azul Previo", "prelims1", 2, 3)), Map.of());

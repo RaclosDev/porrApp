@@ -395,7 +395,7 @@ export interface MatchSelectionView {
   keptMatches: number;
 }
 
-/** UFC: veladas numeradas («UFC 334») o el resto (Fight Night y demás sin número). */
+/** UFC: veladas numeradas y especiales («UFC 334», «UFC Freedom 250») o las Fight Night. */
 export type EventSeries = 'NUMBERED' | 'FIGHT_NIGHT';
 
 /** Tenis: torneos de una liga de varios (todos, Grand Slams o Masters 1000 con las ATP Finals). */

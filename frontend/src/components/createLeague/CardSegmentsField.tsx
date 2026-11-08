@@ -61,6 +61,12 @@ export default function CardSegmentsField({ draft, update, errors }: StepProps) 
           </label>
         ))}
       </div>
+      {chosen.length === 1 && chosen[0] === 'EARLY_PRELIMS' && (
+        <p className="create-league-hint" role="note">
+          Muchas Fight Night no tienen preliminares tempranos: esas noches la liga se quedará sin
+          peleas.
+        </p>
+      )}
       <FieldError fieldId={fieldId} message={errors.cardSegments} />
     </fieldset>
   );

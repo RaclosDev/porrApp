@@ -13,10 +13,16 @@ class EventSeriesTest {
     }
 
     @Test
-    void everyOtherEventIsAFightNight() {
+    void specialEventsGoWithTheNumberedOnes() {
+        assertThat(EventSeries.of("UFC Freedom 250: Topuria vs. Gaethje")).isEqualTo(EventSeries.NUMBERED);
+    }
+
+    @Test
+    void fightNightsGoByTheirName() {
         assertThat(EventSeries.of("UFC Fight Night: Moicano vs. Nolan")).isEqualTo(EventSeries.FIGHT_NIGHT);
         assertThat(EventSeries.of("Noche UFC: Moicano vs. Nolan")).isEqualTo(EventSeries.FIGHT_NIGHT);
         assertThat(EventSeries.of("UFC on ABC 9")).isEqualTo(EventSeries.FIGHT_NIGHT);
+        assertThat(EventSeries.of("UFC Vegas 105: Burns vs. Brady")).isEqualTo(EventSeries.FIGHT_NIGHT);
         assertThat(EventSeries.of(null)).isNull();
     }
 
