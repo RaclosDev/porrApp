@@ -15,7 +15,7 @@ import {
 } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
 import SiteFooter from '../components/landing/SiteFooter';
-import { LANDING_COPY } from '../seo/pages';
+import { HOME_FAQ, LANDING_COPY } from '../seo/pages';
 import { openSignupToCreateLeague } from '../utils/loginModal';
 
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
@@ -255,6 +255,22 @@ export default function Landing() {
           </Link>
         </motion.div>
       </GhostWord>
+
+      <NetLine />
+
+      <section className="max-w-200 mx-auto py-6" aria-labelledby="landing-faq-title">
+        <h2 id="landing-faq-title" className="poster-title text-3xl sm:text-4xl text-white">
+          Preguntas frecuentes
+        </h2>
+        <dl className="mt-6 flex flex-col gap-6">
+          {HOME_FAQ.map((entry) => (
+            <div key={entry.question}>
+              <dt className="font-bold text-white text-lg">{entry.question}</dt>
+              <dd className="m-0 mt-1 text-[#e2e8f0] leading-relaxed">{entry.answer}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <motion.section
         variants={rise}

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CONTENT_PAGES } from '../../seo/pages';
+import { AFFILIATION_NOTICE, CONTENT_PAGES } from '../../seo/pages';
 
 const linkClass = 'underline hover:text-white inline-flex items-center min-h-11';
 
@@ -48,6 +48,7 @@ export default function SiteFooter({ current }: SiteFooterProps) {
           Aviso legal
         </Link>
       </div>
+      <p className="m-0 max-w-160 text-center text-xs leading-relaxed">{AFFILIATION_NOTICE}</p>
     </footer>
   );
 }
