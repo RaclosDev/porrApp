@@ -115,4 +115,18 @@ describe('Tenis en /crear-liga', () => {
     );
     expect(update({ competitionId: 20 }).tennisDraw).toBe('WOMEN');
   });
+
+  it('no ofrece una competición personalizada: lleva a «Otro deporte»', () => {
+    render(
+      <TennisTournamentPicker
+        draft={{ ...emptyDraft(), sport: 'TENNIS' }}
+        update={() => undefined}
+        errors={{}}
+        ctx={{ competitions: [] }}
+      />,
+    );
+
+    expect(screen.queryByRole('radio', { name: /personalizada/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/elige «Otro deporte»/)).toBeInTheDocument();
+  });
 });

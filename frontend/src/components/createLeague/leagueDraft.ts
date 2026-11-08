@@ -518,7 +518,8 @@ export const matchSelectionApplies = (draft: LeagueDraft, ctx: DraftContext) =>
  * femenina entra como segunda competición de la liga.
  */
 function normalizeTennis(next: LeagueDraft, ctx: DraftContext) {
-  if (next.custom) next.tennisScope = null;
+  // Una competición propia no sabe de rondas ni de sets: se juega como «Otro deporte», no como tenis.
+  next.custom = false;
   if (next.tennisScope) {
     // Varios torneos: la principal es el próximo cuadro del alcance (el masculino si son los dos).
     const choices = tennisScopeDrawChoices(ctx, next.tennisScope);

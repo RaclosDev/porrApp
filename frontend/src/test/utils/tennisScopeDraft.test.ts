@@ -104,8 +104,12 @@ describe('liga de tenis de varios torneos', () => {
     });
   });
 
-  it('una competición personalizada u otro deporte no siguen torneos', () => {
-    expect(draftWith({ tennisScope: 'ALL', custom: true }).tennisScope).toBeNull();
+  it('en tenis no hay competición personalizada y otro deporte no sigue torneos', () => {
+    // Un borrador guardado con la competición propia vuelve a los torneos de tenis.
+    expect(draftWith({ tennisScope: 'ALL', custom: true })).toMatchObject({
+      custom: false,
+      tennisScope: 'ALL',
+    });
     expect(
       normalizeDraft({ ...emptyDraft(), sport: 'FOOTBALL', tennisScope: 'ALL' }, ctx).tennisScope,
     ).toBeNull();
