@@ -12,7 +12,7 @@ name: Auto-merge de PRs propios
 # en cada intento y se borra cuando por fin se fusiona.
 on:
   workflow_run:
-    workflows: [Porra Mundial CI/CD]
+    workflows: [PorrApp CI/CD]
     types: [completed]
 
 permissions:

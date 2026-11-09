@@ -1,4 +1,4 @@
-name: Porra Mundial CI/CD
+name: PorrApp CI/CD
 
 on:
   push:
