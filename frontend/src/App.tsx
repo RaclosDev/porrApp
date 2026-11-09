@@ -39,6 +39,9 @@ const Stats = lazyPage(() => import('./pages/Stats'));
 const Search = lazyPage(() => import('./pages/Search'));
 const GroupsDashboard = lazyPage(() => import('./pages/GroupsDashboard'));
 const CreateLeague = lazyPage(() => import('./pages/CreateLeague'));
+const CreateTracker = lazyPage(() => import('./pages/CreateTracker'));
+const TrackerView = lazyPage(() => import('./pages/TrackerView'));
+const JoinTracker = lazyPage(() => import('./pages/JoinTracker'));
 const JoinRedirect = lazyPage(() => import('./components/JoinRedirect'));
 const OfficialBracket = lazyPage(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = lazyPage(() => import('./pages/LinkedInEntry'));
@@ -254,6 +257,30 @@ function AppShell() {
               element={
                 <ProtectedRoute>
                   <CreateLeague />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/marcador/nuevo"
+              element={
+                <ProtectedRoute>
+                  <CreateTracker />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/marcador/unirse/:code"
+              element={
+                <ProtectedRoute>
+                  <JoinTracker />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/marcador/:id"
+              element={
+                <ProtectedRoute>
+                  <TrackerView />
                 </ProtectedRoute>
               }
             />
