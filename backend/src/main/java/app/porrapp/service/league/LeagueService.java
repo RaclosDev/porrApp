@@ -45,6 +45,7 @@ public class LeagueService {
     private final MatchRepository matchRepository;
     private final TeamRepository teamRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final LeagueSeasons leagueSeasons;
 
     /** Liga ya creada por este usuario con esa clave de idempotencia, si existe. */
     @Transactional(readOnly = true)
@@ -325,7 +326,9 @@ public class LeagueService {
 
         return groups.stream()
                 .map(g -> {
-                    LeagueResponseDTO dto = LeagueResponseDTO.of(g, editionMap.get(g.getId()), true);
+                    Edition edition = editionMap.get(g.getId());
+                    LeagueResponseDTO dto = withSeason(LeagueResponseDTO.of(g, edition, true), g, edition,
+                            joinedAt::containsKey);
                     Instant joined = joinedAt.get(g.getId());
                     dto.setJoinedAt(Instant.EPOCH.equals(joined) ? null : joined);
                     return dto;
@@ -342,12 +345,34 @@ public class LeagueService {
     /** Liga con su edición activa; el código de invitación solo se incluye si se indica. */
     @Transactional(readOnly = true)
     public LeagueResponseDTO toResponse(League league, boolean includeJoinCode) {
+        return toResponse(league, includeJoinCode, null);
+    }
+
+    /**
+     * Liga con su edición activa, tal como la ve {@code viewerEmail}: la liga que la repite en la temporada
+     * nueva solo se le nombra si también es miembro de ella.
+     */
+    @Transactional(readOnly = true)
+    public LeagueResponseDTO toResponse(League league, boolean includeJoinCode, String viewerEmail) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null);
-        LeagueResponseDTO dto = LeagueResponseDTO.of(league, edition, includeJoinCode);
+        LeagueResponseDTO dto = withSeason(LeagueResponseDTO.of(league, edition, includeJoinCode), league, edition,
+                nextId -> isUserMemberOrAdmin(nextId, viewerEmail));
         if (edition != null && edition.isMultiCompetition() && edition.getCompetition() != null
                 && edition.getId() != null) {
             dto.setCompetitions(competitionsOf(edition));
         }
+        return dto;
+    }
+
+    /** Añade la temporada de la liga: si ha terminado, si se puede repetir y la liga que ya la repite. */
+    private LeagueResponseDTO withSeason(LeagueResponseDTO dto, League league, Edition edition,
+                                         java.util.function.Predicate<Long> viewerBelongsTo) {
+        LeagueSeasons.Status status = leagueSeasons.status(league, edition, viewerBelongsTo);
+        dto.setSeason(status.season());
+        dto.setSeasonEnded(status.ended());
+        dto.setCanRepeat(status.canRepeat());
+        dto.setNextSeason(status.nextSeason());
+        dto.setNextLeagueId(status.nextLeagueId());
         return dto;
     }
 
@@ -374,7 +399,8 @@ public class LeagueService {
         // Para unirse, la vista previa va por código de invitación (findInvitationPreview).
         return getLeagueById(id).flatMap(league -> {
             boolean member = isUserMemberOrAdmin(id, viewerEmail);
-            return member || league.isPublicLeague() ? Optional.of(toResponse(league, member)) : Optional.empty();
+            return member || league.isPublicLeague()
+                    ? Optional.of(toResponse(league, member, viewerEmail)) : Optional.empty();
         });
     }
 
@@ -382,7 +408,7 @@ public class LeagueService {
     @Transactional(readOnly = true)
     public Optional<LeagueResponseDTO> findFeaturedLeagueResponse(String viewerEmail) {
         return leagueRepository.findFirstByPublicLeagueTrueOrderByIdAsc()
-                .map(league -> toResponse(league, isUserMemberOrAdmin(league.getId(), viewerEmail)));
+                .map(league -> toResponse(league, isUserMemberOrAdmin(league.getId(), viewerEmail), viewerEmail));
     }
 
     /** Datos públicos para previsualizar una invitación sin unirse a la liga. */

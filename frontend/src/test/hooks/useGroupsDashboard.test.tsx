@@ -8,6 +8,7 @@ import { useAppContext } from '../../context/AppContext';
 import * as api from '../../services/api';
 import { appContext, group } from '../context/fixtures';
 import { useAppStore } from '../../store/useAppStore';
+import { confirmAction } from '../../utils/confirmAction';
 
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn().mockResolvedValue(true) }));
 import { ApiError, NETWORK_ERROR_MESSAGE } from '../../services/apiError';
@@ -24,6 +25,7 @@ vi.mock('../../services/api', () => ({
   leaveGroup: vi.fn(),
   updateGroup: vi.fn(),
   deleteGroup: vi.fn(),
+  repeatGroup: vi.fn(),
   uploadGroupImage: vi.fn(),
   deleteGroupImage: vi.fn(),
 }));
@@ -93,6 +95,55 @@ describe('useGroupsDashboard', () => {
     expect(api.fetchMyGroups).toHaveBeenCalledTimes(1);
     expect(client.getQueryData(['group', '5'])).toEqual(joined);
     expect(context.changeGroup).toHaveBeenCalledWith('5');
+  });
+
+  it('repetir una liga la crea, refresca la lista y deja la nueva como activa', async () => {
+    const ended = group({ id: 1, name: 'Amigos', seasonEnded: true, canRepeat: true });
+    const repeated = group({ id: 9, name: 'Amigos', season: '2026/27' });
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([ended]);
+    vi.mocked(api.repeatGroup).mockResolvedValue(repeated);
+    const { result } = renderHook(() => useGroupsDashboard(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    vi.mocked(api.fetchMyGroups).mockClear();
+    context.changeGroup.mockClear();
+
+    await act(async () => {
+      await result.current.handleRepeatGroup(ended);
+    });
+
+    expect(api.repeatGroup).toHaveBeenCalledWith(1);
+    expect(api.fetchMyGroups).toHaveBeenCalledTimes(1);
+    expect(context.changeGroup).toHaveBeenCalledWith('9');
+    expect(result.current.error).toBe('');
+  });
+
+  it('sin confirmar no se repite la liga', async () => {
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([]);
+    vi.mocked(confirmAction).mockResolvedValueOnce(false);
+    const { result } = renderHook(() => useGroupsDashboard(), { wrapper });
+
+    await act(async () => {
+      await result.current.handleRepeatGroup(group({ id: 1 }));
+    });
+
+    expect(api.repeatGroup).not.toHaveBeenCalled();
+  });
+
+  it('si repetir la liga falla, enseña el motivo y no cambia de liga', async () => {
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([group({ id: 1 }), group({ id: 2 })]);
+    vi.mocked(api.repeatGroup).mockRejectedValue(
+      new ApiError(400, 'La temporada de esta liga aún no ha terminado'),
+    );
+    const { result } = renderHook(() => useGroupsDashboard(), { wrapper });
+    await waitFor(() => expect(result.current.groups).toHaveLength(2));
+    context.changeGroup.mockClear();
+
+    await act(async () => {
+      await result.current.handleRepeatGroup(group({ id: 1 }));
+    });
+
+    expect(result.current.error).toBe('La temporada de esta liga aún no ha terminado');
+    expect(context.changeGroup).not.toHaveBeenCalled();
   });
 
   it('trata un knownGroups corrupto como lista vacía', () => {

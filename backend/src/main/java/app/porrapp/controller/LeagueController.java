@@ -15,6 +15,7 @@ import app.porrapp.model.PoolFormat;
 import app.porrapp.model.Sport;
 import app.porrapp.service.league.LeagueService;
 import app.porrapp.service.league.LeagueMembershipService;
+import app.porrapp.service.league.LeagueRepeatService;
 import app.porrapp.service.league.NewLeague;
 import app.porrapp.service.league.LeagueSetupService;
 import app.porrapp.service.league.LeagueSummaryService;
@@ -58,6 +59,7 @@ public class LeagueController {
     private final LeagueMembershipService membershipService;
     private final WebSocketService webSocketService;
     private final LeagueSummaryService leagueSummaryService;
+    private final LeagueRepeatService leagueRepeatService;
 
     /** Ligas del usuario autenticado. */
     @GetMapping("/mine")
@@ -183,6 +185,18 @@ public class LeagueController {
         membershipService.transferAdmin(id, userId, principal.getName());
         webSocketService.notifyLeagueChanged(id);
         return StatusResponse.success("Administración cedida");
+    }
+
+    /**
+     * Repite una liga terminada para la temporada nueva de su competición: otra liga con los mismos miembros
+     * y ajustes. Solo el administrador; repetir la petición devuelve la liga ya creada.
+     */
+    @PostMapping("/{id}/repeat")
+    public LeagueResponseDTO repeatLeague(@PathVariable Long id, Principal principal) {
+        League repeated = leagueRepeatService.repeat(id, principal.getName());
+        // Los miembros que estén viendo la liga terminada reciben la nueva sin recargar.
+        webSocketService.notifyLeagueChanged(id);
+        return leagueService.toResponse(repeated, true);
     }
 
     /** Genera un código de invitación nuevo e invalida el anterior. Solo el administrador. */

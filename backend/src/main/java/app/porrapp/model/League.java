@@ -68,6 +68,14 @@ public class League {
     @Column(name = "image_key", length = 32)
     private String imageKey;
 
+    /**
+     * Liga que esta repite: la de la temporada anterior, con los mismos miembros y ajustes. Null si la
+     * liga se creó de cero o si la anterior se ha borrado.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(name = "previous_league_id")
+    private Long previousLeagueId;
+
     @Transient
     public String getAdminParticipantName() {
         return adminUser != null ? adminUser.getParticipantName() : null;

@@ -55,6 +55,9 @@ class LeagueServiceTest {
     @Mock
     private LeaguePaymentService paymentService;
 
+    @Mock
+    private LeagueSeasons leagueSeasons;
+
     @InjectMocks
     private LeagueService leagueService;
 
@@ -89,6 +92,7 @@ class LeagueServiceTest {
                 .joinCode("AMIGOS")
                 .adminUser(admin)
                 .build();
+        lenient().when(leagueSeasons.status(any(), any(), any())).thenReturn(LeagueSeasons.Status.NONE);
     }
 
     @Test
