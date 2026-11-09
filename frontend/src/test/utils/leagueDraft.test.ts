@@ -1,4 +1,4 @@
-import scoringRuleSet from '../../../../backend/src/main/java/com/porra/mundial/scoring/ScoringRuleSet.java?raw';
+import scoringRuleSet from '../../../../backend/src/main/java/app/porrapp/scoring/ScoringRuleSet.java?raw';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Competition } from '../../types/api';
 import { DEFAULT_SCORING_RULES, SCORING_MAX_POINTS } from '../../utils/scoringRules';

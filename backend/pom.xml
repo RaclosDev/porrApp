@@ -11,8 +11,8 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.porra</groupId>
-    <artifactId>mundial</artifactId>
+    <groupId>app.porrapp</groupId>
+    <artifactId>porrapp</artifactId>
     <version>1.0.0</version>
     <name>PorrApp</name>
     <description>PorrApp: porras de predicciones multideporte</description>

@@ -1,6 +1,6 @@
 /**
  * Contrato JSON de la API. Cada tipo refleja un DTO del backend
- * (paquete com.porra.mundial.dto); los nombres de campo coinciden con el JSON.
+ * (paquete app.porrapp.dto); los nombres de campo coinciden con el JSON.
  */
 
 export type PoolFormat =
