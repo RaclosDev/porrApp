@@ -3,10 +3,12 @@ package com.porra.mundial.config;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.CompetitionTeam;
 import com.porra.mundial.model.TournamentFormat;
 import com.porra.mundial.sports.UfcDataProvider;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.repository.CompetitionTeamRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
@@ -47,6 +49,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final CompetitionRepository competitionRepository;
     private final TeamRepository teamRepository;
+    private final CompetitionTeamRepository competitionTeamRepository;
     private final EditionRepository editionRepository;
     private final MatchRepository matchRepository;
     private final SyncService syncService;
@@ -110,14 +113,21 @@ public class DataInitializer implements CommandLineRunner {
         if (teamRepository.existsByGroupNameIsNotNullAndGroupNameNot("-")) {
             return;
         }
+        Competition worldCup = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElse(null);
         List<TeamSeed> seeds = readTeamSeeds();
-        seeds.forEach(seed -> teamRepository.save(Team.builder()
-                .name(seed.name())
-                .groupName(seed.group())
-                .winOdds(seed.winOdds())
-                .qualifyOdds(seed.qualifyOdds())
-                .outrightOdds(seed.outrightOdds())
-                .build()));
+        seeds.forEach(seed -> {
+            Team team = teamRepository.save(Team.builder()
+                    .name(seed.name())
+                    .groupName(seed.group())
+                    .winOdds(seed.winOdds())
+                    .qualifyOdds(seed.qualifyOdds())
+                    .outrightOdds(seed.outrightOdds())
+                    .build());
+            if (worldCup != null) {
+                competitionTeamRepository.save(CompetitionTeam.builder()
+                        .competition(worldCup).team(team).groupName(seed.group()).build());
+            }
+        });
         log.info("Cargados {} equipos del Mundial 2026 desde {}", seeds.size(), WORLD_CUP_TEAMS_SEED);
     }
 

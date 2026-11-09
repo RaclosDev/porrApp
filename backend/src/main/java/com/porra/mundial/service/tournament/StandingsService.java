@@ -2,13 +2,14 @@ package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.service.prediction.ScoreInvalidationService;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.CompetitionTeam;
 import com.porra.mundial.model.TournamentFormat;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.repository.CompetitionTeamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class StandingsService {
 
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
-    private final TeamRepository teamRepository;
+    private final CompetitionTeamRepository competitionTeamRepository;
     private final ScoreInvalidationService scoreInvalidationService;
 
     /** Clasificación de todos los grupos de un torneo, ya ordenada. */
@@ -234,7 +235,7 @@ public class StandingsService {
 
         Map<String, List<GroupStanding>> standingsByGroup = new TreeMap<>();
 
-        for (Map.Entry<Team, String> member : groupTeams(format, allMatches).entrySet()) {
+        for (Map.Entry<Team, String> member : groupTeams(competition, format, allMatches).entrySet()) {
             Team team = member.getKey();
             String groupName = member.getValue();
             int[] stats = teamStats.getOrDefault(team.getId(), new int[5]);
@@ -319,16 +320,16 @@ public class StandingsService {
 
     /**
      * Equipos de la fase de grupos, cada uno con su grupo. En un torneo con los grupos ya sorteados son
-     * los equipos que llevan grupo; en el resto, los que juegan sus partidos de grupo.
+     * los de su sorteo; en el resto, los que juegan sus partidos de grupo.
      */
-    private Map<Team, String> groupTeams(TournamentFormat format, List<Match> matches) {
+    private Map<Team, String> groupTeams(Competition competition, TournamentFormat format, List<Match> matches) {
         Map<Long, Team> teams = new LinkedHashMap<>();
         Map<Long, String> groups = new HashMap<>();
         if (format.seededGroups()) {
-            for (Team team : teamRepository.findAll()) {
-                if (!Team.isWorldCupGroupTeam(team)) continue;
+            for (CompetitionTeam drawn : competitionTeamRepository.findGroupTeams(competition.getId())) {
+                Team team = drawn.getTeam();
                 teams.put(team.getId(), team);
-                groups.put(team.getId(), team.getGroupName().toUpperCase().trim());
+                groups.put(team.getId(), drawn.getGroupName().toUpperCase().trim());
             }
         } else {
             for (Match match : matches) {

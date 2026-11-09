@@ -11,10 +11,6 @@ import java.util.Optional;
 @Repository
 public interface TeamRepository extends JpaRepository<Team, Long> {
     
-    List<Team> findAllByOrderByGroupNameAscNameAsc();
-
-    List<Team> findByCompetitionIsNullOrderByGroupNameAscNameAsc();
-    
     @Query("SELECT t FROM Team t WHERE t.name = :name AND t.competition IS NULL")
     Optional<Team> findByName(@Param("name") String name);
 

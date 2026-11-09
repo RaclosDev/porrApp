@@ -3,7 +3,7 @@ package com.porra.mundial.service.prediction;
 import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.*;
-import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.repository.CompetitionTeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import java.util.*;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 @Component
 @RequiredArgsConstructor
 public class BracketPredictionValidator {
-    private final TeamRepository teams;
+    private final CompetitionTeamRepository groupTeams;
 
     public void validate(Edition edition, PredictionDataDTO data) {
         if (edition == null || !edition.isGroupTournamentBracket()) {
@@ -23,9 +23,9 @@ public class BracketPredictionValidator {
         if (data == null) throw invalid("Falta el cuadro");
         if (data.getTopologyVersion() != null && data.getTopologyVersion() != 1 && data.getTopologyVersion() != 2)
             throw invalid("Versión de cuadro desconocida");
-        Map<String, Set<String>> catalog = teams.findAllByOrderByGroupNameAscNameAsc().stream()
-                .filter(Team::isWorldCupGroupTeam)
-                .collect(Collectors.groupingBy(Team::getGroupName, Collectors.mapping(Team::getName, Collectors.toSet())));
+        Map<String, Set<String>> catalog = groupTeams.findGroupTeams(edition.getCompetition().getId()).stream()
+                .collect(Collectors.groupingBy(CompetitionTeam::getGroupName,
+                        Collectors.mapping(drawn -> drawn.getTeam().getName(), Collectors.toSet())));
         Set<String> allowed = catalog.values().stream().flatMap(Set::stream).collect(Collectors.toSet());
         Map<String, List<String>> groups = data.getGroups() == null ? Map.of() : data.getGroups();
         Set<String> qualifiers = new HashSet<>();

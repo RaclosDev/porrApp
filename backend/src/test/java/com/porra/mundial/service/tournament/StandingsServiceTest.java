@@ -8,7 +8,7 @@ import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.repository.CompetitionTeamRepository;
 import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class StandingsServiceTest {
     private MatchRepository matchRepository;
 
     @Mock
-    private TeamRepository teamRepository;
+    private CompetitionTeamRepository competitionTeamRepository;
 
     @Mock
     private ScoreInvalidationService scoreInvalidationService;
@@ -195,7 +195,7 @@ class StandingsServiceTest {
         Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
         Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
                 .homeScore(2).awayScore(0).finished(true).matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 15, 21, 0))).build();
-        when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
+        when(competitionTeamRepository.findGroupTeams(WORLD_CUP_ID)).thenReturn(List.of(drawn(spain), drawn(uruguay)));
         givenWorldCupMatches(played);
         when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(List.of());
 
@@ -224,7 +224,7 @@ class StandingsServiceTest {
         Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
         Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
                 .homeScore(0).awayScore(1).finished(true).matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 15, 21, 0))).build();
-        when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
+        when(competitionTeamRepository.findGroupTeams(WORLD_CUP_ID)).thenReturn(List.of(drawn(spain), drawn(uruguay)));
         when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(List.of());
 
         standingsService.recalculate(worldCup, List.of(played));
@@ -237,6 +237,11 @@ class StandingsServiceTest {
     }
 
     private static final long WORLD_CUP_ID = 2L;
+
+    /** El equipo, sorteado en el grupo H del torneo. */
+    private static com.porra.mundial.model.CompetitionTeam drawn(Team team) {
+        return com.porra.mundial.model.CompetitionTeam.builder().team(team).groupName("H").build();
+    }
 
     private void givenWorldCupMatches(Match... matches) {
         when(matchRepository.findByCompetitionId(WORLD_CUP_ID)).thenReturn(List.of(matches));
@@ -269,7 +274,7 @@ class StandingsServiceTest {
         assertEquals(List.of(7L, 7L, 7L, 7L), rows.stream().map(row -> row.getCompetition().getId()).toList());
         verify(scoreInvalidationService).invalidateCompetition(7L);
         // Los equipos con grupo sorteado son cosa del torneo que los tiene, no de este.
-        verifyNoInteractions(teamRepository);
+        verifyNoInteractions(competitionTeamRepository);
     }
 
     @Test

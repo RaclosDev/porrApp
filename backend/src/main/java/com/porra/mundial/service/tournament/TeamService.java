@@ -1,8 +1,10 @@
 package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.CompetitionTeam;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.model.TournamentFormat;
+import com.porra.mundial.repository.CompetitionTeamRepository;
 import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.dto.TeamOddsDTO;
 import lombok.RequiredArgsConstructor;
@@ -18,15 +20,15 @@ import java.util.stream.Collectors;
 public class TeamService {
 
     private final TeamRepository teamRepository;
+    private final CompetitionTeamRepository competitionTeamRepository;
 
-    /** Equipos sembrados en cada grupo ("A" → equipos); el resto de equipos no tiene grupo. */
-    private Map<String, List<Team>> seededGroups() {
-        return teamRepository.findByCompetitionIsNullOrderByGroupNameAscNameAsc().stream()
-                .filter(Team::isWorldCupGroupTeam)
+    /** Equipos sorteados en cada grupo de un torneo ("A" → equipos). */
+    private Map<String, List<Team>> drawnGroups(Competition tournament) {
+        return competitionTeamRepository.findGroupTeams(tournament.getId()).stream()
                 .collect(Collectors.groupingBy(
-                        t -> t.getGroupName().toUpperCase().trim(),
+                        drawn -> drawn.getGroupName().toUpperCase().trim(),
                         TreeMap::new,
-                        Collectors.toList()
+                        Collectors.mapping(CompetitionTeam::getTeam, Collectors.toList())
                 ));
     }
 
@@ -61,7 +63,7 @@ public class TeamService {
     public Map<String, List<TeamOddsDTO>> getGroupOdds(Competition tournament) {
         Map<String, List<TeamOddsDTO>> result = new TreeMap<>();
         if (!TournamentFormat.of(tournament).seededGroups()) return result;
-        seededGroups().forEach((groupName, teams) -> {
+        drawnGroups(tournament).forEach((groupName, teams) -> {
             List<TeamOddsDTO> teamList = teams.stream()
                     .map(t -> new TeamOddsDTO(t.getName(), t.getWinOdds(), t.getQualifyOdds(), t.getOutrightOdds()))
                     .collect(Collectors.toList());
