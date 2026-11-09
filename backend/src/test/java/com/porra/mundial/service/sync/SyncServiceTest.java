@@ -120,18 +120,18 @@ class SyncServiceTest {
                 .thenReturn(JSON.readTree("[{\"id\": \"mundial\"}]"));
         givenTheEventChangesAResult("mundial");
         List<Match> worldCupMatches = List.of(Match.builder().id(1L).build());
-        when(knockoutBracketService.worldCupMatches()).thenReturn(worldCupMatches);
+        when(knockoutBracketService.matchesOf(worldCup)).thenReturn(worldCupMatches);
         return worldCupMatches;
     }
 
     @Test
     void fullSyncDoesNotAskForAWorldCupThatIsOver() throws Exception {
-        when(knockoutBracketService.worldCupIsOver()).thenReturn(true);
+        when(knockoutBracketService.isOver(worldCup)).thenReturn(true);
 
         syncService.syncAll();
 
         verify(provider, never()).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
-        verify(knockoutBracketService, never()).worldCupMatches();
+        verify(knockoutBracketService, never()).matchesOf(worldCup);
         assertEquals(SyncService.STATUS_SUCCESS, syncService.getLastSyncStatus());
     }
 
@@ -319,18 +319,18 @@ class SyncServiceTest {
     @DisplayName("Un resultado del Mundial recalcula clasificación y cuadro una sola vez por pasada, con una lectura de partidos")
     void refreshesTheWorldCupOncePerPass() throws Exception {
         List<Match> worldCupMatches = givenAWorldCupResultChange();
-        when(knockoutBracketService.propagateKnockoutWinners(worldCupMatches)).thenReturn(2);
+        when(knockoutBracketService.propagateKnockoutWinners(worldCup, worldCupMatches)).thenReturn(2);
 
         syncService.syncAll();
 
-        verify(knockoutBracketService, times(1)).worldCupMatches();
-        verify(knockoutBracketService, times(1)).propagateKnockoutWinners(worldCupMatches);
-        verify(standingsService, times(1)).recalculateStandingsFromMatches(worldCupMatches);
-        verify(knockoutBracketService, never()).propagateKnockoutWinners();
-        verify(standingsService, never()).recalculateStandingsFromMatches();
+        verify(knockoutBracketService, times(1)).matchesOf(worldCup);
+        verify(knockoutBracketService, times(1)).propagateKnockoutWinners(worldCup, worldCupMatches);
+        verify(standingsService, times(1)).recalculate(worldCup, worldCupMatches);
+        verify(knockoutBracketService, never()).propagateKnockoutWinners(worldCup);
+        verify(standingsService, never()).recalculate(worldCup);
         verify(scoreInvalidationService).invalidateCompetition(worldCup.getId());
         verify(webSocketService, times(1)).notifyResultsChanged();
-        verify(topScorerService, times(1)).refresh();
+        verify(topScorerService, times(1)).refresh(worldCup);
         assertEquals(2, syncService.getLastMatchesUpdated());
         assertEquals("success", syncService.getLastSyncStatus());
     }
@@ -366,9 +366,9 @@ class SyncServiceTest {
 
         verify(scoreInvalidationService).invalidateCompetition(laLiga.getId());
         verifyNoInteractions(topScorerService);
-        verify(knockoutBracketService, never()).worldCupMatches();
-        verify(knockoutBracketService, never()).propagateKnockoutWinners(anyList());
-        verify(standingsService, never()).recalculateStandingsFromMatches(anyList());
+        verify(knockoutBracketService, never()).matchesOf(worldCup);
+        verify(knockoutBracketService, never()).propagateKnockoutWinners(any(), anyList());
+        verify(standingsService, never()).recalculate(any(), anyList());
         assertEquals("success", syncService.getLastSyncStatus());
     }
 
@@ -378,20 +378,20 @@ class SyncServiceTest {
         List<Match> worldCupMatches = givenAWorldCupResultChange();
         doThrow(new IllegalStateException("base de datos caída"))
                 .doNothing()
-                .when(standingsService).recalculateStandingsFromMatches(worldCupMatches);
+                .when(standingsService).recalculate(worldCup, worldCupMatches);
 
         syncService.syncAll();
         assertEquals("error", syncService.getLastSyncStatus());
-        assertEquals(SyncService.WORLD_CUP_REFRESH + ": base de datos caída", syncService.getLastErrorMessage());
+        assertEquals(SyncService.TOURNAMENT_REFRESH + worldCup.getName() + ": base de datos caída", syncService.getLastErrorMessage());
 
         // La siguiente pasada no trae cambios del Mundial, pero el recálculo sigue pendiente.
         when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026")).thenReturn(JSON.createArrayNode());
         syncService.syncAll();
-        verify(standingsService, times(2)).recalculateStandingsFromMatches(worldCupMatches);
+        verify(standingsService, times(2)).recalculate(worldCup, worldCupMatches);
         assertEquals("success", syncService.getLastSyncStatus());
 
         syncService.syncAll();
-        verify(standingsService, times(2)).recalculateStandingsFromMatches(worldCupMatches);
+        verify(standingsService, times(2)).recalculate(worldCup, worldCupMatches);
     }
 
     @Test
@@ -431,7 +431,7 @@ class SyncServiceTest {
 
         var order = org.mockito.Mockito.inOrder(transactionManager, topScorerService);
         order.verify(transactionManager).commit(any());
-        order.verify(topScorerService).refresh();
+        order.verify(topScorerService).refresh(worldCup);
     }
 
     @Test
@@ -444,8 +444,8 @@ class SyncServiceTest {
         importService.importCompetitionData(5L);
 
         verify(scoreInvalidationService).invalidateCompetition(laLiga.getId());
-        verify(knockoutBracketService, never()).propagateKnockoutWinners(anyList());
-        verify(standingsService, never()).recalculateStandingsFromMatches(anyList());
+        verify(knockoutBracketService, never()).propagateKnockoutWinners(any(), anyList());
+        verify(standingsService, never()).recalculate(any(), anyList());
     }
 
     @Test
@@ -471,7 +471,7 @@ class SyncServiceTest {
         syncService.syncAll();
 
         verify(provider, never()).fetchScoreboardEvents(anyString(), anyString());
-        verify(standingsService, never()).recalculateStandingsFromMatches(anyList());
+        verify(standingsService, never()).recalculate(any(), anyList());
         assertEquals("circuit_breaker_open", syncService.getLastSyncStatus());
     }
 }

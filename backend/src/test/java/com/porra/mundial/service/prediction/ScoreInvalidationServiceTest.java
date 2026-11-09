@@ -1,7 +1,5 @@
 package com.porra.mundial.service.prediction;
 
-import com.porra.mundial.model.Competition;
-import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,7 +9,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -27,9 +24,6 @@ class ScoreInvalidationServiceTest {
     private PredictionRepository predictionRepository;
 
     @Mock
-    private CompetitionRepository competitionRepository;
-
-    @Mock
     private com.porra.mundial.repository.EditionRepository editionRepository;
 
     private final ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager();
@@ -37,31 +31,28 @@ class ScoreInvalidationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ScoreInvalidationService(predictionRepository, competitionRepository, editionRepository,
+        service = new ScoreInvalidationService(predictionRepository, editionRepository,
                 cacheManager);
         cacheManager.getCache(ScoreInvalidationService.LEADERBOARD_CACHE).put(7L, "clasificación vieja");
         cacheManager.getCache(ScoreInvalidationService.LEADERBOARD_CACHE).put(8L, "liga de otra competición");
     }
 
     @Test
-    @DisplayName("Invalida las porras del Mundial y vacía solo las clasificaciones de sus ligas")
-    void invalidatesWorldCupPredictionsAndEvictsTheLeaderboard() {
-        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(2L));
+    @DisplayName("Invalida las porras de una competición y vacía solo las clasificaciones de sus ligas")
+    void invalidatesOneCompetitionAndEvictsItsLeaderboards() {
         when(predictionRepository.clearCalculatedScoresByCompetitionId(2L)).thenReturn(5);
         when(editionRepository.findLeagueIdsUsingCompetitions(java.util.List.of(2L))).thenReturn(java.util.List.of(7L));
 
-        assertEquals(5, service.invalidateWorldCup());
+        assertEquals(5, service.invalidateCompetition(2L));
         assertNull(cacheManager.getCache(ScoreInvalidationService.LEADERBOARD_CACHE).get(7L));
         org.junit.jupiter.api.Assertions.assertNotNull(
                 cacheManager.getCache(ScoreInvalidationService.LEADERBOARD_CACHE).get(8L));
     }
 
     @Test
-    @DisplayName("Sin Mundial dado de alta no hay nada que invalidar")
-    void doesNothingWithoutWorldCup() {
-        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.empty());
-
-        assertEquals(0, service.invalidateWorldCup());
+    @DisplayName("Sin competición no hay nada que invalidar")
+    void doesNothingWithoutCompetition() {
+        assertEquals(0, service.invalidateCompetition(null));
         verify(predictionRepository, never()).clearCalculatedScoresByCompetitionId(any());
     }
 

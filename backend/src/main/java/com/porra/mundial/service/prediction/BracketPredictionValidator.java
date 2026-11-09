@@ -16,9 +16,10 @@ public class BracketPredictionValidator {
     private final TeamRepository teams;
 
     public void validate(Edition edition, PredictionDataDTO data) {
-        if (edition == null || !edition.isWorldCupBracket()) {
+        if (edition == null || !edition.isGroupTournamentBracket()) {
             throw invalid("Esta edición no admite predicciones de cuadro del Mundial");
         }
+        TournamentFormat format = edition.getCompetition().tournamentFormat();
         if (data == null) throw invalid("Falta el cuadro");
         if (data.getTopologyVersion() != null && data.getTopologyVersion() != 1 && data.getTopologyVersion() != 2)
             throw invalid("Versión de cuadro desconocida");
@@ -33,7 +34,7 @@ public class BracketPredictionValidator {
             if (!groups.isEmpty() || (data.getThirds() != null && !data.getThirds().isEmpty()))
                 throw invalid("La modalidad de eliminatorias no admite fase de grupos");
         } else {
-            if (groups.size() > 12 || !catalog.keySet().containsAll(groups.keySet()))
+            if (!catalog.keySet().containsAll(groups.keySet()))
                 throw invalid("La fase de grupos contiene un grupo desconocido");
             for (var entry : groups.entrySet()) {
                 List<String> selected = entry.getValue();
@@ -43,9 +44,9 @@ public class BracketPredictionValidator {
                 qualifiers.addAll(selected.subList(0, 2));
                 if (selected.size() > 2) thirdCandidates.add(selected.get(2));
             }
-            qualifiers.addAll(checked(data.getThirds(), 8, thirdCandidates, "mejores terceros"));
+            qualifiers.addAll(checked(data.getThirds(), format.bestThirds(), thirdCandidates, "mejores terceros"));
         }
-        Set<String> r32 = round(data.getR32(), 16, allowed, "dieciseisavos");
+        Set<String> r32 = round(data.getR32(), format.firstKnockoutRound().size(), allowed, "dieciseisavos");
         if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET && !qualifiers.containsAll(r32))
             throw invalid("Los dieciseisavos deben proceder de los clasificados de grupos");
         Set<String> r16 = round(data.getR16(), 8, r32, "octavos");
@@ -58,7 +59,7 @@ public class BracketPredictionValidator {
         Set<String> third = checked(data.getThirdPlaceMatch(), 2, losers, "tercer puesto");
         checked(data.getThirdPlaceWinner() == null ? null : List.of(data.getThirdPlaceWinner()), 1, third, "tercer clasificado");
         if (Integer.valueOf(2).equals(data.getTopologyVersion())) {
-            if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET) validateGroupSlots(data);
+            if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET) validateGroupSlots(format, data);
             validateFeeders(data.getR32(), data.getR16(), "octavos");
             validateFeeders(data.getR16(), data.getQf(), "cuartos");
             validateFeeders(data.getQf(), data.getSf(), "semifinales");
@@ -73,14 +74,14 @@ public class BracketPredictionValidator {
         }
     }
 
-    private void validateGroupSlots(PredictionDataDTO data) {
+    private void validateGroupSlots(TournamentFormat format, PredictionDataDTO data) {
         if (data.getR32() == null) return;
         Map<String, List<String>> groups = data.getGroups() == null ? Map.of() : data.getGroups();
         for (int index = 0; index < data.getR32().size(); index++) {
             for (int side = 0; side < 2; side++) {
                 String name = slot(data.getR32().get(index), side);
                 if (name == null) continue;
-                String position = WorldCupBracketTopology.ROUND_OF_32.get(index).get(side);
+                String position = format.firstKnockoutRound().get(index).get(side);
                 boolean valid;
                 if (position.charAt(0) == '3') {
                     valid = position.substring(1).chars().anyMatch(group ->

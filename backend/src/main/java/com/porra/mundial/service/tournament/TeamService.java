@@ -1,6 +1,8 @@
 package com.porra.mundial.service.tournament;
 
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.model.TournamentFormat;
 import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.dto.TeamOddsDTO;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +19,8 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
 
-    /** Selecciones de cada grupo del Mundial ("A" → equipos); el resto de equipos no tiene grupo. */
-    private Map<String, List<Team>> worldCupGroups() {
+    /** Equipos sembrados en cada grupo ("A" → equipos); el resto de equipos no tiene grupo. */
+    private Map<String, List<Team>> seededGroups() {
         return teamRepository.findByCompetitionIsNullOrderByGroupNameAscNameAsc().stream()
                 .filter(Team::isWorldCupGroupTeam)
                 .collect(Collectors.groupingBy(
@@ -51,20 +53,20 @@ public class TeamService {
         return teamRepository.save(team);
     }
 
-    /** Probabilidades de cada grupo del Mundial, para ordenar su cuadro antes del torneo. */
-    @org.springframework.cache.annotation.Cacheable("groupOdds")
-    public Map<String, List<TeamOddsDTO>> getWorldCupGroupOdds() {
+    /**
+     * Probabilidades de cada grupo de un torneo, para ordenar su cuadro antes de empezar. Solo las tiene un
+     * torneo con los grupos ya sorteados; el resto no ofrece ninguna.
+     */
+    @org.springframework.cache.annotation.Cacheable(value = "groupOdds", key = "#tournament.id")
+    public Map<String, List<TeamOddsDTO>> getGroupOdds(Competition tournament) {
         Map<String, List<TeamOddsDTO>> result = new TreeMap<>();
-        Map<String, List<Team>> groups = worldCupGroups();
-
-        groups.forEach((groupName, teams) -> {
+        if (!TournamentFormat.of(tournament).seededGroups()) return result;
+        seededGroups().forEach((groupName, teams) -> {
             List<TeamOddsDTO> teamList = teams.stream()
                     .map(t -> new TeamOddsDTO(t.getName(), t.getWinOdds(), t.getQualifyOdds(), t.getOutrightOdds()))
                     .collect(Collectors.toList());
             result.put(groupName, teamList);
         });
-
         return result;
     }
 }
-

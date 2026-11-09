@@ -83,7 +83,7 @@ class LeaderboardServiceTest {
         off.getBracketData().setScorer("Kylian Mbappé");
         PredictionDataDTO official = new PredictionDataDTO();
         official.setScorer("Kylian Mbappé");
-        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+        when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
                 official, Collections.emptyMap(), Collections.emptyMap(), List.of(),
                 List.of(), List.of(), List.of(), List.of("España", "Brasil"), "España"));
         when(predictionRepository.findAllWithUserAndEdition()).thenReturn(List.of(on, off));
@@ -131,7 +131,7 @@ class LeaderboardServiceTest {
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
 
         // Una porra por partidos no se puntúa contra el cuadro del torneo con grupos: no se cargan sus resultados.
-        org.mockito.Mockito.verify(officialResultsService, org.mockito.Mockito.never()).current();
+        org.mockito.Mockito.verify(officialResultsService, org.mockito.Mockito.never()).current(org.mockito.ArgumentMatchers.any());
         assertFalse(leaderboard.isEmpty());
         ParticipantScoreDTO first = leaderboard.get(0);
         assertEquals(4, first.getMatchPoints(), "matchPoints debe ser la suma de los puntos otorgados (3 + 1)");
@@ -185,7 +185,7 @@ class LeaderboardServiceTest {
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(materialized, stale));
         when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(101L))).thenReturn(List.of(mp));
-        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+        when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
                 new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
                 List.of(), List.of(), List.of(), List.of(), null));
 
@@ -390,7 +390,7 @@ class LeaderboardServiceTest {
     }
 
     private void officialChampion(String champion) {
-        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+        when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
                 new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
                 List.of(), List.of(), List.of(), List.of(champion, "Brasil"), champion));
     }

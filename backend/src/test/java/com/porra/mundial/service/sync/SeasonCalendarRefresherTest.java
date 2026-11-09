@@ -52,7 +52,7 @@ class SeasonCalendarRefresherTest {
     }
 
     @Test
-    @DisplayName("El Mundial cerrado no se vuelve a importar; mientras se juega, sí")
+    @DisplayName("Un torneo con grupos ya cerrado no se vuelve a importar; mientras se juega, sí")
     void skipsTheWorldCupOnceItIsOver() {
         Competition worldCup = Competition.builder().id(7L).name("Mundial")
                 .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
@@ -61,12 +61,12 @@ class SeasonCalendarRefresherTest {
         when(imports.importCompetitionData(2L)).thenReturn(new CompetitionImportService.ImportResult("Premier", 20, 380));
         when(imports.importCompetitionData(7L)).thenReturn(new CompetitionImportService.ImportResult("Mundial", 48, 104));
 
-        when(knockout.worldCupIsOver()).thenReturn(true);
+        when(knockout.isOver(worldCup)).thenReturn(true);
         refresher.refreshAllSeasons();
         verify(imports, never()).importCompetitionData(7L);
         verify(imports).importCompetitionData(2L);
 
-        when(knockout.worldCupIsOver()).thenReturn(false);
+        when(knockout.isOver(worldCup)).thenReturn(false);
         refresher.refreshAllSeasons();
         verify(imports).importCompetitionData(7L);
     }

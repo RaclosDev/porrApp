@@ -3,6 +3,7 @@ package com.porra.mundial.config;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.TournamentFormat;
 import com.porra.mundial.sports.UfcDataProvider;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
@@ -138,18 +139,21 @@ public class DataInitializer implements CommandLineRunner {
         runStep("importar calendarios vacíos", this::importEmptyCompetitionFixtures);
         runStep("sincronizar resultados", syncService::syncAll);
         runStep("reparar equipos históricos", syncService::repairLegacyFixtures);
-        runStep("recalcular el torneo con grupos", this::refreshGroupTournament);
+        runStep("recalcular los torneos con grupos", this::refreshGroupTournaments);
         log.info("Sincronización inicial de arranque finalizada.");
     }
 
     /**
-     * Clasificación de grupos y cruces del Mundial. Con el torneo cerrado y su clasificación ya guardada
-     * no hay nada que pueda cambiar: rehacerlo en cada despliegue solo repetía lecturas y escrituras.
+     * Clasificación de grupos y cruces de cada torneo con grupos. Con el torneo cerrado y su clasificación
+     * ya guardada no hay nada que pueda cambiar: rehacerlo en cada despliegue solo repetía lecturas y escrituras.
      */
-    private void refreshGroupTournament() {
-        if (knockoutBracketService.worldCupIsOver() && standingsService.hasStandings()) return;
-        runStep("recalcular clasificaciones", standingsService::recalculateStandingsFromMatches);
-        runStep("propagar ganadores de eliminatorias", knockoutBracketService::propagateKnockoutWinners);
+    private void refreshGroupTournaments() {
+        for (Competition tournament : competitionRepository.findByExternalIdIn(TournamentFormat.registeredExternalIds())) {
+            if (knockoutBracketService.isOver(tournament) && standingsService.hasStandings(tournament)) continue;
+            runStep("recalcular la clasificación de " + tournament.getName(), () -> standingsService.recalculate(tournament));
+            runStep("propagar ganadores de " + tournament.getName(),
+                    () -> knockoutBracketService.propagateKnockoutWinners(tournament));
+        }
     }
 
     private void importEmptyCompetitionFixtures() {

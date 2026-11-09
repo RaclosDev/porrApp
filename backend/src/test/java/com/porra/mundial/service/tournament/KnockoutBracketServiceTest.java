@@ -4,7 +4,6 @@ import com.porra.mundial.service.prediction.ScoreInvalidationService;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
-import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -28,9 +26,6 @@ class KnockoutBracketServiceTest {
 
     @Mock
     private MatchRepository matchRepository;
-
-    @Mock
-    private CompetitionRepository competitionRepository;
 
     @Mock
     private ScoreInvalidationService scoreInvalidationService;
@@ -46,28 +41,25 @@ class KnockoutBracketServiceTest {
 
     @Test
     void worldCupIsOverOnceEveryMatchIsFinishedAndTheLastOneIsOld() {
-        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(2L));
         when(matchRepository.countByCompetitionId(2L)).thenReturn(104L);
         when(matchRepository.countOpenOrStartingSince(eq(2L), any(Instant.class))).thenReturn(0L);
 
-        assertTrue(service.worldCupIsOver());
+        assertTrue(service.isOver(worldCup));
     }
 
     @Test
     void worldCupIsNotOverWithAnOpenOrRecentMatch() {
-        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(2L));
         when(matchRepository.countByCompetitionId(2L)).thenReturn(104L);
         when(matchRepository.countOpenOrStartingSince(eq(2L), any(Instant.class))).thenReturn(1L);
 
-        assertFalse(service.worldCupIsOver());
+        assertFalse(service.isOver(worldCup));
     }
 
     @Test
     void worldCupIsNotOverBeforeItsMatchesAreImported() {
-        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(2L));
         when(matchRepository.countByCompetitionId(2L)).thenReturn(0L);
 
-        assertFalse(service.worldCupIsOver());
+        assertFalse(service.isOver(worldCup));
         verify(matchRepository, never()).countOpenOrStartingSince(anyLong(), any(Instant.class));
     }
 
@@ -94,8 +86,10 @@ class KnockoutBracketServiceTest {
 
     private static final long WORLD_CUP_ID = 2L;
 
+    private final Competition worldCup = Competition.builder().id(WORLD_CUP_ID).name("Mundial")
+            .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+
     private void givenWorldCupMatches(Match... matches) {
-        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(WORLD_CUP_ID));
         when(matchRepository.findByCompetitionId(WORLD_CUP_ID)).thenReturn(List.of(matches));
     }
 
@@ -106,7 +100,7 @@ class KnockoutBracketServiceTest {
         semi.setWinnerTeam(spain);
         Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
 
-        assertEquals(0, service.propagateKnockoutWinners(List.of(semi, finalMatch)));
+        assertEquals(0, service.propagateKnockoutWinners(worldCup, List.of(semi, finalMatch)));
         assertNull(KnockoutBracketService.winnerOf(semi));
         assertNull(KnockoutBracketService.loserOf(semi));
     }
@@ -118,10 +112,10 @@ class KnockoutBracketServiceTest {
         Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
         Match third = knockout("third", placeholder, placeholder, null, null, 18);
         List<Match> matches = List.of(first, second, finalMatch, third);
-        service.propagateKnockoutWinners(matches);
+        service.propagateKnockoutWinners(worldCup, matches);
 
         first.setAwayScore(2);
-        service.propagateKnockoutWinners(matches);
+        service.propagateKnockoutWinners(worldCup, matches);
 
         assertSame(france, finalMatch.getHomeTeam());
         assertSame(brazil, finalMatch.getAwayTeam());
@@ -135,7 +129,7 @@ class KnockoutBracketServiceTest {
         Match second = knockout("sf", brazil, argentina, 2, 0, 15);
         Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
 
-        service.propagateKnockoutWinners(List.of(first, second, finalMatch));
+        service.propagateKnockoutWinners(worldCup, List.of(first, second, finalMatch));
 
         assertSame(placeholder, finalMatch.getHomeTeam());
         assertSame(brazil, finalMatch.getAwayTeam());
@@ -146,7 +140,7 @@ class KnockoutBracketServiceTest {
         Match semi = knockout("sf", spain, france, 1, 2, 14);
         Match finalMatch = knockout("final", spain, france, null, null, 19);
 
-        service.propagateKnockoutWinners(List.of(semi, finalMatch));
+        service.propagateKnockoutWinners(worldCup, List.of(semi, finalMatch));
 
         assertSame(france, finalMatch.getHomeTeam());
         assertNull(finalMatch.getAwayTeam());
@@ -161,7 +155,7 @@ class KnockoutBracketServiceTest {
         live.setFinished(false);
         live.setStatus(com.porra.mundial.model.MatchStatusNormalized.LIVE);
 
-        assertEquals(0, service.propagateKnockoutWinners(List.of(semi, official, live)));
+        assertEquals(0, service.propagateKnockoutWinners(worldCup, List.of(semi, official, live)));
         assertSame(spain, official.getHomeTeam());
         assertSame(spain, live.getHomeTeam());
     }
@@ -175,7 +169,7 @@ class KnockoutBracketServiceTest {
         Match third = knockout("third", placeholder, placeholder, null, null, 18);
         givenWorldCupMatches(semi1, semi2, finalMatch, third);
 
-        int updated = service.propagateKnockoutWinners();
+        int updated = service.propagateKnockoutWinners(worldCup);
 
         assertEquals(4, updated);
         assertSame(spain, finalMatch.getHomeTeam());
@@ -183,7 +177,7 @@ class KnockoutBracketServiceTest {
         assertSame(france, third.getHomeTeam());
         assertSame(brazil, third.getAwayTeam());
         verify(matchRepository, times(4)).save(any(Match.class));
-        verify(scoreInvalidationService).invalidateWorldCup();
+        verify(scoreInvalidationService).invalidateCompetition(WORLD_CUP_ID);
     }
 
     @Test
@@ -193,22 +187,21 @@ class KnockoutBracketServiceTest {
         Match semi2 = knockout("sf", brazil, argentina, 0, 1, 15);
         Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
 
-        assertEquals(2, service.propagateKnockoutWinners(List.of(semi1, semi2, finalMatch)));
+        assertEquals(2, service.propagateKnockoutWinners(worldCup, List.of(semi1, semi2, finalMatch)));
 
         assertSame(spain, finalMatch.getHomeTeam());
         assertSame(argentina, finalMatch.getAwayTeam());
-        verifyNoInteractions(competitionRepository);
         verify(matchRepository, never()).findByCompetitionId(any());
     }
 
     @Test
     @DisplayName("Un fallo al leer los partidos llega a quien llama, que lo reintenta")
     void failuresReachTheCaller() {
-        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID))
+        when(matchRepository.findByCompetitionId(WORLD_CUP_ID))
                 .thenThrow(new IllegalStateException("base de datos caída"));
 
-        assertThrows(IllegalStateException.class, () -> service.propagateKnockoutWinners());
-        verify(scoreInvalidationService, never()).invalidateWorldCup();
+        assertThrows(IllegalStateException.class, () -> service.propagateKnockoutWinners(worldCup));
+        verify(scoreInvalidationService, never()).invalidateCompetition(WORLD_CUP_ID);
     }
 
     @Test
@@ -218,9 +211,9 @@ class KnockoutBracketServiceTest {
         Match finalMatch = knockout("final", placeholder, placeholder, null, null, 19);
         givenWorldCupMatches(semi1, finalMatch);
 
-        assertEquals(0, service.propagateKnockoutWinners());
+        assertEquals(0, service.propagateKnockoutWinners(worldCup));
         verify(matchRepository, never()).save(any());
-        verify(scoreInvalidationService, never()).invalidateWorldCup();
+        verify(scoreInvalidationService, never()).invalidateCompetition(WORLD_CUP_ID);
     }
 
     @Test
@@ -246,13 +239,13 @@ class KnockoutBracketServiceTest {
         lenient().when(matchRepository.findAll()).thenReturn(List.of(cupFinal, semi1, semi2, finalMatch));
         givenWorldCupMatches(semi1, semi2, finalMatch);
 
-        assertEquals(List.of(semi1, semi2, finalMatch), service.worldCupMatches());
+        assertEquals(List.of(semi1, semi2, finalMatch), service.matchesOf(worldCup));
     }
     @Test
     void spanishQuarterFinalIsNeverUsedAsTheFinal() {
         Match semi = knockout("Semifinal", spain, france, 2, 0, 14);
         Match quarter = knockout("Cuartos de final", placeholder, placeholder, null, null, 10);
-        assertEquals(0, service.propagateKnockoutWinners(List.of(semi, quarter)));
+        assertEquals(0, service.propagateKnockoutWinners(worldCup, List.of(semi, quarter)));
         assertSame(placeholder, quarter.getHomeTeam());
     }
 

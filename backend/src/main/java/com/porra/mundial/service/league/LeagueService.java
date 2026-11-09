@@ -131,7 +131,7 @@ public class LeagueService {
                 throw BusinessException.badRequest("La temporada regular de la NBA se juega partido a partido: elige Por semanas o Superviviente");
             }
             // Una liga regular (LaLiga, Premier, NFL…) no tiene cuadro: el asistente ya no lo ofrece.
-            if ("LEAGUE".equalsIgnoreCase(comp.getFormatType()) && !comp.isWorldCup() && !comp.drawsKnockoutRounds()
+            if ("LEAGUE".equalsIgnoreCase(comp.getFormatType()) && !comp.isGroupTournament() && !comp.drawsKnockoutRounds()
                     && !poolFormat.isMatchBased() && poolFormat != com.porra.mundial.model.PoolFormat.GRAND_PRIX) {
                 throw BusinessException.badRequest("Esta competición se juega por jornadas: no tiene cuadro que rellenar");
             }
@@ -193,7 +193,7 @@ public class LeagueService {
                         ? com.porra.mundial.model.PredictionLockMode.FIXED_DATE
                         : com.porra.mundial.model.PredictionLockMode.FIRST_MATCH)
                 // El único pichichi oficial es el del cuadro del Mundial.
-                .pichichi(pichichi && Edition.isWorldCupBracket(comp, poolFormat))
+                .pichichi(pichichi && Edition.isGroupTournamentBracket(comp, poolFormat))
                 .status("ACTIVE")
                 .scoringRulesJson((com.porra.mundial.model.Sport.isTennis(comp)
                         ? com.porra.mundial.scoring.ScoringRuleSet.defaultTennis()

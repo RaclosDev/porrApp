@@ -108,6 +108,10 @@ class CompetitionImportTransactionTest {
         caches.getCache("leaderboard").clear();
     }
 
+    private Competition worldCup() {
+        return competitions.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElseThrow();
+    }
+
     private JsonNode events() throws Exception {
         return json.readTree("""
                 [{"id":"990001","date":"%s","competitions":[{
@@ -128,9 +132,9 @@ class CompetitionImportTransactionTest {
 
         new TransactionTemplate(transactions).executeWithoutResult(status -> {
             if (preloadedMatches) {
-                standings.recalculateStandingsFromMatches(List.of());
+                standings.recalculate(worldCup(), List.of());
             } else {
-                standings.recalculateStandingsFromMatches();
+                standings.recalculate(worldCup());
             }
             status.setRollbackOnly();
         });
@@ -150,9 +154,9 @@ class CompetitionImportTransactionTest {
 
         new TransactionTemplate(transactions).executeWithoutResult(status -> {
             if (preloadedMatches) {
-                standings.recalculateStandingsFromMatches(List.of());
+                standings.recalculate(worldCup(), List.of());
             } else {
-                standings.recalculateStandingsFromMatches();
+                standings.recalculate(worldCup());
             }
             for (String name : List.of("standings", "officialPoints", "leaderboard")) {
                 assertThat(caches.getCache(name).get("transaction-check", String.class))

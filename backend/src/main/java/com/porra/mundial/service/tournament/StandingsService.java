@@ -2,10 +2,10 @@ package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.service.prediction.ScoreInvalidationService;
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.TournamentFormat;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
-import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
 import com.porra.mundial.repository.TeamRepository;
@@ -20,9 +20,6 @@ import java.util.stream.Collectors;
  * Clasificación de la fase de grupos de un torneo: cada fila es de una competición. Los desempates son
  * los del artículo 13 del reglamento del Mundial, en {@link GroupTiebreaker}; qué terceros pasan lo
  * dice el {@link TournamentFormat} del torneo.
- * <p>
- * Hoy el único torneo que la usa es el Mundial, y sus pantallas piden «la clasificación» sin decir de
- * qué torneo: esas entradas siguen aquí y resuelven ellas la competición.
  */
 @Service
 @RequiredArgsConstructor
@@ -35,16 +32,14 @@ public class StandingsService {
     private final GroupStandingRepository standingRepository;
     private final MatchRepository matchRepository;
     private final TeamRepository teamRepository;
-    private final CompetitionRepository competitionRepository;
     private final ScoreInvalidationService scoreInvalidationService;
 
-    /** Clasificación de todos los grupos del Mundial, ya ordenada. */
-    @org.springframework.cache.annotation.Cacheable(value = "standings", sync = true)
-    public List<GroupStanding> getAllStandings() {
-        return worldCupId().map(this::standingsOf).orElseGet(Collections::emptyList);
+    /** Clasificación de todos los grupos de un torneo, ya ordenada. */
+    @org.springframework.cache.annotation.Cacheable(value = "standings", key = "#competition.id", sync = true)
+    public List<GroupStanding> getStandings(Competition competition) {
+        return standingsOf(competition.getId());
     }
 
-    /** Clasificación de todos los grupos de un torneo, ya ordenada. */
     private List<GroupStanding> standingsOf(Long competitionId) {
         List<GroupStanding> raw = standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(competitionId);
         if (raw == null) {
@@ -84,14 +79,9 @@ public class StandingsService {
         return GroupTiebreaker.sort(standings, allGroupMatches);
     }
 
-    /** Grupos del Mundial: grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). */
-    @org.springframework.cache.annotation.Cacheable(value = "officialPoints", sync = true)
-    public Map<String, Map<String, Map<String, Integer>>> getWorldCupGroupPoints() {
-        return worldCup().map(this::groupPointsOf).orElseGet(TreeMap::new);
-    }
-
     /** Grupos de un torneo: grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). */
-    private Map<String, Map<String, Map<String, Integer>>> groupPointsOf(Competition competition) {
+    @org.springframework.cache.annotation.Cacheable(value = "officialPoints", key = "#competition.id", sync = true)
+    public Map<String, Map<String, Map<String, Integer>>> getGroupPoints(Competition competition) {
         TournamentFormat format = TournamentFormat.of(competition);
         Map<String, Map<String, Map<String, Integer>>> result = new TreeMap<>();
         List<GroupStanding> allStandings = standingsOf(competition.getId());
@@ -155,36 +145,26 @@ public class StandingsService {
     }
 
     /**
-     * Recalcula la clasificación de los grupos del Mundial con sus partidos terminados y guarda
+     * Recalcula la clasificación de los grupos de un torneo con sus partidos terminados y guarda
      * posiciones y estados matemáticos.
      */
     @org.springframework.transaction.annotation.Transactional
-    public void recalculateStandingsFromMatches() {
-        worldCup().ifPresent(worldCup ->
-                recalculateWithLock(worldCup, () -> matchRepository.findByCompetitionId(worldCup.getId())));
+    public void recalculate(Competition competition) {
+        recalculateWithLock(competition, () -> matchRepository.findByCompetitionId(competition.getId()));
     }
 
     /**
-     * Igual que {@link #recalculateStandingsFromMatches()}, con los partidos del Mundial ya cargados:
-     * la sincronización los lee una vez y los comparte con el cuadro de eliminatorias.
-     */
-    @org.springframework.transaction.annotation.Transactional
-    public void recalculateStandingsFromMatches(List<Match> worldCupMatches) {
-        worldCup().ifPresent(worldCup -> recalculateWithLock(worldCup, () -> worldCupMatches));
-    }
-
-    /**
-     * Recalcula la clasificación de los grupos de un torneo con sus partidos, ya cargados, y guarda
-     * posiciones y estados matemáticos.
+     * Igual que {@link #recalculate(Competition)}, con los partidos del torneo ya cargados: la
+     * sincronización los lee una vez y los comparte con el cuadro de eliminatorias.
      */
     @org.springframework.transaction.annotation.Transactional
     public void recalculate(Competition competition, List<Match> matches) {
         recalculateWithLock(competition, () -> matches);
     }
 
-    /** Si la clasificación de grupos del Mundial ya está guardada. */
-    public boolean hasStandings() {
-        return worldCupId().map(standingRepository::existsByCompetitionId).orElse(false);
+    /** Si la clasificación de grupos del torneo ya está guardada. */
+    public boolean hasStandings(Competition competition) {
+        return standingRepository.existsByCompetitionId(competition.getId());
     }
 
     private void recalculateWithLock(Competition competition, java.util.function.Supplier<List<Match>> matches) {
@@ -364,14 +344,6 @@ public class StandingsService {
         Map<Team, String> result = new LinkedHashMap<>();
         teams.forEach((id, team) -> result.put(team, groups.get(id)));
         return result;
-    }
-
-    private Optional<Competition> worldCup() {
-        return competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID);
-    }
-
-    private Optional<Long> worldCupId() {
-        return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID);
     }
 
     /** Datos de la clasificación que puntúan los cuadros: si cambia alguno, hay que recalcular las porras. */

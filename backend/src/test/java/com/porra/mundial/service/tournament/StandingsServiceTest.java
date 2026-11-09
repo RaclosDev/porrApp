@@ -46,9 +46,6 @@ class StandingsServiceTest {
     private TeamRepository teamRepository;
 
     @Mock
-    private CompetitionRepository competitionRepository;
-
-    @Mock
     private ScoreInvalidationService scoreInvalidationService;
 
     @InjectMocks
@@ -57,16 +54,15 @@ class StandingsServiceTest {
     private Team teamA;
     private Team teamB;
     private Team teamC;
+    private Competition worldCup;
 
     @BeforeEach
     void setUp() {
         teamA = Team.builder().id(1L).name("TeamA").build();
         teamB = Team.builder().id(2L).name("TeamB").build();
         teamC = Team.builder().id(3L).name("TeamC").build();
-        Competition worldCup = Competition.builder().id(WORLD_CUP_ID).name("Mundial 2026")
+        worldCup = Competition.builder().id(WORLD_CUP_ID).name("Mundial 2026")
                 .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
-        lenient().when(competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(worldCup));
-        lenient().when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(WORLD_CUP_ID));
     }
 
     @Test
@@ -186,7 +182,7 @@ class StandingsServiceTest {
         
         when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(all);
         
-        var result = standingsService.getWorldCupGroupPoints();
+        var result = standingsService.getGroupPoints(worldCup);
         
         assertEquals(-1, result.get("L").get("T3_L").get("status"));
         assertEquals(-1, result.get("I").get("T3_I").get("status"));
@@ -203,7 +199,7 @@ class StandingsServiceTest {
         givenWorldCupMatches(played);
         when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(List.of());
 
-        standingsService.recalculateStandingsFromMatches();
+        standingsService.recalculate(worldCup);
 
         verify(scoreInvalidationService).invalidateCompetition(WORLD_CUP_ID);
         ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
@@ -215,7 +211,7 @@ class StandingsServiceTest {
         clearInvocations(scoreInvalidationService, standingRepository);
         when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(new ArrayList<>(saved.getValue()));
 
-        standingsService.recalculateStandingsFromMatches();
+        standingsService.recalculate(worldCup);
 
         verify(standingRepository).saveAll(anyList());
         verify(scoreInvalidationService, never()).invalidateCompetition(WORLD_CUP_ID);
@@ -231,7 +227,7 @@ class StandingsServiceTest {
         when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
         when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(List.of());
 
-        standingsService.recalculateStandingsFromMatches(List.of(played));
+        standingsService.recalculate(worldCup, List.of(played));
 
         ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
         verify(standingRepository).saveAll(saved.capture());
@@ -296,7 +292,7 @@ class StandingsServiceTest {
         lenient().when(matchRepository.findAll()).thenReturn(List.of(worldCupGroupMatch, cupMatchStillToPlay));
         givenWorldCupMatches(worldCupGroupMatch);
 
-        var result = standingsService.getWorldCupGroupPoints();
+        var result = standingsService.getGroupPoints(worldCup);
 
         assertEquals(-1, result.get("L").get("T3_L").get("status"));
         assertEquals(0, result.get("A").get("T3_A").get("status"));

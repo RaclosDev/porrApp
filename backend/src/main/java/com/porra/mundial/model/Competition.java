@@ -15,9 +15,6 @@ public class Competition {
     /** Identificador del Mundial 2026 en ESPN. */
     public static final String WORLD_CUP_EXTERNAL_ID = "fifa.world";
 
-    /** Temporada del Mundial que se juega en la app: el rango de fechas que se pide a ESPN. */
-    public static final String WORLD_CUP_SEASON = "2026";
-
     /**
      * Formato de las competiciones por veladas (la UFC): cada velada es una jornada con su nombre, sin
      * numeración de jornadas ni cuadro.
@@ -68,16 +65,24 @@ public class Competition {
 
     /**
      * Torneo oficial con cuadro propio (Worlds de LoL, Copa del Rey, eliminatorias de la Champions…): se
-     * pronostica sobre sus cruces reales, no sobre el cuadro del Mundial.
+     * pronostica sobre sus cruces reales, no sobre un cuadro que sale de la fase de grupos.
      */
     public boolean hasOwnBracket() {
-        if (ownerLeague != null || externalId == null || isWorldCup()) return false;
+        if (ownerLeague != null || externalId == null || isGroupTournament()) return false;
         return "TOURNAMENT".equals(formatType) || LEAGUES_WITH_KNOCKOUTS.contains(externalId);
     }
 
-    /** El Mundial: la única competición con grupos, terceros, cuadro y pichichi oficiales. */
-    public boolean isWorldCup() {
-        return isWorldCup(externalId);
+    /**
+     * Torneo con fase de grupos y eliminatorias que se predice entero antes de empezar (el Mundial):
+     * grupos, terceros, cuadro y máximo goleador oficiales, con la forma que dice su {@link TournamentFormat}.
+     */
+    public boolean isGroupTournament() {
+        return tournamentFormat() != null;
+    }
+
+    /** Formato del torneo con grupos, o {@code null} si la competición no lo es. */
+    public TournamentFormat tournamentFormat() {
+        return TournamentFormat.registered(this);
     }
 
     public static boolean isWorldCup(String externalId) {
