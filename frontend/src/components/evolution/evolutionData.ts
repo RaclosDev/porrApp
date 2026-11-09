@@ -1,5 +1,11 @@
 import type { LeaderboardRow } from '../../hooks/useLeaderboard';
-import type { Match } from '../../types/api';
+import type { Match, TournamentRounds } from '../../types/api';
+import {
+  BRACKET_ROUNDS,
+  WORLD_CUP_2026_FORMAT,
+  playsRound,
+  roundsOf,
+} from '../../utils/firstKnockoutRound';
 
 /** Punto del eje X: una ronda o un partido de eliminatoria. */
 export interface ChartStage {
@@ -14,7 +20,10 @@ export interface ChartStage {
   prop?: StagePointsKey;
   home?: string;
   away?: string;
-  /** Índice del partido de eliminatoria (0-31). */
+  /**
+   * Puesto del partido en un cuadro que empieza en dieciseisavos (0-31): un torneo que empieza más
+   * tarde se salta los primeros.
+   */
   mIdx?: number;
 }
 
@@ -35,6 +44,8 @@ export interface EvolutionChartProps {
   allGames: Match[];
   /** Liga cuyo registro de puntos se pide al cambiar a la escala por partidos. */
   groupId?: number | string | null;
+  /** Rondas del torneo con grupos de la liga; sin el dato, las del Mundial 2026. */
+  tournament?: TournamentRounds | null;
 }
 
 /** Campos de ParticipantScore con los puntos de cada ronda. */
@@ -85,6 +96,17 @@ const ROUNDS_CLOSED_AFTER_MATCH: Record<number, StagePointsKey[]> = {
   31: ['r1', 'r32', 'r16', 'qf', 'sf', 'finals'],
 };
 
+/** Partidos de un cuadro que empieza en dieciseisavos antes de la primera ronda del torneo. */
+const matchesBefore = (tournament: TournamentRounds): number =>
+  BRACKET_ROUNDS.slice(0, BRACKET_ROUNDS.length - roundsOf(tournament).length).reduce(
+    (matches, _round, index) => matches + (16 >> index),
+    0,
+  );
+
+/** Puesto del último partido del torneo: la final va tras el tercer puesto, si se juega. */
+const lastMatchOf = (tournament: TournamentRounds): number =>
+  tournament.thirdPlaceMatch ? 31 : 30;
+
 interface EvolutionData {
   users: ChartUser[];
   yMin: number;
@@ -101,9 +123,10 @@ export function buildStages(
   timeScale: TimeScale,
   validResults: LeaderboardRow[],
   allGames: Match[],
+  tournament: TournamentRounds = WORLD_CUP_2026_FORMAT,
 ): ChartStage[] {
   if (timeScale === 'rounds') {
-    const allRounds = STAGES.map((st) => ({
+    const allRounds = STAGES.filter((st) => playsRound(tournament, st.key)).map((st) => ({
       ...st,
       showLabel: true,
       roundName:
@@ -189,11 +212,15 @@ export function buildStages(
     }
   }
 
-  const limitKo = Math.max(lastPlayedKoIdx + 1, 0);
+  // Los partidos se cuentan desde su puesto en un cuadro de dieciseisavos.
+  const skipped = matchesBefore(tournament);
+  const lastMatch = lastMatchOf(tournament);
+  const playedKo = Math.max(lastPlayedKoIdx + 1, 0);
+  const limitKo = playedKo + skipped;
 
-  for (let i = 0; i < limitKo; i++) {
-    if (i >= ko.length) break;
-    const g = ko[i];
+  for (let i = skipped; i < limitKo; i++) {
+    if (i - skipped >= ko.length) break;
+    const g = ko[i - skipped];
 
     let realRoundName = '1/16 de Final';
     let shortLabel = '1/16';
@@ -231,9 +258,9 @@ export function buildStages(
       if (i === 28 + Math.floor((spanEnd - 29) / 2)) showLabel = true;
       if (i === 29) isBoundary = true;
     } else {
-      const spanEnd = Math.min(limitKo, 32);
+      const spanEnd = Math.min(limitKo, lastMatch + 1);
       if (i === 30 + Math.floor((spanEnd - 31) / 2)) showLabel = true;
-      if (i === 31) isBoundary = true;
+      if (i === lastMatch) isBoundary = true;
     }
 
     const home = g.home || 'Por definir';
@@ -261,8 +288,8 @@ export function buildStages(
     });
   }
 
-  // El punto Total solo aparece con los 32 partidos de eliminatoria jugados.
-  if (lastPlayedKoIdx >= 31) {
+  // El punto Total solo aparece con todos los partidos de eliminatoria jugados.
+  if (limitKo > lastMatch) {
     list.push({
       key: 'total',
       label: 'Total',

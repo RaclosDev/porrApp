@@ -189,6 +189,8 @@ function useLeagueState() {
       (groupInfo?.multiCompetition && groupInfo.competitions) || EMPTY_COMPETITIONS,
     // El pichichi se juega con los goleadores oficiales del Mundial: solo en sus cuadros.
     activeGroupPichichi: leagueKind === 'groupStage' && Boolean(groupInfo?.pichichi),
+    // Rondas del torneo con grupos de la liga: llegan con ella, sin pedir el torneo.
+    activeTournamentRounds: groupInfo?.tournamentRounds ?? null,
     activeGroupIsLocked: Boolean(groupInfo?.isLocked),
     activeGroupLockDate: groupInfo?.lockDate || null,
     activeGroupRules: groupInfo?.rules || '',
