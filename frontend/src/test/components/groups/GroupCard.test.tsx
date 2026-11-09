@@ -49,6 +49,16 @@ describe('GroupCard', () => {
     expect(screen.queryByRole('button', { name: 'Repetir liga' })).not.toBeInTheDocument();
   });
 
+  it('lleva el sello desde que se juega su último partido, antes de archivarse la temporada', () => {
+    renderCard(
+      { groupId: 7, rank: 1, points: 30, participants: 4, pendingPredictions: 0, finished: true },
+      { season: '2026/27', seasonEnded: false },
+    );
+
+    expect(screen.getByText('Terminada')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Repetir liga' })).not.toBeInTheDocument();
+  });
+
   it('quien administra una liga terminada puede repetirla para la temporada nueva', async () => {
     const ended = { season: '2025/26', seasonEnded: true, canRepeat: true, nextSeason: '2026/27' };
     renderCard(undefined, ended, true);

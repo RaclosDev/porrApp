@@ -46,6 +46,7 @@ class LeagueSummaryServiceTest {
     @Mock private MatchRepository matchRepository;
     @Mock private PredictionRepository predictionRepository;
     @Mock private MatchPredictionRepository matchPredictionRepository;
+    @Mock private LeagueClosure leagueClosure;
 
     @InjectMocks private LeagueSummaryService service;
 
@@ -81,7 +82,7 @@ class LeagueSummaryServiceTest {
 
         List<LeagueSummaryDTO> result = service.summaries(EMAIL);
 
-        assertThat(result).containsExactly(new LeagueSummaryDTO(7L, 2, 30, 3, 2));
+        assertThat(result).containsExactly(new LeagueSummaryDTO(7L, 2, 30, 3, 2, false));
     }
 
     @Test
@@ -113,7 +114,7 @@ class LeagueSummaryServiceTest {
     }
 
     @Test
-    @DisplayName("Sin predicción en una liga de cuadro no hay posición ni pendientes")
+    @DisplayName("Sin predicción en una liga de cuadro no hay posición ni pendientes, y dice si ha terminado")
     void bracketLeagueWithoutPredictionHasNoRank() {
         League league = League.builder().id(8L).name("Cuadro").build();
         Edition edition = Edition.builder().league(league).competition(Competition.builder().id(4L).build())
@@ -123,7 +124,8 @@ class LeagueSummaryServiceTest {
         when(editionRepository.findByLeagueIdInAndStatus(anyList(), eq("ACTIVE"))).thenReturn(List.of(edition));
         when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId(EMAIL, 8L)).thenReturn(Optional.empty());
         when(leaderboardService.getLeaderboard(8L)).thenReturn(List.of(row(30L, 10)));
+        when(leagueClosure.isFinished(eq(edition), any())).thenReturn(true);
 
-        assertThat(service.summaries(EMAIL)).containsExactly(new LeagueSummaryDTO(8L, null, null, 1, 0));
+        assertThat(service.summaries(EMAIL)).containsExactly(new LeagueSummaryDTO(8L, null, null, 1, 0, true));
     }
 }

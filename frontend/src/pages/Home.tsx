@@ -12,6 +12,7 @@ import BestThirdsPanel from '../components/Home/BestThirdsPanel';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
 import LeagueHomeDashboard from '../components/Home/LeagueHomeDashboard';
+import LeagueClosing from '../components/league/LeagueClosing';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
 import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
@@ -49,7 +50,13 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     // Fórmula 1: el inicio son los Grandes Premios.
     grandPrix: <GrandPrixPage />,
   };
-  return views[leagueKind];
+  return (
+    <>
+      {/* Una liga terminada abre su inicio con el cierre: campeón, podio y compartir. */}
+      {home && <LeagueClosing />}
+      {views[leagueKind]}
+    </>
+  );
 }
 
 /** Fase de grupos del Mundial: clasificación de cada grupo, mejores terceros, partidos y pichichi. */
