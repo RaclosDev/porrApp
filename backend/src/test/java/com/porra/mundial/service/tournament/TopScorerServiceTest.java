@@ -45,6 +45,9 @@ class TopScorerServiceTest {
     @Mock
     private KnockoutBracketService knockoutBracketService;
 
+    @Mock
+    private TopScorerStore topScorerStore;
+
     private ObjectMapper objectMapper;
     private TopScorerService topScorerService;
 
@@ -52,7 +55,49 @@ class TopScorerServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         topScorerService = new TopScorerService(objectMapper, webSocketService, httpClient, sportsDataProvider,
-                scoreInvalidationService, knockoutBracketService);
+                scoreInvalidationService, knockoutBracketService, topScorerStore);
+    }
+
+    @Test
+    @DisplayName("Tras arrancar con el torneo cerrado valen los goleadores guardados: ni proveedor ni recálculo")
+    void storedScorersAreUsedAfterARestartWithoutAskingTheProvider() {
+        List<TopScorerDTO> stored = List.of(new TopScorerDTO("Kylian Mbappé", "K. Mbappé", 8, "F", "1", "Francia", ""));
+        when(topScorerStore.load(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(stored);
+        when(knockoutBracketService.worldCupIsOver()).thenReturn(true);
+
+        topScorerService.scheduledRefresh();
+        topScorerService.scheduledRefresh();
+
+        assertEquals(stored, topScorerService.getTopScorers());
+        verifyNoInteractions(sportsDataProvider, scoreInvalidationService, webSocketService);
+        verify(topScorerStore, times(1)).load(Competition.WORLD_CUP_EXTERNAL_ID);
+        verify(topScorerStore, never()).replace(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("Los goleadores se guardan solo cuando cambian, y un fallo al guardar no los pierde")
+    void scorersAreStoredOnlyWhenTheyChange() throws Exception {
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString()))
+                .thenReturn(goalBy("Kylian Mbappé"));
+        doThrow(new IllegalStateException("base de datos caída")).when(topScorerStore).replace(anyString(), any());
+
+        topScorerService.refresh();
+        topScorerService.refresh();
+
+        verify(topScorerStore, times(1)).replace(eq(Competition.WORLD_CUP_EXTERNAL_ID), eq(topScorerService.getTopScorers()));
+        assertEquals(1, topScorerService.getTopScorers().size());
+    }
+
+    @Test
+    @DisplayName("Si no se pueden leer los guardados, se reintenta en la siguiente consulta")
+    void aFailedReadOfStoredScorersIsRetried() {
+        List<TopScorerDTO> stored = List.of(new TopScorerDTO("Harry Kane", "H. Kane", 6, "F", "2", "Inglaterra", ""));
+        when(topScorerStore.load(Competition.WORLD_CUP_EXTERNAL_ID))
+                .thenThrow(new IllegalStateException("base de datos caída"))
+                .thenReturn(stored);
+
+        assertTrue(topScorerService.getTopScorers().isEmpty());
+        assertEquals(stored, topScorerService.getTopScorers());
     }
 
     @Test
@@ -317,6 +362,11 @@ class TopScorerServiceTest {
         @Bean
         public KnockoutBracketService knockoutBracketService() {
             return mock(KnockoutBracketService.class);
+        }
+
+        @Bean
+        public TopScorerStore topScorerStore() {
+            return mock(TopScorerStore.class);
         }
     }
 }
