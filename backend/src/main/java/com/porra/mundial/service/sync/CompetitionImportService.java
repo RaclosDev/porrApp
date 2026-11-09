@@ -93,7 +93,13 @@ public class CompetitionImportService {
             // ESPN no numera las jornadas de liga: sin esto cada día con partidos sería una jornada.
             if (!Thread.currentThread().isInterrupted()) officialMatchdayService.numberMatchdays(snapshot.competition());
             committed.batch().publishNotifications();
-            webSocketService.notifyResultsChanged();
+            if (WorldCupTables.isWorldCup(snapshot.competition())) {
+                webSocketService.notifyResultsChanged();
+            } else {
+                java.util.List<Long> imported = java.util.List.of(snapshot.competition().getId());
+                scoreInvalidationService.evictLeaderboardsAfterCommit(imported);
+                webSocketService.notifyResultsChanged(imported);
+            }
             if (WorldCupTables.isWorldCup(snapshot.competition()) && !Thread.currentThread().isInterrupted()) {
                 topScorerService.refresh();
             }
@@ -107,7 +113,11 @@ public class CompetitionImportService {
     private ImportResult importFormulaOne(Competition competition) {
         try {
             var result = formulaOneSyncService.importSeason(competition);
-            if (result.updated() > 0) webSocketService.notifyResultsChanged();
+            if (result.updated() > 0) {
+                java.util.List<Long> imported = java.util.List.of(competition.getId());
+                scoreInvalidationService.evictLeaderboardsAfterCommit(imported);
+                webSocketService.notifyResultsChanged(imported);
+            }
             return new ImportResult(competition.getName(), 0, result.updated());
         } catch (RuntimeException error) {
             throw error;

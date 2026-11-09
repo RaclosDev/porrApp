@@ -7,6 +7,8 @@ import com.porra.mundial.model.KnockoutRound;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
+import java.time.Duration;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,9 @@ public class KnockoutBracketService {
     private final MatchRepository matchRepository;
     private final CompetitionRepository competitionRepository;
     private final ScoreInvalidationService scoreInvalidationService;
+
+    /** Margen tras el último partido para que el proveedor corrija resultados antes de dar el torneo por cerrado. */
+    static final Duration SETTLED_AFTER = Duration.ofDays(7);
 
     /** Partidos de las últimas rondas, ya clasificados. */
     record FinalRounds(List<Match> semis, Match finalMatch, Match thirdPlaceMatch) {
@@ -79,6 +84,17 @@ public class KnockoutBracketService {
         return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
                 .map(matchRepository::findByCompetitionId)
                 .orElse(List.of());
+    }
+
+    /**
+     * El Mundial ya se jugó entero: tiene partidos, todos terminados, y el último empezó hace más de
+     * {@link #SETTLED_AFTER}. Desde entonces el proveedor no trae nada nuevo y no hace falta volver a pedírselo.
+     */
+    public boolean worldCupIsOver() {
+        return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
+                .map(id -> matchRepository.countByCompetitionId(id) > 0
+                        && matchRepository.countOpenOrStartingSince(id, Instant.now().minus(SETTLED_AFTER)) == 0)
+                .orElse(false);
     }
 
     private FinalRounds findFinalRounds(List<Match> worldCupMatches) {

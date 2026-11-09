@@ -42,6 +42,9 @@ class TopScorerServiceTest {
     @Mock
     private ScoreInvalidationService scoreInvalidationService;
 
+    @Mock
+    private KnockoutBracketService knockoutBracketService;
+
     private ObjectMapper objectMapper;
     private TopScorerService topScorerService;
 
@@ -49,7 +52,7 @@ class TopScorerServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         topScorerService = new TopScorerService(objectMapper, webSocketService, httpClient, sportsDataProvider,
-                scoreInvalidationService);
+                scoreInvalidationService, knockoutBracketService);
     }
 
     @Test
@@ -88,6 +91,33 @@ class TopScorerServiceTest {
 
         assertEquals(2, topScorerService.getTopScorers().getFirst().goals());
         verify(httpClient, times(2)).send(any(java.net.http.HttpRequest.class), any());
+    }
+
+    @Test
+    void scheduledRefreshStopsAskingOnceTheWorldCupIsOverAndScorersAreLoaded() throws Exception {
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString()))
+                .thenReturn(goalBy("Kylian Mbappé"));
+        when(knockoutBracketService.worldCupIsOver()).thenReturn(true);
+
+        // Tras arrancar no hay goleadores en memoria: la primera pasada los carga aunque el torneo haya acabado.
+        topScorerService.scheduledRefresh();
+        topScorerService.scheduledRefresh();
+        topScorerService.scheduledRefresh();
+
+        assertEquals(1, topScorerService.getTopScorers().size());
+        verify(sportsDataProvider, times(1)).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
+    }
+
+    @Test
+    void scheduledRefreshKeepsAskingWhileTheWorldCupIsBeingPlayed() throws Exception {
+        when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString()))
+                .thenReturn(goalBy("Kylian Mbappé"));
+        when(knockoutBracketService.worldCupIsOver()).thenReturn(false);
+
+        topScorerService.scheduledRefresh();
+        topScorerService.scheduledRefresh();
+
+        verify(sportsDataProvider, times(2)).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
     }
 
     @Test
@@ -282,6 +312,11 @@ class TopScorerServiceTest {
         @Bean
         public ScoreInvalidationService scoreInvalidationService() {
             return mock(ScoreInvalidationService.class);
+        }
+
+        @Bean
+        public KnockoutBracketService knockoutBracketService() {
+            return mock(KnockoutBracketService.class);
         }
     }
 }

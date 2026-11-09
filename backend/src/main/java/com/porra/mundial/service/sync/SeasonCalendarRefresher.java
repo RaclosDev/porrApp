@@ -3,6 +3,7 @@ package com.porra.mundial.service.sync;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.service.prediction.MatchSelectionService;
+import com.porra.mundial.service.tournament.KnockoutBracketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -19,7 +20,8 @@ import java.util.List;
  * <p>
  * La sincronización frecuente solo mira unos días alrededor de hoy. Esta pasada completa el resto de la
  * temporada, recoge los cambios de fecha lejanos y los resultados que se le hayan escapado, y deja lista
- * cualquier competición para cuando alguien cree una liga sobre ella. Va a las 5:00 de Madrid, cuando
+ * cualquier competición para cuando alguien cree una liga sobre ella. El Mundial ya cerrado se salta: su
+ * calendario y sus resultados no van a cambiar. Va a las 5:00 de Madrid, cuando
  * apenas hay tráfico y no coincide con las limpiezas de las 4:15, 4:30 y 4:45.
  */
 @Component
@@ -33,12 +35,14 @@ public class SeasonCalendarRefresher {
     private final CompetitionImportService importService;
     private final CacheManager cacheManager;
     private final MatchSelectionService matchSelectionService;
+    private final KnockoutBracketService knockoutBracketService;
 
     @Scheduled(cron = "0 0 5 * * *", zone = "Europe/Madrid")
     @SchedulerLock(name = "seasonCalendar", lockAtMostFor = "PT2H", lockAtLeastFor = "PT5M")
     public void refreshAllSeasons() {
         List<Competition> official = competitionRepository.findAll().stream()
                 .filter(c -> c.getOwnerLeague() == null && c.getExternalId() != null && !c.getExternalId().isBlank())
+                .filter(c -> !(c.isWorldCup() && knockoutBracketService.worldCupIsOver()))
                 .sorted(Comparator.comparing(Competition::getId))
                 .toList();
         int refreshed = 0;

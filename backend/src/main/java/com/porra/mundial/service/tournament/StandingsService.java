@@ -160,6 +160,11 @@ public class StandingsService {
         recalculateWithLock(() -> worldCupMatches);
     }
 
+    /** Si la clasificación de grupos ya está materializada. */
+    public boolean hasStandings() {
+        return standingRepository.count() > 0;
+    }
+
     private void recalculateWithLock(java.util.function.Supplier<List<Match>> worldCupMatches) {
         if (!recalculateLock.tryLock()) {
             log.info("Recálculo de clasificaciones omitido: ya hay otra ejecución en curso.");
