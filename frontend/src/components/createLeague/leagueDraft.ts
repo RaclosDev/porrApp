@@ -19,7 +19,7 @@ import {
   type ScoringDraft,
 } from '../../utils/scoringRules';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
-import { isWorldCupCompetition } from '../../context/leagueKind';
+import { isGroupTournament } from '../../context/leagueKind';
 import { isNbaCompetition, isNbaRegularSeason } from '../../utils/nbaPlayoffs';
 import {
   BRACKET_LOCK_MODES,
@@ -491,7 +491,10 @@ export const formatsOffered = (draft: LeagueDraft, ctx: DraftContext): PoolForma
 const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
   if (draft.custom) return true;
   const competition = selectedCompetition(draft, ctx);
-  return competition?.formatType === 'TOURNAMENT' && !isWorldCupCompetition(competition.externalId);
+  return (
+    competition?.formatType === 'TOURNAMENT' &&
+    !isGroupTournament(competition.groupTournament, competition.externalId)
+  );
 };
 
 /** Cierres que admite el formato elegido. Superviviente se pronostica partido a partido: como jornadas. */
@@ -521,13 +524,20 @@ function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode 
   return modes.some((item) => item.value === 'PER_ROUND') ? 'PER_ROUND' : 'FIRST_MATCH';
 }
 
+const isSelectedGroupTournament = (draft: LeagueDraft, ctx: DraftContext) => {
+  const competition = selectedCompetition(draft, ctx);
+  return Boolean(
+    competition && isGroupTournament(competition.groupTournament, competition.externalId),
+  );
+};
+
 /**
  * El pichichi se puntúa con los goleadores oficiales del Mundial: solo en su cuadro (ni en sus
  * jornadas ni en otros torneos).
  */
 export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   !draft.custom &&
-  isWorldCupCompetition(selectedCompetition(draft, ctx)?.externalId) &&
+  isSelectedGroupTournament(draft, ctx) &&
   draft.poolFormat != null &&
   !isMatchBasedFormat(draft.poolFormat);
 

@@ -22,8 +22,10 @@ import type {
   Match,
   ParticipantScore,
   PredictionData,
+  TournamentFormat,
 } from '../types/api';
 import { errorMessage } from '../utils/errors';
+import { WORLD_CUP_2026_FORMAT } from '../utils/firstKnockoutRound';
 
 export type { RoundRef } from '../utils/predictionViewer';
 
@@ -35,6 +37,7 @@ export type { RoundRef } from '../utils/predictionViewer';
  * @param allGames - Partidos oficiales, para saber quién ha caído.
  * @param initialPart - Porra ya disponible (lista de participantes) para pintarla al instante.
  * @param tournamentId - Torneo con grupos de la liga; sin él no hay cuadro oficial que pedir.
+ * @param format - Forma de ese torneo (sin ella, la del Mundial).
  */
 export function usePredictionViewerData(
   viewerPredictionId: string | number | null,
@@ -44,6 +47,7 @@ export function usePredictionViewerData(
   allGames: Match[],
   initialPart: PredictionData | null = null,
   tournamentId: number | null = null,
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
 ) {
   const [rawPart, setRawPart] = useState<PredictionData | null>(() => initialPart || null);
   const [partLoading, setPartLoading] = useState(false);
@@ -60,7 +64,10 @@ export function usePredictionViewerData(
   const loading =
     partLoading || (Boolean(viewerPredictionId) && tournamentId != null && officialQuery.isPending);
 
-  const part = useMemo(() => normalizePart(rawPart, groupOdds), [rawPart, groupOdds]);
+  const part = useMemo(
+    () => normalizePart(rawPart, groupOdds, format),
+    [rawPart, groupOdds, format],
+  );
 
   const officialBracket = useMemo(
     () => injectQualifiedTeams(rawOfficialBracket, officialPoints),
@@ -135,7 +142,10 @@ export function usePredictionViewerData(
     [detailedScore, leaderboardData, viewerPredictionId, part?.user],
   );
 
-  const { leftRounds, rightRounds } = useMemo(() => bracketSides(r32Source(part), part), [part]);
+  const { leftRounds, rightRounds } = useMemo(
+    () => bracketSides(r32Source(part, format), part),
+    [part, format],
+  );
 
   const slotContext = { part, points, officialBracket, officialPoints, allGames };
 

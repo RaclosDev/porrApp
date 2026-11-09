@@ -7,7 +7,9 @@ import {
   isThirdSlot,
   slotLabel,
 } from '../../utils/firstKnockoutRound';
-import { THIRD_PLACE_RULES } from '../../utils/matrix';
+import { thirdPlaceRules } from '../../utils/matrix';
+
+const THIRD_PLACE_RULES = thirdPlaceRules(WORLD_CUP_2026_FIRST_ROUND);
 
 describe('cruces de la primera ronda eliminatoria', () => {
   it('escribe cada hueco como lo ve el usuario', () => {

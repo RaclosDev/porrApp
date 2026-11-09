@@ -84,6 +84,8 @@ export interface Competition {
   groupStage?: boolean | null;
   /** Sus eliminatorias se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda. */
   knockoutDraw?: boolean;
+  /** Torneo con fase de grupos que se predice entero antes de empezar (grupos, terceros y cuadro). */
+  groupTournament?: boolean;
   /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
   tennis?: TennisInfo | null;
   /**
@@ -313,6 +315,8 @@ export interface Group {
   formatType: CompetitionFormat | null;
   /** Eliminatorias sorteadas ronda a ronda: en cada ronda se elige quién pasa cada cruce. */
   knockoutDraw?: boolean;
+  /** Su competición es un torneo con fase de grupos que se predice entero antes de empezar. */
+  groupTournament?: boolean;
   poolFormat: PoolFormat | null;
   pichichi: boolean | null;
   lockDate: string | null;
@@ -835,4 +839,18 @@ export interface MatchVoters {
 export interface MatchdayStats {
   members: number;
   matches: MatchStats[];
+}
+
+/** Forma de un torneo con fase de grupos, para pintar y rellenar su cuadro. */
+export interface TournamentFormat {
+  /** Letras de sus grupos, en orden. */
+  groups: string[];
+  /** Terceros de grupo que pasan a las eliminatorias. */
+  bestThirds: number;
+  /** Se juega el partido por el tercer puesto. */
+  thirdPlaceMatch: boolean;
+  /** Ronda en la que empieza el cuadro, con el nombre con el que se guarda. */
+  firstRound: 'r32' | 'r16' | 'qf' | 'sf';
+  /** Cruces de esa ronda en el orden del cuadro: un puesto de grupo («1E») o un tercero («3ABCDF»). */
+  firstKnockoutRound: string[][];
 }

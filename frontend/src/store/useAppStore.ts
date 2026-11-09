@@ -7,10 +7,12 @@ import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
 import { isBracketState } from '../utils/bracketValidation';
 import { orderR32, topologyVersion, type TopologyVersion } from '../utils/bracketTopology';
 import {
+  BRACKET_ROUNDS,
   WORLD_CUP_2026_FIRST_ROUND,
   firstRoundInLegacyOrder,
   firstRoundLabels,
 } from '../utils/firstKnockoutRound';
+import type { TournamentFormat } from '../types/api';
 
 /** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
 export interface BracketTeam {
@@ -29,7 +31,10 @@ interface BracketSide {
   right: BracketMatch[];
 }
 
-/** Cuadro de eliminatorias que rellena el usuario. */
+/**
+ * Cuadro de eliminatorias que rellena el usuario. Las rondas que el torneo no juega (los
+ * dieciseisavos de uno que empieza en octavos) quedan sin cruces.
+ */
 export interface BracketState {
   topologyVersion?: TopologyVersion;
   r32: BracketSide;
@@ -136,8 +141,75 @@ export const defaultBracketState: BracketState = {
   r32: { left: canonicalR32.slice(0, 8), right: canonicalR32.slice(8) },
 };
 
-export const getDefaultBracketState = (version?: TopologyVersion): BracketState =>
-  topologyVersion(version) === 2 ? defaultBracketState : legacyBracketState;
+/** Cruces por lado de cada ronda de un cuadro completo, y cómo empiezan sus identificadores. */
+const SIDE_SIZES = [8, 4, 2, 1];
+const ID_PREFIXES = ['', '8', '4', '2'];
+
+/** Cuadro vacío de un torneo: su primera ronda con los huecos de grupo y el resto por rellenar. */
+function emptyBracketOf(format: TournamentFormat): BracketState {
+  const start = Math.max(0, BRACKET_ROUNDS.indexOf(format.firstRound));
+  const labels = firstRoundLabels(format.firstKnockoutRound);
+  const half = labels.length / 2;
+  const side = (round: number, right: boolean): BracketMatch[] => {
+    if (round < start) return [];
+    const letter = right ? 'R' : 'L';
+    if (round > start) {
+      return Array.from({ length: SIDE_SIZES[round] }, (_, index) => ({
+        home: null,
+        away: null,
+        id: `${letter}${ID_PREFIXES[round]}_${index}`,
+      }));
+    }
+    return labels
+      .slice(right ? half : 0, right ? labels.length : half)
+      .map(([home, away], index) => ({
+        home: { name: home },
+        away: { name: away },
+        id: `${letter}${ID_PREFIXES[round]}_${index}`,
+      }));
+  };
+  const round = (index: number): BracketSide => ({
+    left: side(index, false),
+    right: side(index, true),
+  });
+  return {
+    topologyVersion: 2,
+    r32: round(0),
+    r16: round(1),
+    qf: round(2),
+    sf: round(3),
+    final: null,
+    champion: null,
+    thirdPlaceMatch: null,
+    thirdPlaceWinner: null,
+  };
+}
+
+const isWorldCupFormat = (format: TournamentFormat | undefined) =>
+  !format ||
+  JSON.stringify(format.firstKnockoutRound) === JSON.stringify(WORLD_CUP_2026_FIRST_ROUND);
+
+const emptyBrackets = new Map<string, BracketState>();
+
+/**
+ * Cuadro vacío del torneo (sin forma, el del Mundial). Los cuadros del Mundial anteriores a la
+ * versión 2 conservan su orden antiguo.
+ */
+export const getDefaultBracketState = (
+  version?: TopologyVersion,
+  format?: TournamentFormat,
+): BracketState => {
+  if (isWorldCupFormat(format)) {
+    return topologyVersion(version) === 2 ? defaultBracketState : legacyBracketState;
+  }
+  const key = JSON.stringify(format);
+  let empty = emptyBrackets.get(key);
+  if (!empty) {
+    empty = emptyBracketOf(format as TournamentFormat);
+    emptyBrackets.set(key, empty);
+  }
+  return empty;
+};
 
 /** Borrador del cuadro de este usuario en esta liga, o el cuadro vacío. */
 export const getInitialBracketState = (groupId: string, userId: string): BracketState => {
