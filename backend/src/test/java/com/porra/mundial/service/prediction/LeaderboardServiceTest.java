@@ -127,12 +127,11 @@ class LeaderboardServiceTest {
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
         when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(100L))).thenReturn(List.of(mp1, mp2));
-        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
-                new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
-                List.of(), List.of(), List.of(), List.of(), null));
 
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
 
+        // Una porra por partidos no se puntúa contra el cuadro del torneo con grupos: no se cargan sus resultados.
+        org.mockito.Mockito.verify(officialResultsService, org.mockito.Mockito.never()).current();
         assertFalse(leaderboard.isEmpty());
         ParticipantScoreDTO first = leaderboard.get(0);
         assertEquals(4, first.getMatchPoints(), "matchPoints debe ser la suma de los puntos otorgados (3 + 1)");
