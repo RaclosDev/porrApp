@@ -220,7 +220,8 @@ class LeaderboardServiceTest {
                 .scoreCalculatedAt(Instant.now())
                 .build();
         UserAccount joinedUser = UserAccount.builder().id(20L).participantName("Jugador Unido").build();
-        Membership membership = Membership.builder().user(joinedUser).build();
+        com.porra.mundial.model.League freeLeague = com.porra.mundial.model.League.builder().id(10L).build();
+        Membership membership = Membership.builder().league(freeLeague).user(joinedUser).build();
 
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
         when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(membership));
@@ -262,6 +263,28 @@ class LeaderboardServiceTest {
         when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L))
                 .thenReturn(List.of(paidPrediction, unpaidPrediction));
         com.porra.mundial.model.League feeLeague = com.porra.mundial.model.League.builder().id(10L).entryFee(true).build();
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().league(feeLeague).user(unpaidUser).paymentStatus("PENDING").build(),
+                Membership.builder().league(feeLeague).user(paidUser).paymentStatus("PAID").build()));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertTrue(leaderboard.stream()
+                .filter(score -> Long.valueOf(10L).equals(score.getUserId()))
+                .findFirst().orElseThrow().isPending());
+        assertFalse(leaderboard.stream()
+                .filter(score -> Long.valueOf(20L).equals(score.getUserId()))
+                .findFirst().orElseThrow().isPending());
+    }
+
+    @Test
+    @DisplayName("getLeaderboard marca pendiente de pago a quien no ha pagado aunque no tenga predicción")
+    void getLeaderboard_MembersWithoutPredictionFollowMembershipPayment() {
+        UserAccount unpaidUser = UserAccount.builder().id(10L).participantName("Sin Pagar").build();
+        UserAccount paidUser = UserAccount.builder().id(20L).participantName("Pagado").build();
+        com.porra.mundial.model.League feeLeague = com.porra.mundial.model.League.builder().id(10L).entryFee(true).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of());
         when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
                 Membership.builder().league(feeLeague).user(unpaidUser).paymentStatus("PENDING").build(),
                 Membership.builder().league(feeLeague).user(paidUser).paymentStatus("PAID").build()));
