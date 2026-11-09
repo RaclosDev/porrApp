@@ -1,9 +1,12 @@
 import { useAppContext } from '../context/AppContext';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { useBracketInsights } from '../hooks/useBracketInsights';
+import { useGrandPrixInsights } from '../hooks/useGrandPrixInsights';
 import InsightsHeader from '../components/insights/InsightsHeader';
 import BracketInsightsGate from '../components/insights/BracketInsightsGate';
 import BracketStats from '../components/insights/BracketStats';
+import GrandPrixInsightsGate from '../components/insights/GrandPrixInsightsGate';
+import GrandPrixStats from '../components/insights/GrandPrixStats';
 import MatchdayStatsView from '../components/insights/MatchdayStatsView';
 import { InsightsNotice } from '../components/insights/InsightCard';
 import type { OfficialState } from '../utils/bracketStats';
@@ -20,8 +23,8 @@ function tournamentSummary(official: OfficialState): string {
 }
 
 /**
- * Estadísticas de la liga activa. En las ligas de cuadro, lo más elegido comparado con lo
- * real; en las de jornadas, el reparto de pronósticos de cada partido ya empezado.
+ * Estadísticas de la liga activa. En las ligas de cuadro y en la Fórmula 1, lo más elegido
+ * comparado con lo real; en las de jornadas, el reparto de pronósticos de cada partido ya empezado.
  */
 function Stats() {
   const { leagueKind, groupError } = useAppContext();
@@ -35,13 +38,31 @@ function Stats() {
     matchday: <MatchdayStatsPage />,
     fightCard: <MatchdayStatsPage />,
     tennisDraw: <MatchdayStatsPage />,
-    // Sin estadísticas propias: los cuadros propios, las eliminatorias sorteadas y la Fórmula 1.
+    grandPrix: <GrandPrixStatsPage />,
+    // Sin estadísticas propias: los cuadros propios y las eliminatorias sorteadas.
     customBracket: <Navigate to="/" replace />,
     ownBracket: <Navigate to="/" replace />,
     knockoutDraw: <Navigate to="/" replace />,
-    grandPrix: <Navigate to="/" replace />,
   };
   return views[leagueKind];
+}
+
+/** Lo más elegido de cada Gran Premio ya cerrado, comparado con el resultado. */
+function GrandPrixStatsPage() {
+  const insights = useGrandPrixInsights();
+  const count = insights.races.length;
+  const summary =
+    count > 0
+      ? `${count} ${count === 1 ? 'Gran Premio cerrado' : 'Grandes Premios cerrados'}`
+      : undefined;
+  return (
+    <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
+      <InsightsHeader leagueName={insights.leagueName} summary={summary} />
+      <GrandPrixInsightsGate insights={insights}>
+        <GrandPrixStats races={insights.races} drivers={insights.drivers} />
+      </GrandPrixInsightsGate>
+    </section>
+  );
 }
 
 /** Reparto de pronósticos de cada partido ya empezado. */
@@ -49,7 +70,7 @@ function MatchdayStatsPage() {
   const { activeGroupId, activeGroupName } = useAppContext();
   return (
     <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
-      <InsightsHeader leagueName={activeGroupName} summary="Por partido" withSearch={false} />
+      <InsightsHeader leagueName={activeGroupName} summary="Por partido" />
       {activeGroupId ? (
         <MatchdayStatsView groupId={activeGroupId} />
       ) : (
@@ -70,7 +91,7 @@ function WorldCupStatsPage() {
 
   return (
     <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
-      <InsightsHeader leagueName={insights.leagueName} summary={summary} withSearch />
+      <InsightsHeader leagueName={insights.leagueName} summary={summary} />
       <BracketInsightsGate insights={insights}>
         <BracketStats
           entries={insights.entries}

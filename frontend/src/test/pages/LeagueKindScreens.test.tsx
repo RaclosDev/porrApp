@@ -14,6 +14,7 @@ import Leaderboard from '../../pages/Leaderboard';
 import PredictionViewer from '../../components/PredictionViewer';
 import { useAppContext } from '../../context/AppContext';
 import { LEAGUE_KINDS, type LeagueKind } from '../../context/leagueKind';
+import { LEAGUE_INSIGHTS } from '../../context/leagueInsights';
 import { appContext, participantScore } from '../context/fixtures';
 
 /** Lo que enseña una vista del Mundial: aquí ninguna llega a pintarse, solo se ve si se abre. */
@@ -71,6 +72,18 @@ vi.mock('../../components/insights/MatchdayStatsView', () => ({
   default: () => <p>Estadísticas por partido</p>,
 }));
 vi.mock('../../components/insights/InsightsHeader', () => ({ default: () => null }));
+vi.mock('../../hooks/useGrandPrixInsights', () => ({
+  useGrandPrixInsights: () => ({ races: [], drivers: new Map(), leagueName: 'Liga', groupId: '7' }),
+}));
+vi.mock('../../components/insights/GrandPrixInsightsGate', () => ({
+  default: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock('../../components/insights/GrandPrixStats', () => ({
+  default: () => <p>Más elegidos de la Fórmula 1</p>,
+}));
+vi.mock('../../components/insights/GrandPrixSearch', () => ({
+  default: () => <p>Buscador de pilotos</p>,
+}));
 vi.mock('../../components/CustomPredictionViewer', () => ({
   default: () => <p>Visor del cuadro propio</p>,
 }));
@@ -177,7 +190,7 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Estadísticas por partido',
       fightCard: 'Estadísticas por partido',
       tennisDraw: 'Estadísticas por partido',
-      grandPrix: ROUTES['/'],
+      grandPrix: 'Más elegidos de la Fórmula 1',
     },
   },
   {
@@ -196,7 +209,7 @@ const SCREENS: ScreenCase[] = [
       matchday: ROUTES['/stats'],
       fightCard: ROUTES['/stats'],
       tennisDraw: ROUTES['/stats'],
-      grandPrix: ROUTES['/'],
+      grandPrix: 'Buscador de pilotos',
     },
   },
   {
@@ -307,6 +320,18 @@ describe.each(SCREENS)('$name para cada clase de liga', ({ path, element, expect
   });
 });
 
+describe('Enlaces a Estadísticas y al Buscador', () => {
+  const screenOf = (name: string) => SCREENS.find((screen) => screen.name === name)!.expected;
+  // Lo que se ve cuando la clase no tiene esa pantalla: un aviso o la ruta a la que manda.
+  const noScreen = [LOADING, ERROR, UNKNOWN, 'Estadísticas', 'Buscar', ...Object.values(ROUTES)];
+
+  it.each(LEAGUE_KINDS)('%s: solo salen donde la pantalla existe', (kind) => {
+    const { stats, search } = LEAGUE_INSIGHTS[kind];
+    expect(Boolean(stats)).toBe(!noScreen.includes(screenOf('Estadísticas')[kind]));
+    expect(search).toBe(!noScreen.includes(screenOf('Buscador')[kind]));
+  });
+});
+
 describe('Visor de porras para cada clase de liga', () => {
   const expected: Record<LeagueKind, string | null> = {
     worldCup: WORLD_CUP,
@@ -370,8 +395,13 @@ describe('Ranking para cada clase de liga', () => {
         </Routes>
       </MemoryRouter>,
     );
-    // Más elegidos y Buscador comparan con el cuadro oficial del Mundial: solo en sus ligas.
-    expect(Boolean(screen.queryByRole('link', { name: /Más elegidos/ }))).toBe(kind === 'worldCup');
+    // Cada enlace sale solo donde su pantalla existe.
+    const { stats, search } = LEAGUE_INSIGHTS[kind];
+    expect(
+      screen.queryAllByRole('link', { name: /Más elegidos|Estadísticas por partido/ }),
+    ).toHaveLength(stats ? 1 : 0);
+    if (stats) expect(screen.getByRole('link', { name: stats })).toHaveAttribute('href', '/stats');
+    expect(Boolean(screen.queryByRole('link', { name: 'Buscador' }))).toBe(search);
 
     fireEvent.click(screen.getByRole('row', { name: /Carlos/ }));
     const target = opens[kind];

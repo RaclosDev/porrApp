@@ -6,8 +6,11 @@ import { useBracketInsights } from '../hooks/useBracketInsights';
 import InsightsHeader from '../components/insights/InsightsHeader';
 import { InsightsNotice, TeamFlag } from '../components/insights/InsightCard';
 import BracketInsightsGate from '../components/insights/BracketInsightsGate';
-import TeamPicker from '../components/insights/TeamPicker';
-import TeamFunnel from '../components/insights/TeamFunnel';
+import SubjectPicker from '../components/insights/SubjectPicker';
+import PickFunnel from '../components/insights/PickFunnel';
+import GrandPrixInsightsGate from '../components/insights/GrandPrixInsightsGate';
+import GrandPrixSearch from '../components/insights/GrandPrixSearch';
+import { useGrandPrixInsights } from '../hooks/useGrandPrixInsights';
 import StagePickersList from '../components/insights/StagePickersList';
 import WhatsAppIcon from '../components/WhatsAppIcon';
 import {
@@ -35,6 +38,8 @@ const FULL_STAGES: StageId[] = [
   'champion',
 ];
 const KNOCKOUT_STAGES: StageId[] = ['r16', 'qf', 'sf', 'final', 'champion'];
+
+const teamOption = (team: string) => ({ value: team, label: team });
 
 /** Condiciones de los enlaces que se compartían con el buscador anterior. */
 const LEGACY_CONDITIONS: Record<string, StageId> = {
@@ -71,8 +76,9 @@ function realSituation(official: OfficialState, team: string): string | null {
 }
 
 /**
- * Buscador de las ligas de cuadro: elige un equipo y mira cuántos cuadros lo llevan a cada
- * ronda, quién lo pone y hasta dónde lo lleva el resto.
+ * Buscador: en las ligas de cuadro, elige un equipo y mira cuántos cuadros lo llevan a cada
+ * ronda, quién lo pone y hasta dónde lo lleva el resto; en la Fórmula 1, elige un piloto y mira
+ * quién lo ha puesto y en qué puesto en cada Gran Premio.
  */
 function Search() {
   const { leagueKind, activeGroupId, userGroups, changeGroup, groupError } = useAppContext();
@@ -104,12 +110,38 @@ function Search() {
     matchday: <Navigate to="/stats" replace />,
     fightCard: <Navigate to="/stats" replace />,
     tennisDraw: <Navigate to="/stats" replace />,
+    // En la Fórmula 1 se busca un piloto a lo largo de la temporada.
+    grandPrix: <GrandPrixSearchPage />,
     customBracket: <Navigate to="/" replace />,
     ownBracket: <Navigate to="/" replace />,
     knockoutDraw: <Navigate to="/" replace />,
-    grandPrix: <Navigate to="/" replace />,
   };
   return views[leagueKind];
+}
+
+function GrandPrixSearchPage() {
+  const insights = useGrandPrixInsights();
+  const count = insights.races.length;
+  return (
+    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
+      <InsightsHeader
+        leagueName={insights.leagueName}
+        summary={
+          count > 0
+            ? `${count} ${count === 1 ? 'Gran Premio cerrado' : 'Grandes Premios cerrados'}`
+            : undefined
+        }
+      />
+      <GrandPrixInsightsGate insights={insights}>
+        <GrandPrixSearch
+          races={insights.races}
+          drivers={insights.drivers}
+          leagueName={insights.leagueName}
+          groupId={insights.groupId}
+        />
+      </GrandPrixInsightsGate>
+    </section>
+  );
 }
 
 function WorldCupSearch() {
@@ -178,15 +210,19 @@ function WorldCupSearch() {
       <InsightsHeader
         leagueName={insights.leagueName}
         summary={entries.length > 0 ? `${entries.length} cuadros` : undefined}
-        withSearch
       />
       <BracketInsightsGate insights={insights}>
         <div className="mx-auto flex max-w-245 flex-col gap-4">
-          <TeamPicker
+          <SubjectPicker
             value={team}
             onChange={(t) => update({ team: t })}
-            groups={teamGroups}
-            shortcuts={shortcuts}
+            groups={teamGroups.map(({ group, teams }) => ({
+              label: group ? `Grupo ${group}` : null,
+              options: teams.map(teamOption),
+            }))}
+            shortcuts={shortcuts.map(teamOption)}
+            icon={(name) => <TeamFlag team={name} />}
+            placeholder="Elige un equipo"
           />
 
           {!team ? (
@@ -211,8 +247,15 @@ function WorldCupSearch() {
                     </span>
                   )}
                 </div>
-                <TeamFunnel
-                  rows={rows}
+                <PickFunnel
+                  rows={rows.map((row) => ({
+                    id: row.stage,
+                    label: STAGE_LABEL[row.stage],
+                    sub: GROUP_POSITIONS.some((position) => position === row.stage),
+                    count: row.count,
+                    percent: row.percent,
+                    status: row.status,
+                  }))}
                   total={entries.length}
                   selected={stage}
                   onSelect={(s) => update({ stage: s })}
