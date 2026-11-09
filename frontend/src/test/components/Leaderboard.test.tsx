@@ -445,6 +445,36 @@ describe('Leaderboard Component', () => {
     expect(cells.length).toBe(headers.length);
   });
 
+  it('de un torneo que empieza en octavos no enseña la columna de dieciseisavos', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: sampleLeaderboard.map(participantScore),
+        loading: false,
+        activeGroupName: 'Eurocopa 2024',
+        activeGroupId: '2',
+        activeGroupPoolFormat: 'FULL_BRACKET',
+        activeTournamentRounds: { firstRound: 'r16', thirdPlaceMatch: false },
+        leagueKind: 'groupStage',
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent?.replace(/[▼▲\s]/g, ''));
+    expect(headers).not.toContain('Dieciseisavos');
+    expect(headers).toEqual(expect.arrayContaining(['F.Grupos', 'Octavos', 'Cuartos', 'Semis']));
+    const row = screen.getByRole('row', { name: /Carlos/ });
+    expect(row.querySelectorAll('td').length).toBe(headers.length);
+  });
+
   it('sin liga ni sesión invita a iniciar sesión en vez de mostrar una tabla vacía', () => {
     vi.mocked(useAppContext).mockReturnValue(
       appContext({ activeGroupId: undefined, userName: undefined, loading: false }),

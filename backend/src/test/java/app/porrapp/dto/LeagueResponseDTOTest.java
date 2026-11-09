@@ -55,6 +55,35 @@ class LeagueResponseDTOTest {
     }
 
     @Test
+    @DisplayName("La liga dice las rondas de su torneo con grupos: el Mundial desde dieciseisavos, la Eurocopa desde octavos")
+    void tellsTheRoundsOfItsGroupTournament() {
+        TournamentRoundsDTO worldCup = new TournamentRoundsDTO("r32", true);
+        assertEquals(worldCup, LeagueResponseDTO.of(league, edition, true).getTournamentRounds());
+        assertEquals(worldCup, LeagueResponseDTO.preview(league, edition).getTournamentRounds());
+        assertEquals(worldCup, LeagueScoringDTO.of(edition, false).tournamentRounds());
+
+        Edition euroEdition = Edition.builder().id(6L).league(league).poolFormat(PoolFormat.FULL_BRACKET)
+                .status("ACTIVE")
+                .competition(Competition.builder().id(2L).name("Eurocopa 2024").formatType("TOURNAMENT")
+                        .externalId("uefa.euro").build())
+                .build();
+        TournamentRoundsDTO euro = new TournamentRoundsDTO("r16", false);
+        assertEquals(euro, LeagueResponseDTO.of(league, euroEdition, true).getTournamentRounds());
+        assertEquals(euro, LeagueScoringDTO.of(euroEdition, true).tournamentRounds());
+        assertEquals(euro, CompetitionDTO.of(euroEdition.getCompetition(), null).tournamentRounds());
+
+        // Una liga o un torneo sin grupos que predecir no tiene rondas que nombrar.
+        Edition matchdays = Edition.builder().id(7L).league(league).poolFormat(PoolFormat.MATCH_DAY)
+                .status("ACTIVE")
+                .competition(Competition.builder().id(3L).name("LaLiga").formatType("LEAGUE")
+                        .externalId("esp.1").build())
+                .build();
+        assertNull(LeagueResponseDTO.of(league, matchdays, true).getTournamentRounds());
+        assertNull(LeagueScoringDTO.of(matchdays, false).tournamentRounds());
+        assertNull(LeagueResponseDTO.of(league, null, true).getTournamentRounds());
+    }
+
+    @Test
     @DisplayName("Sin edición activa la liga figura como abierta y sin competición")
     void withoutEdition() {
         LeagueResponseDTO dto = LeagueResponseDTO.of(league, null, true);

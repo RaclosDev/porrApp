@@ -86,6 +86,8 @@ export interface Competition {
   knockoutDraw?: boolean;
   /** Torneo con fase de grupos que se predice entero antes de empezar (grupos, terceros y cuadro). */
   groupTournament?: boolean;
+  /** Rondas eliminatorias de ese torneo con grupos; null si la competición no lo es. */
+  tournamentRounds?: TournamentRounds | null;
   /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
   tennis?: TennisInfo | null;
   /**
@@ -317,6 +319,8 @@ export interface Group {
   knockoutDraw?: boolean;
   /** Su competición es un torneo con fase de grupos que se predice entero antes de empezar. */
   groupTournament?: boolean;
+  /** Rondas eliminatorias de ese torneo con grupos, para nombrarlas; null si la competición no lo es. */
+  tournamentRounds?: TournamentRounds | null;
   poolFormat: PoolFormat | null;
   pichichi: boolean | null;
   lockDate: string | null;
@@ -605,6 +609,8 @@ export interface LeagueScoring {
   fights?: boolean;
   /** Playoffs de la NBA: puntos por serie acertada y extra por acertar en cuántos partidos. */
   nbaSeries?: boolean;
+  /** Rondas eliminatorias de su torneo con grupos: solo se enseñan sus reglas. */
+  tournamentRounds?: TournamentRounds | null;
   poolFormat: PoolFormat | null;
   pichichi: boolean;
   editable: boolean;
@@ -854,3 +860,9 @@ export interface TournamentFormat {
   /** Cruces de esa ronda en el orden del cuadro: un puesto de grupo («1E») o un tercero («3ABCDF»). */
   firstKnockoutRound: string[][];
 }
+
+/**
+ * Rondas eliminatorias que juega un torneo con grupos. Llega con la liga, para nombrarlas sin pedir
+ * la forma entera de su cuadro.
+ */
+export type TournamentRounds = Pick<TournamentFormat, 'firstRound' | 'thirdPlaceMatch'>;

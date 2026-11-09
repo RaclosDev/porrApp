@@ -19,6 +19,8 @@ import app.porrapp.scoring.ScoringRuleSet;
  * @param nbaSeries  playoffs de la NBA: puntos por serie acertada y extra por acertar en cuántos partidos
  * @param sport      deporte de la competición principal ({@code Sport}): en la NFL se acierta el ganador, sin
  *                   empate; en tenis el ganador de cada ronda y los sets
+ * @param tournamentRounds rondas eliminatorias de su torneo con grupos, para enseñar solo sus reglas; null
+ *                   si la competición no lo es
  */
 public record LeagueScoringDTO(
         String poolFormat,
@@ -30,7 +32,8 @@ public record LeagueScoringDTO(
         boolean knockoutDraw,
         boolean fights,
         boolean nbaSeries,
-        String sport) {
+        String sport,
+        TournamentRoundsDTO tournamentRounds) {
 
     @com.fasterxml.jackson.annotation.JsonProperty("matchSignOnly")
     public boolean matchSignOnly() {
@@ -51,6 +54,7 @@ public record LeagueScoringDTO(
                 app.porrapp.service.prediction.DrawnKnockout.applies(edition)
                         && app.porrapp.service.prediction.DrawnKnockout.playsSeries(edition),
                 edition.getCompetition() != null
-                        ? edition.getCompetition().rulesSport().name() : null);
+                        ? edition.getCompetition().rulesSport().name() : null,
+                TournamentRoundsDTO.of(edition.getCompetition()));
     }
 }
