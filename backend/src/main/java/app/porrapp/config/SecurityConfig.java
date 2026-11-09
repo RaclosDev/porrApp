@@ -34,7 +34,6 @@ public class SecurityConfig {
     private static final String[] PUBLIC_READS = {
             "/api/predictions/**",
             "/api/matches/**",
-            "/api/world-cup/**",
             "/api/rules/**",
             "/api/leaderboard", "/api/leaderboard/**",
             "/api/groups/**",

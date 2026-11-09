@@ -36,23 +36,19 @@ class GroupTournamentServiceTest {
     private final Competition laLiga = Competition.builder().id(5L).name("LaLiga").externalId("esp.1").build();
 
     @Test
-    void aRegisteredTournamentIsFoundByIdAndByExternalId() {
+    void aRegisteredTournamentIsFoundById() {
         when(competitionRepository.findById(2L)).thenReturn(Optional.of(worldCup));
-        when(competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(worldCup));
 
         assertThat(service.tournament(2L)).isSameAs(worldCup);
-        assertThat(service.tournament(Competition.WORLD_CUP_EXTERNAL_ID)).containsSame(worldCup);
     }
 
     @Test
     void aLeagueOrAnUnknownCompetitionIsNotATournament() {
         when(competitionRepository.findById(5L)).thenReturn(Optional.of(laLiga));
         when(competitionRepository.findById(9L)).thenReturn(Optional.empty());
-        when(competitionRepository.findByExternalId("esp.1")).thenReturn(Optional.of(laLiga));
 
         assertThatThrownBy(() -> service.tournament(5L)).isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> service.tournament(9L)).isInstanceOf(BusinessException.class);
-        assertThat(service.tournament("esp.1")).isEmpty();
     }
 
     @Test

@@ -31,7 +31,7 @@ class RateLimitingFilterTest {
     @Test
     @DisplayName("Peticiones dentro del límite son procesadas normalmente")
     void allowsRequestsWithinLimit() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/world-cup/standings");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/matches");
         request.setRemoteAddr("192.168.1.10");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -202,7 +202,7 @@ class RateLimitingFilterTest {
         ReflectionTestUtils.setField(rateLimitingFilter, "maxTrackedClients", 50);
 
         for (int i = 0; i < 500; i++) {
-            MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/world-cup/standings");
+            MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/matches");
             req.setRemoteAddr("198.51." + (i / 250) + "." + (i % 250));
             rateLimitingFilter.doFilterInternal(req, new MockHttpServletResponse(), filterChain);
             assertTrue(rateLimitingFilter.trackedClients() <= 50);
