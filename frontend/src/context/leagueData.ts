@@ -179,7 +179,7 @@ function useLeagueState() {
     activeGroupCompetitions:
       (groupInfo?.multiCompetition && groupInfo.competitions) || EMPTY_COMPETITIONS,
     // El pichichi se juega con los goleadores oficiales del Mundial: solo en sus cuadros.
-    activeGroupPichichi: leagueKind === 'worldCup' && Boolean(groupInfo?.pichichi),
+    activeGroupPichichi: leagueKind === 'groupStage' && Boolean(groupInfo?.pichichi),
     activeGroupIsLocked: Boolean(groupInfo?.isLocked),
     activeGroupLockDate: groupInfo?.lockDate || null,
     activeGroupRules: groupInfo?.rules || '',
@@ -254,17 +254,17 @@ export function useOfficialData() {
 
 /**
  * Datos oficiales del torneo con fase de grupos de la liga activa: clasificación de grupos, cuotas
- * por grupo y goleadores. Solo se piden en una liga de esa clase (`worldCup`); en cualquier otra
+ * por grupo y goleadores. Solo se piden en una liga de esa clase (`groupStage`); en cualquier otra
  * quedan vacíos.
  */
 export function useTournamentData() {
   const { leagueKind, activeCompetitionId, activeGroupPichichi: pichichi } = useLeagueState();
-  const tournamentId = leagueKind === 'worldCup' ? activeCompetitionId : null;
-  const worldCup = tournamentId != null;
+  const tournamentId = leagueKind === 'groupStage' ? activeCompetitionId : null;
+  const groupStage = tournamentId != null;
 
   const { data: standings, isLoading: loadingStandings } = useQuery({
     queryKey: queryKeys.tournamentStandings(tournamentId),
-    enabled: worldCup,
+    enabled: groupStage,
     queryFn: async () => {
       const data = await fetchTournamentStandings(tournamentId as number);
       localCopy.write(`cached_tournament_standings_${tournamentId}`, data);
@@ -276,7 +276,7 @@ export function useTournamentData() {
 
   const { data: odds } = useQuery({
     queryKey: queryKeys.tournamentGroupOdds(tournamentId),
-    enabled: worldCup,
+    enabled: groupStage,
     queryFn: async () => {
       const data = await fetchTournamentGroupOdds(tournamentId as number);
       localCopy.write(`cached_tournament_group_odds_${tournamentId}`, data);
@@ -294,7 +294,7 @@ export function useTournamentData() {
   } = useQuery({
     queryKey: queryKeys.tournamentTopScorers(tournamentId),
     queryFn: () => fetchTournamentTopScorers(tournamentId as number),
-    enabled: pichichi && worldCup,
+    enabled: pichichi && groupStage,
     staleTime: 300_000,
     retry: 1,
     placeholderData: keepPreviousData,
@@ -304,10 +304,10 @@ export function useTournamentData() {
     /** Competición del torneo con grupos de la liga activa, o `null` si la liga no es de esa clase. */
     tournamentId,
     /** Puntos de cada selección por grupo: grupo → equipo → estadística. */
-    groupStandings: worldCup && isObject(standings) ? standings : EMPTY_OBJECT,
+    groupStandings: groupStage && isObject(standings) ? standings : EMPTY_OBJECT,
     /** Selecciones de cada grupo con sus cuotas, para ordenar el cuadro antes del torneo. */
-    groupOdds: worldCup && isObject(odds) ? odds : EMPTY_OBJECT,
-    loading: worldCup && loadingStandings && !standings,
+    groupOdds: groupStage && isObject(odds) ? odds : EMPTY_OBJECT,
+    loading: groupStage && loadingStandings && !standings,
     /** La liga juega el pichichi (y se piden los goleadores). */
     pichichi,
     topScorers: pichichi && Array.isArray(topScorers) ? topScorers : EMPTY_ARRAY,

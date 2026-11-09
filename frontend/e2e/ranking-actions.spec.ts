@@ -19,7 +19,7 @@ for (const width of [390, 1440]) {
       localStorage.setItem('activeCompetitionId', '2');
       Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
     });
-    const league = withLeagueKind('worldCup', {
+    const league = withLeagueKind('groupStage', {
       id: 1,
       name: 'Liga de prueba',
       adminUserId: 7,

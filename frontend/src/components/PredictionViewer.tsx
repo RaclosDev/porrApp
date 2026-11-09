@@ -47,7 +47,7 @@ function PredictionViewer(props: PredictionViewerProps) {
   ) : null;
   // Solo las ligas de cuadro tienen visor; las demás no enseñan ninguno.
   const viewers: Record<LeagueKind, ReactNode> = {
-    worldCup: <WorldCupPredictionViewer {...props} />,
+    groupStage: <WorldCupPredictionViewer {...props} />,
     customBracket: ownBracket,
     ownBracket,
     knockoutDraw: ownBracket,
