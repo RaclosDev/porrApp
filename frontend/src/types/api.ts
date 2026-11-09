@@ -139,6 +139,8 @@ export interface TeamStanding {
   pos: number;
   /** 0 en juego, 1-4 puesto asegurado, 5 entre los dos primeros, -1 eliminado. */
   status: number;
+  /** Solo en el tercero de cada grupo: su puesto entre los terceros, con el reglamento del torneo. */
+  third?: number;
 }
 
 /** Clasificación de grupos: grupo -> equipo -> estadísticas. */

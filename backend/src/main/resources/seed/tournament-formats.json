@@ -6,6 +6,7 @@
     "groupMatchesPerTeam": 3,
     "seededGroups": true,
     "thirdPlaceMatch": true,
+    "tiebreak": "FIFA",
     "firstKnockoutRound": [
       ["1E", "3ABCDF"], ["1I", "3CDFGH"],
       ["2A", "2B"], ["1F", "2C"],
@@ -24,6 +25,7 @@
     "groupMatchesPerTeam": 3,
     "seededGroups": true,
     "thirdPlaceMatch": false,
+    "tiebreak": "UEFA",
     "firstKnockoutRound": [
       ["1B", "3ADEF"], ["1A", "2C"],
       ["1F", "3ABC"], ["2D", "2E"],

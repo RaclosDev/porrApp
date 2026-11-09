@@ -22,6 +22,7 @@ export default function OfficialGroupsView() {
   const {
     groupOdds,
     groupStandings: officialPoints,
+    format,
     loading: loadingWorldCup,
     pichichi: activeGroupPichichi,
     topScorers,
@@ -84,7 +85,7 @@ export default function OfficialGroupsView() {
       {/* Paneles superiores: Mejores Terceros, Partidos en Directo, Pichichi */}
       <div className="flex gap-5 justify-center items-stretch flex-wrap mb-7.5 w-full">
         <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
-          <BestThirdsPanel officialPoints={officialPoints} />
+          <BestThirdsPanel officialPoints={officialPoints} qualifying={format.bestThirds} />
         </div>
         <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel

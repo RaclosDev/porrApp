@@ -74,14 +74,15 @@ public class OfficialResultsService {
                         .add(gs.getTeam().getName());
             }
         }
+        List<Match> matches = knockoutBracketService.matchesOf(competition);
         List<String> bestThirds = standings.stream()
                 .filter(gs -> Integer.valueOf(3).equals(gs.getPosition()) && gs.getTeam() != null)
-                .sorted(GroupTiebreaker.THIRD_PLACE_ORDER)
+                .sorted(GroupTiebreaker.thirdPlaceOrder(format.tiebreak(), matches))
                 .limit(format.bestThirds())
                 .map(gs -> gs.getTeam().getName())
                 .collect(Collectors.toList());
 
-        List<Match> knockout = knockoutBracketService.matchesOf(competition).stream()
+        List<Match> knockout = matches.stream()
                 .filter(OfficialResultsService::isKnockoutMatch)
                 .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();

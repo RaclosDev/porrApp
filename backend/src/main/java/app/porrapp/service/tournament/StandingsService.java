@@ -18,9 +18,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Clasificación de la fase de grupos de un torneo: cada fila es de una competición. Los desempates son
- * los del artículo 13 del reglamento del Mundial, en {@link GroupTiebreaker}; qué terceros pasan lo
- * dice el {@link TournamentFormat} del torneo.
+ * Clasificación de la fase de grupos de un torneo: cada fila es de una competición. Los desempates
+ * están en {@link GroupTiebreaker}; qué terceros pasan y con qué reglamento se ordenan lo dice el
+ * {@link TournamentFormat} del torneo.
  */
 @Service
 @RequiredArgsConstructor
@@ -70,7 +70,7 @@ public class StandingsService {
     }
 
     /**
-     * Ordena un grupo con los desempates del artículo 13 del reglamento del Mundial (ver {@link GroupTiebreaker}).
+     * Ordena un grupo con los desempates de {@link GroupTiebreaker}, comunes a la FIFA y a la UEFA.
      * @param standings Equipos desordenados.
      * @param allGroupMatches Partidos del grupo, para los enfrentamientos directos entre empatados.
      * @return Clasificación ordenada.
@@ -80,7 +80,10 @@ public class StandingsService {
         return GroupTiebreaker.sort(standings, allGroupMatches);
     }
 
-    /** Grupos de un torneo: grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). */
+    /**
+     * Grupos de un torneo: grupo → equipo → estadística (pts, diff, gls, mp, fp, pos, status). El tercero
+     * de cada grupo lleva además {@code third}: su puesto entre los terceros según el reglamento del torneo.
+     */
     @org.springframework.cache.annotation.Cacheable(value = "officialPoints", key = "#competition.id", sync = true)
     public Map<String, Map<String, Map<String, Integer>>> getGroupPoints(Competition competition) {
         TournamentFormat format = TournamentFormat.of(competition);
@@ -90,6 +93,7 @@ public class StandingsService {
         boolean hasPositions = !allStandings.isEmpty() && allStandings.stream().anyMatch(gs -> gs.getPosition() != null && gs.getPosition() > 0);
 
         List<GroupStanding> thirdPlaceTeams = new ArrayList<>();
+        List<GroupStanding> placedThirds = new ArrayList<>();
         Map<String, List<GroupStanding>> groupedStandings = allStandings.stream()
                 .filter(gs -> gs.getGroupName() != null && !"-".equals(gs.getGroupName()) && (gs.getTeam() == null || !Team.PLACEHOLDER_NAME.equalsIgnoreCase(gs.getTeam().getName())))
                 .collect(Collectors.groupingBy(gs -> gs.getGroupName().toUpperCase().trim()));
@@ -110,6 +114,7 @@ public class StandingsService {
                 stats.put("pos", gs.getPosition() != null ? gs.getPosition() : 0);
                 stats.put("status", gs.getStatus() != null ? gs.getStatus() : 0);
                 groupMap.put(teamName, stats);
+                if (Integer.valueOf(3).equals(gs.getPosition())) placedThirds.add(gs);
             }
 
             if (!hasPositions && groupList.size() >= 3) {
@@ -117,13 +122,30 @@ public class StandingsService {
             }
         }
 
-        // Sin posiciones ni estados guardados, los terceros eliminados se calculan al vuelo.
         int bestThirds = format.bestThirds();
-        if (format.ranksThirds() && !hasPositions && thirdPlaceTeams.size() >= bestThirds) {
-            thirdPlaceTeams.sort(GroupTiebreaker.THIRD_PLACE_ORDER);
+        boolean eliminatesThirds = format.ranksThirds() && !hasPositions && thirdPlaceTeams.size() >= bestThirds;
+        if (placedThirds.isEmpty() && !eliminatesThirds) return result;
+
+        // La FIFA ordena a los terceros solo con su clasificación; la UEFA necesita además los partidos.
+        List<Match> allMatches = eliminatesThirds || format.tiebreak().winsRankThirds()
+                ? matchRepository.findByCompetitionId(competition.getId())
+                : List.of();
+        Comparator<GroupStanding> thirdPlaceOrder = GroupTiebreaker.thirdPlaceOrder(format.tiebreak(), allMatches);
+
+        placedThirds.sort(thirdPlaceOrder);
+        for (int i = 0; i < placedThirds.size(); i++) {
+            GroupStanding third = placedThirds.get(i);
+            result.get(third.getGroupName().toUpperCase().trim())
+                    .get(third.getTeam().getName().replaceAll("[.#$\\[\\]]", ""))
+                    .put("third", i + 1);
+        }
+
+        // Sin posiciones ni estados guardados, los terceros eliminados se calculan al vuelo.
+        if (eliminatesThirds) {
+            thirdPlaceTeams.sort(thirdPlaceOrder);
 
             int perTeam = format.groupMatchesPerTeam();
-            List<Match> allGroupMatches = matchRepository.findByCompetitionId(competition.getId()).stream()
+            List<Match> allGroupMatches = allMatches.stream()
                     .filter(m -> "group".equalsIgnoreCase(m.getRound()))
                     .toList();
             boolean isGroupStageDone = !allGroupMatches.isEmpty() && allGroupMatches.stream().allMatch(m -> Boolean.TRUE.equals(m.getFinished()));
@@ -302,7 +324,7 @@ public class StandingsService {
     private static void eliminateWorstThirds(TournamentFormat format, List<GroupStanding> thirdPlaceTeams, List<Match> allMatches) {
         int bestThirds = format.bestThirds();
         int perTeam = format.groupMatchesPerTeam();
-        thirdPlaceTeams.sort(GroupTiebreaker.THIRD_PLACE_ORDER);
+        thirdPlaceTeams.sort(GroupTiebreaker.thirdPlaceOrder(format.tiebreak(), allMatches));
 
         List<Match> allGroupMatches = allMatches.stream()
                 .filter(m -> "group".equalsIgnoreCase(m.getRound()))

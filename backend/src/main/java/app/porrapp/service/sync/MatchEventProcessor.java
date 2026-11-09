@@ -7,10 +7,12 @@ import app.porrapp.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
 import app.porrapp.config.Constants;
 import app.porrapp.model.Competition;
+import app.porrapp.model.GroupTiebreak;
 import app.porrapp.model.Match;
 import app.porrapp.model.MatchStatusNormalized;
 import app.porrapp.model.Sport;
 import app.porrapp.model.Team;
+import app.porrapp.model.TournamentFormat;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.TeamRepository;
 import app.porrapp.sports.TennisDataProvider;
@@ -235,7 +237,8 @@ public class MatchEventProcessor {
                         : event.path("roundLabel").isString()
                         ? new MatchMetadata(null, event.path("roundLabel").asText())
                         : parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
-        int[] fairPlay = fight != null ? new int[]{0, 0} : fairPlayPoints(competition, home, away, homeTeam, awayTeam);
+        int[] fairPlay = fight != null ? new int[]{0, 0}
+                : fairPlayPoints(competition, home, away, homeTeam, awayTeam, TournamentFormat.of(batch.competition).tiebreak());
 
         int bestOf = competition.path(LolEsportsDataProvider.BEST_OF_FIELD).asInt(0);
 
@@ -647,10 +650,11 @@ public class MatchEventProcessor {
     }
 
     /**
-     * Puntos de fair play (desempate de grupos) de cada equipo:
-     * amarilla -1, segunda amarilla -2 adicional, roja directa -4.
+     * Puntos de fair play (desempate de grupos) de cada equipo: amarilla -1, segunda amarilla -2 adicional
+     * y roja directa lo que diga el reglamento del torneo (-4 la FIFA, -3 la UEFA).
      */
-    private int[] fairPlayPoints(JsonNode competition, Competitor home, Competitor away, Team homeTeam, Team awayTeam) {
+    private int[] fairPlayPoints(JsonNode competition, Competitor home, Competitor away, Team homeTeam, Team awayTeam,
+                                 GroupTiebreak tiebreak) {
         int[] points = {0, 0};
         JsonNode details = competition.path("details");
         if (!details.isArray()) return points;
@@ -665,7 +669,7 @@ public class MatchEventProcessor {
 
             JsonNode athletes = detail.path("athletesInvolved");
             String playerId = athletes.isArray() && !athletes.isEmpty() ? athletes.get(0).path("id").asText(null) : null;
-            int penalty = red ? -4 : (playerId != null && !booked.add(playerId) ? -2 : -1);
+            int penalty = red ? tiebreak.directRedCard() : (playerId != null && !booked.add(playerId) ? -2 : -1);
 
             String teamId = detail.path("team").path("id").asText(null);
             if (teamId != null && (teamId.equals(homeEspnId) || Objects.equals(homeTeam.getExternalId(), teamId))) {
