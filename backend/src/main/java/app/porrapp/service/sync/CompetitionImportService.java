@@ -10,6 +10,7 @@ import app.porrapp.service.notification.WebSocketService;
 import app.porrapp.exception.BusinessException;
 import app.porrapp.model.Competition;
 import app.porrapp.model.Team;
+import app.porrapp.model.TournamentFormat;
 import app.porrapp.repository.CompetitionRepository;
 import app.porrapp.sports.SportsDataProvider;
 import app.porrapp.sports.SportsDataProviderRegistry;
@@ -167,48 +168,63 @@ public class CompetitionImportService {
         }
         SportsDataProvider provider = sportsDataProviderRegistry.findProviderForCompetition(competition.getExternalId())
                 .orElseThrow(() -> new IllegalArgumentException("Ningún proveedor de datos sigue " + competition.getName()));
-        LocalDate today = LocalDate.now();
         Set<String> seenEventIds = new HashSet<>();
         List<JsonNode> selected = new ArrayList<>();
         long deadline = System.nanoTime() + Duration.ofMinutes(2).toNanos();
         try {
             if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
-            SportsDataProvider.SeasonWindow season = provider.fetchSeasonWindow(slug);
-            Window window = seasonWindow(season, today);
-            Instant windowStart = window.start();
-            Instant windowEnd = window.end();
+            TournamentFormat format = competition.tournamentFormat();
+            // Un torneo con grupos es el de la temporada de su formato, la dé o no el proveedor por vigente.
+            boolean ownSeason = format != null && format.season() != null && !format.season().isBlank();
+            SportsDataProvider.SeasonWindow season = ownSeason ? null : provider.fetchSeasonWindow(slug);
             JsonNode teams = provider.fetchTeams(slug);
             if (teams == null || !teams.isArray() || teams.size() > MAX_IMPORT_TEAMS) {
                 throw new IllegalStateException("Catálogo de equipos ausente o demasiado grande");
             }
-            for (int year = AppTime.day(windowStart).getYear(); year <= AppTime.day(windowEnd).getYear(); year++) {
-                checkImportCancellation();
-                if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
-                if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
-                JsonNode events = provider.fetchScoreboardEvents(slug, String.valueOf(year));
-                if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
-                if (events == null || !events.isArray() || events.size() > MAX_IMPORT_EVENTS) {
-                    throw new IllegalStateException("Calendario ausente o demasiado grande");
-                }
-                for (JsonNode event : events) {
+            if (ownSeason) {
+                // Se pide entero y de una vez, como en la sincronización: también si se jugó hace años.
+                select(provider.fetchScoreboardEvents(slug, format.season()), null, seenEventIds, selected, deadline);
+            } else {
+                Window window = seasonWindow(season, LocalDate.now());
+                for (int year = AppTime.day(window.start()).getYear(); year <= AppTime.day(window.end()).getYear(); year++) {
                     checkImportCancellation();
-                    String eventId = event.path("id").asText(null);
-                    if (eventId == null || eventId.isBlank()) throw new IllegalStateException("Evento sin identificador");
-                    if (!seenEventIds.add(eventId)) continue;
-                    if (seenEventIds.size() > MAX_IMPORT_EVENTS) throw new IllegalStateException("Demasiados eventos en la importación");
-                    Instant date = matchEventProcessor.parseDate(event.path("date").asText(null));
-                    if (date != null && (date.isBefore(windowStart) || date.isAfter(windowEnd))) continue;
-                    selected.add(event);
+                    if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
+                    if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
+                    select(provider.fetchScoreboardEvents(slug, String.valueOf(year)), window, seenEventIds, selected, deadline);
                 }
             }
             checkImportCancellation();
             if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
             return new ImportSnapshot(competition, teams, List.copyOf(selected),
-                    CompetitionSeasonService.Season.of(season));
+                    ownSeason ? tournamentSeason(format) : CompetitionSeasonService.Season.of(season));
         } catch (Exception error) {
             if (error instanceof InterruptedException) Thread.currentThread().interrupt();
             throw new IllegalStateException("No se pudo descargar la importación de " + competition.getName(), error);
         }
+    }
+
+    /** Añade a lo descargado los eventos nuevos de una respuesta del proveedor; con ventana, solo los de dentro. */
+    private void select(JsonNode events, Window window, Set<String> seenEventIds, List<JsonNode> selected, long deadline) {
+        if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
+        if (events == null || !events.isArray() || events.size() > MAX_IMPORT_EVENTS) {
+            throw new IllegalStateException("Calendario ausente o demasiado grande");
+        }
+        for (JsonNode event : events) {
+            checkImportCancellation();
+            String eventId = event.path("id").asText(null);
+            if (eventId == null || eventId.isBlank()) throw new IllegalStateException("Evento sin identificador");
+            if (!seenEventIds.add(eventId)) continue;
+            if (seenEventIds.size() > MAX_IMPORT_EVENTS) throw new IllegalStateException("Demasiados eventos en la importación");
+            Instant date = matchEventProcessor.parseDate(event.path("date").asText(null));
+            if (window != null && date != null && (date.isBefore(window.start()) || date.isAfter(window.end()))) continue;
+            selected.add(event);
+        }
+    }
+
+    /** Temporada de un torneo con grupos: el año de su formato; null si no es un año y no se puede anotar. */
+    static CompetitionSeasonService.Season tournamentSeason(TournamentFormat format) {
+        return format.season().matches("[0-9]{4}")
+                ? CompetitionSeasonService.Season.ofYear(Integer.parseInt(format.season())) : null;
     }
 
     /** Fechas entre las que se importan partidos. */

@@ -27,6 +27,7 @@ class DataInitializerTest {
     @Mock EditionRepository editions;
     @Mock MatchRepository matches;
     @Mock SyncService sync;
+    @Mock CompetitionImportService importService;
     @Mock StandingsService standings;
     @Mock KnockoutBracketService knockout;
     @Mock CompetitionTeamRepository competitionTeams;
@@ -226,5 +227,48 @@ class DataInitializerTest {
         verify(competitionTeams, times(24)).save(links.capture());
         org.junit.jupiter.api.Assertions.assertTrue(links.getAllValues().stream()
                 .anyMatch(link -> link.getTeam() == germany && "A".equals(link.getGroupName())));
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("Sin pedirlo, el arranque no importa ningún torneo ya jugado")
+    void startupDoesNotImportPastTournamentsUnlessTheyAreSeeded() {
+        runTheInitialSync();
+
+        verifyNoInteractions(importService);
+        verify(competitions, never()).findByExternalId("uefa.euro");
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("Un torneo ya jugado sembrado y sin partidos los importa al arrancar, sin liga que lo juegue")
+    void aSeededPastTournamentWithoutMatchesImportsThemAtStartup() {
+        initializer.seedPastTournaments = true;
+        Competition euro = Competition.builder().id(5L).name("Eurocopa 2024").externalId("uefa.euro").build();
+        when(competitions.findByExternalId("uefa.euro")).thenReturn(java.util.Optional.of(euro));
+        when(matches.countByCompetitionId(5L)).thenReturn(0L);
+
+        runTheInitialSync();
+
+        verify(importService).importCompetitionData(5L);
+        verifyNoMoreInteractions(importService);
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("Un torneo ya jugado que ya tiene sus partidos no se vuelve a importar")
+    void aSeededPastTournamentWithItsMatchesIsLeftAlone() {
+        initializer.seedPastTournaments = true;
+        Competition euro = Competition.builder().id(5L).name("Eurocopa 2024").externalId("uefa.euro").build();
+        when(competitions.findByExternalId("uefa.euro")).thenReturn(java.util.Optional.of(euro));
+        when(matches.countByCompetitionId(5L)).thenReturn(51L);
+
+        runTheInitialSync();
+
+        verifyNoInteractions(importService);
+    }
+
+    private void runTheInitialSync() {
+        initializer.startInitialSync();
+        var work = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).execute(work.capture());
+        work.getValue().run();
     }
 }
