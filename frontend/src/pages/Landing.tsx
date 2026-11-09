@@ -1,18 +1,12 @@
 import { Skeleton } from '../components/SkeletonBlock';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import StickerCard from '../components/StickerCard';
 import NetLine from '../components/landing/NetLine';
 import GhostWord from '../components/landing/GhostWord';
 import FixtureSheet from '../components/landing/FixtureSheet';
-import {
-  fanContainer,
-  fanItem,
-  inViewOnce,
-  rise,
-  useLandingMotion,
-} from '../components/landing/motion';
+import Reveal from '../components/landing/Reveal';
+import { revealStyle } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
 import SiteFooter from '../components/landing/SiteFooter';
 import { HOME_FAQ, LANDING_COPY } from '../seo/pages';
@@ -30,18 +24,11 @@ const SCREENSHOT_SIZES = '(min-width: 1024px) 560px, calc(100vw - 80px)';
  * cromos de los primeros de la liga pública destacada y una última llamada a crear la liga.
  */
 export default function Landing() {
-  const { reduced, visible } = useLandingMotion();
   const { leaders, leagueName, participants, champion, nextFixtures, loading, error } =
     useLandingData();
   const leagueLabel = leagueName ?? 'la liga pública';
   const openLogin = openSignupToCreateLeague;
   const leader = leaders[0];
-  const initial = reduced ? 'show' : 'hidden';
-  const inView = {
-    initial,
-    whileInView: visible ? 'show' : undefined,
-    viewport: inViewOnce,
-  } as const;
 
   return (
     <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
@@ -56,12 +43,7 @@ export default function Landing() {
           />
           {/* Sin fundido: es el elemento más grande de la primera pantalla (LCP) y debe pintarse ya. */}
           <p className="text-[#1f2937] text-lg max-w-130 leading-snug">{LANDING_COPY.lede}</p>
-          <motion.div
-            variants={rise}
-            initial={initial}
-            animate={visible ? 'show' : undefined}
-            className="flex flex-col gap-3"
-          >
+          <Reveal onLoad className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-3">
               <button
                 id="btn-hero-login"
@@ -76,12 +58,11 @@ export default function Landing() {
               </Link>
             </div>
             <p className="text-[#4b5563] text-sm">{LANDING_COPY.heroNote}</p>
-          </motion.div>
+          </Reveal>
         </div>
-        <motion.div
-          initial={reduced ? false : { opacity: 0, y: 40, rotate: 0 }}
-          animate={visible ? { opacity: 1, y: 0, rotate: 0 } : undefined}
-          transition={{ duration: 0.7, delay: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        <Reveal
+          onLoad
+          style={revealStyle({ '--from-y': '40px', '--dur': '0.7s', '--base': '400ms' })}
           className="landing-hero-podium min-w-0 w-full justify-self-center"
         >
           {leader ? (
@@ -118,7 +99,7 @@ export default function Landing() {
                 : `Todavía no hay cuadros en ${leagueLabel}.`}
             </p>
           )}
-        </motion.div>
+        </Reveal>
       </section>
 
       <NetLine />
@@ -128,26 +109,26 @@ export default function Landing() {
           text={LANDING_COPY.stepsTitle}
           className="text-[clamp(2rem,5vw,3.6rem)] text-white"
         />
-        <motion.ol
-          variants={fanContainer}
-          {...inView}
+        <Reveal
+          as="ol"
+          group
           className="grid gap-6 md:grid-cols-3 mt-10 list-none p-0"
           aria-label="Pasos para jugar"
         >
           {LANDING_COPY.steps.map((step, index) => (
-            <motion.li
+            <li
               key={step.title}
-              variants={rise}
-              className="landing-poster p-6 flex flex-col gap-3"
+              style={revealStyle({ '--i': index })}
+              className="reveal landing-poster p-6 flex flex-col gap-3"
             >
               <span className="poster-title text-5xl text-[#0b5f74]" aria-hidden="true">
                 {index + 1}
               </span>
               <h3 className="poster-title text-3xl">{step.title}</h3>
               <p className="text-[#1f2937] leading-snug">{step.text}</p>
-            </motion.li>
+            </li>
           ))}
-        </motion.ol>
+        </Reveal>
       </GhostWord>
 
       <NetLine />
@@ -158,9 +139,8 @@ export default function Landing() {
           className="text-[clamp(2rem,5vw,3.6rem)] text-white"
         />
         <div className="grid gap-8 lg:grid-cols-2 mt-10 items-start">
-          <motion.article
-            variants={rise}
-            {...inView}
+          <Reveal
+            as="article"
             className="landing-poster landing-tape rotate-1 p-6 sm:p-8 flex flex-col gap-4"
           >
             <h3 className="poster-title text-4xl">{LANDING_COPY.bracketTitle}</h3>
@@ -182,11 +162,10 @@ export default function Landing() {
             <Link to="/demo" className="landing-link self-start">
               Ver un cuadro de ejemplo
             </Link>
-          </motion.article>
+          </Reveal>
 
-          <motion.article
-            variants={rise}
-            {...inView}
+          <Reveal
+            as="article"
             className="landing-poster landing-tape p-6 sm:p-8 flex flex-col gap-4"
           >
             <h3 className="poster-title text-4xl">{LANDING_COPY.matchdayTitle}</h3>
@@ -207,7 +186,7 @@ export default function Landing() {
               </figcaption>
             </figure>
             <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
-          </motion.article>
+          </Reveal>
         </div>
       </GhostWord>
 
@@ -223,28 +202,29 @@ export default function Landing() {
           <div className="landing-sticker-album-slot mt-10" aria-hidden="true" />
         ) : null}
         {leaders.length > 0 ? (
-          <motion.ul
-            variants={fanContainer}
-            {...inView}
+          <Reveal
+            as="ul"
+            group
             className="landing-sticker-album mt-10 list-none"
             aria-label={`Cromos de ${leagueLabel}`}
           >
             {leaders.map((row, index) => (
-              <motion.li
+              <li
                 key={row.userId ?? row.name}
-                variants={fanItem(FAN_ANGLES[index] ?? 0)}
-                className="lg:-ml-6 lg:first:ml-0"
+                style={revealStyle({
+                  '--from-y': '60px',
+                  '--dur': '0.6s',
+                  '--i': index,
+                  '--rot': `${FAN_ANGLES[index] ?? 0}deg`,
+                })}
+                className="reveal lg:-ml-6 lg:first:ml-0"
               >
                 <StickerCard leader={row} />
-              </motion.li>
+              </li>
             ))}
-          </motion.ul>
+          </Reveal>
         ) : null}
-        <motion.div
-          variants={rise}
-          {...inView}
-          className="mt-10 flex flex-wrap items-center justify-center gap-6"
-        >
+        <Reveal className="mt-10 flex flex-wrap items-center justify-center gap-6">
           {champion ? (
             <span className="ink-stamp ink-stamp-paper">
               {champion.team} campeona en {champion.count} de {champion.total} cuadros
@@ -253,7 +233,7 @@ export default function Landing() {
           <Link to="/demo" className="landing-link-light">
             Ver la clasificación completa
           </Link>
-        </motion.div>
+        </Reveal>
       </GhostWord>
 
       <NetLine />
@@ -272,9 +252,8 @@ export default function Landing() {
         </dl>
       </section>
 
-      <motion.section
-        variants={rise}
-        {...inView}
+      <Reveal
+        as="section"
         aria-labelledby="landing-final-cta"
         className="landing-poster landing-tape mt-6 px-6 py-10 sm:px-10 sm:py-12 flex flex-col items-center gap-5 text-center"
       >
@@ -294,7 +273,7 @@ export default function Landing() {
             Ver una porra de ejemplo
           </Link>
         </div>
-      </motion.section>
+      </Reveal>
 
       <SiteFooter />
     </div>

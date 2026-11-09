@@ -1,0 +1,57 @@
+/*
+ * Movimiento de la portada, solo con CSS. Cada elemento con `.reveal` nace oculto y se coloca
+ * una sola vez cuando él (o el grupo que lo contiene) recibe `data-in`, que pone `useReveal`.
+ * Con «reducir movimiento» todo aparece ya en su sitio.
+ */
+@layer components {
+  .reveal {
+    opacity: 0;
+    transform: translateY(var(--from-y, 28px)) rotate(0deg);
+    transition:
+      opacity var(--dur, 0.55s) cubic-bezier(0.2, 0.8, 0.2, 1)
+        calc(var(--base, 0ms) + var(--i, 0) * var(--step, 80ms)),
+      transform var(--dur, 0.55s) cubic-bezier(0.2, 0.8, 0.2, 1)
+        calc(var(--base, 0ms) + var(--i, 0) * var(--step, 80ms));
+  }
+
+  .reveal[data-in],
+  [data-in] .reveal {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--rot, 0deg));
+  }
+
+  /* Subrayado de rotulador: se dibuja de izquierda a derecha cuando el titular está escrito. */
+  .marker-stroke {
+    stroke-dasharray: 1 2;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)
+      calc(0.1s + var(--words, 0) * 55ms);
+  }
+
+  [data-in] .marker-stroke {
+    stroke-dashoffset: 0;
+  }
+
+  /* Cromo: se inclina siguiendo el puntero, con un reflejo que lo acompaña. */
+  .sticker-tilt {
+    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sticker-tilt .sticker-glare {
+    left: var(--gx, 50%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: translateY(0) rotate(var(--rot, 0deg));
+      transition: none;
+    }
+
+    .marker-stroke {
+      stroke-dashoffset: 0;
+      transition: none;
+    }
+  }
+}

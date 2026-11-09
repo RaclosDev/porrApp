@@ -45,11 +45,19 @@ public class MatchPredictionService {
     private final MatchSelectionService matchSelectionService;
     private final FightRepository fightRepository;
 
+    /** Valor de {@code round} que pide solo la jornada en curso: lo que enseña la portada de la liga. */
+    public static final String CURRENT_ROUND = "current";
+
     /**
      * Devuelve los partidos del calendario junto con los pronósticos del usuario y su estado de bloqueo.
+     *
+     * @param requestedRound jornada que se pide; vacío para la temporada entera y {@link #CURRENT_ROUND}
+     *                       para la que está en curso
      */
     @Transactional(readOnly = true)
-    public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(String email, Long groupId, String round) {
+    public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(String email, Long groupId, String requestedRound) {
+        boolean currentOnly = requestedRound != null && CURRENT_ROUND.equalsIgnoreCase(requestedRound.trim());
+        String round = currentOnly ? null : requestedRound;
         Edition edition = groupId != null
                 ? editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE").orElse(null)
                 : null;
@@ -111,6 +119,9 @@ public class MatchPredictionService {
         // Una liga que elige sus partidos solo ve los suyos.
         if (MatchSelectionService.selects(edition)) {
             matches = matchSelectionService.filter(edition, matches);
+        }
+        if (currentOnly) {
+            matches = currentRound(edition, matches);
         }
 
         Prediction userPrediction = null;
@@ -237,6 +248,31 @@ public class MatchPredictionService {
         }
 
         return result;
+    }
+
+    /**
+     * Los partidos de la jornada en curso de una liga: la primera con algún partido por jugar o, si ya se
+     * jugó todo, la última. Es la misma regla con la que la web elige la jornada de la portada.
+     */
+    static List<Match> currentRound(Edition edition, List<Match> matches) {
+        Map<String, List<Match>> byRound = new LinkedHashMap<>();
+        matches.stream()
+                .sorted(Comparator.comparing(m -> m.getMatchDate() == null ? Instant.EPOCH : m.getMatchDate()))
+                .forEach(m -> byRound.computeIfAbsent(MatchRound.label(edition, m), label -> new ArrayList<>()).add(m));
+        List<Match> last = List.of();
+        for (List<Match> roundMatches : byRound.values()) {
+            if (roundMatches.stream().anyMatch(MatchPredictionService::isStillToPlay)) return roundMatches;
+            last = roundMatches;
+        }
+        return last;
+    }
+
+    /** Partido que aún se jugará: ni terminado ni cancelado, aplazado, abandonado o suspendido. */
+    private static boolean isStillToPlay(Match match) {
+        MatchStatusNormalized status = match.getStatus();
+        return !Boolean.TRUE.equals(match.getFinished())
+                && status != MatchStatusNormalized.CANCELLED && status != MatchStatusNormalized.POSTPONED
+                && status != MatchStatusNormalized.ABANDONED && status != MatchStatusNormalized.SUSPENDED;
     }
 
     /** Situación del usuario en una liga superviviente: vivo o eliminado y equipos ya elegidos. */

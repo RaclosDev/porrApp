@@ -32,7 +32,7 @@ export default function GroupStandingsCard({
 
   return (
     <div
-      className={`group-card paper-panel album-sheet relative cursor-pointer ${selected ? 'z-[100] border border-accent [outline:2px_solid_var(--accent-cyan)]' : 'z-[1] [outline:none]'}`}
+      className={`group-card paper-panel album-sheet relative cursor-pointer ${selected ? 'z-[100] border border-accent [outline:2px_solid_var(--accent-cyan)]' : 'z-[1]'}`}
       role="button"
       tabIndex={0}
       aria-label={`Ver detalles del Grupo ${groupName}`}

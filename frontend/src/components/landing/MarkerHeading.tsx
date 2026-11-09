@@ -1,6 +1,5 @@
 import { Fragment } from 'react';
-import { motion } from 'motion/react';
-import { inViewOnce, useLandingMotion, wordItem, wordsContainer } from './motion';
+import { revealStyle, useReveal } from './motion';
 
 interface MarkerHeadingProps {
   /** Texto normal, en letra de cartel. */
@@ -14,6 +13,16 @@ interface MarkerHeadingProps {
   onLoad?: boolean;
 }
 
+/** Cada palabra sube 0,7 em, una detrás de otra, tras una pequeña espera inicial. */
+const wordStyle = (index: number) =>
+  revealStyle({
+    '--from-y': '0.7em',
+    '--dur': '0.5s',
+    '--step': '55ms',
+    '--base': '50ms',
+    '--i': index,
+  });
+
 /** Titular de cartel que se escribe palabra a palabra, con una parte remarcada a rotulador. */
 export default function MarkerHeading({
   text,
@@ -22,29 +31,19 @@ export default function MarkerHeading({
   className = '',
   onLoad = false,
 }: MarkerHeadingProps) {
-  const { reduced, visible } = useLandingMotion();
+  const ref = useReveal<HTMLDivElement>(onLoad);
   const words = text.split(' ');
-  const trigger = !visible
-    ? {}
-    : onLoad
-      ? { animate: 'show' as const }
-      : { whileInView: 'show' as const };
 
   return (
-    <motion.div
-      variants={wordsContainer}
-      initial={reduced ? 'show' : 'hidden'}
-      viewport={inViewOnce}
-      {...trigger}
-    >
+    <div ref={ref}>
       <Tag className={`poster-title leading-[0.95] ${className}`}>
         {words.map((word, index) => (
           <Fragment key={`${word}-${index}`}>
             {index > 0 ? ' ' : null}
             <span className="inline-block overflow-hidden pb-[0.08em]">
-              <motion.span variants={wordItem} className="inline-block">
+              <span className="reveal inline-block" style={wordStyle(index)}>
                 {word}
-              </motion.span>
+              </span>
             </span>
           </Fragment>
         ))}
@@ -52,34 +51,33 @@ export default function MarkerHeading({
           <>
             {' '}
             <span className="inline-block">
-              <motion.span variants={wordItem} className="marker-ink relative inline-block">
+              <span
+                className="reveal marker-ink relative inline-block"
+                style={wordStyle(words.length)}
+              >
                 {marked}
-                <motion.svg
+                <svg
                   className="absolute left-[-2%] bottom-[-0.1em] w-[104%] h-[0.3em]"
                   viewBox="0 0 100 12"
                   preserveAspectRatio="none"
                   aria-hidden="true"
                 >
-                  <motion.path
+                  <path
                     d="M2 8 C 20 4, 45 10, 60 6 S 90 3, 98 7"
+                    pathLength={1}
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="5"
                     strokeLinecap="round"
-                    initial={reduced ? { pathLength: 1 } : { pathLength: 0 }}
-                    variants={{
-                      show: {
-                        pathLength: 1,
-                        transition: { duration: 0.5, delay: 0.1 + words.length * 0.055 },
-                      },
-                    }}
+                    className="marker-stroke"
+                    style={revealStyle({ '--words': words.length })}
                   />
-                </motion.svg>
-              </motion.span>
+                </svg>
+              </span>
             </span>
           </>
         ) : null}
       </Tag>
-    </motion.div>
+    </div>
   );
 }

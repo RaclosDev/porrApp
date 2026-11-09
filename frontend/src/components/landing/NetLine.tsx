@@ -1,6 +1,6 @@
-import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'motion/react';
+import { useCallback, useRef } from 'react';
 import { useLandingMotion } from './motion';
+import { useScrollProgress } from './useScrollProgress';
 
 /**
  * Red de portería que se va tejiendo con el scroll entre dos secciones. Sustituye al alambre
@@ -8,9 +8,12 @@ import { useLandingMotion } from './motion';
  */
 export default function NetLine() {
   const ref = useRef<HTMLDivElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
   const { reduced } = useLandingMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 95%', 'end 45%'] });
-  const pathLength = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  const draw = useCallback((progress: number) => {
+    pathRef.current?.style.setProperty('stroke-dasharray', `${progress} 1`);
+  }, []);
+  useScrollProgress(ref, draw, { start: 0.95, end: 0.45, enabled: !reduced });
 
   const rows = [0, 14, 28];
   const path = rows
@@ -22,13 +25,15 @@ export default function NetLine() {
   return (
     <div ref={ref} className="landing-net" aria-hidden="true">
       <svg viewBox="0 0 1000 40" preserveAspectRatio="none" className="w-full h-10 block">
-        <motion.path
+        <path
+          ref={pathRef}
           d={path}
+          pathLength={1}
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
-          style={reduced ? undefined : { pathLength }}
+          style={reduced ? undefined : { strokeDasharray: '0 1' }}
         />
       </svg>
     </div>

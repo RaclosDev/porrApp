@@ -1,6 +1,7 @@
 package app.porrapp.repository;
 
 import app.porrapp.model.MatchPrediction;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +12,9 @@ import java.util.List;
 
 /**
  * Repositorio Spring Data JPA para pronósticos de partidos directos (MatchPrediction).
+ * <p>
+ * El partido de un pronóstico es perezoso: las lecturas sin «WithMatch» solo sirven para su id o dentro
+ * de una transacción; las que lo traen, traen también sus equipos.
  */
 @Repository
 public interface MatchPredictionRepository extends JpaRepository<MatchPrediction, Long> {
@@ -31,22 +35,26 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
             + " WHERE mp.prediction.edition.id = :editionId")
     List<MatchPrediction> findWithMatchByEditionId(@Param("editionId") Long editionId);
 
-    /** Los pronósticos de una edición para unos partidos, con su partido y su autor. */
-    @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.match m JOIN FETCH mp.prediction p"
+    /** Los pronósticos de una edición para unos partidos, con su partido (y sus equipos) y su autor. */
+    @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.match m"
+            + " LEFT JOIN FETCH m.homeTeam LEFT JOIN FETCH m.awayTeam JOIN FETCH mp.prediction p"
             + " JOIN FETCH p.user WHERE p.edition.id = :editionId AND m.id IN :matchIds")
     List<MatchPrediction> findWithUserByEditionIdAndMatchIds(@Param("editionId") Long editionId,
                                                              @Param("matchIds") Collection<Long> matchIds);
 
-
+    /** Los pronósticos por partido de una liga, con su partido. */
+    @EntityGraph(attributePaths = "match")
     List<MatchPrediction> findByPredictionEditionLeagueId(Long leagueId);
 
-    /** Los pronósticos por partido de todas las porras de una edición, con su partido. */
-    @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.match WHERE mp.prediction.edition.id = :editionId")
+    /** Los pronósticos por partido de todas las porras de una edición, con su partido y sus equipos. */
+    @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.match m"
+            + " LEFT JOIN FETCH m.homeTeam LEFT JOIN FETCH m.awayTeam WHERE mp.prediction.edition.id = :editionId")
     List<MatchPrediction> findWithMatchByPredictionEditionId(@Param("editionId") Long editionId);
 
-    /** Los pronósticos por partido de una edición con su partido y su usuario (fuera de transacción). */
+    /** Los pronósticos por partido de una edición con su partido, sus equipos y su usuario (fuera de transacción). */
     @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.prediction p JOIN FETCH p.user"
-            + " JOIN FETCH mp.match WHERE p.edition.id = :editionId")
+            + " JOIN FETCH mp.match m LEFT JOIN FETCH m.homeTeam LEFT JOIN FETCH m.awayTeam"
+            + " WHERE p.edition.id = :editionId")
     List<MatchPrediction> findWithMatchAndUserByEditionId(@Param("editionId") Long editionId);
 
     @Query("SELECT mp FROM MatchPrediction mp JOIN FETCH mp.prediction p LEFT JOIN FETCH p.user"

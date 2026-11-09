@@ -16,12 +16,12 @@ public class Match {
     private Long id;
 
     /** Equipo que juega como local (Conectado a la tabla de Equipos). */
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "home_team_id")
     private Team homeTeam;
 
     /** Equipo que juega como visitante (Conectado a la tabla de Equipos). */
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "away_team_id")
     private Team awayTeam;
 
