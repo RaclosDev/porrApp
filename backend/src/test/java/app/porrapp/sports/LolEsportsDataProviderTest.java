@@ -188,6 +188,27 @@ class LolEsportsDataProviderTest {
     }
 
     @Test
+    void theSeasonIsTheYearOfTheLatestEditionInTheSchedule() throws Exception {
+        respondWithFixture();
+
+        SportsDataProvider.SeasonWindow season = provider.fetchSeasonWindow("lol.worlds");
+
+        // Sin inicio de importación: se sigue trayendo todo lo descargado.
+        assertNull(season.start());
+        assertEquals("2026-10-22T08:00:00Z", season.seasonStart());
+        assertEquals("2026-11-15T19:00:00Z", season.end());
+    }
+
+    @Test
+    void anEmptyScheduleHasNoSeason() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn("{\"data\":{\"schedule\":{\"events\":[]}}}".getBytes(StandardCharsets.UTF_8));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertNull(provider.fetchSeasonWindow("lol.worlds"));
+    }
+
+    @Test
     void httpErrorsAreFailuresNotEmptySchedules() throws Exception {
         when(httpResponse.statusCode()).thenReturn(403);
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);

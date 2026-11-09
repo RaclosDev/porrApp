@@ -74,6 +74,33 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     /** Si la competición guarda algún partido posterior a esa fecha. */
     boolean existsByCompetitionIdAndMatchDateAfter(Long competitionId, Instant date);
 
+    /** Partidos de la competición anteriores a esa fecha. */
+    long countByCompetitionIdAndMatchDateBefore(Long competitionId, Instant date);
+
+    /**
+     * De los anteriores a esa fecha, los que aún pueden jugarse: ni terminados, ni cancelados, abandonados
+     * o aplazados (un aplazado que sigue así cuando el proveedor ya ha cambiado de temporada no se va a jugar).
+     */
+    @Query("SELECT COUNT(m) FROM Match m WHERE m.competition.id = :competitionId AND m.matchDate < :date"
+            + " AND (m.finished IS NULL OR m.finished = false) AND (m.status IS NULL OR m.status NOT IN ("
+            + "app.porrapp.model.MatchStatusNormalized.CANCELLED, app.porrapp.model.MatchStatusNormalized.POSTPONED, "
+            + "app.porrapp.model.MatchStatusNormalized.ABANDONED))")
+    long countPendingBefore(@Param("competitionId") Long competitionId, @Param("date") Instant date);
+
+    Optional<Match> findFirstByCompetitionIdAndMatchDateBeforeOrderByMatchDateAsc(Long competitionId, Instant date);
+
+    Optional<Match> findFirstByCompetitionIdAndMatchDateBeforeOrderByMatchDateDesc(Long competitionId, Instant date);
+
+    /** Ids de los partidos de la competición desde esa fecha. */
+    @Query("SELECT m.id FROM Match m WHERE m.competition.id = :competitionId AND m.matchDate >= :date")
+    List<Long> findIdsByCompetitionIdFrom(@Param("competitionId") Long competitionId, @Param("date") Instant date);
+
+    /** Pasa esos partidos a otra fila de competición (la temporada nueva). */
+    @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Match m SET m.competition = :competition WHERE m.id IN :ids")
+    int moveToCompetition(@Param("ids") java.util.Collection<Long> ids,
+                          @Param("competition") app.porrapp.model.Competition competition);
+
     /**
      * Por competición: partidos, partidos sin terminar y partidos de fase de grupos. Sirve para saber al
      * crear una liga si la competición ya acabó y si tiene grupos que pronosticar.

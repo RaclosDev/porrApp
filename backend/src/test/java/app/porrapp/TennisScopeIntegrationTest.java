@@ -197,6 +197,51 @@ class TennisScopeIntegrationTest {
     }
 
     @Test
+    @DisplayName("Una liga de varios torneos no sigue los de otra temporada y conserva los suyos cuando se archivan")
+    void otherSeasonsStayOut() {
+        Competition usOpen = competition("US Open · masculino", "tennis.atp.189");
+        try {
+            season(rolandGarros, "2026");
+            season(wimbledon, "2026");
+            season(usOpen, "2027");
+            Match rgMen = match(rolandGarros, "r16", now.plus(2, ChronoUnit.DAYS));
+            Match wimbledonFinal = match(wimbledon, "final", now.plus(40, ChronoUnit.DAYS));
+            Match nextUsOpen = match(usOpen, "final", now.plus(60, ChronoUnit.DAYS));
+            UserAccount ana = user();
+
+            League league = create(ana, rolandGarros, selection(TennisScope.GRAND_SLAMS, TennisTour.ATP));
+            matchSelectionService.syncTennisScopes();
+
+            assertThat(fixtures(ana, league)).extracting(MatchdayFixturePredictionDTO::getMatchId)
+                    .contains(rgMen.getId(), wimbledonFinal.getId()).doesNotContain(nextUsOpen.getId());
+
+            // Wimbledon cambia de temporada: la liga se queda con el suyo y no coge el del año siguiente.
+            Competition archived = competitions.findById(wimbledon.getId()).orElseThrow();
+            archived.setArchivedAt(Instant.now());
+            competitions.saveAndFlush(archived);
+            Competition nextWimbledon = competitions.save(Competition.builder().name(archived.getName())
+                    .externalId(archived.getExternalId()).formatType("TOURNAMENT").season("2027").build());
+            Match nextFinal = match(nextWimbledon, "final", now.plus(300, ChronoUnit.DAYS));
+            matchSelectionService.syncTennisScopes();
+
+            assertThat(fixtures(ana, league)).extracting(MatchdayFixturePredictionDTO::getMatchId)
+                    .contains(rgMen.getId(), wimbledonFinal.getId())
+                    .doesNotContain(nextUsOpen.getId(), nextFinal.getId());
+        } finally {
+            // Los cuadros del catálogo son de todos los tests: vuelven a quedar sin temporada.
+            for (String externalId : List.of("tennis.atp.172", "tennis.atp.188", "tennis.atp.189")) {
+                competitions.findByExternalId(externalId).ifPresent(row -> season(row, null));
+            }
+        }
+    }
+
+    private void season(Competition competition, String season) {
+        Competition row = competitions.findById(competition.getId()).orElseThrow();
+        row.setSeason(season);
+        competitions.saveAndFlush(row);
+    }
+
+    @Test
     @DisplayName("Una liga de un torneo con los dos cuadros se crea con el femenino, no solo con el masculino")
     void singleTournamentBothDraws() {
         Match rgMen = match(rolandGarros, "r16", now.plus(2, ChronoUnit.DAYS));

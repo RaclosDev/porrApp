@@ -153,8 +153,8 @@ class SyncServiceTest {
     }
 
     @Test
-    @DisplayName("La importación anota la temporada que da el proveedor antes de guardar lo descargado")
-    void importAnnotatesTheProviderSeason() throws Exception {
+    @DisplayName("La importación entra en la temporada que da el proveedor antes de guardar lo descargado")
+    void importEntersTheProviderSeason() throws Exception {
         when(provider.fetchSeasonWindow("esp.1"))
                 .thenReturn(new SportsDataProvider.SeasonWindow("2026-08-14T04:00Z", "2027-06-01T03:59Z"));
         when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
@@ -163,24 +163,53 @@ class SyncServiceTest {
         importService.importCompetitionData(5L);
 
         var order = org.mockito.Mockito.inOrder(seasonService, matchEventProcessor);
-        order.verify(seasonService).annotate(5L, new CompetitionSeasonService.Season("2026/27",
+        order.verify(seasonService).enterSeason(5L, new CompetitionSeasonService.Season("2026/27",
                 Instant.parse("2026-08-14T04:00:00Z"), Instant.parse("2027-06-01T03:59:00Z")));
         order.verify(matchEventProcessor).process(any(), any(), any());
     }
 
     @Test
-    @DisplayName("Si el proveedor no da temporada, la importación sigue y no hay nada que anotar")
-    void importWithoutAProviderSeasonAnnotatesNothing() throws Exception {
+    @DisplayName("Si la competición cambia de temporada, lo descargado se guarda en la fila nueva")
+    void importGoesToTheNewSeasonRow() throws Exception {
+        Competition next = Competition.builder().id(77L).name("LaLiga EA Sports").externalId("esp.1")
+                .formatType("LEAGUE").season("2027/28").build();
+        when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.readTree("[{\"id\": \"liga\"}]"));
+        when(seasonService.enterSeason(5L, null)).thenReturn(next);
+        when(competitionRepository.findById(77L)).thenReturn(Optional.of(next));
+
+        importService.importCompetitionData(5L);
+
+        verify(officialMatchdayService).numberMatchdays(next);
+        verify(scoreInvalidationService).evictLeaderboardsAfterCommit(List.of(77L));
+    }
+
+    @Test
+    @DisplayName("Que falle el cambio de temporada no estropea la importación: sigue en la fila de siempre")
+    void aFailedSeasonChangeDoesNotStopTheImport() throws Exception {
+        when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.readTree("[{\"id\": \"liga\"}]"));
+        when(seasonService.enterSeason(5L, null)).thenThrow(new IllegalStateException("sin base de datos"));
+
+        importService.importCompetitionData(5L);
+
+        verify(matchEventProcessor).process(any(), any(), any());
+        verify(officialMatchdayService).numberMatchdays(laLiga);
+    }
+
+    @Test
+    @DisplayName("Si el proveedor no da temporada, la importación sigue sin ninguna")
+    void importWithoutAProviderSeasonHasNoSeason() throws Exception {
         when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
 
         importService.importCompetitionData(5L);
 
-        verify(seasonService).annotate(5L, null);
+        verify(seasonService).enterSeason(5L, null);
     }
 
     @Test
-    @DisplayName("La temporada de la Fórmula 1 es el año natural, y no poder anotarla no estropea la carga")
+    @DisplayName("La temporada de la Fórmula 1 es el año natural, y no poder entrar en ella no estropea la carga")
     void formulaOneSeasonIsTheCalendarYear() throws Exception {
         Competition formulaOne = Competition.builder().id(30L).name("Fórmula 1")
                 .externalId(Competition.FORMULA_ONE_EXTERNAL_ID).formatType("RACE").build();
@@ -188,12 +217,30 @@ class SyncServiceTest {
         when(formulaOneSyncService.importSeason(formulaOne))
                 .thenReturn(new app.porrapp.service.formulaone.FormulaOneSyncService.SyncResult(0, 0, false));
         int year = java.time.LocalDate.now(app.porrapp.util.AppTime.ZONE).getYear();
-        when(seasonService.annotate(30L, CompetitionSeasonService.Season.ofYear(year)))
+        when(seasonService.enterSeason(30L, CompetitionSeasonService.Season.ofYear(year)))
                 .thenThrow(new IllegalStateException("sin base de datos"));
 
         importService.importCompetitionData(30L);
 
-        verify(seasonService).annotate(30L, CompetitionSeasonService.Season.ofYear(year));
+        verify(formulaOneSyncService).importSeason(formulaOne);
+    }
+
+    @Test
+    @DisplayName("Al cambiar de año, el calendario de la Fórmula 1 se carga en la fila de la temporada nueva")
+    void formulaOneImportsIntoTheNewSeasonRow() throws Exception {
+        Competition formulaOne = Competition.builder().id(30L).name("Fórmula 1")
+                .externalId(Competition.FORMULA_ONE_EXTERNAL_ID).formatType("RACE").season("2026").build();
+        Competition next = Competition.builder().id(31L).name("Fórmula 1")
+                .externalId(Competition.FORMULA_ONE_EXTERNAL_ID).formatType("RACE").season("2027").build();
+        when(competitionRepository.findById(30L)).thenReturn(Optional.of(formulaOne));
+        int year = java.time.LocalDate.now(app.porrapp.util.AppTime.ZONE).getYear();
+        when(seasonService.enterSeason(30L, CompetitionSeasonService.Season.ofYear(year))).thenReturn(next);
+        when(formulaOneSyncService.importSeason(next))
+                .thenReturn(new app.porrapp.service.formulaone.FormulaOneSyncService.SyncResult(0, 0, false));
+
+        importService.importCompetitionData(30L);
+
+        verify(formulaOneSyncService).importSeason(next);
     }
 
     @Test

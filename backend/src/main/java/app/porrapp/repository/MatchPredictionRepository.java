@@ -78,4 +78,9 @@ public interface MatchPredictionRepository extends JpaRepository<MatchPrediction
             + " AND mp.prediction.id IN (SELECT p.id FROM Prediction p WHERE p.edition.id = :editionId)")
     int deleteByEditionIdAndMatchIdIn(@Param("editionId") Long editionId,
                                       @Param("matchIds") Collection<Long> matchIds);
+
+    /** Borra todas las predicciones sobre esos partidos, sean de la liga que sean. */
+    @org.springframework.data.jpa.repository.Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM MatchPrediction mp WHERE mp.match.id IN :matchIds")
+    int deleteByMatchIdIn(@Param("matchIds") Collection<Long> matchIds);
 }
