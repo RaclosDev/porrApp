@@ -166,7 +166,12 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {[competitionLabel(g), poolFormatShortLabel(g.poolFormat)]
+                          {[
+                            competitionLabel(g),
+                            // Terminada, la temporada la distingue de la liga que la repite.
+                            g.seasonEnded ? `${g.season ?? 'Temporada'} terminada` : null,
+                            poolFormatShortLabel(g.poolFormat),
+                          ]
                             .filter(Boolean)
                             .join(' · ')}
                         </span>

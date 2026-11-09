@@ -337,6 +337,16 @@ export interface Group {
   tennisScope?: TennisScope | null;
   /** Tenis de varios torneos: cuadros que sigue. */
   tennisTour?: TennisTour | null;
+  /** Temporada de la competición que juega la liga («2025/26», «2026»). */
+  season?: string | null;
+  /** Esa temporada ya ha terminado: la liga se queda con su clasificación final. */
+  seasonEnded?: boolean;
+  /** Ha terminado, la competición ya tiene temporada nueva y nadie la ha repetido aún. */
+  canRepeat?: boolean;
+  /** Temporada nueva para la que se puede repetir. */
+  nextSeason?: string | null;
+  /** La liga que la repite en la temporada nueva; solo si el usuario también está en ella. */
+  nextLeagueId?: number | null;
 }
 
 type MatchSelectionMode = 'ALL' | 'CUSTOM';

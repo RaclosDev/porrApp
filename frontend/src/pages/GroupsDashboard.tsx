@@ -41,6 +41,7 @@ export default function GroupsDashboard() {
     handleRemoveGroupImage,
     handleDeleteGroup,
     handleEnterGroup,
+    handleRepeatGroup,
     handleLeaveGroup,
     handleCopyCode,
     handleCopyLink,
@@ -217,6 +218,7 @@ export default function GroupsDashboard() {
                 isSelected={isSelected}
                 isCreator={isCreator}
                 handleEnterGroup={handleEnterGroup}
+                handleRepeatGroup={handleRepeatGroup}
                 handleLeaveGroup={handleLeaveGroup}
                 handleCopyCode={handleCopyCode}
                 handleCopyLink={handleCopyLink}

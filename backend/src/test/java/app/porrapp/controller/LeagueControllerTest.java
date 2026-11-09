@@ -62,6 +62,35 @@ class LeagueControllerTest {
     @MockitoBean
     private LeagueSetupService leagueSetupService;
 
+    @MockitoBean
+    private app.porrapp.service.league.LeagueRepeatService leagueRepeatService;
+
+    @Test
+    @DisplayName("Repetir una liga devuelve la de la temporada nueva y avisa a quien mira la terminada")
+    void repeatReturnsTheNewLeague() throws Exception {
+        League repeated = League.builder().id(41L).name("Grupo Amigos").joinCode("NUEVA41").build();
+        Mockito.when(leagueRepeatService.repeat(10L, "admin@test.com")).thenReturn(repeated);
+        Mockito.when(leagueService.toResponse(repeated, true))
+                .thenReturn(LeagueResponseDTO.builder().id(41L).name("Grupo Amigos").season("2026/27").build());
+
+        mockMvc.perform(post("/api/groups/10/repeat").principal(userPrincipal("admin@test.com")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(41))
+                .andExpect(jsonPath("$.season").value("2026/27"));
+        Mockito.verify(webSocketService).notifyLeagueChanged(10L);
+    }
+
+    @Test
+    @DisplayName("Quien no administra la liga no la repite ni avisa a nadie")
+    void repeatByANonAdminIsForbidden() throws Exception {
+        Mockito.when(leagueRepeatService.repeat(10L, "member@test.com"))
+                .thenThrow(app.porrapp.exception.BusinessException.forbidden("No tienes permiso para administrar esta liga."));
+
+        mockMvc.perform(post("/api/groups/10/repeat").principal(userPrincipal("member@test.com")))
+                .andExpect(status().isForbidden());
+        Mockito.verify(webSocketService, Mockito.never()).notifyLeagueChanged(10L);
+    }
+
     private Principal userPrincipal(String email) {
         return () -> email;
     }
