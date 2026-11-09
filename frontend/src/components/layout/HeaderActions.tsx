@@ -2,6 +2,7 @@ import { UserAvatar } from '../Avatar';
 import InstallAppButton from './InstallAppButton';
 import NotificationBell from './NotificationBell';
 import type { NavigateFunction } from 'react-router-dom';
+import type { SettingsSection } from '../ProfileSettingsModal';
 
 interface HeaderActionsProps {
   enterDemoMode: () => void;
@@ -13,7 +14,8 @@ interface HeaderActionsProps {
   onLogout: () => void;
   setShowLoginModal: (show: boolean) => void;
   setShowProfileMenu: (show: boolean) => void;
-  setShowProfileSettings: (show: boolean) => void;
+  /** Abre los ajustes de cuenta en una sección: la cuenta o los avisos. */
+  onOpenSettings: (section: SettingsSection) => void;
   showProfileMenu: boolean;
   /** Campana de avisos: solo con sesión real, no en la demo. */
   showNotificationBell: boolean;
@@ -21,6 +23,12 @@ interface HeaderActionsProps {
   userId: string;
   userName: string;
 }
+
+/** Entradas del menú de cuenta que abren los ajustes, cada una en su sección. */
+const SETTINGS_ENTRIES: { section: SettingsSection; label: string }[] = [
+  { section: 'account', label: 'Ajustes de cuenta' },
+  { section: 'reminders', label: 'Avisos' },
+];
 
 /** Parte derecha de la cabecera: acceso, instalar la app, avisos y menú de perfil. */
 export default function HeaderActions({
@@ -32,7 +40,7 @@ export default function HeaderActions({
   onLogout,
   setShowLoginModal,
   setShowProfileMenu,
-  setShowProfileSettings,
+  onOpenSettings,
   showProfileMenu,
   showNotificationBell,
   userAvatarUrl,
@@ -74,7 +82,7 @@ export default function HeaderActions({
         <>
           <InstallAppButton />
           {showNotificationBell && (
-            <NotificationBell onOpenSettings={() => setShowProfileSettings(true)} />
+            <NotificationBell onOpenSettings={() => onOpenSettings('reminders')} />
           )}
           <button
             id="btn-profile-menu"
@@ -96,16 +104,19 @@ export default function HeaderActions({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  setShowProfileSettings(true);
-                }}
-                className="glass-btn py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] font-bold w-full flex items-center justify-center gap-2"
-              >
-                Ajustes y avisos
-              </button>
+              {SETTINGS_ENTRIES.map(({ section, label }) => (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    onOpenSettings(section);
+                  }}
+                  className="glass-btn py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] font-bold w-full flex items-center justify-center gap-2"
+                >
+                  {label}
+                </button>
+              ))}
 
               <button
                 className="bg-[rgba(185,_28,_28,_0.08)] bg-none border border-[var(--miss)] text-[var(--miss)] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"

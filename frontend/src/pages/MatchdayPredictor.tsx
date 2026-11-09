@@ -17,6 +17,14 @@ import { useRequestedGroup } from '../hooks/useRequestedGroup';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
 import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
+import type { StatusFilter } from '../utils/matchday';
+
+/** Qué decir cuando la pestaña elegida no tiene partidos, en vez de dejar la lista en blanco. */
+const EMPTY_FILTER_TEXT: Record<StatusFilter, string> = {
+  UPCOMING: 'No queda nada por jugar.',
+  PENDING: 'No tienes predicciones pendientes.',
+  FINISHED: 'Todavía no hay nada finalizado.',
+};
 
 /** «Jornadas»: solo las ligas que se predicen partido a partido; el resto tiene su propia porra. */
 function MatchdayPredictor() {
@@ -134,6 +142,10 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
             ? 'El cuadro aún no está publicado: los partidos aparecerán aquí en cuanto ESPN lo publique.'
             : 'No hay partidos programados para esta competición o jornada.'}
         </div>
+      )}
+
+      {!md.isLoading && md.fixtures.length > 0 && md.displayedFixtures.length === 0 && (
+        <p className="m-0 py-6 text-center text-muted">{EMPTY_FILTER_TEXT[md.statusFilter]}</p>
       )}
 
       <div className="flex flex-col gap-3.5">

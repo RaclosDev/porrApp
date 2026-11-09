@@ -11,6 +11,7 @@ import {
   isNbaDraft,
   lockModesFor,
   pichichiApplies,
+  rulesSport,
   scoringEditable,
 } from './leagueDraft';
 import { FieldError, OptionCard, StepSection } from './parts';
@@ -123,7 +124,8 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
     knockoutDraw: isKnockoutDraw(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
     fights: isFightNights(draft, ctx),
     nbaSeries: isNbaDraft(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
-    sport: draft.sport === 'OTHER' ? null : draft.sport,
+    // En una competición propia, las reglas genéricas: no las de las series del LoL o la NFL.
+    sport: rulesSport(draft),
     editable: draft.customScoring,
     maxPoints: SCORING_MAX_POINTS,
     rules: defaults,

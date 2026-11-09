@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, Suspense } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
-import ProfileSettingsModal from './ProfileSettingsModal';
+import ProfileSettingsModal, { type SettingsSection } from './ProfileSettingsModal';
 import { useAppStore } from '../store/useAppStore';
 import MobileBottomNav from './MobileBottomNav';
 import DemoBanner from './layout/DemoBanner';
@@ -58,7 +58,9 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Con qué intención se abrió el diálogo de acceso (crear cuenta o entrar) y adónde ir después.
   const [loginRequest, setLoginRequest] = useState<LoginModalRequest>({});
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showProfileSettings, setShowProfileSettings] = useState(false);
+  // Ajustes de cuenta abiertos y en qué sección: «Avisos» abre directamente la suya.
+  const [profileSettings, setProfileSettings] = useState<SettingsSection | null>(null);
+  const showProfileSettings = profileSettings != null;
   const profileSetupCompleted = useAppStore((state) => state.profileSetupCompleted);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
   const userId = useAppStore((state) => state.userId);
@@ -231,7 +233,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             }}
             setShowLoginModal={setShowLoginModal}
             setShowProfileMenu={setShowProfileMenu}
-            setShowProfileSettings={setShowProfileSettings}
+            onOpenSettings={setProfileSettings}
             showProfileMenu={showProfileMenu}
             showNotificationBell={isUserLoggedIn && !isDemo}
             userAvatarUrl={userAvatarUrl}
@@ -249,7 +251,8 @@ function Layout({ children }: { children: React.ReactNode }) {
         (isUserLoggedIn && !isDemo && !isInviteAuthScreen && profileSetupCompleted === false)) && (
         <ProfileSettingsModal
           onboarding={!showProfileSettings && profileSetupCompleted === false}
-          onClose={() => setShowProfileSettings(false)}
+          section={profileSettings ?? 'account'}
+          onClose={() => setProfileSettings(null)}
         />
       )}
 

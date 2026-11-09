@@ -13,6 +13,7 @@ import {
   formatsForSport,
   formatUnavailableReason,
   formatCopy,
+  rulesSport,
   lockModesFor,
   normalizeDraft,
   readStoredDraft,
@@ -82,6 +83,25 @@ describe('borrador de liga', () => {
     expect(formatCopy('MATCH_DAY', draft, nflCtx).title).toBe('Por semanas');
     expect(formatUnavailableReason('SURVIVOR', draft, nflCtx)).toBeNull();
     expect(formatUnavailableReason('FULL_BRACKET', draft, nflCtx)).not.toBeNull();
+  });
+
+  it('una competición propia se explica con sus reglas, no con las oficiales del deporte', () => {
+    const custom = (sport: LeagueDraft['sport']) => draftWith({ sport, custom: true });
+    // Sin empate (LoL, NFL, baloncesto, UFC): se elige quién gana, sin series, semanas ni Super Bowl.
+    for (const sport of ['LEAGUE_OF_LEGENDS', 'AMERICAN_FOOTBALL', 'BASKETBALL', 'MMA'] as const) {
+      expect(rulesSport(custom(sport))).toBe('BASKETBALL');
+      expect(formatCopy('MATCH_DAY', custom(sport), ctx)).toEqual({
+        title: 'Por jornadas',
+        text: 'Predices quién gana cada partido, jornada a jornada.',
+      });
+      expect(formatCopy('SURVIVOR', custom(sport), ctx).text).not.toMatch(/serie|semana/);
+    }
+    // Con empate (fútbol y «otro deporte»): 1X2.
+    expect(rulesSport(custom('FOOTBALL'))).toBe('FOOTBALL');
+    expect(rulesSport(custom('OTHER'))).toBeNull();
+    expect(formatCopy('MATCH_DAY', custom('OTHER'), ctx).text).toContain('1X2');
+    // Una oficial sigue las de su deporte.
+    expect(rulesSport(draftWith({ competitionId: 4 }))).toBe('LEAGUE_OF_LEGENDS');
   });
 
   it('el LoL se explica con series, sin 1X2 ni empate', () => {

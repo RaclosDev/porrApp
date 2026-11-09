@@ -55,7 +55,7 @@ const FIGHTS: ScoringSection = {
   ],
 };
 
-/** NFL y NBA: se predice quién gana, sin marcador ni empate. */
+/** NBA y competiciones propias sin empate: se predice quién gana, sin marcador. */
 const WINNER_MATCHDAY: ScoringSection = {
   id: 'matches',
   title: 'Cada partido',
@@ -63,7 +63,18 @@ const WINNER_MATCHDAY: ScoringSection = {
     {
       key: 'correctSignPoints',
       label: 'Ganador acertado',
-      hint: 'Aciertas quién gana el partido. En la NFL, si acaba en empate, no suma nadie.',
+      hint: 'Aciertas quién gana el partido.',
+    },
+  ],
+};
+
+/** NFL: se predice quién gana, pero un partido puede acabar en empate tras la prórroga. */
+const NFL_MATCHDAY: ScoringSection = {
+  ...WINNER_MATCHDAY,
+  fields: [
+    {
+      ...WINNER_MATCHDAY.fields[0],
+      hint: 'Aciertas quién gana el partido. Si acaba en empate, no suma nadie.',
     },
   ],
 };
@@ -327,8 +338,9 @@ const NBA_EXACT: ScoringSection = {
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
  * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
- * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi. En la NFL
- * (`winnerOnly`) cada partido puntúa solo el ganador.
+ * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi. Sin empate
+ * (`winnerOnly`: NFL, NBA, competiciones propias) cada partido puntúa solo el ganador, y lo del empate de
+ * la NFL solo se cuenta en la NFL.
  */
 export function scoringSections(
   format: PoolFormat | null,
@@ -341,7 +353,10 @@ export function scoringSections(
 ): ScoringSection[] {
   if (sport === 'TENNIS') return [TENNIS];
   if (format === 'MATCH_DAY' && sport === 'LEAGUE_OF_LEGENDS') return [LOL_MATCHDAY];
-  if (format === 'MATCH_DAY') return [fights ? FIGHTS : winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
+  if (format === 'MATCH_DAY' && fights) return [FIGHTS];
+  if (format === 'MATCH_DAY' && winnerOnly)
+    return [sport === 'AMERICAN_FOOTBALL' ? NFL_MATCHDAY : WINNER_MATCHDAY];
+  if (format === 'MATCH_DAY') return [MATCHDAY];
   if (format === 'SURVIVOR' && sport === 'LEAGUE_OF_LEGENDS') return [SURVIVOR_NO_DRAWS];
   if (format === 'SURVIVOR' && sport === 'AMERICAN_FOOTBALL') return [SURVIVOR_WEEKS];
   if (format === 'SURVIVOR') return [SURVIVOR];
