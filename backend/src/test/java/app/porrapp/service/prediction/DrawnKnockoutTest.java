@@ -167,7 +167,8 @@ class DrawnKnockoutTest {
     // ---------- Cierre
 
     private CustomLockService lockService(Instant now) {
-        CustomLockService service = new CustomLockService(matches, mock(TeamRepository.class), mock(EditionRepository.class));
+        CustomLockService service = new CustomLockService(matches, mock(TeamRepository.class),
+                mock(app.porrapp.repository.CompetitionTeamRepository.class), mock(EditionRepository.class));
         service.setClock(Clock.fixed(now, CustomLockService.ZONE));
         return service;
     }
@@ -227,7 +228,8 @@ class DrawnKnockoutTest {
     // ---------- Validación
 
     private final CustomBracketPredictionValidator validator =
-            new CustomBracketPredictionValidator(mock(TeamRepository.class), matches);
+            new CustomBracketPredictionValidator(mock(TeamRepository.class),
+                    mock(app.porrapp.repository.CompetitionTeamRepository.class), matches);
 
     private static PredictionDataDTO picks(List<List<String>> rounds, String champion) {
         PredictionDataDTO data = new PredictionDataDTO();
@@ -290,7 +292,8 @@ class DrawnKnockoutTest {
                 row("P1", "P4", "P5", null, null, null, null, null),
                 row("S1", null, null, null, null, null, null, null)), null)).build();
 
-        var score = new CustomBracketScoringService(matches, mock(TeamRepository.class)).score(prediction);
+        var score = new CustomBracketScoringService(matches, mock(TeamRepository.class),
+                mock(app.porrapp.repository.CompetitionTeamRepository.class)).score(prediction);
 
         // P1 y P5 pasan (la ida la ganaron P2 y P6): 2 × 25 de dieciseisavos; octavos aún sin jugar.
         assertEquals(50, score.getTotal());

@@ -8,6 +8,7 @@ import app.porrapp.model.League;
 import app.porrapp.model.Match;
 import app.porrapp.model.PoolFormat;
 import app.porrapp.model.Team;
+import app.porrapp.repository.CompetitionTeamRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.TeamRepository;
 import app.porrapp.util.AppTime;
@@ -26,12 +27,19 @@ import static org.mockito.Mockito.when;
 class CustomBracketPredictionValidatorTest {
     private final TeamRepository teams = mock(TeamRepository.class);
     private final MatchRepository matches = mock(MatchRepository.class);
-    private final CustomBracketPredictionValidator validator = new CustomBracketPredictionValidator(teams, matches);
+    private final CompetitionTeamRepository competitionTeams = mock(CompetitionTeamRepository.class);
+    private final CustomBracketPredictionValidator validator =
+            new CustomBracketPredictionValidator(teams, competitionTeams, matches);
+    private final Map<Long, String> groups = new java.util.HashMap<>();
     private final Competition competition = Competition.builder().id(9L)
             .ownerLeague(League.builder().id(7L).build()).build();
 
+    /** El grupo es de la participación del equipo en la competición, no del equipo. */
     private Team team(String name, String group) {
-        return Team.builder().name(name).groupName(group).competition(competition).build();
+        Team team = Team.builder().id((long) name.hashCode()).name(name).competition(competition).build();
+        if (group != null) groups.put(team.getId(), group);
+        when(competitionTeams.groupByTeamId(9L)).thenReturn(groups);
+        return team;
     }
 
     private Match fixture(long id, Team home, Team away) {

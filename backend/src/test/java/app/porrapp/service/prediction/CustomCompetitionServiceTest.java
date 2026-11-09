@@ -37,6 +37,7 @@ import static org.mockito.Mockito.*;
 class CustomCompetitionServiceTest {
     @Mock EditionRepository editions;
     @Mock TeamRepository teams;
+    @Mock app.porrapp.repository.CompetitionTeamRepository competitionTeams;
     @Mock MatchRepository matches;
     @Mock ScoreInvalidationService scores;
     @Mock PredictionRepository predictions;
@@ -99,6 +100,56 @@ class CustomCompetitionServiceTest {
 
         verify(matches).save(argThat(match -> "bracket-1".equals(match.getRound())
                 && match.getAwayTeam() == null));
+    }
+
+    @Test
+    void aTeamsGroupIsSavedOnItsParticipationInTheCompetition() {
+        lenient().when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(
+                Edition.builder().league(competition.getOwnerLeague()).competition(competition)
+                        .poolFormat(app.porrapp.model.PoolFormat.FULL_BRACKET).build()));
+        when(teams.save(any(Team.class))).thenAnswer(invocation -> {
+            Team saved = invocation.getArgument(0);
+            saved.setId(31L);
+            return saved;
+        });
+
+        var added = service.addTeam(leagueId, "admin@example.com", " Azules ", " Norte ", null);
+
+        assertEquals("Azules", added.team().getName());
+        assertEquals("Norte", added.groupName());
+        verify(competitionTeams).save(argThat(participation -> participation.getCompetition() == competition
+                && participation.getTeam() == added.team() && "Norte".equals(participation.getGroupName())));
+    }
+
+    @Test
+    void aTeamWithoutGroupStageStillJoinsItsCompetition() {
+        when(teams.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var added = service.addTeam(leagueId, "admin@example.com", "Azules", null, null);
+
+        assertNull(added.groupName());
+        verify(competitionTeams).save(argThat(participation -> participation.getTeam() == added.team()
+                && participation.getGroupName() == null));
+    }
+
+    @Test
+    void aGroupMatchNeedsBothTeamsInTheSameGroupOfTheCompetition() {
+        lenient().when(editions.findByLeagueIdAndStatus(leagueId, "ACTIVE")).thenReturn(Optional.of(
+                Edition.builder().league(competition.getOwnerLeague()).competition(competition)
+                        .poolFormat(app.porrapp.model.PoolFormat.FULL_BRACKET).build()));
+        for (long id = 1; id <= 3; id++) {
+            when(teams.findById(id)).thenReturn(Optional.of(
+                    Team.builder().id(id).name("Equipo " + id).competition(competition).build()));
+        }
+        when(competitionTeams.groupByTeamId(9L)).thenReturn(java.util.Map.of(1L, "Norte", 2L, "Norte", 3L, "Sur"));
+        when(matches.save(any(Match.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        LocalDateTime date = LocalDateTime.now().plusDays(1);
+
+        service.addMatch(leagueId, "admin@example.com", new CustomMatchRequest(1L, 2L, date, "group"));
+
+        verify(matches).save(argThat(match -> "group".equals(match.getRound()) && "Norte".equals(match.getGroupName())));
+        assertThrows(BusinessException.class, () -> service.addMatch(leagueId, "admin@example.com",
+                new CustomMatchRequest(1L, 3L, date, "group")));
     }
 
     @Test
@@ -253,11 +304,11 @@ class CustomCompetitionServiceTest {
         Team selected = Team.builder().id(1L).name("T1").competition(competition).build();
         when(teams.findById(1L)).thenReturn(Optional.of(selected));
 
-        Team updated = service.setTeamLogo(leagueId, 1L, "admin@example.com", "  https://cdn.example.com/t1.png ");
+        Team updated = service.setTeamLogo(leagueId, 1L, "admin@example.com", "  https://cdn.example.com/t1.png ").team();
 
         assertEquals("https://cdn.example.com/t1.png", updated.getLogoUrl());
         verifyNoInteractions(predictions);
-        assertNull(service.setTeamLogo(leagueId, 1L, "admin@example.com", " ").getLogoUrl());
+        assertNull(service.setTeamLogo(leagueId, 1L, "admin@example.com", " ").team().getLogoUrl());
     }
 
     @Test

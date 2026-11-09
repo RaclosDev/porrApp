@@ -191,8 +191,8 @@ class StandingsServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void recalculationInvalidatesBracketScoresOnlyWhenTheStandingsChange() {
-        Team spain = Team.builder().id(1L).name("España").groupName("H").build();
-        Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
+        Team spain = Team.builder().id(1L).name("España").build();
+        Team uruguay = Team.builder().id(2L).name("Uruguay").build();
         Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
                 .homeScore(2).awayScore(0).finished(true).matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 15, 21, 0))).build();
         when(competitionTeamRepository.findGroupTeams(WORLD_CUP_ID)).thenReturn(List.of(drawn(spain), drawn(uruguay)));
@@ -220,8 +220,8 @@ class StandingsServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void recalculatesWithTheWorldCupMatchesItIsGivenWithoutReadingThemAgain() {
-        Team spain = Team.builder().id(1L).name("España").groupName("H").build();
-        Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
+        Team spain = Team.builder().id(1L).name("España").build();
+        Team uruguay = Team.builder().id(2L).name("Uruguay").build();
         Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
                 .homeScore(0).awayScore(1).finished(true).matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 15, 21, 0))).build();
         when(competitionTeamRepository.findGroupTeams(WORLD_CUP_ID)).thenReturn(List.of(drawn(spain), drawn(uruguay)));
@@ -251,10 +251,10 @@ class StandingsServiceTest {
     @SuppressWarnings("unchecked")
     void aTournamentWithoutSeededGroupsTakesThemFromItsOwnGroupMatches() {
         Competition cup = Competition.builder().id(7L).name("Copa Libertadores").externalId("conmebol.libertadores").build();
-        Team flamengo = Team.builder().id(1L).name("Flamengo").groupName("-").build();
-        Team penarol = Team.builder().id(2L).name("Peñarol").groupName("-").build();
-        Team boca = Team.builder().id(3L).name("Boca Juniors").groupName("-").build();
-        Team colo = Team.builder().id(4L).name("Colo-Colo").groupName("-").build();
+        Team flamengo = Team.builder().id(1L).name("Flamengo").build();
+        Team penarol = Team.builder().id(2L).name("Peñarol").build();
+        Team boca = Team.builder().id(3L).name("Boca Juniors").build();
+        Team colo = Team.builder().id(4L).name("Colo-Colo").build();
         Match groupA = Match.builder().id(10L).round("group").groupName("A").homeTeam(flamengo).awayTeam(penarol)
                 .homeScore(1).awayScore(1).finished(true).build();
         Match groupB = Match.builder().id(11L).round("group").groupName("B").homeTeam(boca).awayTeam(colo)

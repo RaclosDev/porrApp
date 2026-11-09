@@ -40,8 +40,9 @@ public class CustomCompetitionController {
     }
 
     public record TeamItem(Long id, String name, String groupName, String logoUrl) {
-        static TeamItem of(Team team) {
-            return new TeamItem(team.getId(), team.getName(), team.getGroupName(), team.getLogoUrl());
+        static TeamItem of(CustomCompetitionService.GroupedTeam grouped) {
+            Team team = grouped.team();
+            return new TeamItem(team.getId(), team.getName(), grouped.groupName(), team.getLogoUrl());
         }
     }
 

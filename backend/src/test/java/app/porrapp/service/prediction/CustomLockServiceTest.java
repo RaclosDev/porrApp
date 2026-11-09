@@ -10,6 +10,7 @@ import app.porrapp.model.MatchStatusNormalized;
 import app.porrapp.model.PoolFormat;
 import app.porrapp.model.PredictionLockMode;
 import app.porrapp.model.Team;
+import app.porrapp.repository.CompetitionTeamRepository;
 import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.TeamRepository;
@@ -35,7 +36,8 @@ class CustomLockServiceTest {
     private final MatchRepository matches = mock(MatchRepository.class);
     private final TeamRepository teams = mock(TeamRepository.class);
     private final EditionRepository editions = mock(EditionRepository.class);
-    private final CustomLockService service = new CustomLockService(matches, teams, editions);
+    private final CompetitionTeamRepository competitionTeams = mock(CompetitionTeamRepository.class);
+    private final CustomLockService service = new CustomLockService(matches, teams, competitionTeams, editions);
     private final Competition competition = Competition.builder().name("Copa").ownerLeague(new League()).build();
     private final List<Match> fixtures = new ArrayList<>();
     private long nextId = 1;
@@ -121,8 +123,9 @@ class CustomLockServiceTest {
     @Test
     void aGroupWithoutFixturesRemainsOpenAfterTheBracketCloses() {
         when(teams.findByCompetitionIdOrderByNameAsc(9L)).thenReturn(List.of(
-                Team.builder().name("A").groupName("A").build(),
-                Team.builder().name("B").groupName("A").build()));
+                Team.builder().id(1L).name("A").build(),
+                Team.builder().id(2L).name("B").build()));
+        when(competitionTeams.groupByTeamId(9L)).thenReturn(Map.of(1L, "A", 2L, "A"));
         match("bracket-1", null, "A", "B", NOW.minus(1, ChronoUnit.DAYS));
 
         var state = service.state(edition(PredictionLockMode.PER_MATCH, 0));

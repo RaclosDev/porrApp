@@ -7,12 +7,14 @@ import app.porrapp.dto.MatchResponseDTO;
 import app.porrapp.dto.LeagueStandingDTO;
 import app.porrapp.exception.BusinessException;
 import app.porrapp.model.Competition;
+import app.porrapp.model.CompetitionTeam;
 import app.porrapp.model.Edition;
 import app.porrapp.model.Match;
 import app.porrapp.model.MatchStatusNormalized;
 import app.porrapp.model.Membership;
 import app.porrapp.model.PredictionLockMode;
 import app.porrapp.model.Team;
+import app.porrapp.repository.CompetitionTeamRepository;
 import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.MembershipRepository;
@@ -28,12 +30,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class CustomCompetitionService {
     private final EditionRepository editionRepository;
     private final TeamRepository teamRepository;
+    private final CompetitionTeamRepository competitionTeamRepository;
     private final MatchRepository matchRepository;
     private final ScoreInvalidationService scoreInvalidationService;
     private final MembershipRepository membershipRepository;
@@ -171,10 +175,16 @@ public class CustomCompetitionService {
                 .ifPresent(edition -> edition.setLockDate(lockService.firstMatchLock(edition)));
     }
 
+    /** Equipo de una competición propia con el grupo de su participación, si juega fase de grupos. */
+    public record GroupedTeam(Team team, String groupName) {
+    }
+
     @Transactional(readOnly = true)
-    public List<Team> teams(Long leagueId, String email) {
+    public List<GroupedTeam> teams(Long leagueId, String email) {
         Competition competition = memberCompetition(leagueId, email);
-        return teamRepository.findByCompetitionIdOrderByNameAsc(competition.getId());
+        Map<Long, String> groups = competitionTeamRepository.groupByTeamId(competition.getId());
+        return teamRepository.findByCompetitionIdOrderByNameAsc(competition.getId()).stream()
+                .map(team -> new GroupedTeam(team, groups.get(team.getId()))).toList();
     }
 
     @Transactional(readOnly = true)
@@ -220,11 +230,12 @@ public class CustomCompetitionService {
 
     @Transactional
     public Team addTeam(Long leagueId, String email, String rawName, String rawGroupName) {
-        return addTeam(leagueId, email, rawName, rawGroupName, null);
+        return addTeam(leagueId, email, rawName, rawGroupName, null).team();
     }
 
+    /** El grupo se guarda en la participación del equipo en la competición, no en el equipo. */
     @Transactional
-    public Team addTeam(Long leagueId, String email, String rawName, String rawGroupName, String rawLogoUrl) {
+    public GroupedTeam addTeam(Long leagueId, String email, String rawName, String rawGroupName, String rawLogoUrl) {
         Competition competition = ownedCompetition(leagueId, email);
         String logoUrl = logoUrl(rawLogoUrl);
         String name = rawName.trim();
@@ -245,18 +256,21 @@ public class CustomCompetitionService {
         if (teamRepository.existsByCompetitionIdAndNameIgnoreCase(competition.getId(), name)) {
             throw BusinessException.conflict("Ya existe un equipo con ese nombre");
         }
-        return teamRepository.save(Team.builder().name(name).competition(competition)
-                .groupName(groupName == null || groupName.isBlank() ? null : groupName)
-                .logoUrl(logoUrl).build());
+        Team team = teamRepository.save(Team.builder().name(name).competition(competition).logoUrl(logoUrl).build());
+        String group = groupName == null || groupName.isBlank() ? null : groupName;
+        competitionTeamRepository.save(CompetitionTeam.builder().competition(competition).team(team)
+                .groupName(group).build());
+        return new GroupedTeam(team, group);
     }
 
     /** El escudo es solo estético: se puede cambiar aunque ya haya pronósticos. */
     @Transactional
     @CacheEvict(value = {"matches", "matchRadar"}, allEntries = true)
-    public Team setTeamLogo(Long leagueId, Long teamId, String email, String rawLogoUrl) {
-        Team selected = team(ownedCompetition(leagueId, email), teamId);
+    public GroupedTeam setTeamLogo(Long leagueId, Long teamId, String email, String rawLogoUrl) {
+        Competition competition = ownedCompetition(leagueId, email);
+        Team selected = team(competition, teamId);
         selected.setLogoUrl(logoUrl(rawLogoUrl));
-        return selected;
+        return new GroupedTeam(selected, competitionTeamRepository.groupByTeamId(competition.getId()).get(teamId));
     }
 
     /** Solo direcciones https absolutas; vacío quita el escudo. */
@@ -305,10 +319,15 @@ public class CustomCompetitionService {
             if (bracket || away == null) throw BusinessException.badRequest("Esta liga se juega por jornadas");
         } else if (!bracket && !"group".equals(round)) {
             throw BusinessException.badRequest("Ronda no válida");
-        } else if ("group".equals(round) && (edition.getPoolFormat() != app.porrapp.model.PoolFormat.FULL_BRACKET
-                || away == null || home.getGroupName() == null
-                || !home.getGroupName().equals(away.getGroupName()))) {
-            throw BusinessException.badRequest("El partido de grupos requiere dos equipos del mismo grupo");
+        }
+        String homeGroup = null;
+        if (!bracket && edition.getPoolFormat() != app.porrapp.model.PoolFormat.MATCH_DAY) {
+            Map<Long, String> groups = competitionTeamRepository.groupByTeamId(competition.getId());
+            homeGroup = groups.get(home.getId());
+            if (edition.getPoolFormat() != app.porrapp.model.PoolFormat.FULL_BRACKET || away == null
+                    || homeGroup == null || !homeGroup.equals(groups.get(away.getId()))) {
+                throw BusinessException.badRequest("El partido de grupos requiere dos equipos del mismo grupo");
+            }
         }
         List<Match> configuredMatches = bracket ? matchRepository.findByCompetitionId(competition.getId()) : List.of();
         boolean repeated = configuredMatches.stream()
@@ -348,8 +367,7 @@ public class CustomCompetitionService {
         Match match = matchRepository.save(Match.builder()
                 .competition(competition).homeTeam(home).awayTeam(away)
                 .matchDate(AppTime.fromLocal(request.matchDate())).round(round)
-                .groupName("group".equals(round) && edition.getPoolFormat() != app.porrapp.model.PoolFormat.MATCH_DAY
-                        ? home.getGroupName() : null).build());
+                .groupName(homeGroup).build());
         refreshFirstMatchLock(leagueId);
         scoreInvalidationService.invalidateCompetition(competition.getId());
         return MatchResponseDTO.fromEntity(match);

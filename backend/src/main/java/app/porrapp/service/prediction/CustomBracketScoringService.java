@@ -5,6 +5,7 @@ import app.porrapp.dto.PredictionDataDTO;
 import app.porrapp.model.Match;
 import app.porrapp.model.Prediction;
 import app.porrapp.model.Team;
+import app.porrapp.repository.CompetitionTeamRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.TeamRepository;
 import app.porrapp.scoring.ScoringRuleSet;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class CustomBracketScoringService {
     private final MatchRepository matches;
     private final TeamRepository teams;
+    private final CompetitionTeamRepository competitionTeams;
 
     public ParticipantScoreDTO score(Prediction prediction) {
         ParticipantScoreDTO score = ParticipantScoreDTO.builder()
@@ -131,9 +133,10 @@ public class CustomBracketScoringService {
     private int scoreGroups(PredictionDataDTO data, List<Match> all, Long competitionId,
                             ScoringRuleSet rules, ParticipantScoreDTO score) {
         if (data.getGroups() == null || data.getGroups().isEmpty()) return 0;
+        Map<Long, String> groupOf = competitionTeams.groupByTeamId(competitionId);
         Map<String, List<Team>> byGroup = teams.findByCompetitionIdOrderByNameAsc(competitionId).stream()
-                .filter(team -> team.getGroupName() != null)
-                .collect(Collectors.groupingBy(Team::getGroupName));
+                .filter(team -> groupOf.get(team.getId()) != null)
+                .collect(Collectors.groupingBy(team -> groupOf.get(team.getId())));
         int points = 0;
         for (var group : byGroup.entrySet()) {
             List<Match> fixtures = all.stream().filter(match -> "group".equals(match.getRound())

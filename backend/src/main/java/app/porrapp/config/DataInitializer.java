@@ -149,7 +149,6 @@ public class DataInitializer implements CommandLineRunner {
                             .name(seed.name())
                             .nameEn(seed.nameEn())
                             .externalId(seed.externalId())
-                            .groupName(seed.group())
                             .winOdds(seed.winOdds())
                             .qualifyOdds(seed.qualifyOdds())
                             .outrightOdds(seed.outrightOdds())

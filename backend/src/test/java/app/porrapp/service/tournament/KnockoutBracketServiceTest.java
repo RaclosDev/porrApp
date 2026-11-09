@@ -227,8 +227,8 @@ class KnockoutBracketServiceTest {
     @Test
     @DisplayName("Las eliminatorias de otras competiciones no entran en el cuadro del Mundial")
     void ignoresKnockoutMatchesOfOtherCompetitions() {
-        Team betis = Team.builder().id(20L).name("Real Betis").groupName("-").build();
-        Team osasuna = Team.builder().id(21L).name("Osasuna").groupName("-").build();
+        Team betis = Team.builder().id(20L).name("Real Betis").build();
+        Team osasuna = Team.builder().id(21L).name("Osasuna").build();
         Match cupFinal = knockout("final", betis, osasuna, 2, 0, 1);
         cupFinal.setWinnerTeam(betis);
         Match semi1 = knockout("sf", spain, france, 2, 1, 14);

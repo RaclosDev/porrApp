@@ -190,7 +190,7 @@ public class MatchEventProcessor {
             Team team = teamRepository.findByName(localName)
                     .or(() -> id != null ? teamRepository.findByExternalId(id) : Optional.empty())
                     .or(() -> teamRepository.findByName(displayName))
-                    .orElseGet(() -> Team.builder().name(localName).groupName("-").build());
+                    .orElseGet(() -> Team.builder().name(localName).build());
             team.setNameEn(displayName);
             if (id != null) team.setExternalId(id);
             if (logo != null && !logo.isBlank()) team.setLogoUrl(logo);
@@ -295,7 +295,7 @@ public class MatchEventProcessor {
             // Un tenista que no estaba en el cuadro importado (previa, lucky loser) o de un cuadro aún sin
             // importar: el partido ya trae su nombre y su bandera.
             team = teamRepository.save(Team.builder().name(competitor.nameEn()).nameEn(competitor.nameEn())
-                    .externalId(competitor.espnId()).groupName("-")
+                    .externalId(competitor.espnId())
                     .logoUrl(competitor.node().path("team").path("logo").asText(null)).build());
             cache.put(competitor.nameEn(), team);
             cache.put(competitor.espnId(), team);
@@ -348,7 +348,6 @@ public class MatchEventProcessor {
                     .nameEn(competitor.nameEn())
                     .externalId(competitor.espnId())
                     .logoUrl(logo)
-                    .groupName("-")
                     .build());
         });
         cache.put(competitor.espnId(), team);
@@ -362,7 +361,6 @@ public class MatchEventProcessor {
                 .orElseGet(() -> teamRepository.save(Team.builder()
                         .name(Team.PLACEHOLDER_NAME)
                         .nameEn(Team.PLACEHOLDER_NAME_EN)
-                        .groupName("-")
                         .winOdds(1.0)
                         .qualifyOdds(1.0)
                         .outrightOdds(1.0)

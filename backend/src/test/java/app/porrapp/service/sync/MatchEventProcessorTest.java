@@ -58,8 +58,8 @@ class MatchEventProcessorTest {
 
     @BeforeEach
     void setUp() {
-        spain = Team.builder().id(1L).name("España").nameEn("Spain").externalId("164").groupName("H").build();
-        uruguay = Team.builder().id(2L).name("Uruguay").nameEn("Uruguay").externalId("212").groupName("H").build();
+        spain = Team.builder().id(1L).name("España").nameEn("Spain").externalId("164").build();
+        uruguay = Team.builder().id(2L).name("Uruguay").nameEn("Uruguay").externalId("212").build();
         cache = new HashMap<>(Map.of("España", spain, "Spain", spain, "164", spain,
                 "Uruguay", uruguay, "212", uruguay));
     }

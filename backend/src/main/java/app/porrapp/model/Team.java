@@ -3,7 +3,10 @@ package app.porrapp.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-/** Equipo de una competición: selección o club. */
+/**
+ * Equipo: selección, club o deportista. El grupo en el que juega un torneo no es suyo, sino de su
+ * participación en ese torneo ({@link CompetitionTeam}).
+ */
 @Entity
 @Table(name = "teams")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -42,10 +45,6 @@ public class Team {
     /** URL del escudo oficial en alta resolución (proporcionado por ESPN). */
     @Column(name = "logo_url", length = 500)
     private String logoUrl;
-
-    /** Letra del grupo en el que juegan si aplica ("A" hasta la "L"), o "-" en ligas regulares. */
-    @Column(name = "group_name", length = 50)
-    private String groupName;
 
     /** Probabilidad de ganar el partido (cuota para lógica del simulador). */
     private Double winOdds;
