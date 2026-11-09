@@ -3,6 +3,7 @@ package app.porrapp.controller;
 import app.porrapp.dto.PredictionDataDTO;
 import app.porrapp.dto.TeamOddsDTO;
 import app.porrapp.dto.TopScorerDTO;
+import app.porrapp.dto.TournamentFormatDTO;
 import app.porrapp.service.tournament.GroupTournamentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,12 @@ import java.util.Map;
 public class TournamentController {
 
     private final GroupTournamentService tournaments;
+
+    /** Forma del torneo: sus grupos, cuántos terceros pasan y los cruces de la primera ronda. */
+    @GetMapping("/format")
+    public TournamentFormatDTO getFormat(@PathVariable Long competitionId) {
+        return TournamentFormatDTO.of(tournaments.tournament(competitionId).tournamentFormat());
+    }
 
     /** Puntos de cada equipo por grupo: grupo -> equipo -> estadística (pts, diff, gls, mp...). */
     @GetMapping("/standings")

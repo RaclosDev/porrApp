@@ -40,6 +40,8 @@ public class LeagueResponseDTO {
     private String formatType;
     /** Eliminatorias que se sortean ronda a ronda (Champions, Copa del Rey…): se pronostica ronda a ronda. */
     private boolean knockoutDraw;
+    /** Torneo con fase de grupos que se predice entero antes de empezar (grupos, terceros y cuadro). */
+    private boolean groupTournament;
     /** Formato de porra / modalidad (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY). */
     private String poolFormat;
     /** Si esta edición cuenta con un premio/ranking al pichichi. */
@@ -138,6 +140,7 @@ public class LeagueResponseDTO {
                 .competitionExternalId(competition != null ? competition.getExternalId() : null)
                 .competitionName(competition != null ? competition.getName() : null)
                 .formatType(playedFormatType(competition, edition))
+                .groupTournament(competition != null && competition.isGroupTournament())
                 .knockoutDraw(competition != null && competition.drawsKnockoutRounds()
                         && !app.porrapp.model.PoolFormat.isMatchBased(edition.getPoolFormat()))
                 .poolFormat(edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null)

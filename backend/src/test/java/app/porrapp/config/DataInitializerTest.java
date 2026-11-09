@@ -185,4 +185,46 @@ class DataInitializerTest {
         verifyNoInteractions(teams);
         verify(competitionTeams, never()).save(any());
     }
+
+    @Test
+    void pastTournamentsAreOnlySeededWhereAskedFor() {
+        initializer.run();
+        var saved = org.mockito.ArgumentCaptor.forClass(Competition.class);
+        verify(competitions, atLeastOnce()).save(saved.capture());
+        org.junit.jupiter.api.Assertions.assertTrue(saved.getAllValues().stream()
+                .noneMatch(competition -> "uefa.euro".equals(competition.getExternalId())));
+
+        clearInvocations(competitions);
+        initializer.seedPastTournaments = true;
+        initializer.run();
+
+        verify(competitions, atLeastOnce()).save(saved.capture());
+        org.junit.jupiter.api.Assertions.assertTrue(saved.getAllValues().stream()
+                .anyMatch(competition -> "uefa.euro".equals(competition.getExternalId())));
+    }
+
+    @Test
+    void aSeededTeamCarriesTheNamesTheProviderUsesAndReusesTheOneWithItsId() {
+        initializer.seedPastTournaments = true;
+        Competition euro = Competition.builder().id(5L).name("Eurocopa 2024").externalId("uefa.euro").build();
+        when(competitions.findByExternalId(anyString())).thenAnswer(invocation ->
+                "uefa.euro".equals(invocation.getArgument(0)) ? java.util.Optional.of(euro) : java.util.Optional.empty());
+        var germany = app.porrapp.model.Team.builder().id(3L).name("Alemania").externalId("481").build();
+        when(teams.findByExternalId(anyString())).thenReturn(java.util.Optional.empty());
+        when(teams.findByExternalId("481")).thenReturn(java.util.Optional.of(germany));
+        when(teams.findByName(anyString())).thenReturn(java.util.Optional.empty());
+        when(teams.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        initializer.run();
+
+        var created = org.mockito.ArgumentCaptor.forClass(app.porrapp.model.Team.class);
+        verify(teams, times(23)).save(created.capture());
+        var hungary = created.getAllValues().stream().filter(team -> "Hungría".equals(team.getName())).findFirst().orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals("Hungary", hungary.getNameEn());
+        org.junit.jupiter.api.Assertions.assertEquals("480", hungary.getExternalId());
+        var links = org.mockito.ArgumentCaptor.forClass(app.porrapp.model.CompetitionTeam.class);
+        verify(competitionTeams, times(24)).save(links.capture());
+        org.junit.jupiter.api.Assertions.assertTrue(links.getAllValues().stream()
+                .anyMatch(link -> link.getTeam() == germany && "A".equals(link.getGroupName())));
+    }
 }

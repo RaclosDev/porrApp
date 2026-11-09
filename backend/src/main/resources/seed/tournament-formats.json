@@ -1,0 +1,34 @@
+{
+  "fifa.world": {
+    "season": "2026",
+    "bracketDeadline": "2026-06-11T18:00:00Z",
+    "bestThirds": 8,
+    "groupMatchesPerTeam": 3,
+    "seededGroups": true,
+    "thirdPlaceMatch": true,
+    "firstKnockoutRound": [
+      ["1E", "3ABCDF"], ["1I", "3CDFGH"],
+      ["2A", "2B"], ["1F", "2C"],
+      ["2K", "2L"], ["1H", "2J"],
+      ["1D", "3BEFIJ"], ["1G", "3AEHIJ"],
+      ["1C", "2F"], ["2E", "2I"],
+      ["1A", "3CEFHI"], ["1L", "3EHIJK"],
+      ["1J", "2H"], ["2D", "2G"],
+      ["1B", "3EFGIJ"], ["1K", "3DEIJL"]
+    ]
+  },
+  "uefa.euro": {
+    "season": "2024",
+    "bracketDeadline": "2024-06-14T19:00:00Z",
+    "bestThirds": 4,
+    "groupMatchesPerTeam": 3,
+    "seededGroups": true,
+    "thirdPlaceMatch": false,
+    "firstKnockoutRound": [
+      ["1B", "3ADEF"], ["1A", "2C"],
+      ["1F", "3ABC"], ["2D", "2E"],
+      ["1C", "3DEF"], ["2A", "2B"],
+      ["1E", "3ABCD"], ["1D", "2F"]
+    ]
+  }
+}

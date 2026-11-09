@@ -9,15 +9,17 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Historical brackets retain their ordering; version 2 validates the FIFA feeder match of each slot. */
+/** Los cuadros históricos conservan su orden; la versión 2 comprueba de qué cruce viene cada equipo. */
 @Component
 @RequiredArgsConstructor
 public class BracketPredictionValidator {
+    private static final List<String> ROUND_LABELS = List.of("dieciseisavos", "octavos", "cuartos", "semifinales");
+
     private final CompetitionTeamRepository groupTeams;
 
     public void validate(Edition edition, PredictionDataDTO data) {
         if (edition == null || !edition.isGroupTournamentBracket()) {
-            throw invalid("Esta edición no admite predicciones de cuadro del Mundial");
+            throw invalid("Esta edición no admite predicciones de cuadro");
         }
         TournamentFormat format = edition.getCompetition().tournamentFormat();
         if (data == null) throw invalid("Falta el cuadro");
@@ -38,20 +40,25 @@ public class BracketPredictionValidator {
                 throw invalid("La fase de grupos contiene un grupo desconocido");
             for (var entry : groups.entrySet()) {
                 List<String> selected = entry.getValue();
-                if (selected == null || selected.size() < 2 || selected.size() > 4 || selected.stream().anyMatch(Objects::isNull))
-                    throw invalid("Cada grupo necesita entre dos y cuatro equipos");
-                checked(selected, 4, catalog.get(entry.getKey()), "grupo " + entry.getKey());
+                int groupSize = catalog.get(entry.getKey()).size();
+                if (selected == null || selected.size() < 2 || selected.size() > groupSize || selected.stream().anyMatch(Objects::isNull))
+                    throw invalid("Cada grupo necesita entre dos y " + groupSize + " equipos");
+                checked(selected, groupSize, catalog.get(entry.getKey()), "grupo " + entry.getKey());
                 qualifiers.addAll(selected.subList(0, 2));
                 if (selected.size() > 2) thirdCandidates.add(selected.get(2));
             }
             qualifiers.addAll(checked(data.getThirds(), format.bestThirds(), thirdCandidates, "mejores terceros"));
         }
-        Set<String> r32 = round(data.getR32(), format.firstKnockoutRound().size(), allowed, "dieciseisavos");
-        if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET && !qualifiers.containsAll(r32))
-            throw invalid("Los dieciseisavos deben proceder de los clasificados de grupos");
-        Set<String> r16 = round(data.getR16(), 8, r32, "octavos");
-        Set<String> qf = round(data.getQf(), 4, r16, "cuartos");
-        Set<String> sf = round(data.getSf(), 2, qf, "semifinales");
+        // El cuadro empieza en la ronda del torneo: las anteriores no se juegan y cada una sale de la previa.
+        List<List<List<String>>> rounds = knockoutRounds(format, data);
+        Set<String> sf = allowed;
+        for (int index = 0; index < rounds.size(); index++) {
+            Set<String> teams = round(rounds.get(index), format.firstKnockoutRound().size() >> index, sf,
+                    roundLabel(rounds, index));
+            if (index == 0 && edition.getPoolFormat() == PoolFormat.FULL_BRACKET && !qualifiers.containsAll(teams))
+                throw invalid("La primera ronda debe proceder de los clasificados de grupos");
+            sf = teams;
+        }
         Set<String> finalists = checked(data.getFinalMatch(), 2, sf, "final");
         checked(data.getChampion() == null ? null : List.of(data.getChampion()), 1, finalists, "campeón");
         Set<String> losers = new HashSet<>(sf);
@@ -59,10 +66,10 @@ public class BracketPredictionValidator {
         Set<String> third = checked(data.getThirdPlaceMatch(), 2, losers, "tercer puesto");
         checked(data.getThirdPlaceWinner() == null ? null : List.of(data.getThirdPlaceWinner()), 1, third, "tercer clasificado");
         if (Integer.valueOf(2).equals(data.getTopologyVersion())) {
-            if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET) validateGroupSlots(format, data);
-            validateFeeders(data.getR32(), data.getR16(), "octavos");
-            validateFeeders(data.getR16(), data.getQf(), "cuartos");
-            validateFeeders(data.getQf(), data.getSf(), "semifinales");
+            if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET) validateGroupSlots(format, rounds.get(0), data);
+            for (int index = 1; index < rounds.size(); index++) {
+                validateFeeders(rounds.get(index - 1), rounds.get(index), roundLabel(rounds, index));
+            }
             validateFeeders(data.getSf(), data.getFinalMatch() == null ? null : List.of(data.getFinalMatch()), "final");
             for (int side = 0; side < 2; side++) {
                 String loser = slot(data.getThirdPlaceMatch(), side);
@@ -74,12 +81,30 @@ public class BracketPredictionValidator {
         }
     }
 
-    private void validateGroupSlots(TournamentFormat format, PredictionDataDTO data) {
-        if (data.getR32() == null) return;
+    /**
+     * Rondas del cuadro antes de la final, desde la primera que juega el torneo. Una ronda anterior con
+     * equipos no es de este torneo.
+     */
+    private List<List<List<String>>> knockoutRounds(TournamentFormat format, PredictionDataDTO data) {
+        List<List<List<String>>> all = Arrays.asList(data.getR32(), data.getR16(), data.getQf(), data.getSf());
+        int first = all.size() - format.rounds().size();
+        for (int index = 0; index < first; index++) {
+            if (all.get(index) != null && !all.get(index).isEmpty())
+                throw invalid("El torneo no juega " + ROUND_LABELS.get(index));
+        }
+        return all.subList(first, all.size());
+    }
+
+    private static String roundLabel(List<List<List<String>>> rounds, int index) {
+        return ROUND_LABELS.get(ROUND_LABELS.size() - rounds.size() + index);
+    }
+
+    private void validateGroupSlots(TournamentFormat format, List<List<String>> firstRound, PredictionDataDTO data) {
+        if (firstRound == null) return;
         Map<String, List<String>> groups = data.getGroups() == null ? Map.of() : data.getGroups();
-        for (int index = 0; index < data.getR32().size(); index++) {
+        for (int index = 0; index < firstRound.size(); index++) {
             for (int side = 0; side < 2; side++) {
-                String name = slot(data.getR32().get(index), side);
+                String name = slot(firstRound.get(index), side);
                 if (name == null) continue;
                 String position = format.firstKnockoutRound().get(index).get(side);
                 boolean valid;
@@ -89,7 +114,7 @@ public class BracketPredictionValidator {
                 } else {
                     valid = name.equals(slot(groups.get(position.substring(1)), position.charAt(0) - '1'));
                 }
-                if (!valid) throw invalid("El equipo no corresponde a su posición FIFA en dieciseisavos");
+                if (!valid) throw invalid("El equipo no corresponde a su puesto de grupo en la primera ronda");
             }
         }
     }

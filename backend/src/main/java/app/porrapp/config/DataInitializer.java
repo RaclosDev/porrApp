@@ -47,6 +47,15 @@ public class DataInitializer implements CommandLineRunner {
     /** Catálogo de competiciones oficiales que existen desde el primer arranque. */
     static final String COMPETITIONS_SEED = "seed/competitions.json";
 
+    /**
+     * Torneos ya jugados que sirven de banco de pruebas (un segundo torneo con grupos de otra forma): solo
+     * se dan de alta donde se pide, nunca en producción.
+     */
+    static final String PAST_COMPETITIONS_SEED = "seed/competitions-past.json";
+
+    @org.springframework.beans.factory.annotation.Value("${app.seed.past-tournaments:false}")
+    boolean seedPastTournaments;
+
     private final CompetitionRepository competitionRepository;
     private final TeamRepository teamRepository;
     private final CompetitionTeamRepository competitionTeamRepository;
@@ -68,8 +77,15 @@ public class DataInitializer implements CommandLineRunner {
     record CompetitionSeed(String name, String externalId, String formatType, String teams) {
     }
 
-    /** Equipo del fichero de semilla con sus probabilidades iniciales. */
-    record TeamSeed(String name, String group, double winOdds, double qualifyOdds, double outrightOdds) {
+    /**
+     * Equipo del fichero de semilla.
+     *
+     * @param nameEn     nombre con el que lo da el proveedor, para que la importación lo reconozca
+     * @param externalId su id en el proveedor
+     * @param winOdds    probabilidades iniciales, si el torneo las tiene
+     */
+    record TeamSeed(String name, String nameEn, String externalId, String group,
+                    Double winOdds, Double qualifyOdds, Double outrightOdds) {
     }
 
     /**
@@ -79,8 +95,12 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        List<CompetitionSeed> catalogue = readSeed(COMPETITIONS_SEED, new TypeReference<>() {
-        });
+        List<CompetitionSeed> catalogue = new java.util.ArrayList<>(readSeed(COMPETITIONS_SEED, new TypeReference<>() {
+        }));
+        if (seedPastTournaments) {
+            catalogue.addAll(readSeed(PAST_COMPETITIONS_SEED, new TypeReference<List<CompetitionSeed>>() {
+            }));
+        }
         for (CompetitionSeed seed : catalogue) {
             seedCompetitionIfMissing(seed.name(), seed.externalId(), seed.formatType());
         }
@@ -124,9 +144,11 @@ public class DataInitializer implements CommandLineRunner {
         List<TeamSeed> seeds = readSeed(competitionSeed.teams(), new TypeReference<>() {
         });
         seeds.forEach(seed -> {
-            Team team = teamRepository.findByName(seed.name())
+            Team team = existingTeam(seed)
                     .orElseGet(() -> teamRepository.save(Team.builder()
                             .name(seed.name())
+                            .nameEn(seed.nameEn())
+                            .externalId(seed.externalId())
                             .groupName(seed.group())
                             .winOdds(seed.winOdds())
                             .qualifyOdds(seed.qualifyOdds())
@@ -136,6 +158,12 @@ public class DataInitializer implements CommandLineRunner {
                     .competition(competition).team(team).groupName(seed.group()).build());
         });
         log.info("Cargados {} equipos de {} desde {}", seeds.size(), competition.getName(), competitionSeed.teams());
+    }
+
+    private java.util.Optional<Team> existingTeam(TeamSeed seed) {
+        java.util.Optional<Team> byId = seed.externalId() == null
+                ? java.util.Optional.empty() : teamRepository.findByExternalId(seed.externalId());
+        return byId.isPresent() ? byId : teamRepository.findByName(seed.name());
     }
 
     private <T> T readSeed(String resource, TypeReference<T> type) {
