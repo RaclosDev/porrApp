@@ -4,6 +4,7 @@ import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.League;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.service.prediction.MatchSelectionService;
+import com.porra.mundial.service.tournament.KnockoutBracketService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
@@ -23,8 +24,9 @@ class SeasonCalendarRefresherTest {
     private final CompetitionImportService imports = mock(CompetitionImportService.class);
     private final ConcurrentMapCacheManager caches = new ConcurrentMapCacheManager("competitions", "matches");
     private final MatchSelectionService selections = mock(MatchSelectionService.class);
+    private final KnockoutBracketService knockout = mock(KnockoutBracketService.class);
     private final SeasonCalendarRefresher refresher = new SeasonCalendarRefresher(competitions, imports, caches,
-            selections);
+            selections, knockout);
 
     @Test
     @DisplayName("Carga todas las competiciones oficiales, aunque una falle, y no las personalizadas")
@@ -47,6 +49,26 @@ class SeasonCalendarRefresherTest {
         verify(imports, never()).importCompetitionData(3L);
         verify(imports, never()).importCompetitionData(4L);
         assertThat(caches.getCache("competitions").get("all")).isNull();
+    }
+
+    @Test
+    @DisplayName("El Mundial cerrado no se vuelve a importar; mientras se juega, sí")
+    void skipsTheWorldCupOnceItIsOver() {
+        Competition worldCup = Competition.builder().id(7L).name("Mundial")
+                .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+        when(competitions.findAll()).thenReturn(List.of(worldCup,
+                Competition.builder().id(2L).name("Premier").externalId("eng.1").build()));
+        when(imports.importCompetitionData(2L)).thenReturn(new CompetitionImportService.ImportResult("Premier", 20, 380));
+        when(imports.importCompetitionData(7L)).thenReturn(new CompetitionImportService.ImportResult("Mundial", 48, 104));
+
+        when(knockout.worldCupIsOver()).thenReturn(true);
+        refresher.refreshAllSeasons();
+        verify(imports, never()).importCompetitionData(7L);
+        verify(imports).importCompetitionData(2L);
+
+        when(knockout.worldCupIsOver()).thenReturn(false);
+        refresher.refreshAllSeasons();
+        verify(imports).importCompetitionData(7L);
     }
 
     @Test
