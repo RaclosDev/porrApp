@@ -28,12 +28,16 @@ self.addEventListener('notificationclick', (event) => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const open = windows.find((client) => client.url.startsWith(self.location.origin));
       if (open) {
-        // navigate() falla en ventanas que el SW no controla o no existe (iOS): abrir la URL entonces.
+        // navigate() no existe en iOS y falla en ventanas que el SW no controla; ahí openWindow solo
+        // trae la app al frente sin cambiar de pantalla. Entonces navega la propia app (PushNavigation).
+        const path = target.origin === self.location.origin ? target.pathname + target.search : '/';
+        const tellApp = () => open.postMessage({ type: 'porrapp:navigate', url: path });
         return open
           .focus()
+          .catch(() => open)
           .then((client) => (client.navigate ? client.navigate(url) : Promise.reject()))
-          .then((client) => client || self.clients.openWindow(url))
-          .catch(() => self.clients.openWindow(url));
+          .then((client) => client || tellApp())
+          .catch(tellApp);
       }
       return self.clients.openWindow(url);
     }),

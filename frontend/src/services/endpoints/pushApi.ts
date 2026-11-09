@@ -7,9 +7,14 @@ export interface PushConfig {
   remindersEnabled: boolean;
   /** Avisar cuando alguien se une a una de sus ligas. */
   memberJoinedEnabled: boolean;
+  /** Avisar cuando termina una jornada de sus ligas, con enlace al ranking. */
+  matchdayFinishedEnabled: boolean;
 }
 
-export type PushPreferences = Pick<PushConfig, 'remindersEnabled' | 'memberJoinedEnabled'>;
+export type PushPreferences = Pick<
+  PushConfig,
+  'remindersEnabled' | 'memberJoinedEnabled' | 'matchdayFinishedEnabled'
+>;
 
 interface PushSubscriptionPayload {
   endpoint: string;

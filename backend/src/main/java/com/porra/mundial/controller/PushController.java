@@ -48,7 +48,7 @@ public class PushController {
     @PutMapping("/preferences")
     public StatusResponse preferences(@RequestBody PushPreferencesRequest request, Principal principal) {
         pushSubscriptionService.setPreferences(principal.getName(), request.remindersEnabled(),
-                request.memberJoinedEnabled());
+                request.memberJoinedEnabled(), request.matchdayFinishedEnabled());
         return StatusResponse.success();
     }
 }

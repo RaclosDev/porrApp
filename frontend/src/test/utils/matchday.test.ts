@@ -6,6 +6,7 @@ import {
   filterFixtures,
   mergeDraftWithServer,
   parseDraft,
+  rankingMatchday,
   resolveRound,
   displayRoundLabel,
   roundLabelFor,
@@ -356,5 +357,44 @@ describe('scoringDetailsText', () => {
       'Resultado exacto 2-1 (5 pts)',
     );
     expect(scoringDetailsText(null, 'AMERICAN_FOOTBALL', true)).toBeNull();
+  });
+});
+
+describe('rankingMatchday', () => {
+  const md = (label: string, extra: Partial<MatchdayPoints> = {}): MatchdayPoints => ({
+    label,
+    date: null,
+    finished: false,
+    current: false,
+    matchCount: 10,
+    pointsByPrediction: {},
+    ...extra,
+  });
+
+  it('sigue en la jornada terminada mientras nadie puntúa en la siguiente', () => {
+    const days = [
+      md('Jornada 12', { finished: true, pointsByPrediction: { 1: 6 } }),
+      md('Jornada 13', { current: true, pointsByPrediction: { 1: 0, 2: 0 } }),
+    ];
+    expect(rankingMatchday(days)?.label).toBe('Jornada 12');
+  });
+
+  it('pasa a la nueva jornada en cuanto alguien suma un punto', () => {
+    const days = [
+      md('Jornada 12', { finished: true, pointsByPrediction: { 1: 6 } }),
+      md('Jornada 13', { current: true, pointsByPrediction: { 1: 0, 2: 1 } }),
+    ];
+    expect(rankingMatchday(days)?.label).toBe('Jornada 13');
+  });
+
+  it('sin ninguna jornada con puntos, enseña la actual', () => {
+    const days = [md('Jornada 1', { current: true }), md('Jornada 2')];
+    expect(rankingMatchday(days)?.label).toBe('Jornada 1');
+  });
+
+  it('sin jornada marcada como actual, parte de la última', () => {
+    const days = [md('GP Brasil', { finished: true }), md('GP Las Vegas')];
+    expect(rankingMatchday(days)?.label).toBe('GP Brasil');
+    expect(rankingMatchday([])).toBeNull();
   });
 });
