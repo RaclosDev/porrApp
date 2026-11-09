@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
+import type { ConfirmOptions } from './confirmAction';
 
 interface UnsavedChangesState {
   /** Aviso de cada pantalla con cambios de predicción sin guardar. */
@@ -11,6 +12,17 @@ export const useUnsavedChangesStore = create<UnsavedChangesState>(() => ({ pendi
 /** Aviso de la pantalla que tiene cambios sin guardar, o `null` si no hay ninguno. */
 export const unsavedChangesMessage = (state: UnsavedChangesState): string | null =>
   state.pending.values().next().value ?? null;
+
+/** Diálogo con el que se pregunta si se sale de una pantalla con cambios sin guardar. */
+export const leaveDialog = (message: string): ConfirmOptions => ({
+  title: '¿Salir sin guardar?',
+  message,
+  confirmLabel: 'Salir',
+  cancelLabel: 'Seguir aquí',
+});
+
+/** Da por perdidos los cambios sin guardar: se llama tras confirmar que se sale de todos modos. */
+export const discardUnsavedChanges = () => useUnsavedChangesStore.setState({ pending: new Map() });
 
 /**
  * Declara que la pantalla tiene cambios de predicción sin guardar mientras `dirty` sea cierto. Con

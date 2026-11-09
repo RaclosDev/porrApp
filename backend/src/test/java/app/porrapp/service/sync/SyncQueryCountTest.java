@@ -184,7 +184,8 @@ class SyncQueryCountTest {
         assertThat(worldCupResult.standingLoads()).isEqualTo(48);
         // La jornada solo carga sus partidos, no la temporada.
         assertThat(matchday.matchLoads()).isLessThan(season.matchLoads());
-        assertThat(matchday.statements()).isLessThan(season.statements());
+        // Los equipos llegan con sus partidos: la temporada ya no cuesta más consultas que una jornada.
+        assertThat(matchday.statements()).isLessThanOrEqualTo(season.statements());
     }
 
     private List<Team> seedWorldCupTeams() {

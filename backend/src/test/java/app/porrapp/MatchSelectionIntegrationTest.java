@@ -126,6 +126,22 @@ class MatchSelectionIntegrationTest {
     }
 
     @Test
+    @DisplayName("La portada pide solo la jornada en curso de la liga, que no siempre es la de la competición")
+    void currentRoundOfTheLeague() {
+        UserAccount admin = user();
+        League everything = create(admin, null);
+        League getafeOnly = create(admin, new MatchSelectionRequest(MatchSelectionMode.CUSTOM, List.of(getafe.getId()),
+                null, null));
+        League played = create(admin, new MatchSelectionRequest(MatchSelectionMode.CUSTOM, null,
+                List.of(playedMadridBetis.getId()), null));
+
+        assertThat(currentRoundIds(admin, everything)).containsExactly(celtaGetafe.getId(), madridCelta.getId());
+        assertThat(currentRoundIds(admin, getafeOnly)).containsExactly(celtaGetafe.getId());
+        // Con todo jugado, la última jornada.
+        assertThat(currentRoundIds(admin, played)).containsExactly(playedMadridBetis.getId());
+    }
+
+    @Test
     @DisplayName("Partidos elegidos a mano, y vuelta a todos")
     void handPickedMatches() {
         UserAccount admin = user();
@@ -236,6 +252,11 @@ class MatchSelectionIntegrationTest {
         return leagueSetupService.create(new NewLeague("Peña", admin.getGoogleEmail(), competition.getId(),
                 PoolFormat.MATCH_DAY, false, null, null),
                 new LeagueSetup(null, null, null, null, null, null, selection));
+    }
+
+    private List<Long> currentRoundIds(UserAccount user, League league) {
+        return matchPredictionService.getMatchdayFixtures(user.getGoogleEmail(), league.getId(),
+                MatchPredictionService.CURRENT_ROUND).stream().map(MatchdayFixturePredictionDTO::getMatchId).toList();
     }
 
     private List<Long> fixtureIds(UserAccount user, League league) {

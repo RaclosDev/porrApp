@@ -26,7 +26,10 @@ public class MatchPredictionController {
     private final MatchPredictionService matchPredictionService;
     private final WebSocketService webSocketService;
 
-    /** Partidos de la jornada con el pronóstico del usuario, su bloqueo y los puntos obtenidos. */
+    /**
+     * Partidos de la jornada con el pronóstico del usuario, su bloqueo y los puntos obtenidos. Sin
+     * {@code round} llega la temporada entera; con {@code round=current}, solo la jornada en curso.
+     */
     @GetMapping
     public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(@RequestParam Long groupId,
                                                                   @RequestParam(required = false) String round,

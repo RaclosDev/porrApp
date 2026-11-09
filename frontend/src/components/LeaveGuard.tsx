@@ -1,7 +1,11 @@
 import { useEffect } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { answerConfirm, confirmAction } from '../utils/confirmAction';
-import { unsavedChangesMessage, useUnsavedChangesStore } from '../utils/unsavedChanges';
+import {
+  leaveDialog,
+  unsavedChangesMessage,
+  useUnsavedChangesStore,
+} from '../utils/unsavedChanges';
 
 /**
  * Pide confirmación antes de ir a otra pantalla si la actual tiene cambios de predicción sin guardar
@@ -19,12 +23,7 @@ export default function LeaveGuard() {
   useEffect(() => {
     if (!blocked || message === null) return undefined;
     let asking = true;
-    void confirmAction({
-      title: '¿Salir sin guardar?',
-      message,
-      confirmLabel: 'Salir',
-      cancelLabel: 'Seguir aquí',
-    }).then((leave) => {
+    void confirmAction(leaveDialog(message)).then((leave) => {
       if (!asking) return;
       if (leave) blocker.proceed?.();
       else blocker.reset?.();
