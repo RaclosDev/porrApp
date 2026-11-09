@@ -2,6 +2,7 @@ package com.porra.mundial.service.prediction;
 
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.repository.CompetitionRepository;
+import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class ScoreInvalidationService {
 
     private final PredictionRepository predictionRepository;
     private final CompetitionRepository competitionRepository;
+    private final EditionRepository editionRepository;
     private final CacheManager cacheManager;
 
     /**
@@ -43,7 +45,7 @@ public class ScoreInvalidationService {
         if (cleared > 0) {
             log.debug("Puntuaciones de {} porras de la competición {} pendientes de recalcular", cleared, competitionId);
         }
-        evictLeaderboardAfterCommit();
+        evictLeaderboardsAfterCommit(java.util.List.of(competitionId));
         return cleared;
     }
 
@@ -78,6 +80,15 @@ public class ScoreInvalidationService {
     /** Vacía la caché de clasificaciones cuando se confirma la transacción, para no servir puntos viejos. */
     public void evictLeaderboardAfterCommit() {
         evictAfterCommit(LEADERBOARD_CACHE);
+    }
+
+    /**
+     * Vacía solo las clasificaciones de las ligas que juegan esas competiciones: el resultado de una
+     * competición no cambia los puntos de las ligas de otra.
+     */
+    public void evictLeaderboardsAfterCommit(java.util.Collection<Long> competitionIds) {
+        if (competitionIds == null || competitionIds.isEmpty()) return;
+        editionRepository.findLeagueIdsUsingCompetitions(competitionIds).forEach(this::evictLeaderboardAfterCommit);
     }
 
     /** Como {@link #evictLeaderboardAfterCommit()}, pero solo la clasificación de una liga. */

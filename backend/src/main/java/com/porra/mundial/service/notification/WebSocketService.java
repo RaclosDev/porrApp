@@ -11,6 +11,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -247,6 +248,32 @@ public class WebSocketService {
     public void notifyResultsChanged() {
         clearCaches(RESULT_CACHES);
         broadcastUpdate("DATA_UPDATED");
+    }
+
+    /** Cachés con una entrada por competición. */
+    static final List<String> COMPETITION_RESULT_CACHES = List.of("matchRadar", "competitionStandings");
+    static final List<String> COMPETITION_CLOCK_CACHES = List.of("matchRadar");
+
+    /**
+     * Han cambiado resultados o equipos solo de esas competiciones: se borran sus entradas de caché y el
+     * aviso lleva sus ids, para que cada cliente recargue únicamente si alguna de sus ligas las juega.
+     * Las clasificaciones de liga las vacía quien llama ({@code ScoreInvalidationService}).
+     */
+    public void notifyResultsChanged(Collection<Long> competitionIds) {
+        if (competitionIds == null || competitionIds.isEmpty()) return;
+        evictKeys(COMPETITION_RESULT_CACHES, competitionIds);
+        broadcastJson(Map.of("type", "DATA_UPDATED", "competitionIds", List.copyOf(competitionIds)));
+    }
+
+    /** Como {@link #notifyClockChanged()}, pero solo para quien sigue esas competiciones. */
+    public void notifyClockChanged(Collection<Long> competitionIds) {
+        if (competitionIds == null || competitionIds.isEmpty()) return;
+        evictKeys(COMPETITION_CLOCK_CACHES, competitionIds);
+        broadcastJson(Map.of("type", "CLOCK_UPDATED", "competitionIds", List.copyOf(competitionIds)));
+    }
+
+    private void evictKeys(List<String> cacheNames, Collection<Long> keys) {
+        for (String cacheName : cacheNames) keys.forEach(key -> evictKey(cacheName, key));
     }
 
     private void evictKey(String cacheName, Object key) {

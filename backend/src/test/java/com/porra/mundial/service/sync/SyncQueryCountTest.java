@@ -150,6 +150,11 @@ class SyncQueryCountTest {
                 .toList();
         events.put("esp.1", new ArrayList<>(jornada1.stream().map(SyncQueryCountTest::leagueEvent).toList()));
 
+        // La pasada solo mira las competiciones que juega alguna liga activa.
+        seedLeaguePlaying(competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElseThrow(),
+                PoolFormat.FULL_BRACKET, "MUNDIA");
+        seedLeaguePlaying(laLiga, PoolFormat.MATCH_DAY, "LALIGA");
+
         Measure firstPass = measure(syncService::syncAll);
         Measure unchanged = measure(syncService::syncAll);
 
@@ -250,6 +255,14 @@ class SyncQueryCountTest {
         ((ObjectNode) competitors.get(0)).put("score", String.valueOf(home));
         ((ObjectNode) competitors.get(1)).put("score", String.valueOf(away));
         return copy;
+    }
+
+    private void seedLeaguePlaying(Competition competition, PoolFormat format, String joinCode) {
+        UserAccount admin = userAccountRepository.save(UserAccount.builder().googleEmail(joinCode + "@test.com")
+                .googleName(joinCode).participantName(joinCode).build());
+        League league = leagueRepository.save(League.builder().name("Liga " + joinCode).joinCode(joinCode)
+                .adminUser(admin).build());
+        editionRepository.save(Edition.builder().league(league).competition(competition).poolFormat(format).build());
     }
 
     private League seedMatchdayLeague(String email, Competition laLiga) {
