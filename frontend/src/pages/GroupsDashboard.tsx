@@ -9,6 +9,7 @@ import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
 import GroupCard from '../components/groups/GroupCard';
+import TrackerList from '../components/tracker/TrackerList';
 import JoinGroupPanel from '../components/groups/JoinGroupPanel';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
 import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
@@ -231,6 +232,8 @@ export default function GroupsDashboard() {
           })}
         </ul>
       )}
+      <TrackerList />
+
       {selectedGroupForMembers && (
         <GroupMembersModal
           key={selectedGroupForMembers.id}
