@@ -66,6 +66,34 @@ class DataInitializerTest {
     }
 
     @Test
+    void startupLeavesAClosedWorldCupAlone() {
+        when(knockout.worldCupIsOver()).thenReturn(true);
+        when(standings.hasStandings()).thenReturn(true);
+        initializer.startInitialSync();
+        var work = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).execute(work.capture());
+
+        work.getValue().run();
+
+        verify(standings, never()).recalculateStandingsFromMatches();
+        verify(knockout, never()).propagateKnockoutWinners();
+    }
+
+    @Test
+    void startupRebuildsTheWorldCupWhileItIsOpenOrItsStandingsAreMissing() {
+        when(knockout.worldCupIsOver()).thenReturn(true);
+        when(standings.hasStandings()).thenReturn(false);
+        initializer.startInitialSync();
+        var work = org.mockito.ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).execute(work.capture());
+
+        work.getValue().run();
+
+        verify(standings).recalculateStandingsFromMatches();
+        verify(knockout).propagateKnockoutWinners();
+    }
+
+    @Test
     void interruptionStopsSubsequentStartupDatabaseSteps() {
         initializer.startInitialSync();
         var work = org.mockito.ArgumentCaptor.forClass(Runnable.class);

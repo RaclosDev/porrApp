@@ -138,9 +138,18 @@ public class DataInitializer implements CommandLineRunner {
         runStep("importar calendarios vacíos", this::importEmptyCompetitionFixtures);
         runStep("sincronizar resultados", syncService::syncAll);
         runStep("reparar equipos históricos", syncService::repairLegacyFixtures);
+        runStep("recalcular el torneo con grupos", this::refreshGroupTournament);
+        log.info("Sincronización inicial de arranque finalizada.");
+    }
+
+    /**
+     * Clasificación de grupos y cruces del Mundial. Con el torneo cerrado y su clasificación ya guardada
+     * no hay nada que pueda cambiar: rehacerlo en cada despliegue solo repetía lecturas y escrituras.
+     */
+    private void refreshGroupTournament() {
+        if (knockoutBracketService.worldCupIsOver() && standingsService.hasStandings()) return;
         runStep("recalcular clasificaciones", standingsService::recalculateStandingsFromMatches);
         runStep("propagar ganadores de eliminatorias", knockoutBracketService::propagateKnockoutWinners);
-        log.info("Sincronización inicial de arranque finalizada.");
     }
 
     private void importEmptyCompetitionFixtures() {
