@@ -424,6 +424,10 @@ export function useLeagueDataEffects() {
   });
   const { error: groupError } = useQuery<Partial<Group>>({
     queryKey: queryKeys.group(activeGroupId),
+    // Solo mira el error de la consulta de la liga, pero lleva su lectura: si esta consulta se crea
+    // antes que la que la pide, una invalidación la relanzaría sin saber cómo leerla.
+    queryFn: () =>
+      activeGroupId ? fetchGroup(activeGroupId) : Promise.resolve({ name: NO_GROUP_NAME }),
     enabled: false,
   });
   const forbiddenError = [groupError, predictionsError, leaderboardError].find(

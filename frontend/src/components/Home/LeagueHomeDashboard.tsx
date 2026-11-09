@@ -429,7 +429,7 @@ export default function LeagueHomeDashboard() {
                         p.userId?.toString() === userId?.toString() || p.name === userName;
                       return (
                         <MiniRow
-                          key={p.id || index}
+                          key={p.id ?? `member-${p.userId ?? index}`}
                           rank={index + 1}
                           name={`${p.name}${isMe ? ' (Tú)' : ''}`}
                           value={`${p.total || 0} pts`}
