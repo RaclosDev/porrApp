@@ -41,9 +41,19 @@ public class Competition {
     @Column(nullable = false, length = 100)
     private String name;
 
-    /** ID externo de la competición en APIs de terceros (ej. ESPN: "esp.1", "uefa.champions", "fifa.world") */
-    @Column(length = 50, unique = true)
+    /**
+     * ID externo de la competición en APIs de terceros (ej. ESPN: "esp.1", "uefa.champions", "fifa.world").
+     * Cada temporada es una fila: lo comparten la vigente y las archivadas, y solo es único entre las vigentes.
+     */
+    @Column(length = 50)
     private String externalId;
+
+    /** Temporada de esta fila tal como la da el proveedor ("2026/27", "2026"); null si aún no se sabe. */
+    @Column(length = 20)
+    private String season;
+
+    /** Cuándo dejó de ser la temporada vigente; null en la vigente y en las competiciones personalizadas. */
+    private Instant archivedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_league_id")
@@ -64,6 +74,11 @@ public class Competition {
 
     @Builder.Default
     private Instant createdAt = Instant.now();
+
+    /** Temporada pasada: ya no se sincroniza, no sale en el catálogo ni admite ligas nuevas. */
+    public boolean isArchived() {
+        return archivedAt != null;
+    }
 
     /** Deporte de la competición: el guardado en las personalizadas, el de su id externo en las oficiales. */
     public Sport sport() {

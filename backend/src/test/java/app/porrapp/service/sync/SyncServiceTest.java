@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -70,6 +71,7 @@ class SyncServiceTest {
     @Mock private app.porrapp.repository.MatchRepository matchRepository;
     @Mock private app.porrapp.service.tournament.OfficialMatchdayService officialMatchdayService;
     @Mock private app.porrapp.service.formulaone.FormulaOneSyncService formulaOneSyncService;
+    @Mock private CompetitionSeasonService seasonService;
 
     @Spy private SyncLock syncLock = new SyncLock();
 
@@ -89,7 +91,7 @@ class SyncServiceTest {
         importService = new CompetitionImportService(competitionRepository, sportsDataProviderRegistry,
                 matchEventProcessor, knockoutBracketService, standingsService, webSocketService,
                 scoreInvalidationService, transactionManager, topScorerService, customLockService, syncLock,
-                officialMatchdayService, formulaOneSyncService);
+                officialMatchdayService, formulaOneSyncService, seasonService);
         when(competitionRepository.findAll()).thenReturn(List.of(worldCup));
         // Las competiciones de estos tests tienen todas alguna liga activa, salvo que el test diga otra cosa.
         when(editionRepository.findCompetitionIdsInUse()).thenReturn(List.of(2L, 5L, 19L));
@@ -133,6 +135,65 @@ class SyncServiceTest {
         verify(provider, never()).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
         verify(knockoutBracketService, never()).matchesOf(worldCup);
         assertEquals(SyncService.STATUS_SUCCESS, syncService.getLastSyncStatus());
+    }
+
+    @Test
+    @DisplayName("Una temporada archivada no se sincroniza, ni entera ni en directo, aunque tenga ligas")
+    void archivedSeasonsAreNeverSynced() throws Exception {
+        Competition archived = Competition.builder().id(19L).name("LaLiga EA Sports").externalId("esp.1")
+                .season("2025/26").archivedAt(Instant.now()).build();
+        when(competitionRepository.findAll()).thenReturn(List.of(archived));
+        when(matchRepository.findCompetitionIdsWithOpenMatchesBetween(any(), any())).thenReturn(List.of(19L));
+        when(competitionRepository.findAllById(List.of(19L))).thenReturn(List.of(archived));
+
+        syncService.syncAll();
+        syncService.syncLive();
+
+        verifyNoInteractions(provider);
+    }
+
+    @Test
+    @DisplayName("La importación anota la temporada que da el proveedor antes de guardar lo descargado")
+    void importAnnotatesTheProviderSeason() throws Exception {
+        when(provider.fetchSeasonWindow("esp.1"))
+                .thenReturn(new SportsDataProvider.SeasonWindow("2026-08-14T04:00Z", "2027-06-01T03:59Z"));
+        when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.readTree("[{\"id\": \"liga\"}]"));
+
+        importService.importCompetitionData(5L);
+
+        var order = org.mockito.Mockito.inOrder(seasonService, matchEventProcessor);
+        order.verify(seasonService).annotate(5L, new CompetitionSeasonService.Season("2026/27",
+                Instant.parse("2026-08-14T04:00:00Z"), Instant.parse("2027-06-01T03:59:00Z")));
+        order.verify(matchEventProcessor).process(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Si el proveedor no da temporada, la importación sigue y no hay nada que anotar")
+    void importWithoutAProviderSeasonAnnotatesNothing() throws Exception {
+        when(provider.fetchTeams("esp.1")).thenReturn(JSON.createArrayNode());
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+
+        importService.importCompetitionData(5L);
+
+        verify(seasonService).annotate(5L, null);
+    }
+
+    @Test
+    @DisplayName("La temporada de la Fórmula 1 es el año natural, y no poder anotarla no estropea la carga")
+    void formulaOneSeasonIsTheCalendarYear() throws Exception {
+        Competition formulaOne = Competition.builder().id(30L).name("Fórmula 1")
+                .externalId(Competition.FORMULA_ONE_EXTERNAL_ID).formatType("RACE").build();
+        when(competitionRepository.findById(30L)).thenReturn(Optional.of(formulaOne));
+        when(formulaOneSyncService.importSeason(formulaOne))
+                .thenReturn(new app.porrapp.service.formulaone.FormulaOneSyncService.SyncResult(0, 0, false));
+        int year = java.time.LocalDate.now(app.porrapp.util.AppTime.ZONE).getYear();
+        when(seasonService.annotate(30L, CompetitionSeasonService.Season.ofYear(year)))
+                .thenThrow(new IllegalStateException("sin base de datos"));
+
+        importService.importCompetitionData(30L);
+
+        verify(seasonService).annotate(30L, CompetitionSeasonService.Season.ofYear(year));
     }
 
     @Test

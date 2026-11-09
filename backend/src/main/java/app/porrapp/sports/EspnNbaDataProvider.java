@@ -240,7 +240,7 @@ public class EspnNbaDataProvider implements SportsDataProvider {
         int year = season.path("year").asInt(0);
         String end = season.path("endDate").asText(null);
         if (year == 0 || end == null) return null;
-        return new SeasonWindow((year - 1) + "-04-01T00:00Z", end);
+        return new SeasonWindow((year - 1) + "-04-01T00:00Z", end, season.path("startDate").asText(null));
     }
 
     @Override

@@ -47,7 +47,8 @@ public class CompetitionService {
 
     /**
      * Competiciones con proveedor externo, ordenadas por nombre, con lo que se sabe de su calendario. Las
-     * que no tienen id externo no se pueden sincronizar y dejarían a la liga sin equipos ni partidos.
+     * que no tienen id externo no se pueden sincronizar y dejarían a la liga sin equipos ni partidos. Las
+     * temporadas archivadas no se ofrecen: de cada competición solo sale la vigente.
      */
     @Cacheable("competitions")
     public List<CompetitionDTO> findSyncableCompetitions() {
@@ -57,7 +58,7 @@ public class CompetitionService {
         }
         Instant now = Instant.now();
         List<Competition> syncable = competitionRepository.findAll().stream()
-                .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
+                .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank() && !c.isArchived())
                 .sorted(Comparator.comparing(Competition::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
         // Las fechas de cada torneo de tenis son una consulta a ESPN (en caché): se piden a la vez.

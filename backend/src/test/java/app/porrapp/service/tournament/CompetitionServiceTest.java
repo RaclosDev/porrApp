@@ -48,6 +48,16 @@ class CompetitionServiceTest {
     }
 
     @Test
+    void archivedSeasonsAreNotOffered() {
+        when(competitions.findAll()).thenReturn(List.of(
+                Competition.builder().id(1L).name("LaLiga").externalId("esp.1").season("2025/26")
+                        .archivedAt(java.time.Instant.now()).build(),
+                Competition.builder().id(2L).name("LaLiga").externalId("esp.1").season("2026/27").build()));
+
+        assertThat(service.findSyncableCompetitions()).extracting(CompetitionDTO::id).containsExactly(2L);
+    }
+
+    @Test
     void syncableCompetitionsCarryTheirSport() {
         when(competitions.findAll()).thenReturn(List.of(
                 Competition.builder().id(1L).name("LaLiga").externalId("esp.1").build(),
