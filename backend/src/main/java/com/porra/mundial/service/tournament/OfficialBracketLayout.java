@@ -2,7 +2,6 @@ package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
-import com.porra.mundial.model.WorldCupBracketTopology;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,9 +13,9 @@ import java.util.Objects;
 final class OfficialBracketLayout {
     private OfficialBracketLayout() {}
 
-    static List<List<String>> firstRound(Map<String, List<String>> groups, List<Match> matches) {
+    static List<List<String>> firstRound(List<List<String>> topology, Map<String, List<String>> groups, List<Match> matches) {
         List<List<String>> result = new ArrayList<>();
-        for (var slots : WorldCupBracketTopology.ROUND_OF_32) {
+        for (var slots : topology) {
             result.add(pair(matches, Arrays.asList(qualifier(groups, slots.get(0))),
                     Arrays.asList(qualifier(groups, slots.get(1)))));
         }

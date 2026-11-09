@@ -125,7 +125,7 @@ class MatchEventProcessorTest {
         assertEquals(-4, match.getAwayFairPlay(), "roja directa");
         assertEquals(1, batch.matchesUpdated());
         verify(matchPredictionService).evaluatePredictionsForMatch(match);
-        verify(topScorerService, never()).refresh();
+        verify(topScorerService, never()).refresh(org.mockito.ArgumentMatchers.any());
         verify(webSocketService).broadcastMatchScore(any(), eq("España"), eq("Uruguay"), eq(2), eq(1), eq("FINISHED"));
     }
 
@@ -321,7 +321,7 @@ class MatchEventProcessorTest {
         assertEquals(2, stored.getAwayScore());
         verify(matchRepository).save(stored);
         verify(matchPredictionService).evaluatePredictionsForMatch(stored);
-        verify(topScorerService, never()).refresh();
+        verify(topScorerService, never()).refresh(org.mockito.ArgumentMatchers.any());
         assertTrue(batch.resultsChanged());
     }
 
@@ -351,7 +351,7 @@ class MatchEventProcessorTest {
 
         verify(matchRepository, never()).save(any());
         verify(matchPredictionService).evaluatePredictionsForMatch(stored);
-        verify(topScorerService, never()).refresh();
+        verify(topScorerService, never()).refresh(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -364,7 +364,7 @@ class MatchEventProcessorTest {
                 cache, new MatchEventProcessor.Batch(worldCup));
 
         verify(matchPredictionService, never()).evaluatePredictionsForMatch(any());
-        verify(topScorerService, never()).refresh();
+        verify(topScorerService, never()).refresh(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

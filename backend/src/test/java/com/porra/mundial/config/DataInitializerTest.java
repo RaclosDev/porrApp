@@ -1,5 +1,7 @@
 package com.porra.mundial.config;
 
+import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.TournamentFormat;
 import com.porra.mundial.repository.*;
 import com.porra.mundial.service.account.*;
 import com.porra.mundial.service.league.*;
@@ -66,31 +68,41 @@ class DataInitializerTest {
     }
 
     @Test
-    void startupLeavesAClosedWorldCupAlone() {
-        when(knockout.worldCupIsOver()).thenReturn(true);
-        when(standings.hasStandings()).thenReturn(true);
+    void startupLeavesAClosedTournamentAlone() {
+        Competition worldCup = givenTheWorldCup();
+        when(knockout.isOver(worldCup)).thenReturn(true);
+        when(standings.hasStandings(worldCup)).thenReturn(true);
         initializer.startInitialSync();
         var work = org.mockito.ArgumentCaptor.forClass(Runnable.class);
         verify(executor).execute(work.capture());
 
         work.getValue().run();
 
-        verify(standings, never()).recalculateStandingsFromMatches();
-        verify(knockout, never()).propagateKnockoutWinners();
+        verify(standings, never()).recalculate(any(Competition.class));
+        verify(knockout, never()).propagateKnockoutWinners(any(Competition.class));
     }
 
     @Test
-    void startupRebuildsTheWorldCupWhileItIsOpenOrItsStandingsAreMissing() {
-        when(knockout.worldCupIsOver()).thenReturn(true);
-        when(standings.hasStandings()).thenReturn(false);
+    void startupRebuildsATournamentWhileItIsOpenOrItsStandingsAreMissing() {
+        Competition worldCup = givenTheWorldCup();
+        when(knockout.isOver(worldCup)).thenReturn(true);
+        when(standings.hasStandings(worldCup)).thenReturn(false);
         initializer.startInitialSync();
         var work = org.mockito.ArgumentCaptor.forClass(Runnable.class);
         verify(executor).execute(work.capture());
 
         work.getValue().run();
 
-        verify(standings).recalculateStandingsFromMatches();
-        verify(knockout).propagateKnockoutWinners();
+        verify(standings).recalculate(worldCup);
+        verify(knockout).propagateKnockoutWinners(worldCup);
+    }
+
+    /** El Mundial dado de alta, que es un torneo con grupos registrado. */
+    private Competition givenTheWorldCup() {
+        Competition worldCup = Competition.builder().id(2L).name("Mundial")
+                .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+        when(competitions.findByExternalIdIn(TournamentFormat.registeredExternalIds())).thenReturn(java.util.List.of(worldCup));
+        return worldCup;
     }
 
     @Test

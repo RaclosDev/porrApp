@@ -357,7 +357,7 @@ class SurvivorModeTest {
             when(matchPredictionRepository.findWithMatchByPredictionIdIn(any())).thenReturn(List.of(
                     pick(alive, j1, "1"),
                     pick(out, j1, "1"), pick(out, j2, "1")));
-            when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+            when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
                     new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
                     List.of(), List.of(), List.of(), List.of(), null));
 

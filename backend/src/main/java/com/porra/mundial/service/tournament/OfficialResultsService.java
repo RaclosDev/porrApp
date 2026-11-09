@@ -2,9 +2,11 @@ package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.TopScorerDTO;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.KnockoutRound;
+import com.porra.mundial.model.TournamentFormat;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +21,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Resultados reales del Mundial contra los que se puntúan los cuadros: clasificación de grupos,
+ * Resultados reales de un torneo con grupos contra los que se puntúan sus cuadros: clasificación de grupos,
  * mejores terceros, cruces y ganadores de cada ronda, podio y máximos goleadores.
  * <p>
  * Todo sale de los partidos que sincroniza ESPN y de la clasificación que se calcula con ellos;
@@ -56,13 +58,14 @@ public class OfficialResultsService {
             String champion) {
     }
 
-    /** Cuadro oficial del Mundial con la forma de un pronóstico, para el visor y las estadísticas. */
-    public PredictionDataDTO worldCupBracket() {
-        return current().bracket();
+    /** Cuadro oficial del torneo con la forma de un pronóstico, para el visor y las estadísticas. */
+    public PredictionDataDTO bracket(Competition competition) {
+        return current(competition).bracket();
     }
 
-    public OfficialResults current() {
-        List<GroupStanding> standings = standingsService.getAllStandings();
+    public OfficialResults current(Competition competition) {
+        TournamentFormat format = TournamentFormat.of(competition);
+        List<GroupStanding> standings = standingsService.getStandings(competition);
         Map<String, List<String>> orderedTeamsPerGroup = new TreeMap<>();
         for (GroupStanding gs : standings.stream().sorted(Comparator.comparing(
                 GroupStanding::getPosition, Comparator.nullsLast(Comparator.naturalOrder()))).toList()) {
@@ -74,11 +77,11 @@ public class OfficialResultsService {
         List<String> bestThirds = standings.stream()
                 .filter(gs -> Integer.valueOf(3).equals(gs.getPosition()) && gs.getTeam() != null)
                 .sorted(GroupTiebreaker.THIRD_PLACE_ORDER)
-                .limit(8)
+                .limit(format.bestThirds())
                 .map(gs -> gs.getTeam().getName())
                 .collect(Collectors.toList());
 
-        List<Match> knockout = knockoutBracketService.worldCupMatches().stream()
+        List<Match> knockout = knockoutBracketService.matchesOf(competition).stream()
                 .filter(OfficialResultsService::isKnockoutMatch)
                 .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
@@ -92,11 +95,11 @@ public class OfficialResultsService {
         List<Match> secondRound = knockout.stream().filter(ROUND_OF_16).toList();
         List<Match> quarters = knockout.stream().filter(QUARTER_FINALS).toList();
         List<Match> semis = knockout.stream().filter(SEMI_FINALS).toList();
-        bracket.setR32(OfficialBracketLayout.firstRound(orderedTeamsPerGroup, firstRound));
+        bracket.setR32(OfficialBracketLayout.firstRound(format.firstKnockoutRound(), orderedTeamsPerGroup, firstRound));
         bracket.setR16(OfficialBracketLayout.nextRound(bracket.getR32(), secondRound));
         bracket.setQf(OfficialBracketLayout.nextRound(bracket.getR16(), quarters));
         bracket.setSf(OfficialBracketLayout.nextRound(bracket.getQf(), semis));
-        bracket.setScorer(topScorerNames(topScorerService.getTopScorers()));
+        bracket.setScorer(topScorerNames(topScorerService.getTopScorers(competition)));
         List<String> finalists = OfficialBracketLayout.semifinalOutcomes(bracket.getSf(), semis, true);
         List<String> thirdPlaceTeams = OfficialBracketLayout.semifinalOutcomes(bracket.getSf(), semis, false);
         List<String> finalPair = OfficialBracketLayout.nextRound(bracket.getSf(),
@@ -110,7 +113,7 @@ public class OfficialResultsService {
         Match thirdPlaceMatch = knockout.stream().filter(THIRD_PLACE).findFirst().orElse(null);
         bracket.setThirdPlaceWinner(thirdPlaceMatch != null ? winnerName(thirdPlaceMatch) : null);
 
-        return new OfficialResults(bracket, standingsService.getWorldCupGroupPoints(), orderedTeamsPerGroup, bestThirds,
+        return new OfficialResults(bracket, standingsService.getGroupPoints(competition), orderedTeamsPerGroup, bestThirds,
                 winnersOf(knockout, ROUND_OF_32), winnersOf(knockout, ROUND_OF_16),
                 winnersOf(knockout, QUARTER_FINALS), winnersOf(knockout, SEMI_FINALS),
                 finalMatch != null ? winnerName(finalMatch) : null);

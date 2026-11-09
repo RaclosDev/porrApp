@@ -42,7 +42,7 @@ public class SeasonCalendarRefresher {
     public void refreshAllSeasons() {
         List<Competition> official = competitionRepository.findAll().stream()
                 .filter(c -> c.getOwnerLeague() == null && c.getExternalId() != null && !c.getExternalId().isBlank())
-                .filter(c -> !(c.isWorldCup() && knockoutBracketService.worldCupIsOver()))
+                .filter(c -> !(c.isGroupTournament() && knockoutBracketService.isOver(c)))
                 .sorted(Comparator.comparing(Competition::getId))
                 .toList();
         int refreshed = 0;

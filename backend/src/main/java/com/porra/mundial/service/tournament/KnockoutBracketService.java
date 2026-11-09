@@ -5,7 +5,6 @@ import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.KnockoutRound;
 import com.porra.mundial.model.Team;
-import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.MatchRepository;
 import java.time.Duration;
 import java.time.Instant;
@@ -28,7 +27,6 @@ import java.util.function.Supplier;
 public class KnockoutBracketService {
 
     private final MatchRepository matchRepository;
-    private final CompetitionRepository competitionRepository;
     private final ScoreInvalidationService scoreInvalidationService;
 
     /** Margen tras el último partido para que el proveedor corrija resultados antes de dar el torneo por cerrado. */
@@ -39,30 +37,30 @@ public class KnockoutBracketService {
     }
 
     /**
-     * Coloca a los ganadores (final) y perdedores (tercer puesto) de las semifinales ya decididas.
+     * Coloca a los ganadores (final) y perdedores (tercer puesto) de las semifinales ya decididas de un torneo.
      *
      * @return número de partidos actualizados
      */
-    public int propagateKnockoutWinners() {
-        return propagate(this::worldCupMatches);
+    public int propagateKnockoutWinners(Competition competition) {
+        return propagate(competition, () -> matchesOf(competition));
     }
 
     /**
-     * Igual que {@link #propagateKnockoutWinners()}, con los partidos del Mundial ya cargados
-     * ({@link #worldCupMatches()}), para no volver a leerlos si ya los tiene quien llama.
+     * Igual que {@link #propagateKnockoutWinners(Competition)}, con los partidos del torneo ya cargados
+     * ({@link #matchesOf(Competition)}), para no volver a leerlos si ya los tiene quien llama.
      *
      * @return número de partidos actualizados
      */
-    public int propagateKnockoutWinners(List<Match> worldCupMatches) {
-        return propagate(() -> worldCupMatches);
+    public int propagateKnockoutWinners(Competition competition, List<Match> matches) {
+        return propagate(competition, () -> matches);
     }
 
     /**
      * Los fallos llegan a quien llama: la sincronización los registra y repite el recálculo en la
      * siguiente pasada, en vez de darlo por hecho.
      */
-    private int propagate(Supplier<List<Match>> worldCupMatches) {
-        FinalRounds rounds = findFinalRounds(worldCupMatches.get());
+    private int propagate(Competition competition, Supplier<List<Match>> matches) {
+        FinalRounds rounds = findFinalRounds(matches.get());
         List<Match> semis = rounds.semis();
         List<Team> participants = semis.stream()
                 .flatMap(m -> java.util.stream.Stream.of(m.getHomeTeam(), m.getAwayTeam()))
@@ -74,31 +72,28 @@ public class KnockoutBracketService {
             if (placeDerivedTeam(rounds.thirdPlaceMatch(), loserOf(semi), slot == 0, participants)) updated++;
         }
         if (updated > 0) {
-            scoreInvalidationService.invalidateWorldCup();
+            scoreInvalidationService.invalidateCompetition(competition.getId());
         }
         return updated;
     }
 
-    /** Partidos del Mundial, el único torneo con cuadro oficial; los de otras competiciones no cuentan. */
-    public List<Match> worldCupMatches() {
-        return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
-                .map(matchRepository::findByCompetitionId)
-                .orElse(List.of());
+    /** Partidos de un torneo; los de otras competiciones no cuentan para su cuadro. */
+    public List<Match> matchesOf(Competition competition) {
+        return matchRepository.findByCompetitionId(competition.getId());
     }
 
     /**
-     * El Mundial ya se jugó entero: tiene partidos, todos terminados, y el último empezó hace más de
+     * El torneo ya se jugó entero: tiene partidos, todos terminados, y el último empezó hace más de
      * {@link #SETTLED_AFTER}. Desde entonces el proveedor no trae nada nuevo y no hace falta volver a pedírselo.
      */
-    public boolean worldCupIsOver() {
-        return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
-                .map(id -> matchRepository.countByCompetitionId(id) > 0
-                        && matchRepository.countOpenOrStartingSince(id, Instant.now().minus(SETTLED_AFTER)) == 0)
-                .orElse(false);
+    public boolean isOver(Competition competition) {
+        Long id = competition.getId();
+        return matchRepository.countByCompetitionId(id) > 0
+                && matchRepository.countOpenOrStartingSince(id, Instant.now().minus(SETTLED_AFTER)) == 0;
     }
 
-    private FinalRounds findFinalRounds(List<Match> worldCupMatches) {
-        List<Match> knockout = worldCupMatches.stream().filter(KnockoutBracketService::isKnockoutMatch).toList();
+    private FinalRounds findFinalRounds(List<Match> matches) {
+        List<Match> knockout = matches.stream().filter(KnockoutBracketService::isKnockoutMatch).toList();
         List<Match> semis = knockout.stream()
                 .filter(m -> KnockoutRound.fromLabel(m.getRound()) == KnockoutRound.SEMI_FINAL)
                 .sorted(Comparator.comparing(Match::getMatchDate, Comparator.nullsLast(Comparator.naturalOrder())))

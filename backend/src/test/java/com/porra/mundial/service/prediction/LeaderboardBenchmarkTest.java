@@ -61,11 +61,11 @@ class LeaderboardBenchmarkTest {
         officialData.setSf(List.of(List.of("España", "Alemania")));
         officialData.setFinalMatch(List.of("España", "Alemania"));
 
-        when(officialResultsService.current()).thenReturn(new OfficialResultsService.OfficialResults(
+        when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
                 officialData, Collections.emptyMap(), officialData.getGroups(), List.of(),
                 List.of("España", "Francia", "Brasil", "Alemania"), List.of("España", "Brasil"),
                 List.of("España", "Alemania"), List.of("España", "Alemania"), "España"));
-        when(topScorerService.getTopScorers()).thenReturn(Collections.emptyList());
+        when(topScorerService.getTopScorers(org.mockito.ArgumentMatchers.any())).thenReturn(Collections.emptyList());
 
         int participantCount = 1000;
         List<Prediction> participants = new ArrayList<>(participantCount);
