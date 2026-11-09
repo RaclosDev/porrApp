@@ -22,7 +22,8 @@ public record UserDataExport(
     }
 
     public record Profile(String email, String participantName, Instant registeredAt,
-                          java.time.Instant lastActiveAt, boolean hasAvatar, boolean matchRemindersEnabled, boolean memberJoinedAlertsEnabled) {
+                          java.time.Instant lastActiveAt, boolean hasAvatar, boolean matchRemindersEnabled, boolean memberJoinedAlertsEnabled,
+                          boolean matchdayFinishedAlertsEnabled) {
     }
 
     public record LeagueMembership(Long leagueId, String leagueName, String role, String paymentStatus,

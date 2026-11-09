@@ -92,6 +92,11 @@ public class UserAccount {
     @Builder.Default
     private boolean memberJoinedAlertsEnabled = true;
 
+    /** Recibe un aviso push cuando termina una jornada de sus ligas, para ver cómo queda el ranking. */
+    @Column(name = "matchday_finished_alerts_enabled", nullable = false)
+    @Builder.Default
+    private boolean matchdayFinishedAlertsEnabled = true;
+
     @Column(name = "profile_setup_completed", nullable = false)
     private boolean profileSetupCompleted;
 
