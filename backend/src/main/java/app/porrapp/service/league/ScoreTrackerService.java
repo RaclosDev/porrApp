@@ -15,6 +15,7 @@ import app.porrapp.model.ScoreTrackerPlayer;
 import app.porrapp.model.ScoreTrackerRound;
 import app.porrapp.model.ScoreTrackerScore;
 import app.porrapp.model.ScoreTrackerSession;
+import app.porrapp.model.UserAccount;
 import app.porrapp.repository.ScoreTrackerMemberRepository;
 import app.porrapp.repository.ScoreTrackerPlayerRepository;
 import app.porrapp.repository.ScoreTrackerRepository;
@@ -51,6 +52,7 @@ public class ScoreTrackerService {
 
     static final int MAX_TRACKERS_PER_OWNER = 30;
     static final int MAX_PLAYERS = 20;
+    static final int MAX_NAME_LENGTH = 40;
     static final int MAX_ROUNDS = 2000;
     static final int MAX_POINTS = 1_000_000;
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -66,9 +68,34 @@ public class ScoreTrackerService {
     private final UserAccountRepository users;
     private final WebSocketService webSocketService;
 
+    private UserAccount account(String email) {
+        return users.findByGoogleEmail(email).orElseThrow(() -> BusinessException.forbidden("Usuario no encontrado"));
+    }
+
     private Long userId(String email) {
-        return users.findByGoogleEmail(email)
-                .orElseThrow(() -> BusinessException.forbidden("Usuario no encontrado")).getId();
+        return account(email).getId();
+    }
+
+    /** Cómo se llama el usuario en el marcador: su nombre de jugador de la app, o el de su cuenta. */
+    private static String displayName(UserAccount account) {
+        String name = clean(account.getParticipantName());
+        if (name.isEmpty()) name = clean(account.getGoogleName());
+        if (name.isEmpty()) name = "Jugador";
+        return name.length() > MAX_NAME_LENGTH ? name.substring(0, MAX_NAME_LENGTH) : name;
+    }
+
+    /** El nombre tal cual si está libre; si no, con un número para que no se repitan. */
+    private static String freeName(String wanted, List<ScoreTrackerPlayer> existing) {
+        Set<String> taken = existing.stream().map(player -> player.getName().toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+        if (!taken.contains(wanted.toLowerCase(Locale.ROOT))) return wanted;
+        for (int number = 2; ; number++) {
+            String suffix = " (" + number + ")";
+            String base = wanted.length() + suffix.length() > MAX_NAME_LENGTH
+                    ? wanted.substring(0, MAX_NAME_LENGTH - suffix.length()) : wanted;
+            String candidate = base + suffix;
+            if (!taken.contains(candidate.toLowerCase(Locale.ROOT))) return candidate;
+        }
     }
 
     /** El marcador, si el usuario lo ve; si no existe o no es suyo, el mismo error (no se filtra su existencia). */
@@ -103,18 +130,27 @@ public class ScoreTrackerService {
         throw BusinessException.conflict("No se pudo generar el código, inténtalo de nuevo");
     }
 
+    /**
+     * Crea el marcador con quien lo crea como primer jugador. El resto entra al unirse con el código o los
+     * añade el creador a mano; los nombres que lleve la petición se suman detrás.
+     */
     @Transactional
     public ScoreTrackerDTO create(String email, ScoreTrackerRequest request) {
-        Long userId = userId(email);
+        UserAccount owner = account(email);
+        Long userId = owner.getId();
         if (trackers.countByOwnerUserId(userId) >= MAX_TRACKERS_PER_OWNER) {
             throw BusinessException.badRequest("Has llegado al máximo de marcadores");
         }
         String name = clean(request.name());
         if (name.isEmpty()) throw BusinessException.badRequest("Ponle nombre al marcador");
-        List<String> names = request.players() == null ? List.of()
+        String ownerName = displayName(owner);
+        List<String> extra = request.players() == null ? List.of()
                 : request.players().stream().map(ScoreTrackerService::clean).filter(n -> !n.isEmpty()).toList();
-        if (names.size() < 2 || names.size() > MAX_PLAYERS) {
-            throw BusinessException.badRequest("Añade entre 2 y " + MAX_PLAYERS + " jugadores");
+        List<String> names = new ArrayList<>();
+        names.add(ownerName);
+        names.addAll(extra);
+        if (names.size() > MAX_PLAYERS) {
+            throw BusinessException.badRequest("Máximo " + MAX_PLAYERS + " jugadores");
         }
         if (names.stream().map(n -> n.toLowerCase(Locale.ROOT)).distinct().count() != names.size()) {
             throw BusinessException.badRequest("Los nombres de los jugadores no pueden repetirse");
@@ -124,7 +160,8 @@ public class ScoreTrackerService {
                 .ownerUserId(userId).name(name).unit(unit.isEmpty() ? "puntos" : unit)
                 .lowerWins(request.lowerWins()).joinCode(newCode()).build());
         for (int i = 0; i < names.size(); i++) {
-            players.save(ScoreTrackerPlayer.builder().trackerId(tracker.getId()).name(names.get(i)).position(i).build());
+            players.save(ScoreTrackerPlayer.builder().trackerId(tracker.getId()).name(names.get(i))
+                    .userId(i == 0 ? userId : null).position(i).build());
         }
         sessions.save(ScoreTrackerSession.builder().trackerId(tracker.getId()).build());
         return view(tracker, userId);
@@ -154,17 +191,37 @@ public class ScoreTrackerService {
         return view(visible(userId, trackerId), userId);
     }
 
-    /** Entra a un marcador con su código; repetir la petición no duplica nada. */
+    /**
+     * Entra a un marcador con su código y aparece en él como jugador: si el creador ya había apuntado a
+     * alguien con su mismo nombre se queda con ese, y si no se añade uno nuevo. Repetir la petición no
+     * duplica nada.
+     */
     @Transactional
     public ScoreTrackerDTO join(String email, String code) {
-        Long userId = userId(email);
+        UserAccount account = account(email);
+        Long userId = account.getId();
         ScoreTracker tracker = trackers.findByJoinCode(clean(code).toUpperCase(Locale.ROOT))
                 .orElseThrow(() -> BusinessException.notFound("Código no válido"));
         ScoreTrackerMember.Key key = new ScoreTrackerMember.Key(tracker.getId(), userId);
         if (!tracker.getOwnerUserId().equals(userId) && !members.existsById(key)) {
             members.save(ScoreTrackerMember.builder().trackerId(tracker.getId()).userId(userId).build());
         }
-        return view(tracker, userId);
+        if (players.findByTrackerIdAndUserId(tracker.getId(), userId).isPresent()) return view(tracker, userId);
+        List<ScoreTrackerPlayer> all = players.findByTrackerIdOrderByPositionAsc(tracker.getId());
+        String wanted = displayName(account);
+        ScoreTrackerPlayer sameName = all.stream()
+                .filter(player -> player.getUserId() == null && player.getName().equalsIgnoreCase(wanted))
+                .findFirst().orElse(null);
+        if (sameName != null) {
+            sameName.setUserId(userId);
+            players.save(sameName);
+        } else if (all.size() < MAX_PLAYERS) {
+            players.save(ScoreTrackerPlayer.builder().trackerId(tracker.getId()).name(freeName(wanted, all))
+                    .userId(userId).position(all.size()).build());
+        } else {
+            return view(tracker, userId);
+        }
+        return changed(tracker, userId);
     }
 
     @Transactional
