@@ -9,11 +9,11 @@ import java.util.Optional;
 
 public interface ScoreTrackerPlayerRepository extends JpaRepository<ScoreTrackerPlayer, Long> {
 
-    List<ScoreTrackerPlayer> findByTrackerIdOrderByPositionAsc(Long trackerId);
+    List<ScoreTrackerPlayer> findByLeagueIdOrderByPositionAsc(Long leagueId);
 
-    List<ScoreTrackerPlayer> findByTrackerIdIn(Collection<Long> trackerIds);
+    List<ScoreTrackerPlayer> findByLeagueIdIn(Collection<Long> leagueIds);
 
-    long countByTrackerId(Long trackerId);
+    long countByLeagueId(Long leagueId);
 
-    Optional<ScoreTrackerPlayer> findByTrackerIdAndUserId(Long trackerId, Long userId);
+    Optional<ScoreTrackerPlayer> findByLeagueIdAndUserId(Long leagueId, Long userId);
 }

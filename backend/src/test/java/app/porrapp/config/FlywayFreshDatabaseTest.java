@@ -72,6 +72,44 @@ class FlywayFreshDatabaseTest {
         }
     }
 
+    @Test
+    void scoreboardMigrationTurnsExistingTrackersIntoScoreboardLeagues() throws Exception {
+        String url = createDatabase("scoreboard_leagues");
+        Flyway.configure().dataSource(url, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration").target("48").load().migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("INSERT INTO app_users (id, google_email, participant_name) VALUES (1, 'a@x.com', 'Ana'), (2, 'b@x.com', 'Berto')");
+            st.execute("INSERT INTO score_trackers (id, owner_user_id, name, unit, lower_wins, join_code) VALUES (7, 1, 'Mus', 'bazas', true, 'ABCDEFGH')");
+            st.execute("INSERT INTO score_tracker_members (tracker_id, user_id) VALUES (7, 2)");
+            st.execute("INSERT INTO score_tracker_players (id, tracker_id, name, position, user_id) VALUES (70, 7, 'Ana', 0, 1), (71, 7, 'Berto', 1, 2)");
+            st.execute("INSERT INTO score_tracker_sessions (id, tracker_id) VALUES (80, 7)");
+            st.execute("INSERT INTO score_tracker_rounds (id, tracker_id, session_id) VALUES (90, 7, 80)");
+            st.execute("INSERT INTO score_tracker_scores (round_id, player_id, points) VALUES (90, 70, 3), (90, 71, 1)");
+        }
+
+        flyway(url).migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM leagues WHERE kind = 'SCOREBOARD' AND join_code = 'ABCDEFGH' AND admin_user_id = 1")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM memberships m JOIN leagues l ON l.id = m.league_id WHERE l.join_code = 'ABCDEFGH'")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM memberships m JOIN leagues l ON l.id = m.league_id WHERE l.join_code = 'ABCDEFGH' AND m.user_id = 1 AND m.role = 'ADMIN'")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_games g JOIN leagues l ON l.id = g.league_id WHERE l.join_code = 'ABCDEFGH' AND g.name = 'Mus' AND g.unit = 'bazas' AND g.lower_wins")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_players p JOIN leagues l ON l.id = p.league_id WHERE l.join_code = 'ABCDEFGH'")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_sessions s JOIN score_games g ON g.id = s.game_id AND g.league_id = s.league_id WHERE s.id = 80")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_rounds r JOIN leagues l ON l.id = r.league_id WHERE r.id = 90 AND l.kind = 'SCOREBOARD'")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_scores")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM leagues WHERE kind = 'POOL'")).isZero();
+            // Borrar la liga se lleva jugadores, juegos, sesiones y partidas.
+            st.execute("DELETE FROM memberships WHERE league_id IN (SELECT id FROM leagues WHERE join_code = 'ABCDEFGH')");
+            st.execute("DELETE FROM leagues WHERE join_code = 'ABCDEFGH'");
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_players")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM score_games")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_scores")).isZero();
+        }
+    }
+
     /** Base vacía propia, para no compartir el esquema con el resto de tests de la clase. */
     private static String createDatabase(String name) throws Exception {
         try (Connection c = DriverManager.getConnection(

@@ -3,7 +3,7 @@ package app.porrapp.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-/** Jugador de un marcador: tiene nombre y no hace falta que tenga cuenta; quien tiene cuenta puede reclamarlo. */
+/** Jugador de una liga de marcador: tiene nombre y no hace falta que tenga cuenta; quien tiene cuenta puede reclamarlo. */
 @Entity
 @Table(name = "score_tracker_players")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -13,8 +13,8 @@ public class ScoreTrackerPlayer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "tracker_id", nullable = false)
-    private Long trackerId;
+    @Column(name = "league_id", nullable = false)
+    private Long leagueId;
 
     @Column(nullable = false, length = 40)
     private String name;
