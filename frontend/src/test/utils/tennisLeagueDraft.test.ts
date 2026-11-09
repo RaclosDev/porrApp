@@ -1,4 +1,4 @@
-import scoringRuleSet from '../../../../backend/src/main/java/com/porra/mundial/scoring/ScoringRuleSet.java?raw';
+import scoringRuleSet from '../../../../backend/src/main/java/app/porrapp/scoring/ScoringRuleSet.java?raw';
 import { describe, expect, it } from 'vitest';
 import type { Competition, TennisInfo } from '../../types/api';
 import { defaultScoringRules, scoringSections, toDraft } from '../../utils/scoringRules';

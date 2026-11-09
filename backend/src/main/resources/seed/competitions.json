@@ -1,0 +1,11 @@
+[
+  { "name": "FIFA World Cup 2026", "externalId": "fifa.world", "formatType": "TOURNAMENT", "teams": "seed/world-cup-2026-teams.json" },
+  { "name": "LaLiga EA Sports", "externalId": "esp.1", "formatType": "LEAGUE" },
+  { "name": "UEFA Champions League", "externalId": "uefa.champions", "formatType": "LEAGUE" },
+  { "name": "Premier League", "externalId": "eng.1", "formatType": "LEAGUE" },
+  { "name": "Worlds de League of Legends", "externalId": "lol.worlds", "formatType": "TOURNAMENT" },
+  { "name": "UFC", "externalId": "mma.ufc", "formatType": "EVENTS" },
+  { "name": "Fórmula 1", "externalId": "f1", "formatType": "RACE" },
+  { "name": "NBA · Playoffs", "externalId": "nba", "formatType": "TOURNAMENT" },
+  { "name": "NBA · Temporada regular", "externalId": "nba.regular", "formatType": "LEAGUE" }
+]

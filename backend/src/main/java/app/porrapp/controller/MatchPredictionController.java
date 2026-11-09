@@ -1,0 +1,65 @@
+package app.porrapp.controller;
+
+import app.porrapp.dto.MatchdayFixturePredictionDTO;
+import app.porrapp.dto.MatchdayFriendPredictionDTO;
+import app.porrapp.dto.MatchdaySubmissionDTO;
+import app.porrapp.dto.MatchdaySubmissionResponse;
+import app.porrapp.dto.SurvivorStatusDTO;
+import app.porrapp.service.prediction.MatchPredictionService;
+import app.porrapp.service.notification.WebSocketService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.List;
+
+/**
+ * Pronósticos por jornada, partido a partido (signo 1X2 y marcador).
+ * Enviar pronósticos exige sesión (ver {@code SecurityConfig}).
+ */
+@RestController
+@RequestMapping("/api/predictions/matchday")
+@RequiredArgsConstructor
+public class MatchPredictionController {
+
+    private final MatchPredictionService matchPredictionService;
+    private final WebSocketService webSocketService;
+
+    /** Partidos de la jornada con el pronóstico del usuario, su bloqueo y los puntos obtenidos. */
+    @GetMapping
+    public List<MatchdayFixturePredictionDTO> getMatchdayFixtures(@RequestParam Long groupId,
+                                                                  @RequestParam(required = false) String round,
+                                                                  Principal principal) {
+        return matchPredictionService.getMatchdayFixtures(CurrentUser.email(principal), groupId, round);
+    }
+
+    /** Situación del usuario en una liga superviviente: vivo o eliminado y equipos ya elegidos. */
+    @GetMapping("/survivor")
+    public SurvivorStatusDTO getSurvivorStatus(@RequestParam Long groupId, Principal principal) {
+        return matchPredictionService.getSurvivorStatus(CurrentUser.email(principal), groupId);
+    }
+
+    /** Guarda los pronósticos de varios partidos respetando el cierre de cada uno. */
+    @PostMapping
+    public MatchdaySubmissionResponse submitMatchdayPredictions(@Valid @RequestBody MatchdaySubmissionDTO submission,
+                                                                Principal principal) {
+        int saved = matchPredictionService.saveMatchdayPredictions(
+                CurrentUser.email(principal), submission.getGroupId(), submission.getPredictions());
+        if (submission.getGroupId() != null) {
+            webSocketService.notifyMatchPredictionsSaved(submission.getGroupId());
+        }
+        return MatchdaySubmissionResponse.of(saved);
+    }
+
+    /**
+     * Pronósticos de los miembros de la liga para un partido.
+     * Los de otros usuarios solo se revelan cuando el partido ha empezado.
+     */
+    @GetMapping("/matches/{matchId}/predictions")
+    public List<MatchdayFriendPredictionDTO> getMatchdayFriendPredictions(@PathVariable Long matchId,
+                                                                          @RequestParam Long groupId,
+                                                                          Principal principal) {
+        return matchPredictionService.getFriendPredictionsForMatch(CurrentUser.email(principal), groupId, matchId);
+    }
+}

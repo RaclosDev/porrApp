@@ -1,0 +1,21 @@
+package app.porrapp.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class PredictionResponseDTO {
+    private String key;
+    private String hash;
+    private Boolean paid;
+    private String participantName;
+    private Long userId;
+    private String predictionName;
+    private Long groupId;
+    private PredictionDataDTO data;
+}
