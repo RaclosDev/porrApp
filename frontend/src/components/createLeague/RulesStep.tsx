@@ -13,6 +13,7 @@ import {
   pichichiApplies,
   rulesSport,
   scoringEditable,
+  selectedCompetition,
 } from './leagueDraft';
 import { FieldError, OptionCard, StepSection } from './parts';
 import type { StepProps } from './useLeagueDraft';
@@ -126,6 +127,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
     nbaSeries: isNbaDraft(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
     // En una competición propia, las reglas genéricas: no las de las series del LoL o la NFL.
     sport: rulesSport(draft),
+    tournamentRounds: selectedCompetition(draft, ctx)?.tournamentRounds,
     editable: draft.customScoring,
     maxPoints: SCORING_MAX_POINTS,
     rules: defaults,

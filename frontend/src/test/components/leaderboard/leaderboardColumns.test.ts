@@ -23,6 +23,35 @@ describe('leaderboardColumns', () => {
     expect(keys({ ...base, pichichi: true }).slice(-1)).toEqual(['scorer']);
   });
 
+  it('shows only the rounds the league tournament plays', () => {
+    const fromRoundOf16 = { firstRound: 'r16', thirdPlaceMatch: false } as const;
+    expect(keys({ ...base, tournament: fromRoundOf16 })).toEqual([
+      'total',
+      'matchPoints',
+      'r1',
+      'r16',
+      'qf',
+      'sf',
+      'finals',
+    ]);
+    expect(
+      leaderboardColumns({ ...base, tournament: fromRoundOf16 }).map((col) => col.label),
+    ).not.toContain('Dieciseisavos');
+    expect(keys({ ...base, tournament: { firstRound: 'qf', thirdPlaceMatch: true } })).toEqual([
+      'total',
+      'matchPoints',
+      'r1',
+      'qf',
+      'sf',
+      'finals',
+    ]);
+    // Sin el dato (servidor anterior) y con el del Mundial, las mismas columnas de siempre.
+    expect(keys({ ...base, tournament: null })).toEqual(keys(base));
+    expect(keys({ ...base, tournament: { firstRound: 'r32', thirdPlaceMatch: true } })).toEqual(
+      keys(base),
+    );
+  });
+
   it('shows groups in an own bracket only when someone scored there', () => {
     expect(keys({ ...base, ownBracket: true })).toEqual(['total', 'r32']);
     expect(keys({ ...base, ownBracket: true, ownBracketHasGroupPoints: true })).toEqual([

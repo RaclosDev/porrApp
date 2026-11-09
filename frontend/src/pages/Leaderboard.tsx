@@ -166,6 +166,7 @@ function Leaderboard() {
     ownBracketHasGroupPoints: validResults.some((row) => (row.points.r1 ?? 0) !== 0),
     selectedMatchday,
     roundPointsColumn: layout.roundPointsColumn,
+    tournament: state.activeTournamentRounds,
   });
   const summaryMatchday = selectedMatchdayInfo || currentMatchday;
   // Clasificación de la jornada elegida en vez de la general (se activa al cambiar de jornada).
@@ -262,6 +263,7 @@ function Leaderboard() {
                 validResults={validResults}
                 userName={userName}
                 allGames={state.allGames}
+                tournament={state.activeTournamentRounds}
               />
             </Suspense>
           </div>

@@ -1,4 +1,11 @@
-import type { PoolFormat, ScoringRuleKey, ScoringRules, Sport } from '../types/api';
+import type {
+  PoolFormat,
+  ScoringRuleKey,
+  ScoringRules,
+  Sport,
+  TournamentRounds,
+} from '../types/api';
+import { WORLD_CUP_2026_FORMAT, roundsOf, type BracketRound } from './firstKnockoutRound';
 
 interface ScoringField {
   key: ScoringRuleKey;
@@ -124,6 +131,17 @@ const KNOCKOUTS: ScoringSection = {
     { key: 'semiFinalPoints', label: 'Semifinales', hint: 'Cada equipo que llega a la final.' },
   ],
 };
+
+/** Ronda del cuadro que puntúa cada regla de las eliminatorias. */
+const KNOCKOUT_FIELD_ROUND: Partial<Record<ScoringRuleKey, BracketRound>> = {
+  roundOf32Points: 'r32',
+  roundOf16Points: 'r16',
+  quarterFinalPoints: 'qf',
+  semiFinalPoints: 'sf',
+};
+
+/** Reglas que solo puntúan si se juega el partido por el tercer puesto. */
+const THIRD_PLACE_FIELDS: ScoringRuleKey[] = ['thirdPlacePoints', 'fourthPlacePoints'];
 
 const PODIUM: ScoringSection = {
   id: 'podium',
@@ -340,7 +358,9 @@ const NBA_EXACT: ScoringSection = {
  * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
  * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi. Sin empate
  * (`winnerOnly`: NFL, NBA, competiciones propias) cada partido puntúa solo el ganador, y lo del empate de
- * la NFL solo se cuenta en la NFL.
+ * la NFL solo se cuenta en la NFL. De un torneo con grupos (`tournament`) solo salen las rondas que
+ * juega: sin dieciseisavos si empieza en octavos, sin tercer y cuarto puesto si no hay partido por el
+ * tercero.
  */
 export function scoringSections(
   format: PoolFormat | null,
@@ -350,6 +370,7 @@ export function scoringSections(
   winnerOnly = false,
   sport: Sport | null = null,
   fights = false,
+  tournament: TournamentRounds = WORLD_CUP_2026_FORMAT,
 ): ScoringSection[] {
   if (sport === 'TENNIS') return [TENNIS];
   if (format === 'MATCH_DAY' && sport === 'LEAGUE_OF_LEGENDS') return [LOL_MATCHDAY];
@@ -363,7 +384,21 @@ export function scoringSections(
   if (format === 'GRAND_PRIX') return [GRAND_PRIX];
   if (nbaSeries) return [NBA_SERIES, NBA_EXACT];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
-  const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
+  const rounds = roundsOf(tournament);
+  const knockouts: ScoringSection = {
+    ...KNOCKOUTS,
+    fields: KNOCKOUTS.fields.filter((field) => {
+      const round = KNOCKOUT_FIELD_ROUND[field.key];
+      return !round || rounds.includes(round);
+    }),
+  };
+  const podium: ScoringSection = tournament.thirdPlaceMatch
+    ? PODIUM
+    : {
+        ...PODIUM,
+        fields: PODIUM.fields.filter((field) => !THIRD_PLACE_FIELDS.includes(field.key)),
+      };
+  const sections = format === 'KNOCKOUTS_ONLY' ? [knockouts, podium] : [GROUPS, knockouts, podium];
   return pichichi ? [...sections, TOP_SCORER] : sections;
 }
 

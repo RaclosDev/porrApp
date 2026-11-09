@@ -61,6 +61,29 @@ describe('scoringRules', () => {
     ]);
   });
 
+  it('un torneo que empieza en octavos no tiene regla de dieciseisavos ni, sin su partido, de tercer puesto', () => {
+    const keys = (tournament?: Parameters<typeof scoringSections>[7]) =>
+      scoringSections('FULL_BRACKET', true, false, false, false, null, false, tournament).flatMap(
+        (section) => section.fields.map((field) => field.key),
+      );
+    const euro = keys({ firstRound: 'r16', thirdPlaceMatch: false });
+    expect(euro).toEqual([
+      'groupQualifierPoints',
+      'groupExactPositionPoints',
+      'roundOf16Points',
+      'quarterFinalPoints',
+      'semiFinalPoints',
+      'championPoints',
+      'runnerUpPoints',
+      'topScorerPoints',
+    ]);
+    // El Mundial, y una liga que no dice sus rondas, conservan todas sus reglas.
+    expect(keys({ firstRound: 'r32', thirdPlaceMatch: true })).toEqual(keys());
+    expect(keys()).toEqual(keysOf('FULL_BRACKET', true));
+    expect(keys()).toContain('roundOf32Points');
+    expect(keys()).toContain('fourthPlacePoints');
+  });
+
   it('los playoffs de la NBA puntúan cada serie y el extra por acertar en cuántos partidos', () => {
     const nba = scoringSections('KNOCKOUTS_ONLY', false, true, true).flatMap((section) =>
       section.fields.map((field) => field.key),

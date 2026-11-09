@@ -49,6 +49,7 @@ export default function ScoringRulesPanel({
     winnerOnly,
     scoring.sport ?? null,
     scoring.fights,
+    scoring.tournamentRounds ?? undefined,
   );
   const current = (key: ScoringRuleKey) =>
     draft?.[key] ?? String(scoring.rules[key] ?? scoring.defaults[key]);
