@@ -36,7 +36,7 @@ function OfficialBracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Resultados" what="los resultados" />,
     unknown: <UnsupportedLeagueState />,
-    worldCup: <WorldCupOfficialBracket />,
+    groupStage: <WorldCupOfficialBracket />,
     customBracket: <CustomTournamentHome />,
     ownBracket: <OfficialTournamentHome />,
     knockoutDraw: <KnockoutDrawResults />,

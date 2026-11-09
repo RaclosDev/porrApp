@@ -12,7 +12,7 @@ for (const width of [390, 1440]) {
       localStorage.setItem('activeGroupId', '1');
       localStorage.setItem('activeCompetitionId', '2');
     });
-    const group = withLeagueKind('worldCup', {
+    const group = withLeagueKind('groupStage', {
       id: 1,
       name: 'Liga local',
       adminUserId: 7,

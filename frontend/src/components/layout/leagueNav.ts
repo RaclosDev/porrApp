@@ -60,7 +60,7 @@ const LEAGUE_NAV: Record<LeagueKind, readonly LeagueNavItem[] | null> = {
   error: [HOME, MY_LEAGUES],
   none: [HOME, MY_LEAGUES],
   unknown: [HOME, RANKING, MY_LEAGUES],
-  worldCup: [HOME, MY_BRACKET, RESULTS, WORLD_CUP_GROUPS, RANKING, MY_LEAGUES],
+  groupStage: [HOME, MY_BRACKET, RESULTS, WORLD_CUP_GROUPS, RANKING, MY_LEAGUES],
   customBracket: BRACKET_NAV,
   ownBracket: BRACKET_NAV,
   knockoutDraw: BRACKET_NAV,

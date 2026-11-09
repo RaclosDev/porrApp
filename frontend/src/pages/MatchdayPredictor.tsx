@@ -37,7 +37,7 @@ function MatchdayPredictor() {
     matchday: league,
     fightCard: league,
     tennisDraw: league,
-    worldCup: <Navigate to="/prediction" replace />,
+    groupStage: <Navigate to="/prediction" replace />,
     customBracket: <Navigate to="/prediction" replace />,
     ownBracket: <Navigate to="/prediction" replace />,
     knockoutDraw: <Navigate to="/prediction" replace />,

@@ -104,7 +104,7 @@ describe('league home', () => {
 
   it('gives a bracket league the same home, with upcoming matches instead of the bracket', () => {
     renderHome({
-      leagueKind: 'worldCup',
+      leagueKind: 'groupStage',
       activeCompetitionExternalId: 'fifa.world',
       allGames: [
         match({

@@ -105,7 +105,7 @@ const card = (name: string) => screen.getByRole('region', { name });
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(useAppContext).mockReturnValue({
-    leagueKind: 'worldCup',
+    leagueKind: 'groupStage',
     activeGroupId: '7',
     userGroups: [],
     changeGroup: vi.fn(),

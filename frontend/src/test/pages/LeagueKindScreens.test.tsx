@@ -179,7 +179,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Mi porra',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
+      groupStage: WORLD_CUP,
       customBracket: 'Cuadro propio',
       ownBracket: 'Cuadro propio',
       knockoutDraw: 'Eliminatorias sorteadas',
@@ -198,7 +198,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Estadísticas',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
+      groupStage: WORLD_CUP,
       customBracket: 'Más elegidos del cuadro',
       ownBracket: 'Más elegidos del cuadro',
       knockoutDraw: 'Más elegidos del cuadro',
@@ -217,7 +217,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Buscar',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
+      groupStage: WORLD_CUP,
       customBracket: 'Buscador de equipos del cuadro',
       ownBracket: 'Buscador de equipos del cuadro',
       knockoutDraw: 'Buscador de equipos del cuadro',
@@ -236,7 +236,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Resultados',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
+      groupStage: WORLD_CUP,
       customBracket: 'Resultados de la competición personalizada',
       ownBracket: 'Resultados del torneo',
       knockoutDraw: 'Resultados de las eliminatorias',
@@ -255,7 +255,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Inicio',
       unknown: UNKNOWN,
-      worldCup: 'Portada de la liga',
+      groupStage: 'Portada de la liga',
       customBracket: 'Portada de la liga',
       ownBracket: 'Portada de la liga',
       knockoutDraw: 'Portada de la liga',
@@ -274,7 +274,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Inicio',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
+      groupStage: WORLD_CUP,
       customBracket: 'Resultados de la competición personalizada',
       ownBracket: 'Resultados del torneo',
       knockoutDraw: 'Resultados de las eliminatorias',
@@ -293,7 +293,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Tabla',
       unknown: UNKNOWN,
-      worldCup: ROUTES['/bracket'],
+      groupStage: ROUTES['/bracket'],
       customBracket: ROUTES['/bracket'],
       ownBracket: ROUTES['/bracket'],
       knockoutDraw: ROUTES['/bracket'],
@@ -312,7 +312,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Mi porra',
       unknown: UNKNOWN,
-      worldCup: ROUTES['/prediction'],
+      groupStage: ROUTES['/prediction'],
       customBracket: ROUTES['/prediction'],
       ownBracket: ROUTES['/prediction'],
       knockoutDraw: ROUTES['/prediction'],
@@ -331,7 +331,7 @@ describe.each(SCREENS)('$name para cada clase de liga', ({ path, element, expect
     renderScreen(kind, path, element);
     expect(await screen.findByText(expected[kind])).toBeInTheDocument();
     // Ninguna clase que no sea el Mundial abre una vista del Mundial.
-    if (kind !== 'worldCup') expect(screen.queryByText(WORLD_CUP)).not.toBeInTheDocument();
+    if (kind !== 'groupStage') expect(screen.queryByText(WORLD_CUP)).not.toBeInTheDocument();
   });
 });
 
@@ -349,7 +349,7 @@ describe('Enlaces a Estadísticas y al Buscador', () => {
 
 describe('Visor de porras para cada clase de liga', () => {
   const expected: Record<LeagueKind, string | null> = {
-    worldCup: WORLD_CUP,
+    groupStage: WORLD_CUP,
     customBracket: 'Visor del cuadro propio',
     ownBracket: 'Visor del cuadro propio',
     knockoutDraw: 'Visor del cuadro propio',
@@ -373,7 +373,7 @@ describe('Visor de porras para cada clase de liga', () => {
 
 describe('Ranking para cada clase de liga', () => {
   const opens: Record<LeagueKind, 'viewer' | string | null> = {
-    worldCup: 'viewer',
+    groupStage: 'viewer',
     customBracket: 'viewer',
     ownBracket: 'viewer',
     knockoutDraw: 'viewer',

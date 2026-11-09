@@ -39,7 +39,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Inicio" what="los partidos y el ranking" />,
     unknown: <UnsupportedLeagueState />,
-    worldCup: home ? <LeagueHomeDashboard /> : <WorldCupGroups />,
+    groupStage: home ? <LeagueHomeDashboard /> : <WorldCupGroups />,
     customBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
     ownBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
     knockoutDraw: home ? <LeagueHomeDashboard /> : <OfficialBracket />,

@@ -9,7 +9,7 @@ import { isTennisCompetition } from '../utils/tennisDraw';
  * - `loading`: aún se elige la liga o llegan sus datos.
  * - `error`: no se ha podido cargar la liga.
  * - `none`: no hay liga activa.
- * - `worldCup`: cuadro del Mundial (grupos, terceros, cruces y pichichi oficiales).
+ * - `groupStage`: torneo con fase de grupos, hoy el Mundial (grupos, terceros, cruces y pichichi oficiales).
  * - `customBracket`: cuadro de una competición personalizada de la liga.
  * - `ownBracket`: cuadro fijo de un torneo oficial que no es el Mundial (Worlds de LoL…).
  * - `knockoutDraw`: eliminatorias sorteadas ronda a ronda (Champions, Copa del Rey, playoffs de la NBA).
@@ -23,7 +23,7 @@ export type LeagueKind =
   | 'loading'
   | 'error'
   | 'none'
-  | 'worldCup'
+  | 'groupStage'
   | 'customBracket'
   | 'ownBracket'
   | 'knockoutDraw'
@@ -37,7 +37,7 @@ const KINDS: Record<LeagueKind, true> = {
   loading: true,
   error: true,
   none: true,
-  worldCup: true,
+  groupStage: true,
   customBracket: true,
   ownBracket: true,
   knockoutDraw: true,
@@ -83,7 +83,7 @@ function bracketKind(league: LeagueFacts): LeagueKind {
   if (league.customCompetition) return 'customBracket';
   // Un cuadro junta los cruces de una sola competición.
   if (league.multiCompetition) return 'unknown';
-  if (isWorldCupCompetition(league.competitionExternalId)) return 'worldCup';
+  if (isWorldCupCompetition(league.competitionExternalId)) return 'groupStage';
   if (league.formatType === 'TOURNAMENT' && league.competitionExternalId) return 'ownBracket';
   return 'unknown';
 }
@@ -114,7 +114,7 @@ export function leagueKindOf({ hasLeague, loading, error, league }: LeagueKindIn
 
 /** La liga se juega sobre un cuadro: su porra se rellena en «Mi porra» y sus resultados están en /bracket. */
 export const BRACKET_KINDS = {
-  worldCup: true,
+  groupStage: true,
   customBracket: true,
   ownBracket: true,
   knockoutDraw: true,
@@ -133,7 +133,7 @@ export const MATCH_KINDS = {
   matchday: true,
   fightCard: true,
   tennisDraw: true,
-  worldCup: false,
+  groupStage: false,
   customBracket: false,
   ownBracket: false,
   knockoutDraw: false,

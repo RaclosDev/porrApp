@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Group } from '../src/types/api';
 import { withLeagueKind } from './leagueKind';
 
-const demoLeague: Group = withLeagueKind('worldCup', {
+const demoLeague: Group = withLeagueKind('groupStage', {
   id: 1,
   name: 'Porra Global',
   joinCode: null,

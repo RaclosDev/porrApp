@@ -51,7 +51,7 @@ const MATCHDAY_RANKING: RankingLayout = {
 };
 
 const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
-  worldCup: {
+  groupStage: {
     byRound: false,
     ownBracket: false,
     openRow: 'viewer',

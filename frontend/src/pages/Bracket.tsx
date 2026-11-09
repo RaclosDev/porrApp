@@ -28,7 +28,7 @@ function Bracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Mi porra" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
-    worldCup: <WorldCupBracket />,
+    groupStage: <WorldCupBracket />,
     // Los cuadros propios (personalizadas, Worlds de LoL…) se pronostican sobre sus cruces.
     customBracket: <CustomBracket />,
     ownBracket: <CustomBracket />,
