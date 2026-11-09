@@ -86,7 +86,7 @@ describe('CustomBracket', () => {
     expect(left.getByRole('heading', { name: 'Cuartos' })).toBeInTheDocument();
     expect(screen.getAllByRole('tab', { name: 'Cuartos' })[0]).toBeInTheDocument();
     const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
-    expect(center.getAllByText('Ganador C1').length).toBeGreaterThan(0);
+    expect(center.getAllByText('Ganador semifinal 1').length).toBeGreaterThan(0);
 
     pick('T1');
     expect(screen.getAllByRole('button', { name: 'Pasar a T1' })[0]).toHaveAttribute(

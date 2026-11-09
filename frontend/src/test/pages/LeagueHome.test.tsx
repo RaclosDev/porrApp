@@ -86,6 +86,22 @@ describe('league home', () => {
     expect(ranking).not.toHaveTextContent(/🥇|🥈|🥉|º/);
   });
 
+  it('gives tied participants the same position, also before they have a prediction', () => {
+    renderHome({
+      leagueKind: 'matchday',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      leaderboardData: [
+        { id: 1, userId: 7, name: 'Ana', total: 0 },
+        { id: null, userId: 8, name: 'Bea', total: 0 },
+        { id: null, userId: 9, name: 'Carla', total: 0 },
+      ] as AppContextValue['leaderboardData'],
+    });
+    const rows = within(screen.getByRole('list', { name: 'Top del ranking' })).getAllByRole(
+      'listitem',
+    );
+    rows.forEach((row) => expect(row).toHaveTextContent(/^1/));
+  });
+
   it('gives a bracket league the same home, with upcoming matches instead of the bracket', () => {
     renderHome({
       leagueKind: 'worldCup',

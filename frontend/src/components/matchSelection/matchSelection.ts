@@ -145,7 +145,7 @@ export const PICK_MODES: { value: PickMode; title: string; text: string }[] = [
   {
     value: 'TEAMS',
     title: 'Los de un equipo',
-    text: 'Para la peña de un club. Los partidos nuevos entran solos.',
+    text: 'Solo los de los equipos que elijas. Los partidos nuevos entran solos.',
   },
   {
     value: 'PICK',
