@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPrediction } from '../services/api';
-import { worldCupOfficialBracketQuery, predictionScoreQuery } from '../services/queries';
+import { tournamentOfficialBracketQuery, predictionScoreQuery } from '../services/queries';
 import { checkIsKnockoutPhase, injectQualifiedTeams, normalizePart } from '../utils/predictionData';
 import {
   EMPTY_OFFICIAL_BRACKET,
@@ -34,6 +34,7 @@ export type { RoundRef } from '../utils/predictionViewer';
  * @param leaderboardData - Ranking de la liga; da los puntos mientras llega el desglose.
  * @param allGames - Partidos oficiales, para saber quién ha caído.
  * @param initialPart - Porra ya disponible (lista de participantes) para pintarla al instante.
+ * @param tournamentId - Torneo con grupos de la liga; sin él no hay cuadro oficial que pedir.
  */
 export function usePredictionViewerData(
   viewerPredictionId: string | number | null,
@@ -42,6 +43,7 @@ export function usePredictionViewerData(
   groupOdds: GroupOdds,
   allGames: Match[],
   initialPart: PredictionData | null = null,
+  tournamentId: number | null = null,
 ) {
   const [rawPart, setRawPart] = useState<PredictionData | null>(() => initialPart || null);
   const [partLoading, setPartLoading] = useState(false);
@@ -49,12 +51,14 @@ export function usePredictionViewerData(
 
   // Cuadro oficial compartido con el resto de la app; el WebSocket lo invalida.
   const officialQuery = useQuery({
-    ...worldCupOfficialBracketQuery(),
-    enabled: Boolean(viewerPredictionId),
+    ...tournamentOfficialBracketQuery(tournamentId),
+    enabled: Boolean(viewerPredictionId) && tournamentId != null,
   });
+  const noOfficialBracket = officialQuery.isError || tournamentId == null;
   const rawOfficialBracket =
-    officialQuery.data ?? (officialQuery.isError ? EMPTY_OFFICIAL_BRACKET : null);
-  const loading = partLoading || (Boolean(viewerPredictionId) && officialQuery.isPending);
+    officialQuery.data ?? (noOfficialBracket ? EMPTY_OFFICIAL_BRACKET : null);
+  const loading =
+    partLoading || (Boolean(viewerPredictionId) && tournamentId != null && officialQuery.isPending);
 
   const part = useMemo(() => normalizePart(rawPart, groupOdds), [rawPart, groupOdds]);
 

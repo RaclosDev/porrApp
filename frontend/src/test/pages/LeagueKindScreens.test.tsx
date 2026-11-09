@@ -27,7 +27,7 @@ vi.mock('../../context/AppContext', () => ({
 // Todas las vistas del Mundial piden sus datos: si alguna se abre, lo dice.
 vi.mock(import('../../context/leagueData'), async (original) => ({
   ...(await original()),
-  useWorldCupData: () => {
+  useTournamentData: () => {
     throw new Error(WORLD_CUP);
   },
 }));

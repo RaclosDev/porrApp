@@ -7,7 +7,7 @@ import {
   fetchMyGroups,
   fetchMyLeagueSummaries,
   fetchMyPredictions,
-  fetchWorldCupOfficialBracket,
+  fetchTournamentOfficialBracket,
   fetchPredictions,
   fetchPredictionScore,
 } from './api';
@@ -43,10 +43,11 @@ export const featuredGroupQuery = () =>
   });
 
 /** Cuadro oficial; lo invalida el WebSocket cuando cambia un resultado. */
-export const worldCupOfficialBracketQuery = () =>
+export const tournamentOfficialBracketQuery = (competitionId: number | null) =>
   queryOptions({
-    queryKey: queryKeys.worldCupOfficialBracket(),
-    queryFn: fetchWorldCupOfficialBracket,
+    queryKey: queryKeys.tournamentOfficialBracket(competitionId),
+    queryFn: () => fetchTournamentOfficialBracket(competitionId as number),
+    enabled: competitionId != null,
     staleTime: 60_000,
   });
 

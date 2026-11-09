@@ -10,7 +10,7 @@ import { appContext, matchdayFixture } from '../context/fixtures';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../context/leagueData', () => ({
-  useWorldCupData: () => ({ groupOdds: {}, groupStandings: {} }),
+  useTournamentData: () => ({ groupOdds: {}, groupStandings: {} }),
 }));
 vi.mock('../../services/api', () => ({
   fetchCompetitionStandings: vi.fn(),

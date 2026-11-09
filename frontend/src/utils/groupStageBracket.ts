@@ -10,7 +10,7 @@
  *
  * Llegar a una ronda es pasar la anterior: quien está en `r16` pasa de dieciseisavos. La fase de
  * grupos es la primera ronda, la que pasan 32. El cuadro oficial
- * (`/api/world-cup/official-bracket`) tiene la misma forma que una predicción.
+ * (`/api/competitions/{id}/tournament/official-bracket`) tiene la misma forma que una predicción.
  */
 import type { GroupStandings, PredictionData, PredictionSummary, TeamPair } from '../types/api';
 import { knockoutRoundTitle } from './knockoutDraw';
