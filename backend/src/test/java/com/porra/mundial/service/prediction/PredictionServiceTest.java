@@ -41,7 +41,7 @@ class PredictionServiceTest {
     private MembershipRepository membershipRepository;
 
     @org.mockito.Spy
-    private BracketPredictionValidator bracketValidator = new BracketPredictionValidator(mock(com.porra.mundial.repository.TeamRepository.class));
+    private BracketPredictionValidator bracketValidator = new BracketPredictionValidator(mock(com.porra.mundial.repository.CompetitionTeamRepository.class));
 
     @Mock
     private CustomBracketPredictionValidator customBracketValidator;

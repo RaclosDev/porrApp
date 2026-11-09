@@ -3,7 +3,7 @@ package com.porra.mundial.service.prediction;
 import com.porra.mundial.exception.BusinessException;
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.model.*;
-import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.repository.CompetitionTeamRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import java.util.*;
@@ -11,21 +11,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class BracketPredictionValidatorTest {
-    private final TeamRepository repository = mock(TeamRepository.class);
+    private final CompetitionTeamRepository repository = mock(CompetitionTeamRepository.class);
     private final BracketPredictionValidator validator = new BracketPredictionValidator(repository);
     private final Edition edition = Edition.builder().poolFormat(PoolFormat.KNOCKOUTS_ONLY)
             .competition(Competition.builder().externalId(Competition.WORLD_CUP_EXTERNAL_ID).build()).build();
 
     @BeforeEach
     void loadWorldCupTeams() {
-        List<Team> teams = new ArrayList<>();
+        List<CompetitionTeam> teams = new ArrayList<>();
         for (char group = 'A'; group <= 'L'; group++) {
             for (int number = 1; number <= 4; number++) {
-                teams.add(Team.builder().name(group + "" + number)
+                teams.add(CompetitionTeam.builder().team(Team.builder().name(group + "" + number).build())
                         .groupName(String.valueOf(group)).build());
             }
         }
-        when(repository.findAllByOrderByGroupNameAscNameAsc()).thenReturn(teams);
+        when(repository.findGroupTeams(any())).thenReturn(teams);
     }
 
     private PredictionDataDTO draft() {
