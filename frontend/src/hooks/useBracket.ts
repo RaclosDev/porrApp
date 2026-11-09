@@ -55,6 +55,8 @@ export function useBracket() {
 
   const [predictionName, setPredictionName] = useState('');
   const [savedPredictionId, setSavedPredictionId] = useState<string | null>(null);
+  // Lo tocado desde la última vez que se guardó: el borrador local no llega a la liga hasta guardar.
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savedGroupsDraft, setSavedGroupsDraft] = useState<Record<string, GroupSelection>>(() =>
     readGroupsDraft(activeGroupId, userId),
   );
@@ -70,6 +72,7 @@ export function useBracket() {
     setSavedThirdsDraft(readThirdsDraft(activeGroupId, userId));
     setPredictionName('');
     setSavedPredictionId(null);
+    setHasUnsavedChanges(false);
   }
   const navigate = useNavigate();
 
@@ -144,6 +147,7 @@ export function useBracket() {
 
   const setR32Team = (teamName: string, side: Side, matchIndex: number, isHome: boolean) => {
     setBracketState(replaceR32Team(bracketState, teamName, side, matchIndex, isHome));
+    setHasUnsavedChanges(true);
   };
 
   const advanceTeam = (
@@ -153,6 +157,7 @@ export function useBracket() {
     matchIndex: number,
   ) => {
     setBracketState(advanceBracketWinner(bracketState, team, side, roundIndex, matchIndex));
+    setHasUnsavedChanges(true);
   };
 
   const handleGroupStageComplete = (
@@ -160,6 +165,7 @@ export function useBracket() {
     advancingThirds: string[],
   ) => {
     setBracketState(applyGroupStage(bracketState, selections, advancingThirds, format));
+    setHasUnsavedChanges(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -197,6 +203,7 @@ export function useBracket() {
     try {
       await createPrediction(predictionData, activeGroupId);
       toast.success('Porra guardada.');
+      setHasUnsavedChanges(false);
       fetchData();
     } catch (e) {
       toast.error(errorMessage(e, 'No se pudo guardar la porra. Inténtalo de nuevo.'));
@@ -216,6 +223,7 @@ export function useBracket() {
     if (!hasValidGroupSelections(savedGroupsDraft)) storeGroupsFromBracket();
     setBracketState(getDefaultBracketState(bracketState.topologyVersion, format));
     removeDraft('bracket', activeGroupId, userId);
+    setHasUnsavedChanges(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -228,9 +236,16 @@ export function useBracket() {
     userName,
     setUserName,
     topScorer,
-    setTopScorer,
+    setTopScorer: (value: string) => {
+      setTopScorer(value);
+      setHasUnsavedChanges(true);
+    },
     predictionName,
-    setPredictionName,
+    setPredictionName: (value: string) => {
+      setPredictionName(value);
+      setHasUnsavedChanges(true);
+    },
+    hasUnsavedChanges,
     isKnockoutsOnly,
     allTeams,
     isInitialState,

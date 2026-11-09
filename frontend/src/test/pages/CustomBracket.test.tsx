@@ -213,7 +213,7 @@ describe('CustomBracket', () => {
     expect(screen.getByRole('list', { name: 'Leyenda del cuadro' })).toHaveTextContent(
       /^Acertada.*Fallada$/,
     );
-    expect(right.getAllByText('Descanso').length).toBeGreaterThan(0);
+    expect(right.getAllByText('Pasa directo').length).toBeGreaterThan(0);
     // El equipo que descansa no se elige: pasa solo a semifinales.
     expect(right.queryByRole('button', { name: 'Pasar a Solo' })).toBeNull();
     const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));

@@ -1,5 +1,12 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  Navigate,
+  Route,
+  RouterProvider,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { useAppStore } from './store/useAppStore';
 import { useLeaguePredictions } from './hooks/useLeaguePredictions';
@@ -14,6 +21,7 @@ import { RequireLeague } from './components/NoLeagueState';
 import { CONTENT_PAGES } from './seo/pages';
 import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
+import LeaveGuard from './components/LeaveGuard';
 import { Toaster } from 'react-hot-toast';
 import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
 import { useSessionHandoffPending } from './hooks/useSessionHandoffPending';
@@ -157,6 +165,151 @@ const ProtectedRoute = ({
   return children;
 };
 
+/** Lo que va dentro del enrutador: avisos globales, la maqueta y las rutas. */
+function AppShell() {
+  return (
+    <>
+      <PwaUpdater />
+      <PushNavigation />
+      <ScrollOnNavigate />
+      <RouteHead />
+      <CookieConsent />
+      <ConfirmDialog />
+      <LeaveGuard />
+      <Layout>
+        <Suspense fallback={<RouteFallback />}>
+          <SplashDone />
+          <Routes>
+            <Route path="/" element={<RootPage />} />
+            <Route path="/demo" element={<DemoPage />} />
+            <Route path="/join/:code" element={<JoinRedirect />} />
+            <Route path="/linkedin" element={<LinkedInEntry />} />
+            <Route path="/privacidad" element={<Legal kind="privacy" />} />
+            <Route path="/aviso-legal" element={<Legal kind="legal" />} />
+            <Route path="/restablecer-contrasena" element={<ResetPassword />} />
+            {CONTENT_PAGES.map((page) => (
+              <Route key={page.path} path={page.path} element={<ContentPage page={page} />} />
+            ))}
+
+            {/* Rutas de lectura - accesibles en guest_mode */}
+            <Route
+              path="/radar"
+              element={
+                <ProtectedRoute guestAllowed>
+                  <RequireLeague title="Partidos" what="los partidos">
+                    <Radar />
+                  </RequireLeague>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ranking"
+              element={
+                <ProtectedRoute guestAllowed>
+                  <Leaderboard />
+                </ProtectedRoute>
+              }
+            />
+            {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
+            <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
+            <Route
+              path="/grupos"
+              element={
+                <RequireLeague title="Grupos" what="los grupos">
+                  <Home defaultMode="groups" />
+                </RequireLeague>
+              }
+            />
+            <Route
+              path="/stats"
+              element={
+                <ProtectedRoute guestAllowed>
+                  <RequireLeague title="Estadísticas" what="las estadísticas">
+                    <Stats />
+                  </RequireLeague>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute guestAllowed>
+                  <RequireLeague title="Buscar" what="las predicciones">
+                    <Search />
+                  </RequireLeague>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mis-ligas"
+              element={
+                <ProtectedRoute guestAllowed>
+                  <GroupsDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/crear-liga"
+              element={
+                <ProtectedRoute>
+                  <CreateLeague />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bracket"
+              element={
+                <RequireLeague title="Resultados" what="los resultados">
+                  <OfficialBracket />
+                </RequireLeague>
+              }
+            />
+            <Route
+              path="/tabla"
+              element={
+                <ProtectedRoute guestAllowed>
+                  <RequireLeague title="Tabla" what="la tabla">
+                    <LeagueStandings />
+                  </RequireLeague>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Rutas privadas - siempre requieren login real */}
+            <Route
+              path="/prediction"
+              element={
+                <ProtectedRoute>
+                  <RequireLeague title="Mi porra" what="las predicciones">
+                    <Bracket />
+                  </RequireLeague>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/jornadas"
+              element={
+                <ProtectedRoute>
+                  <RequireLeague title="Mi porra" what="las predicciones">
+                    <MatchdayPredictor />
+                  </RequireLeague>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </Layout>
+    </>
+  );
+}
+
+// Enrutador de datos con una sola ruta comodín: las rutas siguen declaradas en `AppShell`, pero
+// así `LeaveGuard` puede retener la navegación (`useBlocker`).
+const router = createBrowserRouter([{ path: '*', element: <AppShell /> }]);
+
 function App() {
   usePaperTapeAngles();
   return (
@@ -183,140 +336,7 @@ function App() {
           },
         }}
       />
-      <Router>
-        <PwaUpdater />
-        <PushNavigation />
-        <ScrollOnNavigate />
-        <RouteHead />
-        <CookieConsent />
-        <ConfirmDialog />
-        <Layout>
-          <Suspense fallback={<RouteFallback />}>
-            <SplashDone />
-            <Routes>
-              <Route path="/" element={<RootPage />} />
-              <Route path="/demo" element={<DemoPage />} />
-              <Route path="/join/:code" element={<JoinRedirect />} />
-              <Route path="/linkedin" element={<LinkedInEntry />} />
-              <Route path="/privacidad" element={<Legal kind="privacy" />} />
-              <Route path="/aviso-legal" element={<Legal kind="legal" />} />
-              <Route path="/restablecer-contrasena" element={<ResetPassword />} />
-              {CONTENT_PAGES.map((page) => (
-                <Route key={page.path} path={page.path} element={<ContentPage page={page} />} />
-              ))}
-
-              {/* Rutas de lectura - accesibles en guest_mode */}
-              <Route
-                path="/radar"
-                element={
-                  <ProtectedRoute guestAllowed>
-                    <RequireLeague title="Partidos" what="los partidos">
-                      <Radar />
-                    </RequireLeague>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/ranking"
-                element={
-                  <ProtectedRoute guestAllowed>
-                    <Leaderboard />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
-              <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
-              <Route
-                path="/grupos"
-                element={
-                  <RequireLeague title="Grupos" what="los grupos">
-                    <Home defaultMode="groups" />
-                  </RequireLeague>
-                }
-              />
-              <Route
-                path="/stats"
-                element={
-                  <ProtectedRoute guestAllowed>
-                    <RequireLeague title="Estadísticas" what="las estadísticas">
-                      <Stats />
-                    </RequireLeague>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/search"
-                element={
-                  <ProtectedRoute guestAllowed>
-                    <RequireLeague title="Buscar" what="las predicciones">
-                      <Search />
-                    </RequireLeague>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/mis-ligas"
-                element={
-                  <ProtectedRoute guestAllowed>
-                    <GroupsDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/crear-liga"
-                element={
-                  <ProtectedRoute>
-                    <CreateLeague />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/bracket"
-                element={
-                  <RequireLeague title="Resultados" what="los resultados">
-                    <OfficialBracket />
-                  </RequireLeague>
-                }
-              />
-              <Route
-                path="/tabla"
-                element={
-                  <ProtectedRoute guestAllowed>
-                    <RequireLeague title="Tabla" what="la tabla">
-                      <LeagueStandings />
-                    </RequireLeague>
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Rutas privadas - siempre requieren login real */}
-              <Route
-                path="/prediction"
-                element={
-                  <ProtectedRoute>
-                    <RequireLeague title="Mi porra" what="las predicciones">
-                      <Bracket />
-                    </RequireLeague>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/jornadas"
-                element={
-                  <ProtectedRoute>
-                    <RequireLeague title="Mi porra" what="las predicciones">
-                      <MatchdayPredictor />
-                    </RequireLeague>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </Layout>
-      </Router>
+      <RouterProvider router={router} />
     </AppProvider>
   );
 }

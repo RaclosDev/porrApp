@@ -27,6 +27,7 @@ import {
   samePick,
   splitGrandsPrix,
 } from './grandPrix';
+import { useUnsavedChanges } from '../../utils/unsavedChanges';
 
 type Drivers = Map<number, RaceDriver>;
 
@@ -302,6 +303,10 @@ function PickForm({
     },
     onError: (reason) => setError(errorMessage(reason, 'No se pudo guardar la predicción')),
   });
+  useUnsavedChanges(
+    !samePick(gp.pick ?? EMPTY_PICK, pick),
+    `Tu predicción del ${gp.name} tiene cambios sin guardar.`,
+  );
 
   if (options.length === 0) {
     return (

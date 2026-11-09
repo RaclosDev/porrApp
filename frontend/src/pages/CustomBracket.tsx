@@ -25,6 +25,7 @@ import InkStamp from '../components/InkStamp';
 import BracketCanvas, { TeamSlot, type CanvasMatch } from '../components/BracketCanvas';
 import { BracketFinalMatch } from '../components/BracketFinale';
 import BracketTeamStatus from '../components/BracketTeamStatus';
+import { useUnsavedChanges } from '../utils/unsavedChanges';
 
 /** Texto para el lector de pantalla del equipo elegido en cada cruce. */
 const PICK_LABELS = {
@@ -224,6 +225,19 @@ export default function CustomBracket() {
         predictionName,
       }),
     [firstRound, groups, isFullBracket, picks, predictionName, groupTeams, userName],
+  );
+
+  // Incompleta no se guarda; completa, tarda un instante en llegar al servidor.
+  const unsaved =
+    editable &&
+    lock.configured &&
+    revision > 0 &&
+    (completeData ? JSON.stringify(completeData) : null) !== lastSaved;
+  useUnsavedChanges(
+    unsaved,
+    completeData
+      ? 'Tus últimos cambios aún no se han guardado.'
+      : 'La predicción no se guarda hasta completar el cuadro: si sales, pierdes lo elegido.',
   );
 
   useEffect(() => {

@@ -116,7 +116,7 @@ describe('CustomTournamentHome', () => {
     const right = within(screen.getByRole('region', { name: 'Cruces del lado derecho' }));
     expect(left.getByText('Rayo')).toBeInTheDocument();
     expect(right.getByText('Solo')).toBeInTheDocument();
-    expect(right.getByText('Descanso')).toBeInTheDocument();
+    expect(right.getByText('Pasa directo')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Grupos' }));
     const card = within(screen.getByRole('button', { name: 'Ver detalles del Grupo A' }));

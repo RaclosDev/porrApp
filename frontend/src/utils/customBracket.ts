@@ -27,6 +27,9 @@ export function pairWinners(pairs: CustomPair[], picks: string[]): string[] | nu
   return winners;
 }
 
+/** Lo que se lee donde iría el rival de un equipo que no juega la ronda. */
+export const BYE_LABEL = 'Pasa directo';
+
 /**
  * Texto del hueco que espera al ganador de un cruce anterior. Nombra la ronda de la que viene
  * cuando es reconocible ("Ganador semifinal 1"); en rondas más tempranas, el número del cruce.
@@ -99,7 +102,7 @@ export function computeCustomBracketRounds(
       const awayPlaceholder =
         a ||
         (isBye
-          ? 'Descanso'
+          ? BYE_LABEL
           : roundIndex === 0
             ? 'Equipo'
             : winnerPlaceholder(m * 2 + 2, previousCount));
@@ -270,7 +273,7 @@ export function computeCustomResultRounds(matches: Match[]): CustomResultRound[]
         home: match.home,
         away: match.away_team_id ? match.away : null,
         homePlaceholder: match.home,
-        awayPlaceholder: match.away_team_id ? match.away : 'Descanso',
+        awayPlaceholder: match.away_team_id ? match.away : BYE_LABEL,
         isBye: !match.away_team_id,
       }));
       previousWinners = created.map(customMatchWinner);
@@ -286,7 +289,7 @@ export function computeCustomResultRounds(matches: Match[]): CustomResultRound[]
           away,
           homePlaceholder: home ?? winnerPlaceholder(slot * 2 + 1, previousWinners.length),
           awayPlaceholder: isBye
-            ? 'Descanso'
+            ? BYE_LABEL
             : (away ?? winnerPlaceholder(slot * 2 + 2, previousWinners.length)),
           isBye,
         });

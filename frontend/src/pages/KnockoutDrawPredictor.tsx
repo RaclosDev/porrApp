@@ -19,6 +19,7 @@ import KnockoutDrawBoard from '../components/knockout/KnockoutDrawBoard';
 import KnockoutDrawPending from '../components/knockout/KnockoutDrawPending';
 import PaperLoading from '../components/PaperLoading';
 import InkStamp from '../components/InkStamp';
+import { useUnsavedChanges } from '../utils/unsavedChanges';
 
 const START = new Intl.DateTimeFormat('es-ES', {
   timeZone: 'Europe/Madrid',
@@ -136,6 +137,7 @@ export default function KnockoutDrawPredictor() {
   }, [activeGroupId, busy, data, editable, lastSaved, queryClient, revision]);
 
   const saving = busy || (data != null && revision > 0 && JSON.stringify(data) !== lastSaved);
+  useUnsavedChanges(editable && saving, 'Tus últimos cambios aún no se han guardado.');
 
   return (
     <section className="view-section active block" aria-label={`Predicción de ${activeGroupName}`}>
