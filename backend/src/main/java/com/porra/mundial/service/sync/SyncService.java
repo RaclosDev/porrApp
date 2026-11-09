@@ -34,7 +34,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Sincroniza partidos y resultados con el proveedor deportivo de cada competición.
  * <ul>
- *   <li>El Mundial se sincroniza entero en cada pasada; las ligas, solo de ayer a mañana.</li>
+ *   <li>El Mundial se sincroniza entero en cada pasada mientras se juega y deja de pedirse una semana
+ *       después de su último partido; las ligas, solo de ayer a mañana.</li>
  *   <li>Si una pasada cambia algún resultado del Mundial, al final se actualizan una vez su cuadro de
  *       eliminatorias y su clasificación de grupos. Si cambia algo, se avisa a los clientes.</li>
  *   <li>El estado de la última pasada, con todas sus competiciones, se expone para el health check
@@ -218,6 +219,10 @@ public class SyncService {
 
     private CompetitionSync syncCompetition(Competition competition, boolean liveOnly) {
         if (competition.isFormulaOne()) return syncFormulaOne(competition, liveOnly);
+        if (WorldCupTables.isWorldCup(competition) && knockoutBracketService.worldCupIsOver()) {
+            // Torneo cerrado: sus partidos ya no cambian y pedirlo entero en cada pasada no aporta nada.
+            return new CompetitionSync(competition.getName(), STATUS_SUCCESS, 0, 0, null, false, 0);
+        }
         long start = System.currentTimeMillis();
         SportsDataProvider provider = sportsDataProviderRegistry.findProviderForCompetition(competition.getExternalId())
                 .orElse(null);

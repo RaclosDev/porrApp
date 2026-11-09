@@ -112,6 +112,14 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findUnfinishedStartingBetween(@Param("competitionId") Long competitionId,
                                               @Param("from") Instant from, @Param("to") Instant to);
 
+    /**
+     * Partidos de la competición que aún cuentan: sin terminar, sin fecha o que empiezan desde {@code since}.
+     * Si no queda ninguno, la competición ya se jugó entera.
+     */
+    @Query("SELECT COUNT(m) FROM Match m WHERE m.competition.id = :competitionId"
+            + " AND (m.finished = FALSE OR m.finished IS NULL OR m.matchDate IS NULL OR m.matchDate >= :since)")
+    long countOpenOrStartingSince(@Param("competitionId") Long competitionId, @Param("since") Instant since);
+
     /** Competiciones con algún partido sin terminar cuyo inicio cae en el intervalo (partidos en juego). */
     @Query("SELECT DISTINCT m.competition.id FROM Match m WHERE (m.finished = FALSE OR m.finished IS NULL)"
             + " AND m.matchDate BETWEEN :from AND :to")
