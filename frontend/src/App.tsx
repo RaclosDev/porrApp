@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
+import { useAppStore } from './store/useAppStore';
 import { useLeaguePredictions } from './hooks/useLeaguePredictions';
 import { leaderPredictionId } from './utils/demoPrediction';
 import Layout from './components/Layout';
@@ -133,6 +134,7 @@ const ProtectedRoute = ({
 }) => {
   const { isAuthenticated, userName, isDemoMode } = useAppContext();
   const isAuthed = isAuthenticated && Boolean(userName);
+  const profileChecked = useAppStore((state) => state.profileChecked);
   const location = useLocation();
 
   // En demo, Mi Porra abre una porra real de la liga en modo de solo lectura.
@@ -144,6 +146,10 @@ const ProtectedRoute = ({
   if (guestAllowed || GUEST_ALLOWED_PATHS.includes(location.pathname)) {
     return children;
   }
+
+  // Con sesión pero sin el nombre guardado en este dispositivo, se espera al perfil del servidor
+  // antes de pedir que se inicie sesión.
+  if (isAuthenticated && !userName && !profileChecked) return <PageSkeleton />;
 
   if (!isAuthed) {
     return <Navigate to="/" state={{ requireLogin: true, from: location.pathname }} replace />;

@@ -31,7 +31,13 @@ vi.mock('../../services/api', () => ({
 describe('usuario de /api/users/me', () => {
   beforeEach(() => {
     localStorage.clear();
-    useAppStore.setState({ isAuthenticated: true, isDemoMode: false, userName: '', userId: '' });
+    useAppStore.setState({
+      isAuthenticated: true,
+      isDemoMode: false,
+      userName: '',
+      userId: '',
+      profileChecked: false,
+    });
   });
 
   it('toma el id del servidor (semilla del avatar de la cabecera) sin depender de localStorage', async () => {
@@ -45,6 +51,19 @@ describe('usuario de /api/users/me', () => {
 
     await waitFor(() => expect(useAppStore.getState().userId).toBe('42'));
     expect(useAppStore.getState().userName).toBe('Ana');
+  });
+
+  it('avisa de que el perfil ya ha llegado: hasta entonces una ruta con sesión no pide iniciar sesión', async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AppProvider>
+          <div />
+        </AppProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(useAppStore.getState().profileChecked).toBe(false);
+    await waitFor(() => expect(useAppStore.getState().profileChecked).toBe(true));
   });
 
   it('sin liga guardada en el dispositivo espera a elegirla antes de pintar la portada', async () => {

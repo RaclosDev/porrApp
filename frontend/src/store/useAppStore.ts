@@ -42,6 +42,9 @@ interface AppState {
   setProfileSetupCompleted: (completed: boolean) => void;
   userName: string;
   setUserName: (userName: string) => void;
+  /** El servidor ya ha contestado (o fallado) al pedir el perfil de la sesión abierta. */
+  profileChecked: boolean;
+  setProfileChecked: (profileChecked: boolean) => void;
   userAvatarUrl: string;
   setUserAvatarUrl: (url: string | null) => void;
   userId: string;
@@ -194,6 +197,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   profileSetupCompleted: null,
   setProfileSetupCompleted: (completed) =>
     set((state) => ({ profileSetupCompleted: state.profileSetupCompleted === true || completed })),
+  profileChecked: false,
+  setProfileChecked: (profileChecked) => set({ profileChecked }),
   userName: localStorage.getItem('my_prediction_name') || '',
   setUserName: (userName) => {
     if (userName) {
