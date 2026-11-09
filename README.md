@@ -4,7 +4,7 @@
 
 # PorrApp
 
-**Porras de fútbol con amigos: eliges el formato, los resultados llegan solos y la clasificación se mueve en directo.**
+**Porras de deportes con amigos: eliges la competición y el formato, los resultados llegan solos y la clasificación se mueve en directo.**
 
 [![Demo en vivo](https://img.shields.io/badge/Demo_en_vivo-porrapp.app-2fc4c4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://porrapp.app/demo)
 [![CI](https://img.shields.io/github/actions/workflow/status/RaclosDev/porrApp/ci.yml?branch=main&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml)
@@ -40,10 +40,11 @@
 ## ✨ Qué hace
 
 - **Ligas privadas** con código de invitación, control de pagos y normas propias.
-- **Tres formatos de porra:** cuadro completo (grupos y eliminatorias), solo eliminatorias, o jornada a jornada con 1X2 y marcador exacto.
+- **Multideporte:** fútbol, baloncesto, tenis, League of Legends, fútbol americano, Fórmula 1 y MMA, además de competiciones personalizadas.
+- **Cuatro formatos de porra:** cuadro completo (grupos y eliminatorias), solo eliminatorias, jornada a jornada con 1X2 y marcador exacto, o superviviente.
 - **Resultados automáticos:** los partidos se sincronizan desde ESPN y la puntuación se recalcula sola en el backend. Las competiciones personalizadas admiten resultados manuales.
 - **En directo:** cada gol llega por WebSocket y actualiza clasificación, cuadro y jornadas sin recargar.
-- **Cuadro oficial calculado:** cruces resueltos con los mejores terceros y desempates según el artículo 13 del reglamento del Mundial 2026.
+- **Cuadro oficial calculado:** cruces resueltos con los mejores terceros y desempates del reglamento del torneo (en el Mundial 2026, su artículo 13).
 - **Estadísticas:** favoritos de la liga, buscador por equipo, evolución de la clasificación y reparto de pronósticos por partido.
 - **PWA instalable**, con inicio de sesión de Google y sesiones seguras.
 
