@@ -47,8 +47,10 @@ class LeagueResponseDTOTest {
         assertEquals("TOURNAMENT", dto.getFormatType());
         assertTrue(dto.getPichichi());
         assertEquals("Admin", dto.getAdminParticipantName());
-        // Fuera del cuadro del Mundial no hay pichichi, aunque la edición lo tenga marcado.
+        // Por jornadas también se juega el pichichi; en superviviente no, aunque la edición lo tenga marcado.
         edition.setPoolFormat(PoolFormat.MATCH_DAY);
+        assertTrue(LeagueResponseDTO.of(league, edition, true).getPichichi());
+        edition.setPoolFormat(PoolFormat.SURVIVOR);
         assertFalse(LeagueResponseDTO.of(league, edition, true).getPichichi());
         edition.setPoolFormat(PoolFormat.KNOCKOUTS_ONLY);
         assertEquals("Sin rencores", dto.getRules());

@@ -556,14 +556,19 @@ const isSelectedGroupTournament = (draft: LeagueDraft, ctx: DraftContext) => {
 };
 
 /**
- * El pichichi se puntúa con los goleadores oficiales del Mundial: solo en su cuadro (ni en sus
- * jornadas ni en otros torneos).
+ * El pichichi se puntúa con los goleadores oficiales de la competición: en cualquiera de fútbol que
+ * se juegue por jornadas (se elige aparte, antes de que empiece) o en el cuadro de un torneo con
+ * grupos. Ni en un superviviente, ni en unas eliminatorias sorteadas ronda a ronda, ni en una liga
+ * que junta partidos de varias competiciones.
  */
 export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   !draft.custom &&
-  isSelectedGroupTournament(draft, ctx) &&
+  draft.sport === 'FOOTBALL' &&
+  selectedCompetition(draft, ctx) != null &&
   draft.poolFormat != null &&
-  !isMatchBasedFormat(draft.poolFormat);
+  (draft.poolFormat === 'MATCH_DAY'
+    ? !isMultiCompetition(draft.matches)
+    : isSelectedGroupTournament(draft, ctx) && !isMatchBasedFormat(draft.poolFormat));
 
 /** Elegir partidos: solo en una liga por jornadas sobre una competición oficial. */
 export const matchSelectionApplies = (draft: LeagueDraft, ctx: DraftContext) =>

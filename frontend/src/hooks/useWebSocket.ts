@@ -35,6 +35,7 @@ const RECONNECT_KEYS = [
   queryKeys.leagueScoring(),
   queryKeys.myPredictions(),
   queryKeys.myGroups(),
+  queryKeys.scorerPick(),
 ];
 
 /** Consultas que cambian cuando avanza solo el minuto de juego. */
@@ -58,6 +59,7 @@ const leagueKeys = (leagueId: string | number, isMine: boolean) => [
   queryKeys.matchdayFixtures(leagueId),
   queryKeys.matchFriendPredictions(leagueId),
   queryKeys.matchdayStats(leagueId),
+  queryKeys.scorerPick(leagueId),
   // Están en pantalla en casi todas las vistas: solo se piden si la liga es mía, para que
   // el aviso de una liga pública no haga recargar a todos los conectados.
   ...(isMine

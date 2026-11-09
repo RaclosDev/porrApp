@@ -145,7 +145,12 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
             checked={draft.pichichi}
             onChange={(event) => update({ pichichi: event.target.checked })}
           />
-          <span>Predecir también el pichichi</span>
+          <span>
+            Predecir también el pichichi
+            {draft.poolFormat === 'MATCH_DAY'
+              ? ' (se elige antes del primer partido y puntúa al terminar la liga)'
+              : ''}
+          </span>
         </label>
       )}
       <fieldset className="create-league-fieldset">

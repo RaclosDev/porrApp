@@ -1,5 +1,6 @@
 package app.porrapp.service.prediction;
 
+import app.porrapp.service.league.LeagueClosure;
 import app.porrapp.service.tournament.OfficialResultsService;
 import app.porrapp.service.tournament.TopScorerService;
 import app.porrapp.dto.PredictionDataDTO;
@@ -9,17 +10,21 @@ import app.porrapp.dto.TopScorerDTO;
 import app.porrapp.model.Competition;
 import app.porrapp.model.Edition;
 import app.porrapp.model.Prediction;
+import app.porrapp.model.ScorerPick;
 import app.porrapp.model.Match;
 import app.porrapp.model.MatchPrediction;
 import app.porrapp.model.MatchStatusNormalized;
 import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.PredictionRepository;
+import app.porrapp.repository.ScorerPickRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.MatchPredictionRepository;
 import app.porrapp.repository.MembershipRepository;
 import app.porrapp.model.Membership;
 import app.porrapp.util.MatchRound;
 import app.porrapp.scoring.CalculationContext;
+import app.porrapp.scoring.ScorerChoice;
+import app.porrapp.scoring.TopScorerAward;
 import app.porrapp.scoring.ScoringRuleSet;
 import app.porrapp.scoring.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +53,8 @@ public class LeaderboardService {
     private final EditionRepository editionRepository;
     private final CustomBracketScoringService customBracketScoringService;
     private final MatchSelectionService matchSelectionService;
+    private final ScorerPickRepository scorerPickRepository;
+    private final LeagueClosure leagueClosure;
 
     /** Clasificación: más puntos, quien sigue vivo en superviviente, más puntos por partido, nombre. */
     private static final Comparator<ParticipantScoreDTO> LEADERBOARD_ORDER = Comparator
@@ -89,7 +96,9 @@ public class LeaderboardService {
             Set<Long> survivorIds = new HashSet<>();
             for (Prediction pred : stale) {
                 List<MatchPrediction> matchPreds = matchPredsByPrediction.getOrDefault(pred.getId(), List.of());
-                if (pred.getBracketData() == null && matchPreds.isEmpty()) continue;
+                // Sin cuadro ni pronósticos no hay nada que puntuar, salvo que haya elegido el pichichi aparte.
+                if (pred.getBracketData() == null && matchPreds.isEmpty()
+                        && !tournaments.hasStandaloneScorer(pred)) continue;
 
                 ScoringRuleSet effectiveRules = ScoringRuleSet.effectiveForEdition(pred.getEdition());
                 ScoringStrategy strategy = strategiesByRules.computeIfAbsent(effectiveRules.toJson(),
@@ -435,6 +444,43 @@ public class LeaderboardService {
             Competition tournament = pred.getEdition().getCompetition();
             return scorers.computeIfAbsent(tournament.getId(), id -> topScorerService.getTopScorers(tournament));
         }
+
+        private final Map<Long, Map<Long, ScorerPick>> scorerPicks = new HashMap<>();
+        private final Map<Long, Boolean> finished = new HashMap<>();
+        private final Map<Long, Integer> scorerPoints = new HashMap<>();
+
+        /** Pichichi de la porra: el de su cuadro o el elegido aparte, con el jugador que le asignara el administrador. */
+        ScorerChoice scorerChoiceFor(Prediction pred) {
+            Edition edition = pred.getEdition();
+            if (edition == null || !edition.scoresPichichi()) return null;
+            Map<Long, ScorerPick> rows = scorerPicks.computeIfAbsent(edition.getId(),
+                    id -> scorerPickRepository.findByEditionId(id).stream()
+                            .collect(Collectors.toMap(ScorerPick::getPredictionId, row -> row)));
+            return ScorerChoice.of(edition, pred, rows.get(pred.getId()));
+        }
+
+        /** Si la porra tiene pichichi elegido aparte del cuadro (liga por jornadas). */
+        boolean hasStandaloneScorer(Prediction pred) {
+            Edition edition = pred.getEdition();
+            if (edition == null || !edition.scoresPichichi() || edition.pichichiInBracket()) return false;
+            ScorerChoice choice = scorerChoiceFor(pred);
+            return choice != null && !choice.isBlank();
+        }
+
+        /**
+         * Puntos del pichichi de una liga que lo elige aparte (por jornadas): se dan cuando la liga ha
+         * terminado, con los goleadores de su competición. Null si no acierta, no ha elegido o aún no toca.
+         */
+        TopScorerAward.Award standaloneScorerAward(Prediction pred) {
+            if (!hasStandaloneScorer(pred)) return null;
+            Edition edition = pred.getEdition();
+            ScorerChoice choice = scorerChoiceFor(pred);
+            int points = scorerPoints.computeIfAbsent(edition.getId(),
+                    id -> ScoringRuleSet.effectiveForEdition(edition).getTopScorerPoints());
+            if (points <= 0) return null;
+            if (!finished.computeIfAbsent(edition.getId(), id -> leagueClosure.isFinished(edition, Instant.now()))) return null;
+            return TopScorerAward.evaluate(choice, scorersFor(pred), null, points);
+        }
     }
 
     /** Puntos del cuadro (si lo tiene, con las reglas de su edición) más los de los pronósticos por partido. */
@@ -450,11 +496,20 @@ public class LeaderboardService {
             OfficialResultsService.OfficialResults official = tournaments.officialFor(pred);
             score = calculatePoints(strategy, new CalculationContext(participant, official.bracket(), official.groupPoints(),
                     official.orderedTeamsPerGroup(), official.bestThirds(), tournaments.scorersFor(pred), official.roundOf16(),
-                    official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion()));
+                    official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion(),
+                    tournaments.scorerChoiceFor(pred)));
             score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
             score.setThirdPlaceWinner(participant.getThirdPlaceWinner());
         } else {
             score = emptyScore();
+        }
+
+        TopScorerAward.Award scorerAward = tournaments.standaloneScorerAward(pred);
+        if (scorerAward != null) {
+            score.setScorer(score.getScorer() + scorerAward.points());
+            score.setTotal(score.getTotal() + scorerAward.points());
+            score.getLog().add(ParticipantScoreDTO.LogEntry.builder()
+                    .stage("scorer").amount(scorerAward.points()).msg(scorerAward.message()).build());
         }
 
         int matchPoints = 0;

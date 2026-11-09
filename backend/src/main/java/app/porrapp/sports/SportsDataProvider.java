@@ -58,6 +58,34 @@ public interface SportsDataProvider {
     }
 
     /**
+     * Máximos goleadores de la temporada en curso de una competición, de más a menos goles.
+     *
+     * @return los goleadores con la temporada a la que pertenecen, o null si el proveedor no los da
+     */
+    default ScoringLeaders fetchScoringLeaders(String competitionSlug) throws Exception {
+        return null;
+    }
+
+    /**
+     * Plantilla de un equipo en una competición.
+     *
+     * @return árbol JSON con los jugadores ({@code id}, {@code displayName}, {@code shortName},
+     *         {@code position}), o null si el proveedor no las da
+     */
+    default JsonNode fetchTeamRoster(String competitionSlug, String teamId) throws Exception {
+        return null;
+    }
+
+    /**
+     * Goleadores de una temporada.
+     *
+     * @param seasonYear año en que empieza la temporada según el proveedor; null si no lo dice
+     * @param leaders    árbol JSON con un elemento por goleador: {@code value} (goles) y {@code athlete}
+     */
+    record ScoringLeaders(Integer seasonYear, JsonNode leaders) {
+    }
+
+    /**
      * Recupera las clasificaciones oficiales de una competición.
      *
      * @param competitionSlug Slug de la competición.

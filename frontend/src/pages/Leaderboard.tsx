@@ -109,6 +109,7 @@ function Leaderboard() {
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
+    activeGroupScorerPick,
     userId,
     userName,
     lowestPaidRank,
@@ -163,7 +164,7 @@ function Leaderboard() {
   const columns = leaderboardColumns({
     isMatchday,
     ownBracket: layout.ownBracket,
-    pichichi: activeGroupPichichi,
+    pichichi: activeGroupPichichi || activeGroupScorerPick,
     ownBracketHasGroupPoints: validResults.some((row) => (row.points.r1 ?? 0) !== 0),
     selectedMatchday,
     roundPointsColumn: layout.roundPointsColumn,

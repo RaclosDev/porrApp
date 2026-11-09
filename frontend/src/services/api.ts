@@ -28,4 +28,5 @@ export * from './endpoints/leaderboard';
 export * from './endpoints/leagues';
 export * from './endpoints/users';
 export * from './endpoints/pushApi';
+export * from './endpoints/scorerPicks';
 export * from './endpoints/passkeys';

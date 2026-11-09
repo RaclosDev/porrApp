@@ -59,6 +59,9 @@ public class PredictionDataDTO {
     private List<String> thirdPlaceMatch;
     private String scorer;
 
+    /** Id en el proveedor del pichichi, si se eligió de la lista de jugadores; null si se escribió a mano. */
+    private String scorerPlayerId;
+
     @JsonProperty("final")
     public List<String> getFinalMatch() {
         return finalMatch;

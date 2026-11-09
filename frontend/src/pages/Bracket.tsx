@@ -9,6 +9,8 @@ import { roundLabelsOf, roundsOf } from '../utils/firstKnockoutRound';
 import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
 import { useBracket } from '../hooks/useBracket';
+import { useCompetitionPlayers } from '../hooks/useScorerPick';
+import ScorerInput from '../components/matchday/ScorerInput';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { isMathematicallyQualified } from '../utils/groupStatus';
@@ -47,7 +49,7 @@ function Bracket() {
  * si no, o al editar, el asistente de grupos y cruces.
  */
 function WorldCupBracket() {
-  const { userId } = useAppContext();
+  const { userId, activeCompetitionId } = useAppContext();
   const myPred = useMyLeaguePrediction();
   const {
     bracketState,
@@ -78,6 +80,10 @@ function WorldCupBracket() {
     savedPredictionId,
     hasUnsavedChanges,
   } = useBracket();
+  const { players: scorerPlayers } = useCompetitionPlayers(
+    activeCompetitionId,
+    activeGroupPichichi && !activeGroupIsLocked,
+  );
   useUnsavedChanges(
     hasUnsavedChanges && !activeGroupIsLocked,
     'Tu porra tiene cambios sin guardar. El borrador se queda en este dispositivo hasta que la guardes.',
@@ -352,14 +358,7 @@ function WorldCupBracket() {
                 className="glass-input flex-1 min-w-50"
               />
               {activeGroupPichichi && (
-                <input
-                  type="text"
-                  placeholder="Pichichi"
-                  aria-label="Pichichi"
-                  value={topScorer}
-                  onChange={(e) => setTopScorer(e.target.value)}
-                  className="glass-input flex-1 min-w-50"
-                />
+                <ScorerInput value={topScorer} onChange={setTopScorer} players={scorerPlayers} />
               )}
             </div>
             {!isAuthenticated && (

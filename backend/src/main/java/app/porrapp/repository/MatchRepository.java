@@ -87,6 +87,12 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     long countByCompetitionId(Long competitionId);
 
+    /** Si la competición tiene algún partido que empiece en ese intervalo. */
+    boolean existsByCompetitionIdAndMatchDateBetween(Long competitionId, Instant from, Instant to);
+
+    /** Primer partido de la competición que empieza a partir de esa fecha. */
+    Optional<Match> findFirstByCompetitionIdAndMatchDateGreaterThanEqualOrderByMatchDateAsc(Long competitionId, Instant date);
+
     /** Si la competición guarda algún partido anterior a esa fecha. */
     boolean existsByCompetitionIdAndMatchDateBefore(Long competitionId, Instant date);
 

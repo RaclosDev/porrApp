@@ -50,6 +50,7 @@ class LeaderboardReadOnlyTransactionTest {
     @MockitoBean ScoringStrategy scoringStrategy;
     @MockitoBean CustomBracketScoringService customBracketScoring;
     @MockitoBean MatchSelectionService matchSelection;
+    @MockitoBean app.porrapp.service.league.LeagueClosure leagueClosure;
 
     @Test
     void savesStaleScoresWhenCalledFromAReadOnlyTransaction() {

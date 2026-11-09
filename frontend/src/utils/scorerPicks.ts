@@ -1,5 +1,5 @@
 /** Pichichi más elegido de la liga, en las competiciones en las que se predice. */
-import type { PredictionData } from '../types/api';
+import type { PredictionData, ScorerCandidate } from '../types/api';
 import { percent } from './pickStats';
 
 /** Nombre de jugador comparable: sin tildes, en minúsculas y con espacios simples. */
@@ -44,3 +44,40 @@ export const isRealScorer = (name: string, realScorers: string[]) => {
   const key = normalizePlayer(name);
   return realScorers.some((s) => normalizePlayer(s) === key);
 };
+
+/** El jugador de la lista que se llama exactamente así (sin mirar tildes ni mayúsculas), si es uno solo. */
+export function findPlayer(players: ScorerCandidate[], name: string): ScorerCandidate | null {
+  const wanted = normalizePlayer(name);
+  if (!wanted) return null;
+  const found = players.filter((player) => normalizePlayer(player.name) === wanted);
+  return found.length === 1 ? found[0] : null;
+}
+
+/**
+ * Jugadores que proponer mientras se escribe: los que llevan todas las palabras escritas en el
+ * nombre, antes los que empiezan por ellas y, a igualdad, los que más goles llevan. Sin nada
+ * escrito, los máximos goleadores.
+ */
+export function suggestPlayers(
+  players: ScorerCandidate[],
+  text: string,
+  limit = 8,
+): ScorerCandidate[] {
+  const words = normalizePlayer(text).split(' ').filter(Boolean);
+  const ranked = players.flatMap((player) => {
+    const name = normalizePlayer(player.name);
+    if (!words.every((word) => name.includes(word))) return [];
+    const nameWords = name.split(' ');
+    const starts = words.every((word) => nameWords.some((part) => part.startsWith(word)));
+    return [{ player, rank: starts ? 0 : 1 }];
+  });
+  return ranked
+    .sort(
+      (a, b) =>
+        a.rank - b.rank ||
+        b.player.goals - a.player.goals ||
+        a.player.name.localeCompare(b.player.name, 'es'),
+    )
+    .slice(0, limit)
+    .map((entry) => entry.player);
+}

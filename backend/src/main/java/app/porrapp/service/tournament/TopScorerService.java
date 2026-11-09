@@ -2,7 +2,10 @@ package app.porrapp.service.tournament;
 
 import app.porrapp.model.Competition;
 import app.porrapp.model.TournamentFormat;
+import app.porrapp.model.Sport;
 import app.porrapp.repository.CompetitionRepository;
+import app.porrapp.repository.EditionRepository;
+import app.porrapp.repository.MatchRepository;
 import app.porrapp.service.prediction.ScoreInvalidationService;
 import app.porrapp.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -25,9 +28,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.Comparator;
 
 /**
- * Goleadores del Mundial a partir de los partidos de ESPN; se refresca cada 30 min y al terminar un partido.
- * La lista se guarda en la base de datos ({@link TopScorerStore}): al arrancar se lee de ahí y, con el
- * torneo ya cerrado, no se vuelve a pedir al proveedor.
+ * Goleadores de cada competición de fútbol. Los de un torneo con grupos salen de sus partidos en ESPN; los
+ * del resto (ligas, copas), de la tabla de goleadores de ESPN, y solo se piden si alguna liga juega el
+ * pichichi. Se refrescan cada 30 min y al terminar un partido. La lista se guarda en la base de datos
+ * ({@link TopScorerStore}), por temporada: al arrancar se lee de ahí y, con la competición ya cerrada, no se
+ * vuelve a pedir al proveedor.
  */
 @Service
 @Slf4j
@@ -41,6 +46,12 @@ public class TopScorerService {
     private final KnockoutBracketService knockoutBracketService;
     private final TopScorerStore topScorerStore;
     private final CompetitionRepository competitionRepository;
+    private final EditionRepository editionRepository;
+    private final MatchRepository matchRepository;
+
+    /** Se apaga en los tests, que no deben llamar al proveedor por su cuenta. */
+    @org.springframework.beans.factory.annotation.Value("${app.pichichi.live-refresh:true}")
+    private boolean liveRefreshEnabled = true;
 
     public TopScorerService(
             ObjectMapper objectMapper,
@@ -50,7 +61,9 @@ public class TopScorerService {
             ScoreInvalidationService scoreInvalidationService,
             KnockoutBracketService knockoutBracketService,
             TopScorerStore topScorerStore,
-            CompetitionRepository competitionRepository) {
+            CompetitionRepository competitionRepository,
+            EditionRepository editionRepository,
+            MatchRepository matchRepository) {
         this.objectMapper = objectMapper;
         this.webSocketService = webSocketService;
         this.httpClient = httpClient;
@@ -59,10 +72,12 @@ public class TopScorerService {
         this.knockoutBracketService = knockoutBracketService;
         this.topScorerStore = topScorerStore;
         this.competitionRepository = competitionRepository;
+        this.editionRepository = editionRepository;
+        this.matchRepository = matchRepository;
     }
 
 
-    /** Goleadores de un torneo en memoria. */
+    /** Goleadores de una competición en memoria. */
     private static final class Scorers {
         /** Copia de la lista guardada, para no leerla en cada clasificación. */
         final AtomicReference<List<TopScorerDTO>> cached = new AtomicReference<>(Collections.emptyList());
@@ -70,11 +85,11 @@ public class TopScorerService {
         volatile boolean storedLoaded;
     }
 
-    /** Goleadores de cada torneo, por su identificador externo. */
-    private final Map<String, Scorers> scorersByTournament = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Goleadores de cada competición, por su id: cada temporada es una fila y tiene los suyos. */
+    private final Map<Long, Scorers> scorersByCompetition = new java.util.concurrent.ConcurrentHashMap<>();
 
-    private Scorers scorersOf(Competition tournament) {
-        return scorersByTournament.computeIfAbsent(tournament.getExternalId(), id -> new Scorers());
+    private Scorers scorersOf(Competition competition) {
+        return scorersByCompetition.computeIfAbsent(competition.getId(), id -> new Scorers());
     }
 
     // También se cachean búsquedas vacías; las imágenes se vuelven a buscar a las seis horas.
@@ -94,10 +109,38 @@ public class TopScorerService {
     @Scheduled(initialDelay = 5_000, fixedDelay = 1_800_000)
     @SchedulerLock(name = "topScorers", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void scheduledRefresh() {
+        Map<Long, Competition> competitions = new LinkedHashMap<>();
         for (Competition tournament : competitionRepository.findByExternalIdIn(TournamentFormat.registeredExternalIds())) {
-            // Con el torneo cerrado los goleadores ya no cambian: valen los guardados y no se pide nada al proveedor.
-            if (!getTopScorers(tournament).isEmpty() && knockoutBracketService.isOver(tournament)) continue;
-            refresh(tournament);
+            competitions.put(tournament.getId(), tournament);
+        }
+        for (Competition played : editionRepository.findCompetitionsWithPichichi()) {
+            competitions.putIfAbsent(played.getId(), played);
+        }
+        for (Competition competition : competitions.values()) {
+            // Con la competición cerrada los goleadores ya no cambian: valen los guardados y no se pide nada al proveedor.
+            if (!getTopScorers(competition).isEmpty() && knockoutBracketService.isOver(competition)) continue;
+            refresh(competition);
+        }
+    }
+
+    /** Margen tras el inicio de un partido en el que sus goles pueden seguir llegando. */
+    private static final Duration RECENT_MATCH = Duration.ofHours(4);
+
+    /**
+     * Las ligas que juegan el pichichi fuera de un torneo con grupos: mientras se juega algún partido de su
+     * competición, la tabla de goleadores se pide cada cinco minutos, para que al acabar el último ya sea la
+     * definitiva.
+     */
+    @Scheduled(initialDelay = 120_000, fixedDelay = 300_000)
+    @SchedulerLock(name = "topScorersLive", lockAtMostFor = "PT4M", lockAtLeastFor = "PT30S")
+    public void refreshWhilePlaying() {
+        if (!liveRefreshEnabled) return;
+        java.time.Instant now = java.time.Instant.now();
+        for (Competition competition : editionRepository.findCompetitionsWithPichichi()) {
+            if (competition.isGroupTournament()) continue;
+            if (matchRepository.existsByCompetitionIdAndMatchDateBetween(competition.getId(), now.minus(RECENT_MATCH), now)) {
+                refresh(competition);
+            }
         }
     }
 
@@ -106,20 +149,13 @@ public class TopScorerService {
     /** Una sola actualización simultánea; las llamadas solapadas aprovechan la que está en curso. */
     public void refresh(Competition tournament) {
         TournamentFormat format = tournament.tournamentFormat();
-        if (format == null || !refreshLock.tryLock()) return;
+        if (format == null && !hasLeadersTable(tournament)) return;
+        if (!refreshLock.tryLock()) return;
         try {
-            JsonNode events = sportsDataProvider.fetchScoreboardEvents(tournament.getExternalId(), format.season());
-            if (events == null) return;
-
-            Map<String, int[]> playerGoals = new LinkedHashMap<>();
-            Map<String, String> playerShortNames = new HashMap<>();
-            Map<String, String> playerPositions = new HashMap<>();
-            Map<String, String> playerIds = new HashMap<>();
-            Map<String, String> playerTeams = new HashMap<>();
-
-            processEvents(events, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
-
-            List<TopScorerDTO> scorers = buildScorersList(playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
+            List<TopScorerDTO> scorers = format != null
+                    ? scorersFromMatches(tournament, format)
+                    : scorersFromLeadersTable(tournament);
+            if (scorers == null) return;
             List<TopScorerDTO> previous = getTopScorers(tournament);
             if (scorers.isEmpty() && !previous.isEmpty()) {
                 // Los goles no se pierden: una lista vacía tras tener goleadores es que ESPN no ha respondido.
@@ -129,9 +165,15 @@ public class TopScorerService {
             scorersOf(tournament).cached.set(scorers);
             if (!scorers.equals(previous)) {
                 save(tournament, scorers);
-                // El pichichi puntúa los cuadros.
-                scoreInvalidationService.invalidateCompetition(tournament.getId());
-                webSocketService.broadcastUpdate("DATA_UPDATED");
+                if (format != null) {
+                    // El pichichi puntúa los cuadros.
+                    scoreInvalidationService.invalidateCompetition(tournament.getId());
+                    webSocketService.broadcastUpdate("DATA_UPDATED");
+                } else if (!leaders(scorers).equals(leaders(previous))) {
+                    // En una liga solo puntúa quién va en cabeza: lo demás no cambia ningún punto.
+                    scoreInvalidationService.invalidateCompetition(tournament.getId());
+                    webSocketService.notifyResultsChanged(List.of(tournament.getId()));
+                }
             }
             log.info("TopScorerService: Refreshed {} scorers from ESPN. Leader: {} ({} goals)",
                     scorers.size(),
@@ -146,6 +188,71 @@ public class TopScorerService {
     }
 
 
+
+    /** Goleadores de un torneo con grupos, contados en sus partidos; null si el proveedor no responde. */
+    private List<TopScorerDTO> scorersFromMatches(Competition tournament, TournamentFormat format) throws Exception {
+        JsonNode events = sportsDataProvider.fetchScoreboardEvents(tournament.getExternalId(), format.season());
+        if (events == null) return null;
+
+        Map<String, int[]> playerGoals = new LinkedHashMap<>();
+        Map<String, String> playerShortNames = new HashMap<>();
+        Map<String, String> playerPositions = new HashMap<>();
+        Map<String, String> playerIds = new HashMap<>();
+        Map<String, String> playerTeams = new HashMap<>();
+
+        processEvents(events, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
+
+        return buildScorersList(playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
+    }
+
+    /** Competición oficial de fútbol vigente de la que el proveedor publica la tabla de goleadores. */
+    private boolean hasLeadersTable(Competition competition) {
+        String externalId = competition.getExternalId();
+        return competition.getOwnerLeague() == null && !competition.isArchived()
+                && externalId != null && !externalId.isBlank()
+                && Sport.ofExternalId(externalId) == Sport.FOOTBALL
+                && sportsDataProvider.supports(externalId);
+    }
+
+    /**
+     * Goleadores de una liga o copa según la tabla del proveedor, sin fotos; null si no la da o si ya es la
+     * de otra temporada (al cambiar de temporada el proveedor pasa a dar la nueva antes de que se archive esta).
+     */
+    private List<TopScorerDTO> scorersFromLeadersTable(Competition competition) throws Exception {
+        SportsDataProvider.ScoringLeaders table = sportsDataProvider.fetchScoringLeaders(competition.getExternalId());
+        if (table == null || table.leaders() == null) return null;
+        Integer season = competition.seasonStartYear();
+        if (season != null && table.seasonYear() != null && !season.equals(table.seasonYear())) return null;
+
+        List<TopScorerDTO> scorers = new ArrayList<>();
+        for (JsonNode leader : table.leaders()) {
+            JsonNode athlete = leader.path("athlete");
+            String name = athlete.path("displayName").asText("").trim();
+            int goals = (int) Math.round(leader.path("value").asDouble(0));
+            if (name.isEmpty() || goals <= 0) continue;
+            scorers.add(new TopScorerDTO(
+                    name,
+                    athlete.path("shortName").asText(name).trim(),
+                    goals,
+                    athlete.path("position").path("abbreviation").asText(""),
+                    athlete.path("id").asText(""),
+                    athlete.path("team").path("displayName").asText(""),
+                    ""));
+        }
+        scorers.sort(Comparator.comparingInt(TopScorerDTO::goals).reversed());
+        return scorers;
+    }
+
+    /** Quiénes van en cabeza: los que tienen el máximo de goles. */
+    private static Set<String> leaders(List<TopScorerDTO> scorers) {
+        if (scorers.isEmpty()) return Set.of();
+        int max = scorers.get(0).goals();
+        Set<String> names = new TreeSet<>();
+        for (TopScorerDTO scorer : scorers) {
+            if (scorer.goals() == max) names.add(scorer.playerId() + "|" + scorer.name());
+        }
+        return names;
+    }
 
     private void processEvents(JsonNode events, Map<String, int[]> playerGoals, Map<String, String> playerShortNames,
                                Map<String, String> playerPositions, Map<String, String> playerIds,
@@ -309,7 +416,7 @@ public class TopScorerService {
     }
 
     /**
-     * Goleadores actuales de un torneo. La primera vez tras arrancar se leen de la base de datos, sin avisar a
+     * Goleadores actuales de una competición. La primera vez tras arrancar se leen de la base de datos, sin avisar a
      * nadie ni recalcular puntos: son los mismos con los que ya se puntuó.
      */
     public List<TopScorerDTO> getTopScorers(Competition tournament) {
@@ -317,7 +424,7 @@ public class TopScorerService {
         List<TopScorerDTO> cached = scorers.cached.get();
         if (!cached.isEmpty() || scorers.storedLoaded) return cached;
         try {
-            List<TopScorerDTO> stored = topScorerStore.load(tournament.getExternalId());
+            List<TopScorerDTO> stored = topScorerStore.load(tournament.getId());
             scorers.storedLoaded = true;
             if (!stored.isEmpty()) scorers.cached.compareAndSet(cached, stored);
         } catch (Exception e) {
@@ -330,7 +437,7 @@ public class TopScorerService {
     /** Si falla el guardado, la lista sigue en memoria y se vuelve a guardar en el siguiente cambio o arranque. */
     private void save(Competition tournament, List<TopScorerDTO> scorers) {
         try {
-            topScorerStore.replace(tournament.getExternalId(), scorers);
+            topScorerStore.replace(tournament.getId(), scorers);
         } catch (Exception e) {
             log.warn("TopScorerService: no se pudieron guardar los goleadores: {}", e.getMessage());
         }

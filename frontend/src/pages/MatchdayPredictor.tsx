@@ -11,6 +11,7 @@ import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
 import FightCard from '../components/matchday/FightCard';
 import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
+import ScorerPickCard from '../components/matchday/ScorerPickCard';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
 import { useRequestedGroup } from '../hooks/useRequestedGroup';
@@ -67,6 +68,8 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
     activeCompetitionId,
     activeCompetitionExternalId,
     activeGroupPicksMatches,
+    activeGroupScorerPick,
+    isAuthenticated,
   } = context;
   // Los descansos solo se deducen si la liga lleva todos los partidos de la semana.
   const nflWeeks = activeCompetitionExternalId === 'nfl' && !activeGroupPicksMatches;
@@ -98,6 +101,14 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
           weeks={
             activeCompetitionExternalId === 'nfl' || isNbaRegularSeason(activeCompetitionExternalId)
           }
+        />
+      )}
+
+      {activeGroupScorerPick && activeGroupId != null && (
+        <ScorerPickCard
+          groupId={activeGroupId}
+          competitionId={activeCompetitionId}
+          canEdit={isAuthenticated}
         />
       )}
 

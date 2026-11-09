@@ -144,6 +144,30 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         }
     }
 
+    /** Solo fútbol: es donde ESPN publica la tabla de goleadores de la temporada. */
+    @Override
+    public ScoringLeaders fetchScoringLeaders(String competitionSlug) throws Exception {
+        String slug = resolveSlug(competitionSlug);
+        if (!KNOWN_SLUGS.contains(slug)) return null;
+        JsonNode root = executeGet(siteUrl(slug) + "/statistics");
+        JsonNode year = root.path("season").path("year");
+        Integer seasonYear = year.isNumber() ? Integer.valueOf(year.asInt()) : null;
+        for (JsonNode stat : root.path("stats")) {
+            if ("goalsLeaders".equals(stat.path("name").asText())) {
+                return new ScoringLeaders(seasonYear, stat.path("leaders"));
+            }
+        }
+        return new ScoringLeaders(seasonYear, objectMapper.createArrayNode());
+    }
+
+    @Override
+    public JsonNode fetchTeamRoster(String competitionSlug, String teamId) throws Exception {
+        String slug = resolveSlug(competitionSlug);
+        if (!KNOWN_SLUGS.contains(slug) || teamId == null || !teamId.matches("[0-9]{1,20}")) return null;
+        JsonNode athletes = executeGet(siteUrl(slug) + "/teams/" + teamId + "/roster").path("athletes");
+        return athletes.isArray() ? athletes : objectMapper.createArrayNode();
+    }
+
     @Override
     public JsonNode fetchStandings(String competitionSlug) throws Exception {
         String slug = resolveSlug(competitionSlug);
