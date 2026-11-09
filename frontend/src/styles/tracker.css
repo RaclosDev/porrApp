@@ -1,0 +1,217 @@
+@layer components {
+  /* Marcadores de juegos: tablas de clasificación y formulario de partida sobre hojas de papel. */
+  .tracker-section {
+    margin-bottom: 16px;
+    padding: 16px;
+  }
+
+  .tracker-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .tracker-heading {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .tracker-section-head .tracker-heading {
+    margin: 0;
+  }
+
+  .tracker-select {
+    display: grid;
+    gap: 2px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .tracker-note {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
+
+  .tracker-table-wrap {
+    overflow-x: auto;
+  }
+
+  .tracker-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+
+  .tracker-table th,
+  .tracker-table td {
+    padding: 8px 6px;
+    text-align: left;
+    border-bottom: 1px solid rgb(0 0 0 / 0.12);
+  }
+
+  .tracker-table thead th {
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .tracker-table .is-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tracker-table .is-leader th,
+  .tracker-table .is-leader td {
+    font-weight: 800;
+  }
+
+  .tracker-round-grid {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .tracker-round-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 96px 52px;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tracker-round-row label {
+    overflow-wrap: anywhere;
+    font-weight: 700;
+  }
+
+  .tracker-win-btn {
+    min-height: 44px;
+    font-weight: 800;
+  }
+
+  .tracker-submit {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 12px;
+    font-weight: 800;
+  }
+
+  .tracker-rounds {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .tracker-rounds li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgb(0 0 0 / 0.12);
+  }
+
+  .tracker-round-scores {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .tracker-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tracker-add-player {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .tracker-add-player .glass-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tracker-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-bottom: 12px;
+  }
+
+  .tracker-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .tracker-list {
+    max-width: 960px;
+    margin: 0 auto 24px;
+  }
+
+  .tracker-list-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .tracker-list-items {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tracker-card {
+    display: grid;
+    gap: 2px;
+    padding: 12px 14px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .tracker-card:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  @media (min-width: 768px) {
+    .tracker-list-items {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+}
+
+.tracker-me {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.tracker-qr {
+  display: block;
+  margin: 0.75rem auto;
+  inline-size: min(220px, 100%);
+  block-size: auto;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: #fff;
+  padding: 6px;
+}
+
+.tracker-qr.is-loading {
+  min-block-size: 220px;
+}
