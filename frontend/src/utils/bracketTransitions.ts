@@ -1,6 +1,26 @@
 import type { BracketMatch, BracketState, BracketTeam } from '../store/useAppStore';
 
+import { BRACKET_ROUNDS } from './firstKnockoutRound';
+
 type Side = 'left' | 'right';
+
+/** Ronda en la que empieza el cuadro (0 = dieciseisavos): la primera que tiene cruces. */
+export const firstRoundIndex = (state: BracketState): number =>
+  Math.max(
+    0,
+    BRACKET_ROUNDS.findIndex(
+      (round) => (state[round]?.left?.length || 0) + (state[round]?.right?.length || 0) > 0,
+    ),
+  );
+
+/** Los dos lados de la primera ronda del cuadro. */
+export const firstRoundOf = (state: BracketState) => state[BRACKET_ROUNDS[firstRoundIndex(state)]];
+
+/** Cruces de la primera ronda, en el orden del cuadro. */
+export const firstRoundMatches = (state: BracketState): BracketMatch[] => {
+  const round = firstRoundOf(state);
+  return [...(round?.left || []), ...(round?.right || [])];
+};
 const clone = (state: BracketState): BracketState => JSON.parse(JSON.stringify(state));
 const contains = (match: BracketMatch | null | undefined, team: BracketTeam | null | undefined) =>
   Boolean(team && (match?.home?.name === team.name || match?.away?.name === team.name));
@@ -36,6 +56,7 @@ function repairPath(state: BracketState, side: Side, round: number, matchIndex: 
   keepValidPodium(state);
 }
 
+/** Pone un equipo en un hueco de la primera ronda del cuadro. */
 export function replaceR32Team(
   state: BracketState,
   name: string,
@@ -44,11 +65,12 @@ export function replaceR32Team(
   isHome: boolean,
 ): BracketState {
   const slot = isHome ? 'home' : 'away';
-  const match = state.r32[side][matchIndex];
+  const round = firstRoundIndex(state);
+  const match = firstRoundOf(state)[side][matchIndex];
   if (!match || match[slot]?.name === name) return state;
   const next = clone(state);
-  next.r32[side][matchIndex][slot] = { name, id: `${side}_${matchIndex}_${slot}` };
-  repairPath(next, side, 0, matchIndex);
+  firstRoundOf(next)[side][matchIndex][slot] = { name, id: `${side}_${matchIndex}_${slot}` };
+  repairPath(next, side, round, matchIndex);
   return next;
 }
 

@@ -2,11 +2,9 @@ package com.porra.mundial.controller;
 
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.TeamOddsDTO;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.repository.UserAccountRepository;
-import com.porra.mundial.service.tournament.OfficialResultsService;
-import com.porra.mundial.service.tournament.StandingsService;
-import com.porra.mundial.service.tournament.TeamService;
-import com.porra.mundial.service.tournament.TopScorerService;
+import com.porra.mundial.service.tournament.GroupTournamentService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -33,23 +32,22 @@ class WorldCupControllerTest {
     private com.porra.mundial.config.JwtUtil jwtUtil;
 
     @MockitoBean
-    private StandingsService standingsService;
-
-    @MockitoBean
-    private OfficialResultsService officialResultsService;
-
-    @MockitoBean
-    private TeamService teamService;
-
-    @MockitoBean
-    private TopScorerService topScorerService;
+    private GroupTournamentService tournaments;
 
     @Autowired
     private MockMvc mockMvc;
 
+    private final Competition worldCup = Competition.builder().id(2L).name("Mundial")
+            .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+
+    private void givenTheWorldCup() {
+        Mockito.when(tournaments.tournament(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(worldCup));
+    }
+
     @Test
     void standingsAreTheWorldCupGroups() throws Exception {
-        Mockito.when(standingsService.getWorldCupGroupPoints())
+        givenTheWorldCup();
+        Mockito.when(tournaments.groupPoints(worldCup))
                 .thenReturn(Map.of("A", Map.of("España", Map.of("pts", 9, "diff", 5))));
 
         mockMvc.perform(get("/api/world-cup/standings"))
@@ -60,7 +58,8 @@ class WorldCupControllerTest {
 
     @Test
     void groupOddsComeByGroup() throws Exception {
-        Mockito.when(teamService.getWorldCupGroupOdds())
+        givenTheWorldCup();
+        Mockito.when(tournaments.groupOdds(worldCup))
                 .thenReturn(Map.of("E", List.of(new TeamOddsDTO("España", 4.5, 1.2, 7.0))));
 
         mockMvc.perform(get("/api/world-cup/group-odds"))
@@ -73,12 +72,26 @@ class WorldCupControllerTest {
 
     @Test
     void officialBracketAndScorersAreTheWorldCupOnes() throws Exception {
-        Mockito.when(officialResultsService.worldCupBracket()).thenReturn(new PredictionDataDTO());
-        Mockito.when(topScorerService.getTopScorers()).thenReturn(List.of());
+        givenTheWorldCup();
+        PredictionDataDTO bracket = new PredictionDataDTO();
+        bracket.setChampion("España");
+        Mockito.when(tournaments.officialBracket(worldCup)).thenReturn(bracket);
+        Mockito.when(tournaments.scorers(worldCup)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/world-cup/official-bracket")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/world-cup/official-bracket")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.champion").value("España"));
         mockMvc.perform(get("/api/world-cup/scorers")).andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void withoutTheWorldCupEveryRouteAnswersEmpty() throws Exception {
+        Mockito.when(tournaments.tournament(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/world-cup/standings")).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        mockMvc.perform(get("/api/world-cup/group-odds")).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        mockMvc.perform(get("/api/world-cup/scorers")).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        mockMvc.perform(get("/api/world-cup/official-bracket")).andExpect(status().isOk());
     }
 
     @Test

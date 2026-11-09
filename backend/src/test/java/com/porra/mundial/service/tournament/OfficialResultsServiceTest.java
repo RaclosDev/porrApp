@@ -2,6 +2,7 @@ package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.TopScorerDTO;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.GroupStanding;
 import com.porra.mundial.model.Match;
 import com.porra.mundial.model.Team;
@@ -34,13 +35,15 @@ class OfficialResultsServiceTest {
     @InjectMocks
     private OfficialResultsService service;
 
+    private final Competition worldCup = Competition.builder().id(2L).name("Mundial")
+            .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
     private final List<Match> matches = new ArrayList<>();
     private int day = 0;
 
     @BeforeEach
     void setUp() {
-        when(knockoutBracketService.worldCupMatches()).thenReturn(matches);
-        when(topScorerService.getTopScorers()).thenReturn(List.of());
+        when(knockoutBracketService.matchesOf(worldCup)).thenReturn(matches);
+        when(topScorerService.getTopScorers(worldCup)).thenReturn(List.of());
     }
 
     private static Team team(String name) {
@@ -66,13 +69,13 @@ class OfficialResultsServiceTest {
 
     @Test
     void groupsFollowTheLiveStandingsAndThirdsAreRanked() {
-        when(standingsService.getAllStandings()).thenReturn(List.of(
+        when(standingsService.getStandings(worldCup)).thenReturn(List.of(
                 standing("A", "México", 1, 9, 5), standing("A", "Corea del Sur", 2, 4, 0),
                 standing("A", "Sudáfrica", 3, 4, -1), standing("A", "Chequia", 4, 0, -4),
                 standing("B", "Suiza", 1, 7, 3), standing("B", "Canadá", 2, 4, 1),
                 standing("B", "Bosnia", 3, 4, 2), standing("B", "Catar", 4, 1, -6)));
 
-        OfficialResultsService.OfficialResults results = service.current();
+        OfficialResultsService.OfficialResults results = service.current(worldCup);
 
         assertThat(results.bracket().getGroups().get("A"))
                 .containsExactly("México", "Corea del Sur", "Sudáfrica", "Chequia");
@@ -91,7 +94,7 @@ class OfficialResultsServiceTest {
         knockout("sf", "Argentina", "Inglaterra", "Argentina");
         knockout("final", "España", "Argentina", "España");
 
-        OfficialResultsService.OfficialResults results = service.current();
+        OfficialResultsService.OfficialResults results = service.current(worldCup);
         PredictionDataDTO bracket = results.bracket();
 
         // Ganadores conocidos siguen puntuando aunque falten los grupos que anclan sus ramas.
@@ -109,12 +112,12 @@ class OfficialResultsServiceTest {
 
     @Test
     void undecidedSlotsStayEmptyAndUnplayedMatchesAreSkipped() {
-        when(standingsService.getAllStandings()).thenReturn(List.of(standing("E", "España", 1, 9, 5)));
+        when(standingsService.getStandings(worldCup)).thenReturn(List.of(standing("E", "España", 1, 9, 5)));
         knockout("r32", "España", Team.PLACEHOLDER_NAME, null);
         knockout("r16", "España", Team.PLACEHOLDER_NAME, null);
         knockout("r16", Team.PLACEHOLDER_NAME, Team.PLACEHOLDER_NAME, null);
 
-        OfficialResultsService.OfficialResults results = service.current();
+        OfficialResultsService.OfficialResults results = service.current(worldCup);
 
         assertThat(results.bracket().getR16()).hasSize(8);
         assertThat(results.bracket().getR16().get(0)).containsExactly("España", null);
@@ -127,7 +130,7 @@ class OfficialResultsServiceTest {
     void thirdPlaceComesFromItsMatch() {
         knockout("third", "Francia", "Inglaterra", "Inglaterra");
 
-        PredictionDataDTO bracket = service.worldCupBracket();
+        PredictionDataDTO bracket = service.bracket(worldCup);
 
         // Sin semifinales no se inventa a qué rama pertenece cada participante.
         assertThat(bracket.getThirdPlaceMatch()).containsExactly(null, null);
@@ -136,19 +139,19 @@ class OfficialResultsServiceTest {
 
     @Test
     void topScorerListsEveryoneTiedAtTheTop() {
-        when(topScorerService.getTopScorers()).thenReturn(List.of(
+        when(topScorerService.getTopScorers(worldCup)).thenReturn(List.of(
                 new TopScorerDTO("Kylian Mbappé", "K. Mbappé", 8, "FW", null, null, null),
                 new TopScorerDTO("Harry Kane", "H. Kane", 8, "FW", null, null, null),
                 new TopScorerDTO("Lamine Yamal", "L. Yamal", 6, "FW", null, null, null)));
 
-        assertThat(service.worldCupBracket().getScorer()).isEqualTo("Kylian Mbappé, Harry Kane");
+        assertThat(service.bracket(worldCup).getScorer()).isEqualTo("Kylian Mbappé, Harry Kane");
     }
 
     @Test
     void groupMatchesNeverCountAsKnockout() {
         knockout("group", "España", "Uruguay", "España");
 
-        OfficialResultsService.OfficialResults results = service.current();
+        OfficialResultsService.OfficialResults results = service.current(worldCup);
 
         assertThat(results.bracket().getR32()).hasSize(16)
                 .allSatisfy(pair -> assertThat(pair).containsExactly(null, null));
@@ -162,7 +165,7 @@ class OfficialResultsServiceTest {
                 groups.add(standing(String.valueOf(group), "" + group + position, position, 12 - position, 0));
             }
         }
-        when(standingsService.getAllStandings()).thenReturn(groups);
+        when(standingsService.getStandings(worldCup)).thenReturn(groups);
         List<List<String>> expected = new ArrayList<>();
         int third = 0;
         for (var slots : com.porra.mundial.model.WorldCupBracketTopology.ROUND_OF_32) {
@@ -184,7 +187,7 @@ class OfficialResultsServiceTest {
         java.util.Collections.reverse(matches);
         for (int i = 0; i < matches.size(); i++) matches.get(i).setMatchDate(AppTime.fromLocal(LocalDateTime.of(2026, 7, 1, 20, 0)).plus(i, ChronoUnit.DAYS));
 
-        PredictionDataDTO bracket = service.worldCupBracket();
+        PredictionDataDTO bracket = service.bracket(worldCup);
 
         assertThat(bracket.getR32()).isEqualTo(expected);
         assertThat(bracket.getR16()).hasSize(8);
@@ -204,7 +207,7 @@ class OfficialResultsServiceTest {
     void provisionalDeclaredWinnerDoesNotAwardOfficialAdvancement() {
         Match match = knockout("r32", "España", "Japón", null);
         match.setWinnerTeam(match.getHomeTeam());
-        assertThat(service.current().roundOf16()).isEmpty();
+        assertThat(service.current(worldCup).roundOf16()).isEmpty();
     }
 
     @Test
@@ -212,7 +215,7 @@ class OfficialResultsServiceTest {
         Match finalMatch = knockout("final", "A1", "A2", "A1");
         finalMatch.getHomeTeam().setGroupName("A");
         finalMatch.getAwayTeam().setGroupName("A");
-        assertThat(service.current().champion()).isEqualTo("A1");
+        assertThat(service.current(worldCup).champion()).isEqualTo("A1");
     }
 
 }

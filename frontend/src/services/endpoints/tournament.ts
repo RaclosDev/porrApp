@@ -8,10 +8,19 @@ import type {
   MatchRadar,
   PredictionData,
   TopScorer,
+  TournamentFormat,
 } from '../../types/api';
 import { request, query } from '../http';
 
-export const fetchWorldCupStandings = () => request<GroupStandings>('/world-cup/standings');
+/** Datos oficiales de un torneo con fase de grupos (grupos, cuotas, goleadores y cuadro). */
+const tournament = (competitionId: number, read: string) =>
+  `/competitions/${competitionId}/tournament/${read}`;
+
+export const fetchTournamentFormat = (competitionId: number) =>
+  request<TournamentFormat>(tournament(competitionId, 'format'));
+
+export const fetchTournamentStandings = (competitionId: number) =>
+  request<GroupStandings>(tournament(competitionId, 'standings'));
 
 export const fetchMatches = (competitionId: number) =>
   request<Match[]>(`/matches${query({ competitionId })}`);
@@ -19,11 +28,12 @@ export const fetchMatches = (competitionId: number) =>
 export const fetchMatchRadar = (competitionId: number) =>
   request<MatchRadar>(`/matches/radar${query({ competitionId })}`);
 
-export const fetchWorldCupGroupOdds = () => request<GroupOdds>('/world-cup/group-odds');
+export const fetchTournamentGroupOdds = (competitionId: number) =>
+  request<GroupOdds>(tournament(competitionId, 'group-odds'));
 
 // Evita que el panel Pichichi se quede cargando indefinidamente si el backend no responde.
-export const fetchWorldCupTopScorers = () =>
-  request<TopScorer[]>('/world-cup/scorers', { timeoutMs: 12_000 });
+export const fetchTournamentTopScorers = (competitionId: number) =>
+  request<TopScorer[]>(tournament(competitionId, 'scorers'), { timeoutMs: 12_000 });
 
 export const fetchCompetitionStandings = async (
   competitionId: number | null,
@@ -36,6 +46,6 @@ export async function fetchCompetitions(): Promise<Competition[]> {
   return cachedCompetitions;
 }
 
-/** Cuadro oficial. Se cachea como consulta de TanStack (`worldCupOfficialBracketQuery`). */
-export const fetchWorldCupOfficialBracket = () =>
-  request<PredictionData>('/world-cup/official-bracket');
+/** Cuadro oficial. Se cachea como consulta de TanStack (`tournamentOfficialBracketQuery`). */
+export const fetchTournamentOfficialBracket = (competitionId: number) =>
+  request<PredictionData>(tournament(competitionId, 'official-bracket'));

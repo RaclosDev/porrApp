@@ -48,8 +48,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class SyncService {
 
-    /** Paso de la sincronización que recalcula los grupos y el cuadro del Mundial. */
-    static final String WORLD_CUP_REFRESH = "Clasificación y cuadro del Mundial";
+    /** Paso de la sincronización que recalcula los grupos y el cuadro de un torneo; le sigue su nombre. */
+    static final String TOURNAMENT_REFRESH = "Clasificación y cuadro de ";
     private static final DateTimeFormatter ESPN_DATE = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     static final String STATUS_SUCCESS = "success";
@@ -87,8 +87,8 @@ public class SyncService {
     private volatile int lastMatchesUpdated;
     private volatile int lastTeamsUpdated;
     private volatile String lastErrorMessage;
-    /** El último recálculo de la clasificación y el cuadro del Mundial falló: se repite en la siguiente pasada. */
-    private volatile boolean worldCupRefreshPending;
+    /** Torneos cuyo último recálculo de clasificación y cuadro falló: se repite en la siguiente pasada. */
+    private final Map<Long, Competition> tournamentRefreshPending = new java.util.concurrent.ConcurrentHashMap<>();
 
     public Instant getLastSyncTime() { return lastSyncTime; }
     public String getLastSyncStatus() { return lastSyncStatus; }
@@ -140,7 +140,7 @@ public class SyncService {
 
     /** Resultado de sincronizar una competición en una pasada. */
     private record CompetitionSync(String competition, String status, int matchesUpdated, int teamsUpdated,
-                                   String error, boolean worldCupResultsChanged, int clockUpdated) {
+                                   String error, boolean tournamentResultsChanged, int clockUpdated) {
         static CompetitionSync failed(String competition, String status, String error) {
             return new CompetitionSync(competition, status, 0, 0, error, false, 0);
         }
@@ -202,13 +202,13 @@ public class SyncService {
         return competition.getExternalId() != null && !competition.getExternalId().isBlank();
     }
 
-    /** Sincroniza las competiciones, recalcula el Mundial si hace falta y avisa a los clientes. Requiere {@code syncLock}. */
+    /** Sincroniza las competiciones, recalcula los torneos con grupos si hace falta y avisa a los clientes. Requiere {@code syncLock}. */
     private List<CompetitionSync> syncCompetitions(List<Competition> competitions, boolean liveOnly) {
         List<CompetitionSync> results = new ArrayList<>();
         // Qué competiciones han cambiado, para avisar solo a quien las sigue.
         java.util.Set<Long> changed = new java.util.LinkedHashSet<>();
         java.util.Set<Long> ticking = new java.util.LinkedHashSet<>();
-        boolean worldCupChanged = false;
+        boolean tournamentChanged = false;
         for (Competition competition : competitions) {
             if (Thread.currentThread().isInterrupted()) {
                 results.add(CompetitionSync.failed(competition.getName(), STATUS_ERROR, "Sincronización interrumpida"));
@@ -218,19 +218,20 @@ public class SyncService {
             results.add(result);
             if (result.matchesUpdated() > 0 || result.teamsUpdated() > 0) {
                 changed.add(competition.getId());
-                worldCupChanged |= WorldCupTables.isWorldCup(competition);
+                tournamentChanged |= GroupTournamentTables.applies(competition);
             } else if (result.clockUpdated() > 0) {
                 ticking.add(competition.getId());
             }
+            if (result.tournamentResultsChanged()) tournamentRefreshPending.put(competition.getId(), competition);
         }
-        worldCupRefreshPending |= results.stream().anyMatch(CompetitionSync::worldCupResultsChanged);
-        if (worldCupRefreshPending && !Thread.currentThread().isInterrupted()) {
-            CompetitionSync refresh = refreshWorldCup();
+        for (Competition tournament : List.copyOf(tournamentRefreshPending.values())) {
+            if (Thread.currentThread().isInterrupted()) break;
+            CompetitionSync refresh = refreshTournament(tournament);
             results.add(refresh);
-            worldCupChanged |= refresh.matchesUpdated() > 0;
-            topScorerService.refresh();
+            tournamentChanged |= refresh.matchesUpdated() > 0;
+            topScorerService.refresh(tournament);
         }
-        if (worldCupChanged) {
+        if (tournamentChanged) {
             // La clasificación de grupos y el cuadro oficial están en cachés sin clave por competición.
             webSocketService.notifyResultsChanged();
         } else if (!changed.isEmpty()) {
@@ -244,7 +245,7 @@ public class SyncService {
 
     private CompetitionSync syncCompetition(Competition competition, boolean liveOnly) {
         if (competition.isFormulaOne()) return syncFormulaOne(competition, liveOnly);
-        if (WorldCupTables.isWorldCup(competition) && knockoutBracketService.worldCupIsOver()) {
+        if (GroupTournamentTables.applies(competition) && knockoutBracketService.isOver(competition)) {
             // Torneo cerrado: sus partidos ya no cambian y pedirlo entero en cada pasada no aporta nada.
             return new CompetitionSync(competition.getName(), STATUS_SUCCESS, 0, 0, null, false, 0);
         }
@@ -261,12 +262,13 @@ public class SyncService {
             return CompetitionSync.failed(competition.getName(), STATUS_CIRCUIT_OPEN, "circuit breaker abierto");
         }
         MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition);
-        boolean worldCup = WorldCupTables.isWorldCup(competition);
+        boolean tournament = GroupTournamentTables.applies(competition);
         try {
             Map<String, Team> teams = matchEventProcessor.teamCache();
 
-            if (worldCup) {
-                processEvents(provider.fetchScoreboardEvents(slug, Competition.WORLD_CUP_SEASON), teams, batch);
+            if (tournament) {
+                // Un torneo se pide entero, por su temporada, y no día a día.
+                processEvents(provider.fetchScoreboardEvents(slug, competition.tournamentFormat().season()), teams, batch);
             } else if (LolEsportsDataProvider.isLolCompetition(slug)) {
                 // El calendario de lolesports llega entero de una vez (y en caché) e incluye ediciones
                 // anteriores: se repasa la temporada en curso para que las series ya jugadas reciban su fase.
@@ -299,12 +301,12 @@ public class SyncService {
             boolean available = provider.isAvailable();
             return new CompetitionSync(competition.getName(), batch.hasErrors() ? STATUS_ERROR : available ? STATUS_SUCCESS : STATUS_CIRCUIT_OPEN,
                     batch.matchesUpdated(), batch.teamsUpdated(), batch.hasErrors() ? batch.errorMessage() : available ? null : "circuit breaker abierto",
-                    worldCup && batch.resultsChanged(), batch.clockUpdated());
+                    tournament && batch.resultsChanged(), batch.clockUpdated());
         } catch (Exception e) {
             log.error("Falló la sincronización de {} con {}: {}", competition.getName(), provider.getProviderName(), e.getMessage(), e);
             // Lo que ya se haya guardado antes del fallo también cuenta para el aviso y el recálculo.
             return new CompetitionSync(competition.getName(), STATUS_ERROR, batch.matchesUpdated(),
-                    batch.teamsUpdated(), e.getMessage(), worldCup && batch.resultsChanged(), batch.clockUpdated());
+                    batch.teamsUpdated(), e.getMessage(), tournament && batch.resultsChanged(), batch.clockUpdated());
         }
     }
 
@@ -353,18 +355,17 @@ public class SyncService {
     }
 
     /**
-     * Recalcula la clasificación de grupos y el cuadro del Mundial al final de una pasada. Si falla, se
+     * Recalcula la clasificación de grupos y el cuadro de un torneo al final de una pasada. Si falla, se
      * repite en la siguiente aunque esa no cambie ningún resultado.
      */
-    private CompetitionSync refreshWorldCup() {
-        String name = WORLD_CUP_REFRESH;
-        worldCupRefreshPending = true;
+    private CompetitionSync refreshTournament(Competition tournament) {
+        String name = TOURNAMENT_REFRESH + tournament.getName();
         try {
-            int placed = WorldCupTables.refresh(knockoutBracketService, standingsService);
-            worldCupRefreshPending = false;
+            int placed = GroupTournamentTables.refresh(tournament, knockoutBracketService, standingsService);
+            tournamentRefreshPending.remove(tournament.getId());
             return new CompetitionSync(name, STATUS_SUCCESS, placed, 0, null, false, 0);
         } catch (Exception e) {
-            log.error("Falló el recálculo de la clasificación y el cuadro de {}: {}", name, e.getMessage(), e);
+            log.error("Falló el recálculo de {}: {}", name, e.getMessage(), e);
             return CompetitionSync.failed(name, STATUS_ERROR, e.getMessage());
         }
     }

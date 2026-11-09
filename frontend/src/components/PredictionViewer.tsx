@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { LeagueKind } from '../context/leagueKind';
-import { useWorldCupData } from '../context/leagueData';
+import { useTournamentData } from '../context/leagueData';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { usePredictionViewerData, type RoundRef } from '../hooks/usePredictionViewerData';
 import { PredictionSkeleton } from './Skeleton';
@@ -10,12 +10,13 @@ import ViewerTabs from './prediction/ViewerTabs';
 import GroupsView from './prediction/GroupsView';
 import ThirdsView from './prediction/ThirdsView';
 import BracketView from './prediction/BracketView';
+import { WORLD_CUP_2026_FORMAT } from '../utils/firstKnockoutRound';
 import GroupTeamRow from './prediction/GroupTeamRow';
 import RoundFooter from './prediction/RoundFooter';
 import ViewerSlot from './prediction/ViewerSlot';
 import { ViewerMessage, ViewerModal } from './prediction/ViewerFrame';
 import type { ViewerTab } from './prediction/viewerTypes';
-import { nextWorldCupKnockoutMatch } from '../utils/bracketBuilder';
+import { nextKnockoutMatch } from '../utils/bracketBuilder';
 import { advancingThirds, thirdPlacedTeams } from '../utils/predictionViewer';
 import { featuredSlot, groupTeamPoints } from '../utils/viewerScoring';
 import { isMathematicallyQualified } from '../utils/groupStatus';
@@ -47,7 +48,7 @@ function PredictionViewer(props: PredictionViewerProps) {
   ) : null;
   // Solo las ligas de cuadro tienen visor; las demás no enseñan ninguno.
   const viewers: Record<LeagueKind, ReactNode> = {
-    worldCup: <WorldCupPredictionViewer {...props} />,
+    groupStage: <GroupStagePredictionViewer {...props} />,
     customBracket: ownBracket,
     ownBracket,
     knockoutDraw: ownBracket,
@@ -63,7 +64,7 @@ function PredictionViewer(props: PredictionViewerProps) {
   return viewers[leagueKind];
 }
 
-function WorldCupPredictionViewer({
+function GroupStagePredictionViewer({
   inline = false,
   predictionId = null,
   onEdit = null,
@@ -71,7 +72,13 @@ function WorldCupPredictionViewer({
 }: PredictionViewerProps) {
   const state = useAppContext();
   const { viewerPredictionId, setViewerPredictionId, allGames } = state;
-  const { groupStandings: officialPoints, groupOdds } = useWorldCupData();
+  // Sin forma del servidor, la del Mundial: la de todos los cuadros anteriores.
+  const {
+    groupStandings: officialPoints,
+    groupOdds,
+    tournamentId,
+    format = WORLD_CUP_2026_FORMAT,
+  } = useTournamentData();
   const { participantsHashes } = state;
   const effectivePredictionId = predictionId || viewerPredictionId;
   const handleClose = useCallback(
@@ -106,13 +113,15 @@ function WorldCupPredictionViewer({
     groupOdds,
     allGames,
     initialPart,
+    tournamentId,
+    format,
   );
 
   const [activeTab, setActiveTab] = useState<ViewerTab>(() =>
     initialSection === 'knockout' ? 'bracket' : 'groups',
   );
 
-  const featuredMatch = useMemo(() => nextWorldCupKnockoutMatch(allGames), [allGames]);
+  const featuredMatch = useMemo(() => nextKnockoutMatch(allGames), [allGames]);
 
   // Las cuatro variantes del modal comparten el mismo contenedor raíz, así que el ref no cambia.
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -130,7 +139,7 @@ function WorldCupPredictionViewer({
     }
   }, [initialSection, effectivePredictionId]);
 
-  const thirds = useMemo(() => advancingThirds(part, groupOdds), [part, groupOdds]);
+  const thirds = useMemo(() => advancingThirds(part, groupOdds, format), [part, groupOdds, format]);
   const allThirdTeams = useMemo(() => thirdPlacedTeams(part), [part]);
 
   if (!effectivePredictionId) return null;
@@ -242,6 +251,7 @@ function WorldCupPredictionViewer({
             finalAway={finalAway}
             thirdHome={thirdHome}
             thirdAway={thirdAway}
+            thirdPlaceMatch={format.thirdPlaceMatch}
             getCenterPointsTotal={getCenterPointsTotal}
             hiddenRounds={HIDDEN_ROUNDS}
             leftRounds={leftRounds}

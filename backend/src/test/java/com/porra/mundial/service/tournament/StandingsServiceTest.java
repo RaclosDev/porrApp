@@ -8,7 +8,7 @@ import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.GroupStandingRepository;
 import com.porra.mundial.repository.MatchRepository;
-import com.porra.mundial.repository.TeamRepository;
+import com.porra.mundial.repository.CompetitionTeamRepository;
 import com.porra.mundial.util.AppTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,10 +43,7 @@ class StandingsServiceTest {
     private MatchRepository matchRepository;
 
     @Mock
-    private TeamRepository teamRepository;
-
-    @Mock
-    private CompetitionRepository competitionRepository;
+    private CompetitionTeamRepository competitionTeamRepository;
 
     @Mock
     private ScoreInvalidationService scoreInvalidationService;
@@ -57,12 +54,15 @@ class StandingsServiceTest {
     private Team teamA;
     private Team teamB;
     private Team teamC;
+    private Competition worldCup;
 
     @BeforeEach
     void setUp() {
         teamA = Team.builder().id(1L).name("TeamA").build();
         teamB = Team.builder().id(2L).name("TeamB").build();
         teamC = Team.builder().id(3L).name("TeamC").build();
+        worldCup = Competition.builder().id(WORLD_CUP_ID).name("Mundial 2026")
+                .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
     }
 
     @Test
@@ -180,9 +180,9 @@ class StandingsServiceTest {
             all.add(GroupStanding.builder().groupName(g).team(t3).points(thirdPts).matchesPlayed(3).build());
         }
         
-        when(standingRepository.findAllByOrderByGroupNameAsc()).thenReturn(all);
+        when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(all);
         
-        var result = standingsService.getWorldCupGroupPoints();
+        var result = standingsService.getGroupPoints(worldCup);
         
         assertEquals(-1, result.get("L").get("T3_L").get("status"));
         assertEquals(-1, result.get("I").get("T3_I").get("status"));
@@ -195,25 +195,26 @@ class StandingsServiceTest {
         Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
         Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
                 .homeScore(2).awayScore(0).finished(true).matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 15, 21, 0))).build();
-        when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
+        when(competitionTeamRepository.findGroupTeams(WORLD_CUP_ID)).thenReturn(List.of(drawn(spain), drawn(uruguay)));
         givenWorldCupMatches(played);
-        when(standingRepository.findAll()).thenReturn(List.of());
+        when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(List.of());
 
-        standingsService.recalculateStandingsFromMatches();
+        standingsService.recalculate(worldCup);
 
-        verify(scoreInvalidationService).invalidateWorldCup();
+        verify(scoreInvalidationService).invalidateCompetition(WORLD_CUP_ID);
         ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
         verify(standingRepository).saveAll(saved.capture());
         assertEquals(3, saved.getValue().get(0).getPoints());
+        assertEquals(WORLD_CUP_ID, saved.getValue().get(0).getCompetition().getId());
 
         // Mismos partidos sobre la clasificación ya guardada: nada que recalcular.
         clearInvocations(scoreInvalidationService, standingRepository);
-        when(standingRepository.findAll()).thenReturn(new ArrayList<>(saved.getValue()));
+        when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(new ArrayList<>(saved.getValue()));
 
-        standingsService.recalculateStandingsFromMatches();
+        standingsService.recalculate(worldCup);
 
         verify(standingRepository).saveAll(anyList());
-        verify(scoreInvalidationService, never()).invalidateWorldCup();
+        verify(scoreInvalidationService, never()).invalidateCompetition(WORLD_CUP_ID);
     }
 
     @Test
@@ -223,23 +224,57 @@ class StandingsServiceTest {
         Team uruguay = Team.builder().id(2L).name("Uruguay").groupName("H").build();
         Match played = Match.builder().id(10L).round("group").groupName("H").homeTeam(spain).awayTeam(uruguay)
                 .homeScore(0).awayScore(1).finished(true).matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 6, 15, 21, 0))).build();
-        when(teamRepository.findAll()).thenReturn(List.of(spain, uruguay));
-        when(standingRepository.findAll()).thenReturn(List.of());
+        when(competitionTeamRepository.findGroupTeams(WORLD_CUP_ID)).thenReturn(List.of(drawn(spain), drawn(uruguay)));
+        when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(List.of());
 
-        standingsService.recalculateStandingsFromMatches(List.of(played));
+        standingsService.recalculate(worldCup, List.of(played));
 
         ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
         verify(standingRepository).saveAll(saved.capture());
         assertEquals("Uruguay", saved.getValue().get(0).getTeam().getName());
         assertEquals(3, saved.getValue().get(0).getPoints());
-        verifyNoInteractions(matchRepository, competitionRepository);
+        verifyNoInteractions(matchRepository);
     }
 
     private static final long WORLD_CUP_ID = 2L;
 
+    /** El equipo, sorteado en el grupo H del torneo. */
+    private static com.porra.mundial.model.CompetitionTeam drawn(Team team) {
+        return com.porra.mundial.model.CompetitionTeam.builder().team(team).groupName("H").build();
+    }
+
     private void givenWorldCupMatches(Match... matches) {
-        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(WORLD_CUP_ID));
         when(matchRepository.findByCompetitionId(WORLD_CUP_ID)).thenReturn(List.of(matches));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void aTournamentWithoutSeededGroupsTakesThemFromItsOwnGroupMatches() {
+        Competition cup = Competition.builder().id(7L).name("Copa Libertadores").externalId("conmebol.libertadores").build();
+        Team flamengo = Team.builder().id(1L).name("Flamengo").groupName("-").build();
+        Team penarol = Team.builder().id(2L).name("Peñarol").groupName("-").build();
+        Team boca = Team.builder().id(3L).name("Boca Juniors").groupName("-").build();
+        Team colo = Team.builder().id(4L).name("Colo-Colo").groupName("-").build();
+        Match groupA = Match.builder().id(10L).round("group").groupName("A").homeTeam(flamengo).awayTeam(penarol)
+                .homeScore(1).awayScore(1).finished(true).build();
+        Match groupB = Match.builder().id(11L).round("group").groupName("B").homeTeam(boca).awayTeam(colo)
+                .homeScore(0).awayScore(2).finished(true).build();
+        Match knockout = Match.builder().id(12L).round("r16").homeTeam(flamengo).awayTeam(colo).build();
+        when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(7L)).thenReturn(List.of());
+
+        standingsService.recalculate(cup, List.of(groupA, groupB, knockout));
+
+        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
+        verify(standingRepository).saveAll(saved.capture());
+        List<GroupStanding> rows = saved.getValue();
+        assertEquals(List.of("A", "A", "B", "B"), rows.stream().map(GroupStanding::getGroupName).toList());
+        assertEquals("Colo-Colo", rows.get(2).getTeam().getName());
+        assertEquals(1, rows.get(2).getPosition());
+        assertEquals(3, rows.get(2).getPoints());
+        assertEquals(List.of(7L, 7L, 7L, 7L), rows.stream().map(row -> row.getCompetition().getId()).toList());
+        verify(scoreInvalidationService).invalidateCompetition(7L);
+        // Los equipos con grupo sorteado son cosa del torneo que los tiene, no de este.
+        verifyNoInteractions(competitionTeamRepository);
     }
 
     @Test
@@ -256,13 +291,13 @@ class StandingsServiceTest {
             all.add(GroupStanding.builder().groupName(g).team(Team.builder().id(i * 3L + 102).name("T3_" + g).build())
                     .points(i < 8 ? 3 : 0).matchesPlayed(2).build());
         }
-        when(standingRepository.findAllByOrderByGroupNameAsc()).thenReturn(all);
+        when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(all);
         Match worldCupGroupMatch = Match.builder().round("group").groupName("A").finished(true).build();
         Match cupMatchStillToPlay = Match.builder().round("group").finished(false).build();
         lenient().when(matchRepository.findAll()).thenReturn(List.of(worldCupGroupMatch, cupMatchStillToPlay));
         givenWorldCupMatches(worldCupGroupMatch);
 
-        var result = standingsService.getWorldCupGroupPoints();
+        var result = standingsService.getGroupPoints(worldCup);
 
         assertEquals(-1, result.get("L").get("T3_L").get("status"));
         assertEquals(0, result.get("A").get("T3_A").get("status"));

@@ -12,11 +12,12 @@ import BestThirdsPanel from '../components/Home/BestThirdsPanel';
 import LiveMatchesPanel from '../components/Home/LiveMatchesPanel';
 import TopScorersPanel from '../components/Home/TopScorersPanel';
 import LeagueHomeDashboard from '../components/Home/LeagueHomeDashboard';
+import LeagueClosing from '../components/league/LeagueClosing';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
 import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
-import { useWorldCupData } from '../context/leagueData';
+import { useTournamentData } from '../context/leagueData';
 import type { LeagueKind } from '../context/leagueKind';
 
 type HomeMode = 'home' | 'groups';
@@ -39,7 +40,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Inicio" what="los partidos y el ranking" />,
     unknown: <UnsupportedLeagueState />,
-    worldCup: home ? <LeagueHomeDashboard /> : <WorldCupGroups />,
+    groupStage: home ? <LeagueHomeDashboard /> : <GroupStageGroups />,
     customBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
     ownBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
     knockoutDraw: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
@@ -49,23 +50,30 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     // Fórmula 1: el inicio son los Grandes Premios.
     grandPrix: <GrandPrixPage />,
   };
-  return views[leagueKind];
+  return (
+    <>
+      {/* Una liga terminada abre su inicio con el cierre: campeón, podio y compartir. */}
+      {home && <LeagueClosing />}
+      {views[leagueKind]}
+    </>
+  );
 }
 
 /** Fase de grupos del Mundial: clasificación de cada grupo, mejores terceros, partidos y pichichi. */
-function WorldCupGroups() {
+function GroupStageGroups() {
   const { allGames, loading: loadingOfficial, matchRadar } = useAppContext();
   const {
     groupOdds,
     groupStandings,
-    loading: loadingWorldCup,
+    format,
+    loading: loadingTournament,
     pichichi,
     topScorers,
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
-  } = useWorldCupData();
-  const loading = loadingOfficial || loadingWorldCup;
+  } = useTournamentData();
+  const loading = loadingOfficial || loadingTournament;
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
   const [activeMobilePanel, setActiveMobilePanel] = useState<'thirds' | 'live' | 'scorers' | null>(
     null,
@@ -83,7 +91,7 @@ function WorldCupGroups() {
     return (
       <div
         key={groupName}
-        className={`group-card paper-panel album-sheet relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : '[outline:none]'}`}
+        className={`group-card paper-panel album-sheet relative cursor-pointer ${selectedGroup?.name === groupName ? 'z-[100]' : 'z-[1]'} ${selectedGroup?.name === groupName ? 'border border-accent' : ''} ${selectedGroup?.name === groupName ? '[outline:2px_solid_var(--accent-cyan)]' : ''}`}
         role="button"
         tabIndex={0}
         aria-label={`Ver detalles del grupo ${groupName}`}
@@ -209,7 +217,7 @@ function WorldCupGroups() {
 
       <div className="hide-on-desktop mb-5 flex flex-col items-center w-full">
         <div className={activeMobilePanel === 'thirds' ? '' : 'mobile-step-hidden'}>
-          <BestThirdsPanel officialPoints={groupStandings} />
+          <BestThirdsPanel officialPoints={groupStandings} qualifying={format.bestThirds} />
         </div>
         <div className={activeMobilePanel === 'live' ? '' : 'mobile-step-hidden'}>
           <LiveMatchesPanel
@@ -233,7 +241,7 @@ function WorldCupGroups() {
       {/* Paneles desktop (siempre visibles, solo en groups) */}
       <div className="hide-on-mobile flex flex-wrap justify-center items-start mb-5 w-full gap-5">
         <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
-          <BestThirdsPanel officialPoints={groupStandings} />
+          <BestThirdsPanel officialPoints={groupStandings} qualifying={format.bestThirds} />
         </div>
         <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel

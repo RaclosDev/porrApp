@@ -93,6 +93,7 @@ class SyncQueryCountTest {
     @Autowired private MatchPredictionService matchPredictionService;
     @Autowired private CompetitionRepository competitionRepository;
     @Autowired private TeamRepository teamRepository;
+    @Autowired private com.porra.mundial.repository.CompetitionTeamRepository competitionTeamRepository;
     @Autowired private MatchRepository matchRepository;
     @Autowired private UserAccountRepository userAccountRepository;
     @Autowired private LeagueRepository leagueRepository;
@@ -187,12 +188,16 @@ class SyncQueryCountTest {
     }
 
     private List<Team> seedWorldCupTeams() {
+        Competition worldCup = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElseThrow();
         List<Team> teams = new ArrayList<>();
         for (char group = 'A'; group <= 'L'; group++) {
             for (int i = 1; i <= 4; i++) {
                 String name = "Selección " + group + i;
-                teams.add(teamRepository.save(Team.builder().name(name).nameEn(name).externalId("wc-" + group + i)
-                        .groupName(String.valueOf(group)).build()));
+                Team team = teamRepository.save(Team.builder().name(name).nameEn(name).externalId("wc-" + group + i)
+                        .groupName(String.valueOf(group)).build());
+                competitionTeamRepository.save(com.porra.mundial.model.CompetitionTeam.builder()
+                        .competition(worldCup).team(team).groupName(String.valueOf(group)).build());
+                teams.add(team);
             }
         }
         return teams;

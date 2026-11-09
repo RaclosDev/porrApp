@@ -4,6 +4,7 @@ import {
   hasValidGroupSelections,
   normalizeGroupsDraft,
 } from '../../utils/bracketDraft';
+import type { GroupOdds } from '../../types/api';
 
 describe('Group stage extraction and validation', () => {
   it('correctly identifies empty vs valid group selections', () => {
@@ -86,7 +87,22 @@ describe('Group stage extraction and validation', () => {
       ],
     };
 
-    const { groups, thirds } = extractGroupsFromR32(bracketStateR32);
+    // El grupo de cada tercero lo dicen los grupos del servidor.
+    const thirdGroups = {
+      A: 'Corea del Sur',
+      B: 'Suiza',
+      C: 'Escocia',
+      D: 'Australia',
+      E: 'Ecuador',
+      F: 'Suecia',
+      G: 'Bélgica',
+      H: 'Uruguay',
+    };
+    const groupOdds = Object.fromEntries(
+      Object.entries(thirdGroups).map(([group, name]) => [group, [{ name }]]),
+    ) as unknown as GroupOdds;
+
+    const { groups, thirds } = extractGroupsFromR32(bracketStateR32, groupOdds);
 
     expect(groups.A.first).toBe('México');
     expect(groups.A.second).toBe('Sudáfrica');

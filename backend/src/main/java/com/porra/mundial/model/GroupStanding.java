@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * Entidad 'GroupStanding' (Clasificación Oficial de Grupos Reales).
- * Sirve como un "espejo" de los puntos reales que tiene cada equipo en el torneo oficial (ESPN).
- * Almacena estadísticas de la fase de grupos y la posición/estado matemático materializado.
+ * Fila de la clasificación real de un grupo: un equipo en la fase de grupos de un torneo, con sus
+ * estadísticas y su posición y estado matemático ya calculados. Es también lo que dice qué equipos
+ * juegan cada grupo de cada competición.
  */
 @Entity
 @Table(name = "group_standings")
@@ -17,12 +17,17 @@ public class GroupStanding {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Torneo al que pertenece el grupo. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "competition_id", nullable = false)
+    private Competition competition;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "team_id")
     private Team team;
 
-    /** Letra del grupo (A-L). */
-    @Column(name = "group_name", length = 2)
+    /** Nombre del grupo dentro del torneo ("A", "B"...). */
+    @Column(name = "group_name", length = 50)
     private String groupName;
 
     /** Puntos totales conseguidos en la fase de grupos (3 por victoria, 1 empate). */
@@ -37,7 +42,7 @@ public class GroupStanding {
     @Builder.Default
     private Integer goalsFor = 0;
 
-    /** Número de partidos jugados hasta el momento (máximo 3). */
+    /** Número de partidos de grupo jugados hasta el momento. */
     @Builder.Default
     private Integer matchesPlayed = 0;
 
@@ -46,7 +51,7 @@ public class GroupStanding {
     @Builder.Default
     private Integer fairPlayPoints = 0;
 
-    /** Posición calculada en el grupo (1 a 4). */
+    /** Posición calculada en el grupo, desde 1. */
     @Column(name = "position")
     @Builder.Default
     private Integer position = 0;

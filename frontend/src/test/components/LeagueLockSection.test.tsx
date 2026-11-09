@@ -78,7 +78,7 @@ describe('LeagueLockSection', () => {
   });
 
   it('el Mundial solo ofrece cerrar en una fecha o en el primer partido', async () => {
-    setup('fifa.world');
+    setup('fifa.world', { groupTournament: true });
 
     expect(
       await screen.findByRole('radio', { name: 'Al empezar el primer partido' }),

@@ -39,7 +39,7 @@ export default function LeagueStandings() {
     fightCard: <UfcCardBoard />,
     // En el tenis tampoco: los «equipos» son jugadores y la tabla es el cuadro del torneo.
     tennisDraw: <TennisDrawBoard />,
-    worldCup: <Navigate to="/bracket" replace />,
+    groupStage: <Navigate to="/bracket" replace />,
     customBracket: <Navigate to="/bracket" replace />,
     ownBracket: <Navigate to="/bracket" replace />,
     knockoutDraw: <Navigate to="/bracket" replace />,

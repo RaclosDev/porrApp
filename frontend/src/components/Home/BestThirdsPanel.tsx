@@ -5,9 +5,13 @@ import type { GroupStandings } from '../../types/api';
 
 interface BestThirdsPanelProps {
   officialPoints: GroupStandings;
+  /** Terceros que pasan a las eliminatorias: 8 en el Mundial, 4 en la Eurocopa. */
+  qualifying?: number;
 }
 
-function BestThirdsPanel({ officialPoints }: BestThirdsPanelProps) {
+const CUT_LINE = 'border-b-2 [border-bottom-style:dashed] border-b-[rgba(255,_71,_87,_0.5)]';
+
+function BestThirdsPanel({ officialPoints, qualifying = 8 }: BestThirdsPanelProps) {
   const thirds = useMemo(() => rankBestThirds(officialPoints), [officialPoints]);
 
   if (thirds.length === 0) return null;
@@ -27,16 +31,17 @@ function BestThirdsPanel({ officialPoints }: BestThirdsPanelProps) {
             </div>
             <div className="flex flex-col">
               {thirds.slice(0, 6).map((t, idx) => {
-                const isTop8 = idx < 8;
+                const qualifies = idx < qualifying;
                 const rank = idx + 1;
 
                 return (
                   <div
-                    className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 py-[5px] px-0 items-center text-[0.85rem]"
+                    className={`grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 py-[5px] px-0 items-center text-[0.85rem] ${idx === qualifying - 1 ? CUT_LINE : 'border-b-0'}`}
                     key={t.name}
+                    style={{ opacity: qualifies ? 1 : 0.5 }}
                   >
                     <span
-                      className={`font-bold text-center ${isTop8 ? 'text-[var(--hit)]' : 'text-muted'}`}
+                      className={`font-bold text-center ${qualifies ? 'text-[var(--hit)]' : 'text-muted'}`}
                     >
                       {rank}
                     </span>
@@ -64,7 +69,7 @@ function BestThirdsPanel({ officialPoints }: BestThirdsPanelProps) {
             </div>
           </div>
 
-          <div className="flex flex-col">
+          <div className={thirds.length > 6 ? 'flex flex-col' : 'hidden'}>
             <div className="grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 pb-1.5 border-b border-b-line text-[0.75rem] text-muted font-bold text-center">
               <span>#</span>
               <span className="text-left">Equipo</span>
@@ -76,17 +81,17 @@ function BestThirdsPanel({ officialPoints }: BestThirdsPanelProps) {
               {thirds.slice(6, 12).map((t, idx) => {
                 const globalIdx = idx + 6;
                 const hasPlayed = t.mp > 0;
-                const isTop8 = hasPlayed && globalIdx < 8;
+                const qualifies = hasPlayed && globalIdx < qualifying;
                 const rank = hasPlayed ? globalIdx + 1 : '-';
 
                 return (
                   <div
-                    className={`grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 py-[5px] px-0 items-center text-[0.85rem] ${globalIdx === 7 ? 'border-b-2 [border-bottom-style:dashed] border-b-[rgba(255,_71,_87,_0.5)]' : 'border-b-0'}`}
+                    className={`grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 py-[5px] px-0 items-center text-[0.85rem] ${globalIdx === qualifying - 1 ? CUT_LINE : 'border-b-0'}`}
                     key={t.name}
-                    style={{ opacity: isTop8 ? 1 : hasPlayed ? 0.5 : 0.3 }}
+                    style={{ opacity: qualifies ? 1 : hasPlayed ? 0.5 : 0.3 }}
                   >
                     <span
-                      className={`font-bold text-center ${isTop8 ? 'text-[var(--hit)]' : 'text-muted'}`}
+                      className={`font-bold text-center ${qualifies ? 'text-[var(--hit)]' : 'text-muted'}`}
                     >
                       {rank}
                     </span>

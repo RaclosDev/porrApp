@@ -18,7 +18,7 @@ type Selections = Record<string, GroupSelection>;
 
 /**
  * Componente interactivo para que el usuario prediga la Fase de Grupos.
- * Permite elegir 1º, 2º y hasta 8 equipos como los "Mejores Terceros".
+ * Permite elegir 1º, 2º y los terceros que pasan como mejores terceros (los que diga el torneo).
  * Persiste los datos en localStorage en caso de recarga o cierre.
  */
 interface GroupStageProps {
@@ -31,6 +31,8 @@ interface GroupStageProps {
   userId: string;
   initialSelections?: unknown;
   initialThirds?: string[];
+  /** Terceros de grupo que pasan a las eliminatorias en este torneo (en el Mundial, 8). */
+  bestThirds?: number;
 }
 
 export default function GroupStage(props: GroupStageProps) {
@@ -44,6 +46,7 @@ function GroupStageForm({
   userId,
   initialSelections,
   initialThirds,
+  bestThirds = 8,
 }: GroupStageProps) {
   const [selections, setSelections] = useState<Selections>(() => {
     const saved = getSavedSelections(activeGroupId, userId);
@@ -126,11 +129,11 @@ function GroupStageForm({
   };
 
   /**
-   * Agrega o quita un equipo a la lista final de 8 mejores terceros.
+   * Agrega o quita un equipo a la lista final de mejores terceros.
    */
   const toggleAdvancingThird = (team: string) => {
     if (advancingThirds.includes(team)) saveThirds(advancingThirds.filter((x) => x !== team));
-    else if (advancingThirds.length < 8) saveThirds([...advancingThirds, team]);
+    else if (advancingThirds.length < bestThirds) saveThirds([...advancingThirds, team]);
   };
 
   const selectedThirds = Object.values(selections)
@@ -138,7 +141,7 @@ function GroupStageForm({
     .filter((t) => t !== '');
 
   /**
-   * Valida que todos los grupos tengan 1º y 2º, y que haya exactamente 8 terceros.
+   * Valida que todos los grupos tengan 1º y 2º, y que estén los terceros que pasan.
    */
   const handleSubmit = () => {
     const missingFirstsOrSeconds: string[] = [];
@@ -153,9 +156,9 @@ function GroupStageForm({
       return;
     }
 
-    if (advancingThirds.length !== 8) {
+    if (advancingThirds.length !== bestThirds) {
       toast.error(
-        `Debes seleccionar exactamente 8 mejores terceros (llevas ${advancingThirds.length}).`,
+        `Debes seleccionar exactamente ${bestThirds} mejores terceros (llevas ${advancingThirds.length}).`,
       );
       return;
     }
@@ -169,7 +172,7 @@ function GroupStageForm({
         <h2 className="poster-title text-accent-text mt-0 mb-2.5 mx-0">Paso 1: fase de grupos</h2>
         <p className="text-muted">
           Selecciona 1º y 2º en cada grupo. Puedes marcar todos los 3º que quieras, y luego elegir a
-          los 8 mejores abajo.
+          los {bestThirds} mejores abajo.
         </p>
       </div>
 
@@ -310,14 +313,14 @@ function GroupStageForm({
 
       <div className={mobileStep === 'thirds' ? '' : 'mobile-step-hidden'}>
         <div className="paper-panel album-sheet p-5 mb-7.5">
-          <h3 className="text-center marker-ink mt-0">Elige los 8 mejores terceros</h3>
+          <h3 className="text-center marker-ink mt-0">Elige los {bestThirds} mejores terceros</h3>
           <p className="text-center text-[0.9rem] text-muted">
-            Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los 8 que
-            pasarán a las eliminatorias (
+            Has marcado {selectedThirds.length} terceros en los grupos. Haz clic en los {bestThirds}{' '}
+            que pasarán a las eliminatorias (
             <strong
-              className={`${advancingThirds.length === 8 ? 'text-[var(--hit)]' : 'text-[var(--miss)]'}`}
+              className={`${advancingThirds.length === bestThirds ? 'text-[var(--hit)]' : 'text-[var(--miss)]'}`}
             >
-              {advancingThirds.length}/8
+              {advancingThirds.length}/{bestThirds}
             </strong>
             ).
           </p>
@@ -361,13 +364,13 @@ function GroupStageForm({
           <button
             onClick={handleSubmit}
             className="glass-btn primary-btn text-[1.2rem] py-3 px-7.5"
-            disabled={advancingThirds.length !== 8}
+            disabled={advancingThirds.length !== bestThirds}
           >
             Ir a eliminatorias
           </button>
-          {advancingThirds.length !== 8 && (
+          {advancingThirds.length !== bestThirds && (
             <p className="text-[var(--miss)] text-[0.9rem] mt-2.5">
-              Selecciona exactamente 8 terceros para continuar.
+              Selecciona exactamente {bestThirds} terceros para continuar.
             </p>
           )}
         </div>

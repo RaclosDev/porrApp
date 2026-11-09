@@ -1,27 +1,45 @@
 /** Operaciones puras del editor del cuadro del Mundial (useBracket). */
 import { teamKey } from './teamKey';
-import { solveThirdPlaceMatrix, THIRD_PLACE_RULES } from './matrix';
+import { solveThirdPlaceMatrix, thirdPlaceRules } from './matrix';
 import { r32SlotIndex, topologyVersion } from './bracketTopology';
 import { teamName, type GroupSelection } from './bracketDraft';
+import { firstRoundIndex, firstRoundMatches, firstRoundOf } from './bracketTransitions';
+import { BRACKET_ROUNDS, WORLD_CUP_2026_FORMAT } from './firstKnockoutRound';
 import {
   defaultBracketState,
-  getDefaultBracketState,
   type BracketMatch,
   type BracketState,
   type BracketTeam,
 } from '../store/useAppStore';
-import type { GroupOdds, GroupStandings, PredictionData, TeamPair } from '../types/api';
+import type {
+  GroupOdds,
+  GroupStandings,
+  PredictionData,
+  TeamPair,
+  TournamentFormat,
+} from '../types/api';
 
 const cloneBracket = (state: BracketState): BracketState => JSON.parse(JSON.stringify(state));
+
+const isRealName = (name: string | undefined) => Boolean(name && !name.includes('º'));
 
 /** El cuadro no tiene nada rellenado (no hay borrador local que conservar). */
 export const isEmptyBracket = (state: BracketState): boolean =>
   state === defaultBracketState ||
-  JSON.stringify({ ...state, topologyVersion: undefined }) ===
-    JSON.stringify({
-      ...getDefaultBracketState(state.topologyVersion),
-      topologyVersion: undefined,
-    });
+  (!state.final &&
+    !state.champion &&
+    !state.thirdPlaceMatch &&
+    !state.thirdPlaceWinner &&
+    BRACKET_ROUNDS.every((round) =>
+      [...(state[round]?.left || []), ...(state[round]?.right || [])].every(
+        (m) => !isRealName(m.home?.name) && !isRealName(m.away?.name),
+      ),
+    ));
+
+/** El cuadro tiene la forma del torneo: empieza en su ronda y con sus cruces. */
+export const hasShapeOf = (state: BracketState, format: TournamentFormat): boolean =>
+  BRACKET_ROUNDS[firstRoundIndex(state)] === format.firstRound &&
+  firstRoundMatches(state).length === format.firstKnockoutRound.length;
 
 /** Nombres de los dos equipos de un cruce, si ya están los dos. */
 const matchPair = (m: BracketMatch | null): string[] | undefined => {
@@ -37,11 +55,11 @@ const teamPairs = (matches: BracketMatch[]): TeamPair[] =>
     m.away?.name && !m.away.name.includes('º') ? m.away.name : null,
   ]);
 
-const r32Slots = (state: BracketState) => [...state.r32.left, ...state.r32.right];
+const r32Slots = firstRoundMatches;
 
 /** Algún hueco de dieciseisavos sigue sin equipo real. */
 export function hasPlaceholderSlots(state: BracketState): boolean {
-  const matches = [...(state.r32?.left || []), ...(state.r32?.right || [])];
+  const matches = firstRoundMatches(state);
   if (matches.length === 0) return true;
   return matches.some(
     (m) =>
@@ -54,13 +72,11 @@ export function hasPlaceholderSlots(state: BracketState): boolean {
   );
 }
 
-/** Algún hueco de dieciseisavos tiene ya un equipo real. */
+/** Algún hueco de la primera ronda tiene ya un equipo real. */
 export function hasAnyRealTeam(state: BracketState): boolean {
   const real = (name: string | undefined) =>
     Boolean(name && !name.includes('º') && name !== 'Por definir' && name !== '???');
-  return [...(state.r32?.left || []), ...(state.r32?.right || [])].some(
-    (m) => real(m.home?.name) || real(m.away?.name),
-  );
+  return firstRoundMatches(state).some((m) => real(m.home?.name) || real(m.away?.name));
 }
 
 /**
@@ -119,11 +135,12 @@ export function fillKnownQualifiers(
   return changed ? next : null;
 }
 
-/** Coloca en dieciseisavos a los clasificados de cada grupo y a los mejores terceros. */
+/** Coloca en la primera ronda a los clasificados de cada grupo y a los mejores terceros. */
 export function applyGroupStage(
   state: BracketState,
   selections: Record<string, GroupSelection>,
   advancingThirds: string[],
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
 ): BracketState {
   const next = cloneBracket(state);
   const applySlot = (slot: BracketTeam | null) => {
@@ -142,16 +159,21 @@ export function applyGroupStage(
     if (selections[g].third) teamToGroup[selections[g].third] = g;
   });
 
+  const rules = thirdPlaceRules(format.firstKnockoutRound);
+  const size = format.firstKnockoutRound.length;
+  const half = size / 2;
   const solvedMatrix = solveThirdPlaceMatrix(
     advancingThirds.map((t) => ({ team: t, group: teamToGroup[t] })),
+    rules,
   );
   if (solvedMatrix) {
-    THIRD_PLACE_RULES.forEach((rule, idx) => {
+    rules.forEach((rule, idx) => {
       const index = r32SlotIndex(
-        (rule.side === 'right' ? 8 : 0) + rule.matchIndex,
+        (rule.side === 'right' ? half : 0) + rule.matchIndex,
         next.topologyVersion,
+        size,
       );
-      const match = next.r32[index < 8 ? 'left' : 'right'][index % 8];
+      const match = firstRoundOf(next)[index < half ? 'left' : 'right'][index % half];
       const slot = rule.isHome ? match.home : match.away;
       if (slot?.name?.startsWith('3º ')) slot.name = solvedMatrix[idx].team;
     });
@@ -171,7 +193,7 @@ export function applyGroupStage(
   return next;
 }
 
-/** Algún cruce de dieciseisavos sigue con un hueco sin rellenar («1º Grupo A»…). */
+/** Algún cruce de la primera ronda sigue con un hueco sin rellenar («1º Grupo A»…). */
 export const hasIncompleteR32 = (state: BracketState) =>
   r32Slots(state).some(
     (m) => !m.home?.name || m.home.name.includes('º') || !m.away?.name || m.away.name.includes('º'),
@@ -185,6 +207,8 @@ interface PredictionInput {
   groups: Record<string, GroupSelection>;
   thirds: string[];
   knockoutsOnly: boolean;
+  /** El torneo juega el partido por el tercer puesto (sin dato, sí: el Mundial). */
+  thirdPlaceMatch?: boolean;
 }
 
 /** El pronóstico tal como lo guarda el servidor. */
@@ -196,12 +220,18 @@ export function buildBracketPrediction({
   groups,
   thirds,
   knockoutsOnly,
+  thirdPlaceMatch = true,
 }: PredictionInput): PredictionData {
   const pairs = (round: 'r32' | 'r16' | 'qf' | 'sf') => [
     ...teamPairs(state[round].left),
     ...teamPairs(state[round].right),
   ];
-  const r32 = pairs('r32');
+  // Una ronda que el torneo no juega no se envía.
+  const played = (round: 'r32' | 'r16' | 'qf' | 'sf') => {
+    const teams = pairs(round);
+    return teams.length ? teams : undefined;
+  };
+  const r32 = played('r32');
   const formattedGroups: Record<string, string[]> = {};
   Object.keys(groups).forEach((g) => {
     formattedGroups[g] = [groups[g].first, groups[g].second];
@@ -213,13 +243,13 @@ export function buildBracketPrediction({
     prediction: predictionName,
     r1: r32,
     r32,
-    r16: pairs('r16'),
-    qf: pairs('qf'),
+    r16: played('r16'),
+    qf: played('qf'),
     sf: pairs('sf'),
     final: matchPair(state.final),
     champion: teamName(state.champion),
-    thirdPlaceMatch: matchPair(state.thirdPlaceMatch),
-    thirdPlaceWinner: teamName(state.thirdPlaceWinner),
+    thirdPlaceMatch: thirdPlaceMatch ? matchPair(state.thirdPlaceMatch) : undefined,
+    thirdPlaceWinner: thirdPlaceMatch ? teamName(state.thirdPlaceWinner) : null,
     scorer: topScorer,
     groups: knockoutsOnly ? {} : formattedGroups,
     thirds: knockoutsOnly ? [] : thirds,

@@ -13,28 +13,31 @@ import java.time.ZoneId;
 public class Edition {
 
     private static final ZoneId TOURNAMENT_ZONE = ZoneId.of("Europe/Madrid");
-    // Fecha de cierre de cuadros ya establecida por V24, también para las nuevas ligas.
-    private static final Instant WORLD_CUP_DEADLINE = Instant.parse("2026-06-11T18:00:00Z"); // 20:00 en Madrid
-
-    /** Solo el cuadro del Mundial tiene una fecha de cierre conocida; el resto se cierra como diga su liga. */
+    /**
+     * Solo el cuadro de un torneo con grupos tiene una fecha de cierre conocida, la de su formato; el
+     * resto se cierra como diga su liga.
+     */
     public static Instant defaultLockDate(Competition competition, PoolFormat format) {
-        return isWorldCupBracket(competition, format) ? WORLD_CUP_DEADLINE : null;
+        return isGroupTournamentBracket(competition, format) ? competition.tournamentFormat().bracketDeadline() : null;
     }
 
-    /** Cuadro del Mundial (completo o solo eliminatorias): grupos, terceros y cruces oficiales de la FIFA. */
-    public static boolean isWorldCupBracket(Competition competition, PoolFormat format) {
-        return competition != null && competition.isWorldCup()
+    /**
+     * Cuadro de un torneo con fase de grupos (completo o solo eliminatorias): grupos, terceros y cruces
+     * oficiales, con la forma del torneo.
+     */
+    public static boolean isGroupTournamentBracket(Competition competition, PoolFormat format) {
+        return competition != null && competition.isGroupTournament()
                 && (format == PoolFormat.FULL_BRACKET || format == PoolFormat.KNOCKOUTS_ONLY);
     }
 
-    /** @see #isWorldCupBracket(Competition, PoolFormat) */
-    public boolean isWorldCupBracket() {
-        return isWorldCupBracket(competition, poolFormat);
+    /** @see #isGroupTournamentBracket(Competition, PoolFormat) */
+    public boolean isGroupTournamentBracket() {
+        return isGroupTournamentBracket(competition, poolFormat);
     }
 
-    /** Puntúa el máximo goleador: solo en el cuadro del Mundial, el único con pichichi oficial. */
+    /** Puntúa el máximo goleador: solo en el cuadro de un torneo con grupos, que tiene goleadores oficiales. */
     public boolean scoresPichichi() {
-        return pichichi && isWorldCupBracket();
+        return pichichi && isGroupTournamentBracket();
     }
 
     @Id

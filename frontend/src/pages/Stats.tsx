@@ -32,7 +32,7 @@ function Stats() {
     none: <NoLeagueState title="Estadísticas" what="las estadísticas" />,
     unknown: <UnsupportedLeagueState />,
     // El Mundial es un cuadro más, con la fase de grupos y el pichichi aparte.
-    worldCup: <GroupStageStatsPage />,
+    groupStage: <GroupStageStatsPage />,
     matchday: <MatchdayStatsPage />,
     fightCard: <MatchdayStatsPage />,
     tennisDraw: <MatchdayStatsPage />,

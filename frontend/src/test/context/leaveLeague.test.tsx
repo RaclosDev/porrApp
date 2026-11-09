@@ -21,9 +21,9 @@ vi.mock('../../services/api', () => ({
   fetchPredictions: vi.fn().mockResolvedValue([]),
   fetchLeaderboard: vi.fn(),
   fetchLeaderboardMatchdays: vi.fn().mockResolvedValue([]),
-  fetchWorldCupStandings: vi.fn().mockResolvedValue({}),
-  fetchWorldCupGroupOdds: vi.fn().mockResolvedValue({}),
-  fetchWorldCupTopScorers: vi.fn().mockResolvedValue([]),
+  fetchTournamentStandings: vi.fn().mockResolvedValue({}),
+  fetchTournamentGroupOdds: vi.fn().mockResolvedValue({}),
+  fetchTournamentTopScorers: vi.fn().mockResolvedValue([]),
   updateUserPreferences: vi.fn().mockResolvedValue({}),
 }));
 
@@ -157,9 +157,9 @@ describe('when the active league stops being available', () => {
     // Ni partidos de todas las competiciones ni datos del Mundial.
     expect(api.fetchMatches).not.toHaveBeenCalled();
     expect(api.fetchMatchRadar).not.toHaveBeenCalled();
-    expect(api.fetchWorldCupStandings).not.toHaveBeenCalled();
-    expect(api.fetchWorldCupGroupOdds).not.toHaveBeenCalled();
-    expect(api.fetchWorldCupTopScorers).not.toHaveBeenCalled();
+    expect(api.fetchTournamentStandings).not.toHaveBeenCalled();
+    expect(api.fetchTournamentGroupOdds).not.toHaveBeenCalled();
+    expect(api.fetchTournamentTopScorers).not.toHaveBeenCalled();
   });
 
   it('a league deleted elsewhere (404) is replaced once the server confirms it is gone', async () => {

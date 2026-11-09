@@ -20,9 +20,9 @@ vi.mock('../../services/api', () => ({
     { key: '8', groupId: 10 },
   ]),
   fetchLeaderboard: vi.fn().mockResolvedValue([]),
-  fetchWorldCupStandings: vi.fn().mockResolvedValue({}),
-  fetchWorldCupGroupOdds: vi.fn().mockResolvedValue({}),
-  fetchWorldCupTopScorers: vi.fn().mockResolvedValue([]),
+  fetchTournamentStandings: vi.fn().mockResolvedValue({}),
+  fetchTournamentGroupOdds: vi.fn().mockResolvedValue({}),
+  fetchTournamentTopScorers: vi.fn().mockResolvedValue([]),
   updateUserPreferences: vi.fn().mockResolvedValue({}),
 }));
 

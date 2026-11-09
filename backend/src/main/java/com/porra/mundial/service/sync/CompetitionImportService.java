@@ -93,15 +93,15 @@ public class CompetitionImportService {
             // ESPN no numera las jornadas de liga: sin esto cada día con partidos sería una jornada.
             if (!Thread.currentThread().isInterrupted()) officialMatchdayService.numberMatchdays(snapshot.competition());
             committed.batch().publishNotifications();
-            if (WorldCupTables.isWorldCup(snapshot.competition())) {
+            if (GroupTournamentTables.applies(snapshot.competition())) {
                 webSocketService.notifyResultsChanged();
             } else {
                 java.util.List<Long> imported = java.util.List.of(snapshot.competition().getId());
                 scoreInvalidationService.evictLeaderboardsAfterCommit(imported);
                 webSocketService.notifyResultsChanged(imported);
             }
-            if (WorldCupTables.isWorldCup(snapshot.competition()) && !Thread.currentThread().isInterrupted()) {
-                topScorerService.refresh();
+            if (GroupTournamentTables.applies(snapshot.competition()) && !Thread.currentThread().isInterrupted()) {
+                topScorerService.refresh(snapshot.competition());
             }
             return committed.result();
         } finally {
@@ -226,7 +226,9 @@ public class CompetitionImportService {
             matchEventProcessor.process(event, teams, batch);
         }
         if (batch.resultsChanged()) {
-            if (WorldCupTables.isWorldCup(competition)) WorldCupTables.refresh(knockoutBracketService, standingsService);
+            if (GroupTournamentTables.applies(competition)) {
+                GroupTournamentTables.refresh(competition, knockoutBracketService, standingsService);
+            }
             scoreInvalidationService.invalidateCompetition(competition.getId());
         }
         if (batch.matchesUpdated() > 0) customLockService.refreshFirstMatchLocks(competition.getId());

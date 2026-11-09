@@ -1,6 +1,8 @@
 package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.TournamentFormat;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.service.prediction.ScoreInvalidationService;
 import com.porra.mundial.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -38,6 +40,7 @@ public class TopScorerService {
     private final ScoreInvalidationService scoreInvalidationService;
     private final KnockoutBracketService knockoutBracketService;
     private final TopScorerStore topScorerStore;
+    private final CompetitionRepository competitionRepository;
 
     public TopScorerService(
             ObjectMapper objectMapper,
@@ -46,7 +49,8 @@ public class TopScorerService {
             @Qualifier("espnSportsDataProvider") SportsDataProvider sportsDataProvider,
             ScoreInvalidationService scoreInvalidationService,
             KnockoutBracketService knockoutBracketService,
-            TopScorerStore topScorerStore) {
+            TopScorerStore topScorerStore,
+            CompetitionRepository competitionRepository) {
         this.objectMapper = objectMapper;
         this.webSocketService = webSocketService;
         this.httpClient = httpClient;
@@ -54,13 +58,24 @@ public class TopScorerService {
         this.scoreInvalidationService = scoreInvalidationService;
         this.knockoutBracketService = knockoutBracketService;
         this.topScorerStore = topScorerStore;
+        this.competitionRepository = competitionRepository;
     }
 
 
-    /** Copia en memoria de la lista guardada, para no leerla en cada clasificación. */
-    private final AtomicReference<List<TopScorerDTO>> cachedScorers = new AtomicReference<>(Collections.emptyList());
-    /** Si la lista guardada ya se ha leído tras arrancar. */
-    private volatile boolean storedScorersLoaded;
+    /** Goleadores de un torneo en memoria. */
+    private static final class Scorers {
+        /** Copia de la lista guardada, para no leerla en cada clasificación. */
+        final AtomicReference<List<TopScorerDTO>> cached = new AtomicReference<>(Collections.emptyList());
+        /** Si la lista guardada ya se ha leído tras arrancar. */
+        volatile boolean storedLoaded;
+    }
+
+    /** Goleadores de cada torneo, por su identificador externo. */
+    private final Map<String, Scorers> scorersByTournament = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private Scorers scorersOf(Competition tournament) {
+        return scorersByTournament.computeIfAbsent(tournament.getExternalId(), id -> new Scorers());
+    }
 
     // También se cachean búsquedas vacías; las imágenes se vuelven a buscar a las seis horas.
     private record CachedImage(String url, long expiresAt) {}
@@ -79,18 +94,21 @@ public class TopScorerService {
     @Scheduled(initialDelay = 5_000, fixedDelay = 1_800_000)
     @SchedulerLock(name = "topScorers", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void scheduledRefresh() {
-        // Con el torneo cerrado los goleadores ya no cambian: valen los guardados y no se pide nada al proveedor.
-        if (!getTopScorers().isEmpty() && knockoutBracketService.worldCupIsOver()) return;
-        refresh();
+        for (Competition tournament : competitionRepository.findByExternalIdIn(TournamentFormat.registeredExternalIds())) {
+            // Con el torneo cerrado los goleadores ya no cambian: valen los guardados y no se pide nada al proveedor.
+            if (!getTopScorers(tournament).isEmpty() && knockoutBracketService.isOver(tournament)) continue;
+            refresh(tournament);
+        }
     }
 
     private final java.util.concurrent.locks.ReentrantLock refreshLock = new java.util.concurrent.locks.ReentrantLock();
 
     /** Una sola actualización simultánea; las llamadas solapadas aprovechan la que está en curso. */
-    public void refresh() {
-        if (!refreshLock.tryLock()) return;
+    public void refresh(Competition tournament) {
+        TournamentFormat format = tournament.tournamentFormat();
+        if (format == null || !refreshLock.tryLock()) return;
         try {
-            JsonNode events = sportsDataProvider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, Competition.WORLD_CUP_SEASON);
+            JsonNode events = sportsDataProvider.fetchScoreboardEvents(tournament.getExternalId(), format.season());
             if (events == null) return;
 
             Map<String, int[]> playerGoals = new LinkedHashMap<>();
@@ -102,17 +120,17 @@ public class TopScorerService {
             processEvents(events, playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
 
             List<TopScorerDTO> scorers = buildScorersList(playerGoals, playerShortNames, playerPositions, playerIds, playerTeams);
-            List<TopScorerDTO> previous = getTopScorers();
+            List<TopScorerDTO> previous = getTopScorers(tournament);
             if (scorers.isEmpty() && !previous.isEmpty()) {
                 // Los goles no se pierden: una lista vacía tras tener goleadores es que ESPN no ha respondido.
                 log.warn("TopScorerService: ESPN no ha devuelto goleadores; se conservan los {} anteriores", previous.size());
                 return;
             }
-            cachedScorers.set(scorers);
+            scorersOf(tournament).cached.set(scorers);
             if (!scorers.equals(previous)) {
-                save(scorers);
+                save(tournament, scorers);
                 // El pichichi puntúa los cuadros.
-                scoreInvalidationService.invalidateWorldCup();
+                scoreInvalidationService.invalidateCompetition(tournament.getId());
                 webSocketService.broadcastUpdate("DATA_UPDATED");
             }
             log.info("TopScorerService: Refreshed {} scorers from ESPN. Leader: {} ({} goals)",
@@ -291,27 +309,28 @@ public class TopScorerService {
     }
 
     /**
-     * Goleadores actuales. La primera vez tras arrancar se leen de la base de datos, sin avisar a nadie ni
-     * recalcular puntos: son los mismos con los que ya se puntuó.
+     * Goleadores actuales de un torneo. La primera vez tras arrancar se leen de la base de datos, sin avisar a
+     * nadie ni recalcular puntos: son los mismos con los que ya se puntuó.
      */
-    public List<TopScorerDTO> getTopScorers() {
-        List<TopScorerDTO> cached = cachedScorers.get();
-        if (!cached.isEmpty() || storedScorersLoaded) return cached;
+    public List<TopScorerDTO> getTopScorers(Competition tournament) {
+        Scorers scorers = scorersOf(tournament);
+        List<TopScorerDTO> cached = scorers.cached.get();
+        if (!cached.isEmpty() || scorers.storedLoaded) return cached;
         try {
-            List<TopScorerDTO> stored = topScorerStore.load(Competition.WORLD_CUP_EXTERNAL_ID);
-            storedScorersLoaded = true;
-            if (!stored.isEmpty()) cachedScorers.compareAndSet(cached, stored);
+            List<TopScorerDTO> stored = topScorerStore.load(tournament.getExternalId());
+            scorers.storedLoaded = true;
+            if (!stored.isEmpty()) scorers.cached.compareAndSet(cached, stored);
         } catch (Exception e) {
             // Se reintenta en la siguiente consulta.
             log.warn("TopScorerService: no se pudieron leer los goleadores guardados: {}", e.getMessage());
         }
-        return cachedScorers.get();
+        return scorers.cached.get();
     }
 
     /** Si falla el guardado, la lista sigue en memoria y se vuelve a guardar en el siguiente cambio o arranque. */
-    private void save(List<TopScorerDTO> scorers) {
+    private void save(Competition tournament, List<TopScorerDTO> scorers) {
         try {
-            topScorerStore.replace(Competition.WORLD_CUP_EXTERNAL_ID, scorers);
+            topScorerStore.replace(tournament.getExternalId(), scorers);
         } catch (Exception e) {
             log.warn("TopScorerService: no se pudieron guardar los goleadores: {}", e.getMessage());
         }
