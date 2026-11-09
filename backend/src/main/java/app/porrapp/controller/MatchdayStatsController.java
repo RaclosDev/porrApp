@@ -1,0 +1,51 @@
+package app.porrapp.controller;
+
+import app.porrapp.dto.MatchVotersDTO;
+import app.porrapp.dto.MatchdayStatsDTO;
+import app.porrapp.service.prediction.MatchdayStatsService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.security.Principal;
+import java.util.List;
+
+/** Estadísticas de las ligas por jornadas. */
+@RestController
+@RequestMapping("/api/predictions/matchday/stats")
+@RequiredArgsConstructor
+public class MatchdayStatsController {
+
+    private final MatchdayStatsService matchdayStatsService;
+
+    /**
+     * Reparto 1X2 y marcadores más repetidos de los partidos que ya han empezado.
+     * Solo para miembros de la liga.
+     */
+    @GetMapping
+    public MatchdayStatsDTO getMatchdayStats(@RequestParam Long groupId, Principal principal) {
+        return matchdayStatsService.getStats(CurrentUser.email(principal), groupId);
+    }
+
+    /**
+     * Quién ha pronosticado cada signo en los partidos pedidos que ya están cerrados.
+     * Solo para miembros de la liga (o cualquiera en una liga pública).
+     */
+    @GetMapping("/voters")
+    public List<MatchVotersDTO> getMatchVoters(@RequestParam Long groupId, @RequestParam List<Long> matchIds,
+                                               Principal principal) {
+        return matchdayStatsService.getVoters(CurrentUser.email(principal), groupId, matchIds);
+    }
+
+    /**
+     * Miembros de la liga que ya han hecho su predicción en alguno de los partidos pedidos. Solo dice
+     * quién ha participado, no qué ha pronosticado.
+     */
+    @GetMapping("/participants")
+    public List<MatchVotersDTO.Voter> getParticipants(@RequestParam Long groupId, @RequestParam List<Long> matchIds,
+                                                      Principal principal) {
+        return matchdayStatsService.getParticipants(CurrentUser.email(principal), groupId, matchIds);
+    }
+}

@@ -1,0 +1,113 @@
+package app.porrapp.service.prediction;
+
+import app.porrapp.service.tournament.OfficialResultsService;
+import app.porrapp.service.tournament.TopScorerService;
+import app.porrapp.dto.PredictionDataDTO;
+import app.porrapp.dto.ParticipantScoreDTO;
+import app.porrapp.model.Prediction;
+import app.porrapp.model.UserAccount;
+import app.porrapp.repository.MatchPredictionRepository;
+import app.porrapp.repository.MatchRepository;
+import app.porrapp.repository.PredictionRepository;
+import app.porrapp.scoring.DefaultScoringStrategy;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class LeaderboardBenchmarkTest {
+
+    @Mock
+    private PredictionRepository predictionRepository;
+
+    @Mock
+    private TopScorerService topScorerService;@Mock
+    private MatchRepository matchRepository;
+
+    @Mock
+    private OfficialResultsService officialResultsService;
+
+    @Mock
+    private MatchPredictionRepository matchPredictionRepository;
+
+    @Spy
+    private DefaultScoringStrategy scoringStrategy = new DefaultScoringStrategy();
+
+    @InjectMocks
+    private LeaderboardService leaderboardService;
+
+    @Test
+    @DisplayName("Benchmark: calcula el ranking de 1000 participantes en menos de 2 segundos")
+    void benchmark1000ParticipantsScoring() {
+        PredictionDataDTO officialData = new PredictionDataDTO();
+        officialData.setChampion("España");
+        officialData.setScorer("Kylian Mbappé");
+        officialData.setGroups(Map.of("A", List.of("México", "Sudáfrica", "Corea del Sur", "Chequia")));
+        officialData.setR16(List.of(List.of("España", "Francia"), List.of("Brasil", "Alemania")));
+        officialData.setQf(List.of(List.of("España", "Brasil")));
+        officialData.setSf(List.of(List.of("España", "Alemania")));
+        officialData.setFinalMatch(List.of("España", "Alemania"));
+
+        when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
+                officialData, Collections.emptyMap(), officialData.getGroups(), List.of(),
+                List.of("España", "Francia", "Brasil", "Alemania"), List.of("España", "Brasil"),
+                List.of("España", "Alemania"), List.of("España", "Alemania"), "España"));
+        when(topScorerService.getTopScorers(org.mockito.ArgumentMatchers.any())).thenReturn(Collections.emptyList());
+
+        int participantCount = 1000;
+        List<Prediction> participants = new ArrayList<>(participantCount);
+        for (int i = 2; i <= participantCount + 1; i++) {
+            UserAccount user = UserAccount.builder()
+                    .id((long) i)
+                    .googleEmail("user" + i + "@example.com")
+                    .participantName("Participante " + i)
+                    .build();
+
+            Prediction pred = Prediction.builder()
+                    .id((long) i)
+                    .user(user)
+                    .name("Porra " + i)
+                    .paymentStatus("PAID")
+                    .build();
+            participants.add(pred);
+
+            PredictionDataDTO pData = new PredictionDataDTO();
+            pData.setChampion(i % 2 == 0 ? "España" : "Brasil");
+            pData.setScorer(i % 3 == 0 ? "Kylian Mbappé" : "Vinicius Jr");
+            pData.setGroups(Map.of("A", List.of("México", "Corea del Sur", "Sudáfrica", "Chequia")));
+            pData.setR16(List.of(List.of("España", "Francia"), List.of("Brasil", "Alemania")));
+            pData.setQf(List.of(List.of("España", "Brasil")));
+            pData.setSf(List.of(List.of("España", "Alemania")));
+            pData.setFinalMatch(List.of("España", "Alemania"));
+
+            pred.setBracketData(pData);
+        }
+
+        when(predictionRepository.findAll()).thenReturn(participants);
+        when(predictionRepository.findAllWithUserAndEdition()).thenReturn(participants);
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(org.mockito.ArgumentMatchers.any())).thenReturn(Collections.emptyList());
+
+        long startTime = System.currentTimeMillis();
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(null);
+        long duration = System.currentTimeMillis() - startTime;
+
+        System.out.printf("Benchmark completado: %d participantes calculados en %d ms%n", leaderboard.size(), duration);
+
+        assertEquals(1000, leaderboard.size());
+        assertTrue(duration < 2000, "El cálculo del ranking para 1000 participantes debe tardar menos de 2000ms. Tardó: " + duration + "ms");
+        assertTrue(leaderboard.get(0).getTotal() >= leaderboard.get(leaderboard.size() - 1).getTotal(), "La clasificación debe estar ordenada descendentemente");
+    }
+}

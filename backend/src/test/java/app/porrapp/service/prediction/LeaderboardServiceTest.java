@@ -1,0 +1,464 @@
+package app.porrapp.service.prediction;
+
+import app.porrapp.service.tournament.OfficialResultsService;
+import app.porrapp.service.tournament.TopScorerService;
+import app.porrapp.dto.MatchdayPointsDTO;
+import app.porrapp.dto.ParticipantScoreDTO;
+import app.porrapp.dto.PredictionDataDTO;
+import app.porrapp.model.Competition;
+import app.porrapp.model.Edition;
+import app.porrapp.model.Match;
+import app.porrapp.model.MatchPrediction;
+import app.porrapp.model.MatchStatusNormalized;
+import app.porrapp.model.Membership;
+import app.porrapp.model.Prediction;
+import app.porrapp.model.UserAccount;
+import app.porrapp.repository.EditionRepository;
+import app.porrapp.repository.MatchPredictionRepository;
+import app.porrapp.repository.MembershipRepository;
+import app.porrapp.repository.MatchRepository;
+import app.porrapp.repository.PredictionRepository;
+import app.porrapp.scoring.ScoringRuleSet;
+import app.porrapp.scoring.DefaultScoringStrategy;
+import app.porrapp.util.AppTime;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class LeaderboardServiceTest {
+
+    @Mock
+    private PredictionRepository predictionRepository;
+
+    @Mock
+    private OfficialResultsService officialResultsService;
+
+    @Mock
+    private TopScorerService topScorerService;
+
+    @Mock
+    private MatchRepository matchRepository;
+
+    @Mock
+    private MatchPredictionRepository matchPredictionRepository;
+
+    @Mock
+    private MembershipRepository membershipRepository;
+
+    @Mock
+    private EditionRepository editionRepository;
+
+    @Spy
+    private DefaultScoringStrategy scoringStrategy = new DefaultScoringStrategy();
+
+    @InjectMocks
+    private LeaderboardService leaderboardService;
+
+    @Test
+    void pichichiFlagAppliesToBothLeaderboardAndIndividualScore() {
+        Edition enabled = Edition.builder().pichichi(true).build();
+        Edition disabled = Edition.builder().pichichi(false).build();
+        Prediction on = championPrediction(701L, enabled);
+        Prediction off = championPrediction(702L, disabled);
+        on.getBracketData().setScorer("Kylian Mbappé");
+        off.getBracketData().setScorer("Kylian Mbappé");
+        PredictionDataDTO official = new PredictionDataDTO();
+        official.setScorer("Kylian Mbappé");
+        when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
+                official, Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of("España", "Brasil"), "España"));
+        when(predictionRepository.findAllWithUserAndEdition()).thenReturn(List.of(on, off));
+        when(predictionRepository.findById(702L)).thenReturn(Optional.of(off));
+
+        var scores = leaderboardService.getLeaderboard(null);
+
+        assertEquals(200, scores.stream().filter(s -> s.getId().equals(701L)).findFirst().orElseThrow().getScorer());
+        assertEquals(0, scores.stream().filter(s -> s.getId().equals(702L)).findFirst().orElseThrow().getScorer());
+        assertEquals(0, leaderboardService.calculateScoreForPrediction(702L).getScorer());
+    }
+
+    @Test
+    void ignoresLegacyBracketPointsInMatchDayEditionButKeepsMatchPoints() {
+        Edition edition = Edition.builder().poolFormat(app.porrapp.model.PoolFormat.MATCH_DAY)
+                .competition(Competition.builder().externalId("esp.1").build()).build();
+        Prediction prediction = championPrediction(123L, edition);
+        when(predictionRepository.findById(123L)).thenReturn(Optional.of(prediction));
+        when(matchPredictionRepository.findByPredictionId(123L)).thenReturn(List.of(
+                MatchPrediction.builder().pointsAwarded(3).build()));
+        officialChampion("España");
+        ParticipantScoreDTO score = leaderboardService.calculateScoreForPrediction(123L);
+        assertEquals(0, score.getFinals());
+        assertEquals(3, score.getTotal());
+    }
+
+    @Test
+    @DisplayName("getLeaderboard calcula y asigna matchPoints correctamente a partir de MatchPredictions")
+    void getLeaderboard_CalculatesAndSetsMatchPoints() {
+        UserAccount user = UserAccount.builder().id(10L).participantName("Jugador 1").build();
+        Prediction pred = Prediction.builder()
+                .id(100L)
+                .user(user)
+                .name("Porra 1")
+                .paymentStatus("PAID")
+                .scoreCalculatedAt(null)
+                .build();
+
+        MatchPrediction mp1 = MatchPrediction.builder().id(1L).prediction(pred).pointsAwarded(3).scoringDetails("Exacto 2-1").build();
+        MatchPrediction mp2 = MatchPrediction.builder().id(2L).prediction(pred).pointsAwarded(1).scoringDetails("Signo 1").build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(100L))).thenReturn(List.of(mp1, mp2));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        // Una porra por partidos no se puntúa contra el cuadro del torneo con grupos: no se cargan sus resultados.
+        org.mockito.Mockito.verify(officialResultsService, org.mockito.Mockito.never()).current(org.mockito.ArgumentMatchers.any());
+        assertFalse(leaderboard.isEmpty());
+        ParticipantScoreDTO first = leaderboard.get(0);
+        assertEquals(4, first.getMatchPoints(), "matchPoints debe ser la suma de los puntos otorgados (3 + 1)");
+        assertEquals(4, first.getTotal(), "total debe incluir los matchPoints (4)");
+        // Se guardan solo las columnas de puntos, sin tocar la entidad (no pisa predicciones guardadas a la vez).
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(100L),
+                org.mockito.ArgumentMatchers.eq(4), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(4),
+                org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(predictionRepository, org.mockito.Mockito.never()).saveAll(org.mockito.ArgumentMatchers.any());
+        // Una sola consulta para todos los participantes, no una por participante.
+        org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.times(1)).findWithMatchByPredictionIdIn(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(matchPredictionRepository, org.mockito.Mockito.never()).findByPredictionId(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    @DisplayName("getLeaderboard utiliza resultados materializados cuando scoreCalculatedAt no es null")
+    void getLeaderboard_UsesFastMaterializedWhenCalculatedAtPresent() {
+        UserAccount user = UserAccount.builder().id(10L).participantName("Jugador 1").build();
+        Prediction pred = Prediction.builder()
+                .id(100L)
+                .user(user)
+                .name("Porra 1")
+                .paymentStatus("PAID")
+                .matchPoints(6)
+                .totalPoints(6)
+                .scoreCalculatedAt(Instant.now())
+                .build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertEquals(1, leaderboard.size());
+        assertEquals(6, leaderboard.get(0).getMatchPoints());
+        assertEquals(6, leaderboard.get(0).getTotal());
+        verifyNoInteractions(matchPredictionRepository);
+    }
+
+    @Test
+    @DisplayName("getLeaderboard solo recalcula las porras invalidadas y reutiliza los puntos guardados del resto")
+    void getLeaderboard_RecalculatesOnlyStalePredictions() {
+        UserAccount fresh = UserAccount.builder().id(10L).participantName("Guardada").build();
+        UserAccount changed = UserAccount.builder().id(11L).participantName("Cambiada").build();
+        Prediction materialized = Prediction.builder().id(100L).user(fresh).name("Guardada").paymentStatus("PAID")
+                .matchPoints(6).totalPoints(6).scoreCalculatedAt(Instant.now()).build();
+        Prediction stale = Prediction.builder().id(101L).user(changed).name("Cambiada").paymentStatus("PAID")
+                .scoreCalculatedAt(null).build();
+        MatchPrediction mp = MatchPrediction.builder().id(1L).prediction(stale).pointsAwarded(3).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(materialized, stale));
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(101L))).thenReturn(List.of(mp));
+        when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
+                new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of(), null));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertEquals(2, leaderboard.size());
+        assertEquals(6, leaderboard.get(0).getTotal());
+        assertEquals(3, leaderboard.get(1).getTotal());
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(101L),
+                org.mockito.ArgumentMatchers.eq(3), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(3),
+                org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(predictionRepository, org.mockito.Mockito.never()).saveCalculatedScore(
+                org.mockito.ArgumentMatchers.eq(100L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("getLeaderboard incluye miembros de la liga aunque todavía no tengan una porra")
+    void getLeaderboard_IncludesMembersWithoutPredictions() {
+        UserAccount existingUser = UserAccount.builder().id(10L).participantName("Jugador 1").build();
+        Prediction pred = Prediction.builder()
+                .id(100L)
+                .user(existingUser)
+                .name("Porra 1")
+                .paymentStatus("PAID")
+                .matchPoints(6)
+                .totalPoints(6)
+                .scoreCalculatedAt(Instant.now())
+                .build();
+        UserAccount joinedUser = UserAccount.builder().id(20L).participantName("Jugador Unido").build();
+        app.porrapp.model.League freeLeague = app.porrapp.model.League.builder().id(10L).build();
+        Membership membership = Membership.builder().league(freeLeague).user(joinedUser).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(membership));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertEquals(2, leaderboard.size());
+        ParticipantScoreDTO joinedScore = leaderboard.stream()
+                .filter(score -> Long.valueOf(20L).equals(score.getUserId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Jugador Unido", joinedScore.getName());
+        assertEquals(0, joinedScore.getTotal());
+        assertEquals(0, joinedScore.getMatchPoints());
+        assertEquals(null, joinedScore.getId());
+        assertFalse(joinedScore.isPending());
+    }
+
+    @Test
+    @DisplayName("getLeaderboard prioriza el estado de pago de la membresía sobre el de la predicción")
+    void getLeaderboard_PrefersMembershipPaymentStatus() {
+        UserAccount unpaidUser = UserAccount.builder().id(10L).participantName("Sin Pagar").build();
+        Prediction paidPrediction = Prediction.builder()
+                .id(100L)
+                .user(unpaidUser)
+                .name("Porra 1")
+                .paymentStatus("PAID")
+                .scoreCalculatedAt(Instant.now())
+                .build();
+        UserAccount paidUser = UserAccount.builder().id(20L).participantName("Pagado").build();
+        Prediction unpaidPrediction = Prediction.builder()
+                .id(200L)
+                .user(paidUser)
+                .name("Porra 2")
+                .paymentStatus("PENDING")
+                .scoreCalculatedAt(Instant.now())
+                .build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L))
+                .thenReturn(List.of(paidPrediction, unpaidPrediction));
+        app.porrapp.model.League feeLeague = app.porrapp.model.League.builder().id(10L).entryFee(true).build();
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().league(feeLeague).user(unpaidUser).paymentStatus("PENDING").build(),
+                Membership.builder().league(feeLeague).user(paidUser).paymentStatus("PAID").build()));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertTrue(leaderboard.stream()
+                .filter(score -> Long.valueOf(10L).equals(score.getUserId()))
+                .findFirst().orElseThrow().isPending());
+        assertFalse(leaderboard.stream()
+                .filter(score -> Long.valueOf(20L).equals(score.getUserId()))
+                .findFirst().orElseThrow().isPending());
+    }
+
+    @Test
+    @DisplayName("getLeaderboard marca pendiente de pago a quien no ha pagado aunque no tenga predicción")
+    void getLeaderboard_MembersWithoutPredictionFollowMembershipPayment() {
+        UserAccount unpaidUser = UserAccount.builder().id(10L).participantName("Sin Pagar").build();
+        UserAccount paidUser = UserAccount.builder().id(20L).participantName("Pagado").build();
+        app.porrapp.model.League feeLeague = app.porrapp.model.League.builder().id(10L).entryFee(true).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of());
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().league(feeLeague).user(unpaidUser).paymentStatus("PENDING").build(),
+                Membership.builder().league(feeLeague).user(paidUser).paymentStatus("PAID").build()));
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(10L);
+
+        assertTrue(leaderboard.stream()
+                .filter(score -> Long.valueOf(10L).equals(score.getUserId()))
+                .findFirst().orElseThrow().isPending());
+        assertFalse(leaderboard.stream()
+                .filter(score -> Long.valueOf(20L).equals(score.getUserId()))
+                .findFirst().orElseThrow().isPending());
+    }
+
+    @Test
+    @DisplayName("getLeaderboard no deja a nadie pendiente de pago si la liga no tiene cuota")
+    void getLeaderboard_NoEntryFeeNeverPending() {
+        UserAccount user = UserAccount.builder().id(10L).participantName("Sin Cuota").build();
+        Prediction prediction = Prediction.builder()
+                .id(100L)
+                .user(user)
+                .name("Porra 1")
+                .paymentStatus("PENDING")
+                .scoreCalculatedAt(Instant.now())
+                .build();
+        app.porrapp.model.League freeLeague = app.porrapp.model.League.builder().id(10L).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(prediction));
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().league(freeLeague).user(user).paymentStatus("PENDING").build()));
+
+        assertFalse(leaderboardService.getLeaderboard(10L).get(0).isPending());
+    }
+
+    @Test
+    @DisplayName("getMatchdayBreakdown de una liga sin edición activa está vacío y no carga las tablas enteras")
+    void getMatchdayBreakdown_WithoutActiveEditionIsEmpty() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.empty());
+
+        assertTrue(leaderboardService.getMatchdayBreakdown(10L).isEmpty());
+        verify(matchRepository, never()).findAll();
+        verify(matchPredictionRepository, never()).findAll();
+    }
+
+    @Test
+    @DisplayName("getMatchdayBreakdown agrupa los puntos por jornada y marca la jornada actual")
+    void getMatchdayBreakdown_GroupsPointsByRoundAndMarksCurrentMatchday() {
+        UserAccount user = UserAccount.builder().id(10L).participantName("Jugador 1").build();
+        Prediction pred = Prediction.builder()
+                .id(100L)
+                .user(user)
+                .name("Porra 1")
+                .paymentStatus("PAID")
+                .build();
+
+        Match jornada1 = Match.builder()
+                .round("Jornada 1")
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 15, 17, 30)))
+                .finished(true)
+                .status(MatchStatusNormalized.FINISHED)
+                .build();
+        Match jornada2 = Match.builder()
+                .round("Jornada 2")
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 22, 17, 30)))
+                .finished(true)
+                .status(MatchStatusNormalized.FINISHED)
+                .build();
+        Match jornada3 = Match.builder()
+                .round("Jornada 3")
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 8, 29, 17, 30)))
+                .finished(false)
+                .status(MatchStatusNormalized.SCHEDULED)
+                .build();
+
+        MatchPrediction jornada1Exact = MatchPrediction.builder()
+                .id(1L).prediction(pred).match(jornada1).pointsAwarded(3).build();
+        MatchPrediction jornada2Sign = MatchPrediction.builder()
+                .id(2L).prediction(pred).match(jornada2).pointsAwarded(1).build();
+        MatchPrediction jornada2Exact = MatchPrediction.builder()
+                .id(3L).prediction(pred).match(jornada2).pointsAwarded(2).build();
+        MatchPrediction jornada3Sign = MatchPrediction.builder()
+                .id(4L).prediction(pred).match(jornada3).pointsAwarded(4).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of(pred));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE"))
+                .thenReturn(Optional.of(Edition.builder()
+                        .competition(Competition.builder().id(4L).build())
+                        .build()));
+        when(matchRepository.findByCompetitionId(4L))
+                .thenReturn(List.of(jornada3, jornada1, jornada2));
+        when(matchPredictionRepository.findByPredictionEditionLeagueId(10L))
+                .thenReturn(List.of(jornada1Exact, jornada2Sign, jornada2Exact, jornada3Sign));
+
+        List<MatchdayPointsDTO> breakdown = leaderboardService.getMatchdayBreakdown(10L);
+
+        assertEquals(3, breakdown.size());
+        assertEquals("Jornada 1", breakdown.get(0).getLabel());
+        assertEquals(3, breakdown.get(0).getPointsByPrediction().get(100L));
+        assertTrue(breakdown.get(0).isFinished());
+        assertFalse(breakdown.get(0).isCurrent());
+
+        assertEquals("Jornada 2", breakdown.get(1).getLabel());
+        assertEquals(3, breakdown.get(1).getPointsByPrediction().get(100L));
+        assertTrue(breakdown.get(1).isFinished());
+
+        assertEquals("Jornada 3", breakdown.get(2).getLabel());
+        assertEquals(4, breakdown.get(2).getPointsByPrediction().get(100L));
+        assertFalse(breakdown.get(2).isFinished());
+        assertTrue(breakdown.get(2).isCurrent());
+    }
+
+    /** Cuadro que solo acierta el campeón, para comparar lo que da con cada reglamento. */
+    private static Prediction championPrediction(long id, Edition edition) {
+        if (edition.getCompetition() == null) edition.setCompetition(Competition.builder().externalId(Competition.WORLD_CUP_EXTERNAL_ID).build());
+        if (edition.getPoolFormat() == null) edition.setPoolFormat(app.porrapp.model.PoolFormat.FULL_BRACKET);
+        PredictionDataDTO bracket = new PredictionDataDTO();
+        bracket.setChampion("España");
+        return Prediction.builder()
+                .id(id)
+                .user(UserAccount.builder().id(id).participantName("Jugador " + id).build())
+                .edition(edition)
+                .name("Porra " + id)
+                .paymentStatus("PAID")
+                .bracketData(bracket)
+                .build();
+    }
+
+    private void officialChampion(String champion) {
+        when(officialResultsService.current(org.mockito.ArgumentMatchers.any())).thenReturn(new OfficialResultsService.OfficialResults(
+                new PredictionDataDTO(), Collections.emptyMap(), Collections.emptyMap(), List.of(),
+                List.of(), List.of(), List.of(), List.of(champion, "Brasil"), champion));
+    }
+
+    @Test
+    @DisplayName("Cada porra puntúa con las reglas de su edición, y sin reglas guardadas con las de por defecto")
+    void getLeaderboard_ScoresEachEditionWithItsOwnRules() {
+        Edition defaults = Edition.builder().id(1L).pichichi(false).build();
+        Edition storedDefaults = Edition.builder().id(2L).pichichi(false)
+                .scoringRulesJson(ScoringRuleSet.defaults().toJson()).build();
+        Edition custom = Edition.builder().id(3L).pichichi(false)
+                .scoringRulesJson(ScoringRuleSet.builder().championPoints(500).build().toJson()).build();
+        Prediction withDefaults = championPrediction(100L, defaults);
+        Prediction withStoredDefaults = championPrediction(200L, storedDefaults);
+        Prediction withCustom = championPrediction(300L, custom);
+        when(predictionRepository.findAllWithUserAndEdition())
+                .thenReturn(List.of(withDefaults, withStoredDefaults, withCustom));
+        officialChampion("España");
+
+        List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(null);
+
+        assertEquals(List.of(300L, 100L, 200L), leaderboard.stream().map(ParticipantScoreDTO::getId).toList());
+        assertEquals(500, leaderboard.get(0).getFinals());
+        assertEquals(200, leaderboard.get(1).getFinals());
+        assertEquals(200, leaderboard.get(2).getFinals());
+        org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(300L),
+                org.mockito.ArgumentMatchers.eq(500), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("La puntuación de una sola porra también usa las reglas de su edición")
+    void calculateScoreForPrediction_UsesTheEditionRules() {
+        Edition custom = Edition.builder().id(3L).pichichi(false)
+                .scoringRulesJson(ScoringRuleSet.builder().championPoints(350).build().toJson()).build();
+        when(predictionRepository.findById(300L)).thenReturn(Optional.of(championPrediction(300L, custom)));
+        when(matchPredictionRepository.findByPredictionId(300L)).thenReturn(List.of());
+        officialChampion("España");
+
+        ParticipantScoreDTO score = leaderboardService.calculateScoreForPrediction(300L);
+
+        assertEquals(350, score.getFinals());
+        assertEquals(350, score.getTotal());
+    }
+
+}

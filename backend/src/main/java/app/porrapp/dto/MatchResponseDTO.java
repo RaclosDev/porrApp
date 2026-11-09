@@ -1,0 +1,87 @@
+package app.porrapp.dto;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import app.porrapp.model.Fight;
+import app.porrapp.model.Team;
+import app.porrapp.model.Match;
+
+import java.time.Instant;
+
+
+/**
+ * Record DTO para enviar la información de los Partidos Reales (ESPN).
+ * Contiene alias snake_case y camelCase para compatibilidad con código Frontend antiguo.
+ */
+public record MatchResponseDTO(
+        Long id,
+        String home,
+        String away,
+        Long home_team_id,
+        Long away_team_id,
+        String homeLogo,
+        String awayLogo,
+        String homeTeamLogo,
+        String awayTeamLogo,
+        Integer homeScore,
+        Integer awayScore,
+        Integer home_score,
+        Integer away_score,
+        String date,
+        Boolean finished,
+        String round,
+        String groupName,
+        String winner,
+        String displayClock,
+        boolean isStartingSoon,
+        String status,
+        /** Datos de pelea; solo en los partidos de la UFC. */
+        @JsonInclude(JsonInclude.Include.NON_NULL) FightInfoDTO fight
+) {
+    /**
+     * Convierte una entidad de base de datos Match a este DTO optimizado para JSON.
+     * Calcula dinámicamente si el partido está a punto de empezar en los próximos 30 minutos.
+     * 
+     * @param m Entidad JPA Match.
+     * @return El DTO poblado.
+     */
+    public static MatchResponseDTO fromEntity(Match m) {
+        return fromEntity(m, null);
+    }
+
+    /** Igual, con los datos de pelea si es un combate de la UFC. */
+    public static MatchResponseDTO fromEntity(Match m, Fight fight) {
+        boolean isStartingSoon = false;
+        if (m.getMatchDate() != null && !Boolean.TRUE.equals(m.getFinished())) {
+            long diffMs = java.time.Duration.between(Instant.now(), m.getMatchDate()).toMillis();
+            isStartingSoon = diffMs > 0 && diffMs <= app.porrapp.service.tournament.MatchService.STARTING_SOON_MINUTES * 60_000L;
+        }
+
+        String homeLogo = m.getHomeTeam() != null ? m.getHomeTeam().getLogoUrl() : null;
+        String awayLogo = m.getAwayTeam() != null ? m.getAwayTeam().getLogoUrl() : null;
+
+        return new MatchResponseDTO(
+                m.getId(),
+                m.getHomeTeam() != null ? m.getHomeTeam().getName() : Team.PLACEHOLDER_NAME,
+                m.getAwayTeam() != null ? m.getAwayTeam().getName() : Team.PLACEHOLDER_NAME,
+                m.getHomeTeam() != null ? m.getHomeTeam().getId() : null,
+                m.getAwayTeam() != null ? m.getAwayTeam().getId() : null,
+                homeLogo,
+                awayLogo,
+                homeLogo,
+                awayLogo,
+                m.getHomeScore(),
+                m.getAwayScore(),
+                m.getHomeScore(), // Duplicado para retrocompatibilidad
+                m.getAwayScore(), // Duplicado para retrocompatibilidad
+                MadridDateTimeSerializer.format(m.getMatchDate()),
+                m.getFinished(),
+                m.getRound(),
+                m.getGroupName(),
+                m.getWinnerTeam() != null ? m.getWinnerTeam().getName() : null,
+                m.getDisplayClock(),
+                isStartingSoon,
+                Boolean.TRUE.equals(m.getFinished()) ? "FINISHED" : m.getStatus() != null ? m.getStatus().name() : "SCHEDULED",
+                FightInfoDTO.of(fight, m)
+        );
+    }
+}

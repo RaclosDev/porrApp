@@ -1,5 +1,5 @@
 import indexHtml from '../../index.html?raw';
-import securityConfig from '../../../backend/src/main/java/com/porra/mundial/config/SecurityConfig.java?raw';
+import securityConfig from '../../../backend/src/main/java/app/porrapp/config/SecurityConfig.java?raw';
 
 /**
  * La CSP del backend no admite 'unsafe-inline': cada script inline y cada manejador on*

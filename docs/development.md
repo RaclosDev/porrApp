@@ -88,7 +88,7 @@ El workflow de [GitHub Actions](../.github/workflows/ci.yml) ejecuta lo mismo en
 ## Estructura
 
 ```text
-backend/src/main/java/com/porra/mundial/
+backend/src/main/java/app/porrapp/
   config/       seguridad y configuración
   controller/   endpoints REST y WebSocket
   dto/          contratos de la API
