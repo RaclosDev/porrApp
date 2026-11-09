@@ -25,7 +25,7 @@ import CustomTournamentHome from './CustomTournamentHome';
 import OfficialTournamentHome from './OfficialTournamentHome';
 import KnockoutDrawResults from './KnockoutDrawResults';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
-import { useWorldCupData } from '../context/leagueData';
+import { useTournamentData } from '../context/leagueData';
 import type { LeagueKind } from '../context/leagueKind';
 
 /** «Resultados»: el cuadro o los cruces reales de cada clase de liga. */
@@ -60,7 +60,7 @@ function WorldCupOfficialBracket() {
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
-  } = useWorldCupData();
+  } = useTournamentData();
 
   const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
   const [activeTab, setActiveTab] = useState<'cuadro' | 'grupos'>('cuadro');

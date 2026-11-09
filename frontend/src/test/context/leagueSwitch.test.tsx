@@ -17,9 +17,9 @@ vi.mock('../../services/api', () => ({
   fetchMatchRadar: vi.fn(),
   fetchPredictions: vi.fn(),
   fetchLeaderboard: vi.fn(),
-  fetchWorldCupStandings: vi.fn().mockResolvedValue({}),
-  fetchWorldCupGroupOdds: vi.fn().mockResolvedValue({}),
-  fetchWorldCupTopScorers: vi.fn().mockResolvedValue([]),
+  fetchTournamentStandings: vi.fn().mockResolvedValue({}),
+  fetchTournamentGroupOdds: vi.fn().mockResolvedValue({}),
+  fetchTournamentTopScorers: vi.fn().mockResolvedValue([]),
   updateUserPreferences: vi.fn().mockResolvedValue({}),
 }));
 

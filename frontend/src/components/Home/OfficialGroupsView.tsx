@@ -1,7 +1,7 @@
 import PaperLoading from '../PaperLoading';
 import { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { useWorldCupData } from '../../context/leagueData';
+import { useTournamentData } from '../../context/leagueData';
 import GroupStandingsCard from './GroupStandingsCard';
 import GroupMatchesModal from '../GroupMatchesModal';
 import BestThirdsPanel from './BestThirdsPanel';
@@ -28,7 +28,7 @@ export default function OfficialGroupsView() {
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
-  } = useWorldCupData();
+  } = useTournamentData();
   const loading = loadingOfficial || loadingWorldCup;
 
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);

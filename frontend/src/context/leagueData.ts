@@ -9,9 +9,9 @@ import {
   fetchLeaderboardMatchdays,
   fetchMatchRadar,
   fetchMatches,
-  fetchWorldCupGroupOdds,
-  fetchWorldCupStandings,
-  fetchWorldCupTopScorers,
+  fetchTournamentGroupOdds,
+  fetchTournamentStandings,
+  fetchTournamentTopScorers,
 } from '../services/api';
 import { isApiError } from '../services/apiError';
 import { queryKeys } from '../services/queryKeys';
@@ -253,33 +253,37 @@ export function useOfficialData() {
 }
 
 /**
- * Datos oficiales del Mundial: clasificación de grupos, cuotas por grupo y goleadores. Solo se
- * piden en una liga `worldCup`; en cualquier otra clase de liga quedan vacíos.
+ * Datos oficiales del torneo con fase de grupos de la liga activa: clasificación de grupos, cuotas
+ * por grupo y goleadores. Solo se piden en una liga de esa clase (`worldCup`); en cualquier otra
+ * quedan vacíos.
  */
-export function useWorldCupData() {
-  const { leagueKind, activeGroupPichichi: pichichi } = useLeagueState();
-  const worldCup = leagueKind === 'worldCup';
+export function useTournamentData() {
+  const { leagueKind, activeCompetitionId, activeGroupPichichi: pichichi } = useLeagueState();
+  const tournamentId = leagueKind === 'worldCup' ? activeCompetitionId : null;
+  const worldCup = tournamentId != null;
 
   const { data: standings, isLoading: loadingStandings } = useQuery({
-    queryKey: queryKeys.worldCupStandings(),
+    queryKey: queryKeys.tournamentStandings(tournamentId),
     enabled: worldCup,
     queryFn: async () => {
-      const data = await fetchWorldCupStandings();
-      localCopy.write('cached_world_cup_standings', data);
+      const data = await fetchTournamentStandings(tournamentId as number);
+      localCopy.write(`cached_tournament_standings_${tournamentId}`, data);
       return data;
     },
-    placeholderData: (previous) => localCopy.objectOr('cached_world_cup_standings', previous),
+    placeholderData: (previous) =>
+      localCopy.objectOr(`cached_tournament_standings_${tournamentId}`, previous),
   });
 
   const { data: odds } = useQuery({
-    queryKey: queryKeys.worldCupGroupOdds(),
+    queryKey: queryKeys.tournamentGroupOdds(tournamentId),
     enabled: worldCup,
     queryFn: async () => {
-      const data = await fetchWorldCupGroupOdds();
-      localCopy.write('cached_world_cup_group_odds', data);
+      const data = await fetchTournamentGroupOdds(tournamentId as number);
+      localCopy.write(`cached_tournament_group_odds_${tournamentId}`, data);
       return data;
     },
-    placeholderData: (previous) => localCopy.objectOr('cached_world_cup_group_odds', previous),
+    placeholderData: (previous) =>
+      localCopy.objectOr(`cached_tournament_group_odds_${tournamentId}`, previous),
   });
 
   const {
@@ -288,15 +292,17 @@ export function useWorldCupData() {
     isError: topScorersError,
     refetch: refreshTopScorers,
   } = useQuery({
-    queryKey: queryKeys.worldCupTopScorers(),
-    queryFn: fetchWorldCupTopScorers,
-    enabled: pichichi,
+    queryKey: queryKeys.tournamentTopScorers(tournamentId),
+    queryFn: () => fetchTournamentTopScorers(tournamentId as number),
+    enabled: pichichi && worldCup,
     staleTime: 300_000,
     retry: 1,
     placeholderData: keepPreviousData,
   });
 
   return {
+    /** Competición del torneo con grupos de la liga activa, o `null` si la liga no es de esa clase. */
+    tournamentId,
     /** Puntos de cada selección por grupo: grupo → equipo → estadística. */
     groupStandings: worldCup && isObject(standings) ? standings : EMPTY_OBJECT,
     /** Selecciones de cada grupo con sus cuotas, para ordenar el cuadro antes del torneo. */

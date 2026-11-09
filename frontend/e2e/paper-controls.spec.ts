@@ -39,7 +39,7 @@ for (const width of [390, 1440]) {
         },
         '/api/groups/1': group,
         '/api/groups/mine': [group],
-        '/api/world-cup/group-odds': {
+        '/api/competitions/2/tournament/group-odds': {
           A: ['Mexico', 'Sudafrica', 'Chequia', 'Corea del Sur'].map((name, index) => ({
             id: index + 1,
             name,
@@ -48,8 +48,8 @@ for (const width of [390, 1440]) {
             probability: 25,
           })),
         },
-        '/api/world-cup/standings': {},
-        '/api/world-cup/official-bracket': {},
+        '/api/competitions/2/tournament/standings': {},
+        '/api/competitions/2/tournament/official-bracket': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

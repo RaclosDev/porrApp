@@ -62,9 +62,9 @@ for (const viewport of [
           customRounds: [['Rayo', 'Club', 'Sur', 'Peña'], ['Rayo', null], ['Rayo']],
           champion: 'Rayo',
         },
-        '/api/world-cup/standings': {},
-        '/api/world-cup/official-bracket': {},
-        '/api/world-cup/group-odds': {},
+        '/api/competitions/2/tournament/standings': {},
+        '/api/competitions/2/tournament/official-bracket': {},
+        '/api/competitions/2/tournament/group-odds': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

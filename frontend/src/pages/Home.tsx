@@ -16,7 +16,7 @@ import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/
 import InkStamp from '../components/InkStamp';
 import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
-import { useWorldCupData } from '../context/leagueData';
+import { useTournamentData } from '../context/leagueData';
 import type { LeagueKind } from '../context/leagueKind';
 
 type HomeMode = 'home' | 'groups';
@@ -64,7 +64,7 @@ function WorldCupGroups() {
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
-  } = useWorldCupData();
+  } = useTournamentData();
   const loading = loadingOfficial || loadingWorldCup;
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
   const [activeMobilePanel, setActiveMobilePanel] = useState<'thirds' | 'live' | 'scorers' | null>(

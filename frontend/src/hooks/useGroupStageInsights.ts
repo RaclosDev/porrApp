@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useWorldCupData } from '../context/leagueData';
+import { useTournamentData } from '../context/leagueData';
 import { useAppContext } from '../context/AppContext';
-import { leaguePredictionsQuery, worldCupOfficialBracketQuery } from '../services/queries';
+import { leaguePredictionsQuery, tournamentOfficialBracketQuery } from '../services/queries';
 import { groupStageTournament, toGroupStageEntries } from '../utils/groupStageBracket';
 
 /**
@@ -20,12 +20,12 @@ export function useGroupStageInsights() {
     leaderboardData,
     setViewerPredictionId,
   } = useAppContext();
-  const { groupStandings } = useWorldCupData();
+  const { groupStandings, tournamentId } = useTournamentData();
   const hasLeague = Boolean(activeGroupId);
   const knockoutsOnly = activeGroupPoolFormat === 'KNOCKOUTS_ONLY';
 
   const predictions = useQuery(leaguePredictionsQuery(activeGroupId));
-  const official = useQuery(worldCupOfficialBracketQuery());
+  const official = useQuery(tournamentOfficialBracketQuery(tournamentId));
 
   // Antes del cierre solo llega entera la predicción propia: con eso no hay nada que comparar.
   const hidden = (predictions.data ?? []).some((prediction) => prediction.data == null);

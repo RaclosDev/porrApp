@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { LeagueKind } from '../context/leagueKind';
-import { useWorldCupData } from '../context/leagueData';
+import { useTournamentData } from '../context/leagueData';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { usePredictionViewerData, type RoundRef } from '../hooks/usePredictionViewerData';
 import { PredictionSkeleton } from './Skeleton';
@@ -71,7 +71,7 @@ function WorldCupPredictionViewer({
 }: PredictionViewerProps) {
   const state = useAppContext();
   const { viewerPredictionId, setViewerPredictionId, allGames } = state;
-  const { groupStandings: officialPoints, groupOdds } = useWorldCupData();
+  const { groupStandings: officialPoints, groupOdds, tournamentId } = useTournamentData();
   const { participantsHashes } = state;
   const effectivePredictionId = predictionId || viewerPredictionId;
   const handleClose = useCallback(
@@ -106,6 +106,7 @@ function WorldCupPredictionViewer({
     groupOdds,
     allGames,
     initialPart,
+    tournamentId,
   );
 
   const [activeTab, setActiveTab] = useState<ViewerTab>(() =>

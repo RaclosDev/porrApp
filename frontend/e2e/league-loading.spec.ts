@@ -70,9 +70,9 @@ for (const viewport of [
           }
           const responses: Record<string, unknown> = {
             '/api/groups/featured': league,
-            '/api/world-cup/standings': {},
-            '/api/world-cup/official-bracket': {},
-            '/api/world-cup/group-odds': {},
+            '/api/competitions/2/tournament/standings': {},
+            '/api/competitions/2/tournament/official-bracket': {},
+            '/api/competitions/2/tournament/group-odds': {},
             '/api/matches/radar': { live: [], last: [], next: [] },
           };
           return route.fulfill({ json: responses[url.pathname] ?? [] });

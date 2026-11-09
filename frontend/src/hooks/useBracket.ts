@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useWorldCupData } from '../context/leagueData';
+import { useTournamentData } from '../context/leagueData';
 import { useAppContext, useBracketDraft } from '../context/AppContext';
 import { createPrediction } from '../services/api';
 import { advanceBracketWinner, replaceR32Team } from '../utils/bracketTransitions';
@@ -42,7 +42,7 @@ export function useBracket() {
     activeGroupLockDate,
     participantsHashes,
   } = useAppContext();
-  const { groupOdds, groupStandings: officialPoints } = useWorldCupData();
+  const { groupOdds, groupStandings: officialPoints } = useTournamentData();
 
   const [predictionName, setPredictionName] = useState('');
   const [savedPredictionId, setSavedPredictionId] = useState<string | null>(null);
