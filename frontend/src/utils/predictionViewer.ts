@@ -4,6 +4,7 @@
  */
 import { matchWinner } from './bracketBuilder';
 import { teamKey } from './teamKey';
+import { WORLD_CUP_2026_FIRST_ROUND, firstRoundLabels } from './firstKnockoutRound';
 import { buildR32FromGroups, hasValidGroupSelections, extractGroupsFromR32 } from './bracketDraft';
 import type { ViewerPrediction } from './predictionData';
 import type { CanvasMatch } from '../components/BracketCanvas';
@@ -21,24 +22,7 @@ import { isMathematicallyEliminated } from './groupStatus';
 /** Cuadro vacío que se muestra si no se puede obtener el oficial. */
 export const EMPTY_OFFICIAL_BRACKET: PredictionData = {
   topologyVersion: 2,
-  r32: [
-    ['1º Grupo E', '3º A/B/C/D/F'],
-    ['1º Grupo I', '3º C/D/F/G/H'],
-    ['2º Grupo A', '2º Grupo B'],
-    ['1º Grupo F', '2º Grupo C'],
-    ['2º Grupo K', '2º Grupo L'],
-    ['1º Grupo H', '2º Grupo J'],
-    ['1º Grupo D', '3º B/E/F/I/J'],
-    ['1º Grupo G', '3º A/E/H/I/J'],
-    ['1º Grupo C', '2º Grupo F'],
-    ['2º Grupo E', '2º Grupo I'],
-    ['1º Grupo A', '3º C/E/F/H/I'],
-    ['1º Grupo L', '3º E/H/I/J/K'],
-    ['1º Grupo J', '2º Grupo H'],
-    ['2º Grupo D', '2º Grupo G'],
-    ['1º Grupo B', '3º E/F/G/I/J'],
-    ['1º Grupo K', '3º D/E/I/J/L'],
-  ],
+  r32: firstRoundLabels(WORLD_CUP_2026_FIRST_ROUND),
   r16: Array(8).fill([null, null]),
   qf: Array(4).fill([null, null]),
   sf: Array(2).fill([null, null]),

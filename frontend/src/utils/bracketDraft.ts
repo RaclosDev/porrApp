@@ -7,6 +7,14 @@ import {
 } from '../store/useAppStore';
 import type { GroupOdds, PredictionData, TeamPair } from '../types/api';
 import { orderR32, legacyR32Order, topologyVersion, type TopologyVersion } from './bracketTopology';
+import {
+  WORLD_CUP_2026_FIRST_ROUND,
+  firstRoundInLegacyOrder,
+  groupSpot,
+  isThirdSlot,
+  slotLabel,
+  type GroupSlot,
+} from './firstKnockoutRound';
 
 /** Hueco de un cruce: nombre o equipo del cuadro, según de dónde venga. */
 type SlotLike = string | { name?: string } | null | undefined;
@@ -125,55 +133,17 @@ export function extractGroupsFromR32(
     if (!thirds.includes(team)) thirds.push(team);
   };
 
-  // Left matches (0 to 7)
-  setSpot('E', 'first', pairs[0]?.[0]);
-  addThird(pairs[0]?.[1]);
-
-  setSpot('I', 'first', pairs[1]?.[0]);
-  addThird(pairs[1]?.[1]);
-
-  setSpot('F', 'first', pairs[2]?.[0]);
-  setSpot('C', 'second', pairs[2]?.[1]);
-
-  setSpot('C', 'first', pairs[3]?.[0]);
-  setSpot('F', 'second', pairs[3]?.[1]);
-
-  setSpot('A', 'second', pairs[4]?.[0]);
-  setSpot('B', 'second', pairs[4]?.[1]);
-
-  setSpot('E', 'second', pairs[5]?.[0]);
-  setSpot('I', 'second', pairs[5]?.[1]);
-
-  setSpot('A', 'first', pairs[6]?.[0]);
-  addThird(pairs[6]?.[1]);
-
-  setSpot('L', 'first', pairs[7]?.[0]);
-  addThird(pairs[7]?.[1]);
-
-  // Right matches (8 to 15)
-  setSpot('K', 'second', pairs[8]?.[0]);
-  setSpot('L', 'second', pairs[8]?.[1]);
-
-  setSpot('H', 'first', pairs[9]?.[0]);
-  setSpot('J', 'second', pairs[9]?.[1]);
-
-  setSpot('D', 'first', pairs[10]?.[0]);
-  addThird(pairs[10]?.[1]);
-
-  setSpot('G', 'first', pairs[11]?.[0]);
-  addThird(pairs[11]?.[1]);
-
-  setSpot('J', 'first', pairs[12]?.[0]);
-  setSpot('H', 'second', pairs[12]?.[1]);
-
-  setSpot('D', 'second', pairs[13]?.[0]);
-  setSpot('G', 'second', pairs[13]?.[1]);
-
-  setSpot('B', 'first', pairs[14]?.[0]);
-  addThird(pairs[14]?.[1]);
-
-  setSpot('K', 'first', pairs[15]?.[0]);
-  addThird(pairs[15]?.[1]);
+  firstRoundInLegacyOrder(WORLD_CUP_2026_FIRST_ROUND).forEach((slots, index) => {
+    slots.forEach((slot, side) => {
+      const team = pairs[index]?.[side];
+      if (isThirdSlot(slot)) {
+        addThird(team);
+      } else {
+        const { group, position } = groupSpot(slot);
+        setSpot(group, position, team);
+      }
+    });
+  });
 
   const findGroupByTeamName = (teamName: string) => {
     if (!teamName) return null;
@@ -257,29 +227,19 @@ export function buildR32FromGroups(
     });
   }
 
-  const gFirst = (g: string) => groups[g]?.first || `1º Grupo ${g}`;
-  const gSecond = (g: string) => groups[g]?.second || `2º Grupo ${g}`;
-  const gThird = (idx: number, placeholder: string) => thirdSlotTeams[idx] || placeholder;
+  // Los terceros ya vienen repartidos en el orden de sus huecos.
+  let thirdSlot = 0;
+  const teamOf = (slot: GroupSlot) => {
+    if (isThirdSlot(slot)) return thirdSlotTeams[thirdSlot++] || slotLabel(slot);
+    const { group, position } = groupSpot(slot);
+    return groups[group]?.[position] || slotLabel(slot);
+  };
 
   return orderR32(
-    [
-      [gFirst('E'), gThird(0, '3º A/B/C/D/F')],
-      [gFirst('I'), gThird(1, '3º C/D/F/G/H')],
-      [gFirst('F'), gSecond('C')],
-      [gFirst('C'), gSecond('F')],
-      [gSecond('A'), gSecond('B')],
-      [gSecond('E'), gSecond('I')],
-      [gFirst('A'), gThird(2, '3º C/E/F/H/I')],
-      [gFirst('L'), gThird(3, '3º E/H/I/J/K')],
-      [gSecond('K'), gSecond('L')],
-      [gFirst('H'), gSecond('J')],
-      [gFirst('D'), gThird(4, '3º B/E/F/I/J')],
-      [gFirst('G'), gThird(5, '3º A/E/H/I/J')],
-      [gFirst('J'), gSecond('H')],
-      [gSecond('D'), gSecond('G')],
-      [gFirst('B'), gThird(6, '3º E/F/G/I/J')],
-      [gFirst('K'), gThird(7, '3º D/E/I/J/L')],
-    ],
+    firstRoundInLegacyOrder(WORLD_CUP_2026_FIRST_ROUND).map(([home, away]) => [
+      teamOf(home),
+      teamOf(away),
+    ]),
     version,
   );
 }
