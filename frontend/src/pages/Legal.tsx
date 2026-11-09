@@ -45,8 +45,8 @@ function PrivacyContent() {
     <>
       <h2>Responsable</h2>
       <p>
-        El responsable del tratamiento es Carlos Sanz Tomero, titular de PorrApp. Puedes escribirle
-        para cualquier cuestión sobre tus datos a <ContactLink />.
+        El responsable del tratamiento es Carlos S., titular de PorrApp. Puedes escribirle para
+        cualquier cuestión sobre tus datos a <ContactLink />.
       </p>
 
       <h2>Qué datos tratamos</h2>
@@ -178,8 +178,7 @@ function LegalNoticeContent() {
     <>
       <h2>Titular</h2>
       <p>
-        PorrApp es un proyecto personal sin ánimo de lucro de Carlos Sanz Tomero. Contacto:{' '}
-        <ContactLink />.
+        PorrApp es un proyecto personal sin ánimo de lucro de Carlos S. Contacto: <ContactLink />.
       </p>
 
       <h2>Objeto</h2>
