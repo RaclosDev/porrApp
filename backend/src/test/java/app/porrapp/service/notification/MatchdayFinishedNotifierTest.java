@@ -63,7 +63,7 @@ class MatchdayFinishedNotifierTest {
     @BeforeEach
     void setUp() {
         Edition edition = Edition.builder().id(50L).league(league).competition(competition)
-                .poolFormat(PoolFormat.MATCH_DAY).build();
+                .poolFormat(PoolFormat.MATCH_DAY).createdAt(NOW.minus(30, ChronoUnit.DAYS)).build();
         when(editions.findActiveByPoolFormat(PoolFormat.MATCH_DAY)).thenReturn(List.of(edition));
         when(editions.findActiveByPoolFormat(PoolFormat.SURVIVOR)).thenReturn(List.of());
         when(notices.findKeysByEditionIdIn(any())).thenReturn(List.of());
@@ -96,6 +96,16 @@ class MatchdayFinishedNotifierTest {
         calendar(finished(1L, "Jornada 12", NOW.minus(3, ChronoUnit.HOURS)), postponed);
 
         assertThat(notifier.findFinished(NOW)).hasSize(1);
+    }
+
+    @Test
+    void ignoresAMatchdayThatEndedBeforeTheLeagueWasCreated() {
+        Edition recent = Edition.builder().id(50L).league(league).competition(competition)
+                .poolFormat(PoolFormat.MATCH_DAY).createdAt(NOW.minus(1, ChronoUnit.HOURS)).build();
+        when(editions.findActiveByPoolFormat(PoolFormat.MATCH_DAY)).thenReturn(List.of(recent));
+        calendar(finished(1L, "Jornada 11", NOW.minus(5, ChronoUnit.HOURS)));
+
+        assertThat(notifier.findFinished(NOW)).isEmpty();
     }
 
     @Test

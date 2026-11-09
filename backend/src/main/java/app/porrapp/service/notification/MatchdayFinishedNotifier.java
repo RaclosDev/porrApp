@@ -51,7 +51,8 @@ import java.util.stream.Collectors;
  * <p>
  * Los partidos aplazados, suspendidos o cancelados no retienen el aviso: la jornada termina con los
  * que se han jugado. Solo se avisa de jornadas cuyo último partido empezó hace menos de
- * {@link #RECENT}, para no avisar de jornadas antiguas (al desplegar o al unirse a una liga).
+ * {@link #RECENT} y después de crearse la liga, para no avisar de jornadas antiguas (al desplegar, al unirse
+ * a una liga o al crear una nueva sobre una competición en marcha).
  */
 @Slf4j
 @Service
@@ -133,14 +134,17 @@ public class MatchdayFinishedNotifier {
             byMatchday.forEach((matchday, matches) -> {
                 if (matchday == null || matchday.isBlank() || "Sin jornada".equalsIgnoreCase(matchday)) return;
                 if (notified.contains(new MatchdayFinishedNotice.Key(edition.getId(), matchday))) return;
-                if (isRecentlyFinished(matches, now)) finished.add(new Finished(edition, matchday));
+                if (isRecentlyFinished(matches, now, edition.getCreatedAt())) finished.add(new Finished(edition, matchday));
             });
         }
         return finished;
     }
 
-    /** Todos los partidos jugados han terminado, alguno se ha jugado y el último empezó hace poco. */
-    static boolean isRecentlyFinished(List<Match> matches, Instant now) {
+    /**
+     * Todos los partidos jugados han terminado, alguno se ha jugado y el último empezó hace poco y después de
+     * crearse la liga: una jornada que ya estaba terminada al crearla no es una novedad.
+     */
+    static boolean isRecentlyFinished(List<Match> matches, Instant now, Instant leagueCreatedAt) {
         Instant lastKickoff = null;
         boolean anyFinished = false;
         for (Match match : matches) {
@@ -151,7 +155,8 @@ public class MatchdayFinishedNotifier {
                 return false;
             }
         }
-        return anyFinished && !lastKickoff.isBefore(now.minus(RECENT));
+        return anyFinished && !lastKickoff.isBefore(now.minus(RECENT))
+                && (leagueCreatedAt == null || !lastKickoff.isBefore(leagueCreatedAt));
     }
 
     private static boolean isFinished(Match match) {
