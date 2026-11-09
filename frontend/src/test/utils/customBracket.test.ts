@@ -165,7 +165,7 @@ describe('cuadro de competición personalizada', () => {
       home: 'E',
       away: null,
       isBye: true,
-      awayPlaceholder: 'Descanso',
+      awayPlaceholder: 'Pasa directo',
     });
     expect(rounds[2].matches[0]).toMatchObject({ home: null, away: 'E' });
   });
@@ -225,7 +225,7 @@ describe('resultados de una competición personalizada', () => {
       'Semifinales',
       'Final',
     ]);
-    expect(rounds[0].slots[2]).toMatchObject({ isBye: true, awayPlaceholder: 'Descanso' });
+    expect(rounds[0].slots[2]).toMatchObject({ isBye: true, awayPlaceholder: 'Pasa directo' });
     expect(rounds[1].slots[0]).toMatchObject({
       match: null,
       home: 'A',

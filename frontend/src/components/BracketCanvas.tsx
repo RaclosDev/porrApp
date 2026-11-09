@@ -77,7 +77,7 @@ interface TeamSlotProps {
   /** Escudo del equipo; sin él se busca la bandera por nombre. */
   logo?: string | null;
   /**
-   * Si el nombre es un hueco ("Ganador C1", "Descanso") o un equipo. Sin indicarlo se deduce del
+   * Si el nombre es un hueco ("Ganador C1", "Pasa directo") o un equipo. Sin indicarlo se deduce del
    * nombre, que solo sirve para selecciones con bandera.
    */
   placeholder?: boolean;

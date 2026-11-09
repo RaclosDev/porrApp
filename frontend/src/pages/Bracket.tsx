@@ -17,6 +17,7 @@ import CustomBracket from './CustomBracket';
 import KnockoutDrawPredictor from './KnockoutDrawPredictor';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
+import { useUnsavedChanges } from '../utils/unsavedChanges';
 
 /** «Mi porra»: dónde se rellena la predicción de cada clase de liga. */
 function Bracket() {
@@ -75,7 +76,12 @@ function WorldCupBracket() {
     savedGroupsDraft,
     savedThirdsDraft,
     savedPredictionId,
+    hasUnsavedChanges,
   } = useBracket();
+  useUnsavedChanges(
+    hasUnsavedChanges && !activeGroupIsLocked,
+    'Tu porra tiene cambios sin guardar. El borrador se queda en este dispositivo hasta que la guardes.',
+  );
 
   const [mobileStep, setMobileStep] = useState('bracket'); // 'bracket' | 'save'
   const [isEditing, setIsEditing] = useState(false);
@@ -157,7 +163,12 @@ function WorldCupBracket() {
         const teamStatus = getTeamStatus(name);
         if (isMathematicallyQualified(teamStatus)) {
           statusIndicator = (
-            <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente" className="ml-1">
+            <InkStamp
+              tone="ink"
+              size="sm"
+              label="Clasificado matemáticamente"
+              className="team-slot-sticker ml-1"
+            >
               Clas.
             </InkStamp>
           );
