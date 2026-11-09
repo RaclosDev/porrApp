@@ -36,7 +36,7 @@ Importar el catálogo y el calendario de una competición recién elegida es cos
 
 Los partidos históricos que conservan equipos provisionales de la primera importación se reparan mediante su identificador externo, no deduciendo qué equipo corresponde a un id local. `LegacyFixtureRepairService` consulta y valida el resumen de ESPN fuera de la transacción; después actualiza el mismo partido en una transacción breve, conservando los pronósticos que lo referencian. Cada pasada tiene límites de peticiones y tiempo, comparte el cerrojo de sincronización y retrasa los reintentos fallidos.
 
-La importación manual descarga primero el catálogo y los calendarios, con límites de tamaño y tiempo entre llamadas. Después aplica el lote en una única transacción: si falla un partido o su puntuación, se deshacen todos los cambios. La caché de equipos y los avisos de WebSocket se publican después de confirmar los datos.
+La importación manual descarga primero el catálogo y los calendarios, con límites de tamaño y tiempo entre llamadas. Una competición se importa por la temporada que el proveedor da por vigente; un torneo con grupos, entero y por la temporada de su formato (`seed/tournament-formats.json`), aunque el proveedor ya esté en otra edición. Después aplica el lote en una única transacción: si falla un partido o su puntuación, se deshacen todos los cambios. La caché de equipos y los avisos de WebSocket se publican después de confirmar los datos.
 
 En el cliente, los marcadores recibidos por WebSocket actualizan la caché de inmediato. Las consultas derivadas se agrupan durante 100 ms para evitar peticiones repetidas en una ráfaga; al reconectar se vuelven a validar los datos visibles que podrían haber cambiado durante el corte.
 

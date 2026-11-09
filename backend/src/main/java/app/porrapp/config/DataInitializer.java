@@ -175,12 +175,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     /**
-     * Importa el calendario de las competiciones con ligas activas que aún no tienen partidos,
-     * sincroniza resultados y recalcula clasificaciones. Cada paso es independiente: si uno falla,
-     * el siguiente se intenta igualmente y el job programado de {@link SyncService} lo reintentará.
+     * Importa el calendario de las competiciones con ligas activas que aún no tienen partidos (y el de
+     * los torneos ya jugados de prueba), sincroniza resultados y recalcula clasificaciones. Cada paso es
+     * independiente: si uno falla, el siguiente se intenta igualmente y el job programado de
+     * {@link SyncService} lo reintentará.
      */
     private void runInitialSync() {
         runStep("importar calendarios vacíos", this::importEmptyCompetitionFixtures);
+        runStep("importar los torneos ya jugados", this::importPastTournaments);
         runStep("sincronizar resultados", syncService::syncAll);
         runStep("reparar equipos históricos", syncService::repairLegacyFixtures);
         runStep("recalcular los torneos con grupos", this::refreshGroupTournaments);
@@ -207,6 +209,22 @@ public class DataInitializer implements CommandLineRunner {
                 .forEach(competitionId -> competitionRepository.findById(competitionId).ifPresent(competition ->
                         runStep("importar el calendario de " + competition.getName(),
                                 () -> importService.importCompetitionData(competition.getId()))));
+    }
+
+    /**
+     * Partidos de los torneos ya jugados de prueba, la primera vez: ninguna liga los juega, así que nadie
+     * más los pediría, y su cuadro y sus grupos oficiales saldrían vacíos. Solo donde se siembran.
+     */
+    private void importPastTournaments() {
+        if (!seedPastTournaments) return;
+        List<CompetitionSeed> past = readSeed(PAST_COMPETITIONS_SEED, new TypeReference<>() {
+        });
+        for (CompetitionSeed seed : past) {
+            competitionRepository.findByExternalId(seed.externalId())
+                    .filter(competition -> matchRepository.countByCompetitionId(competition.getId()) == 0)
+                    .ifPresent(competition -> runStep("importar los partidos de " + competition.getName(),
+                            () -> importService.importCompetitionData(competition.getId())));
+        }
     }
 
     private void runStep(String description, Runnable step) {
