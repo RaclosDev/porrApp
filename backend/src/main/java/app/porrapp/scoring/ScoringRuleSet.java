@@ -17,7 +17,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Parametrizacion versionada de reglas de puntuacion para torneos y porras.
+ * Reglas de puntuación de una liga. Los valores por defecto son generales: sirven para cualquier
+ * competición, y cada modo de juego usa solo sus reglas (un cuadro, las de grupos, eliminatorias y podio;
+ * una liga por jornadas, las de cada partido…).
  */
 @Slf4j
 @Data
@@ -39,33 +41,35 @@ public class ScoringRuleSet {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    // Fase de grupos
+    // Fase de grupos: son muchos aciertos (16 en una Eurocopa, 32 en un Mundial), así que cada uno vale poco
     @Builder.Default
-    private int groupQualifierPoints = 10;
+    private int groupQualifierPoints = 5;
     @Builder.Default
-    private int groupExactPositionPoints = 10;
+    private int groupExactPositionPoints = 5;
 
-    // Rondas eliminatorias
+    // Rondas eliminatorias: cada ronda vale más por acierto y todas pesan parecido en el total
+    // (8 cruces de dieciseisavos a 10, 4 de cuartos a 20, 2 semifinales a 30)
     @Builder.Default
-    private int roundOf32Points = 25;
+    private int roundOf32Points = 10;
     @Builder.Default
-    private int roundOf16Points = 30;
+    private int roundOf16Points = 15;
     @Builder.Default
-    private int quarterFinalPoints = 40;
+    private int quarterFinalPoints = 20;
     @Builder.Default
-    private int semiFinalPoints = 60;
+    private int semiFinalPoints = 30;
+    // Podio: el campeón es el acierto que más vale, sin decidir la liga él solo
     @Builder.Default
-    private int championPoints = 200;
+    private int championPoints = 50;
     @Builder.Default
-    private int runnerUpPoints = 150;
+    private int runnerUpPoints = 30;
     @Builder.Default
-    private int thirdPlacePoints = 100;
+    private int thirdPlacePoints = 20;
     @Builder.Default
-    private int fourthPlacePoints = 75;
+    private int fourthPlacePoints = 10;
 
-    // Goleador / Pichichi
+    // Goleador / Pichichi: un acierto suelto y con mucho azar, como el subcampeón
     @Builder.Default
-    private int topScorerPoints = 200;
+    private int topScorerPoints = 30;
 
     // Puntuacion de partidos directos (1X2 y marcador exacto)
     @Builder.Default
@@ -136,6 +140,19 @@ public class ScoringRuleSet {
     }
 
     /**
+     * Valores con los que nacían las ligas antes de los generales: los del cuadro del Mundial 2026. Solo
+     * completan las reglas guardadas de una liga a las que les falte alguna, para que siga puntuando igual.
+     */
+    private static ScoringRuleSet legacyDefaults() {
+        return ScoringRuleSet.builder()
+                .groupQualifierPoints(10).groupExactPositionPoints(10)
+                .roundOf32Points(25).roundOf16Points(30).quarterFinalPoints(40).semiFinalPoints(60)
+                .championPoints(200).runnerUpPoints(150).thirdPlacePoints(100).fourthPlacePoints(75)
+                .topScorerPoints(200)
+                .build();
+    }
+
+    /**
      * Puntuación con la que nace una liga de tenis: el ganador de cada partido vale más en cada ronda
      * (octavos, cuartos, semifinales y final) y acertar los sets suma un extra.
      */
@@ -146,7 +163,10 @@ public class ScoringRuleSet {
                 .build();
     }
 
-    /** Reglas guardadas en la edición; las de por defecto si no tiene. */
+    /**
+     * Reglas guardadas en la edición. Una edición sin reglas (o sin alguna) es anterior a los valores
+     * generales y conserva los que tenía; sin edición, las de por defecto.
+     */
     public static ScoringRuleSet forEdition(Edition edition) {
         return edition != null ? fromJson(edition.getScoringRulesJson()) : defaults();
     }
@@ -158,16 +178,21 @@ public class ScoringRuleSet {
         return rules;
     }
 
+    /**
+     * Reglas guardadas de una liga. Toda liga nueva las guarda enteras; a las que les falte alguna (o
+     * todas) son anteriores a los valores generales y se completan con los que tenían entonces.
+     */
     public static ScoringRuleSet fromJson(String json) {
         if (json == null || json.isBlank()) {
-            return defaults();
+            return legacyDefaults();
         }
         try {
-            return MAPPER.readValue(json, ScoringRuleSet.class);
+            return MAPPER.readerForUpdating(legacyDefaults()).readValue(json);
         } catch (tools.jackson.core.JacksonException e) {
             // Puntuar con otras reglas sin avisar escondería el fallo: queda en el log.
-            log.error("Reglas de puntuación ilegibles; se aplican las de por defecto: {}", e.getMessage());
-            return defaults();
+            log.error("Reglas de puntuación ilegibles; se aplican las que tenía la liga al crearse: {}",
+                    e.getMessage());
+            return legacyDefaults();
         }
     }
 

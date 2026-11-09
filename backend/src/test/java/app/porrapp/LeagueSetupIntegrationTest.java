@@ -117,6 +117,9 @@ class LeagueSetupIntegrationTest {
         assertThat(league.isEntryFee()).isFalse();
         Edition edition = editions.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElseThrow();
         assertThat(edition.getLockMode()).isEqualTo(PredictionLockMode.FIXED_DATE);
+        // Nace con los valores generales, guardados enteros: no dependen de los que haya por defecto mañana.
+        assertThat(edition.getScoringRulesJson()).isEqualTo(ScoringRuleSet.defaults().toJson());
+        assertThat(ScoringRuleSet.forEdition(edition).getChampionPoints()).isEqualTo(50);
     }
 
     @Test
