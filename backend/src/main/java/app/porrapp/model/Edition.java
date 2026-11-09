@@ -35,9 +35,31 @@ public class Edition {
         return isGroupTournamentBracket(competition, poolFormat);
     }
 
-    /** Puntúa el máximo goleador: solo en el cuadro de un torneo con grupos, que tiene goleadores oficiales. */
+    /**
+     * Si una liga puede puntuar al máximo goleador: en cualquier competición oficial de fútbol, que es de las
+     * que el proveedor da goleadores, jugada por jornadas o, si es un torneo con grupos, sobre su cuadro. No en
+     * superviviente (se juega a seguir vivo, no a puntos), ni con varias competiciones (no hay un único
+     * pichichi), ni en unas eliminatorias sorteadas ronda a ronda.
+     */
+    public static boolean allowsPichichi(Competition competition, PoolFormat format, boolean multiCompetition) {
+        if (competition == null || format == null || multiCompetition) return false;
+        if (competition.getOwnerLeague() != null || competition.getExternalId() == null
+                || competition.getExternalId().isBlank()) return false;
+        if (Sport.ofExternalId(competition.getExternalId()) != Sport.FOOTBALL) return false;
+        return format == PoolFormat.MATCH_DAY || isGroupTournamentBracket(competition, format);
+    }
+
+    /** Puntúa el máximo goleador de su competición. */
     public boolean scoresPichichi() {
-        return pichichi && isGroupTournamentBracket();
+        return pichichi && allowsPichichi(competition, poolFormat, multiCompetition);
+    }
+
+    /**
+     * El pichichi se elige dentro del cuadro (torneo con grupos) y se cierra con él. En el resto de ligas se
+     * elige aparte ({@link ScorerPick}), con su propio cierre.
+     */
+    public boolean pichichiInBracket() {
+        return scoresPichichi() && isGroupTournamentBracket();
     }
 
     @Id

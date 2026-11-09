@@ -55,6 +55,11 @@ public interface EditionRepository extends JpaRepository<Edition, Long> {
     @Query("SELECT e FROM Edition e JOIN FETCH e.league JOIN FETCH e.competition WHERE e.status = 'ACTIVE' AND e.tennisScope IS NOT NULL")
     List<Edition> findActiveWithTennisScope();
 
+    /** Competiciones vigentes en las que alguna liga activa juega el pichichi. */
+    @Query("SELECT DISTINCT c FROM Edition e JOIN e.competition c WHERE e.status = 'ACTIVE' AND e.pichichi = TRUE"
+            + " AND c.ownerLeague IS NULL AND c.archivedAt IS NULL AND c.externalId IS NOT NULL AND c.externalId <> ''")
+    List<app.porrapp.model.Competition> findCompetitionsWithPichichi();
+
     /** Ediciones activas de un formato, con su liga y su competición. */
     @Query("SELECT e FROM Edition e JOIN FETCH e.league JOIN FETCH e.competition WHERE e.status = 'ACTIVE' AND e.poolFormat = :format")
     List<Edition> findActiveByPoolFormat(@Param("format") app.porrapp.model.PoolFormat format);

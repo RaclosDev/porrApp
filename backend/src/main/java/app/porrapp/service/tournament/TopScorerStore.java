@@ -25,22 +25,31 @@ public class TopScorerStore {
     private final TopScorerRepository topScorerRepository;
     private final CompetitionRepository competitionRepository;
 
-    /** Goleadores guardados de la competición con ese id externo, en su orden; vacío si no hay ninguno. */
+    /** Goleadores guardados de la temporada vigente de ese id externo, en su orden; vacío si no hay ninguno. */
     @Transactional(readOnly = true)
     public List<TopScorerDTO> load(String competitionExternalId) {
-        return competitionRepository.findIdByExternalId(competitionExternalId)
-                .map(topScorerRepository::findByCompetitionIdOrderByPositionAsc)
-                .orElse(List.of())
-                .stream()
+        return competitionRepository.findIdByExternalId(competitionExternalId).map(this::load).orElse(List.of());
+    }
+
+    /** Goleadores guardados de una competición (una temporada concreta), en su orden; vacío si no hay ninguno. */
+    @Transactional(readOnly = true)
+    public List<TopScorerDTO> load(Long competitionId) {
+        if (competitionId == null) return List.of();
+        return topScorerRepository.findByCompetitionIdOrderByPositionAsc(competitionId).stream()
                 .map(row -> new TopScorerDTO(row.getName(), row.getShortName(), row.getGoals(),
                         row.getPlayerPosition(), row.getPlayerId(), row.getTeam(), row.getImageUrl()))
                 .toList();
     }
 
-    /** Sustituye la lista guardada de la competición por esta, en el mismo orden. */
+    /** Sustituye la lista guardada de la temporada vigente de ese id externo por esta, en el mismo orden. */
     @Transactional
     public void replace(String competitionExternalId, List<TopScorerDTO> scorers) {
-        Long competitionId = competitionRepository.findIdByExternalId(competitionExternalId).orElse(null);
+        replace(competitionRepository.findIdByExternalId(competitionExternalId).orElse(null), scorers);
+    }
+
+    /** Sustituye la lista guardada de una competición por esta, en el mismo orden. */
+    @Transactional
+    public void replace(Long competitionId, List<TopScorerDTO> scorers) {
         if (competitionId == null) return;
         topScorerRepository.deleteByCompetitionId(competitionId);
         List<TopScorer> rows = new ArrayList<>();

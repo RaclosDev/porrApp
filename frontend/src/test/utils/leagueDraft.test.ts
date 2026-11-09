@@ -16,6 +16,7 @@ import {
   rulesSport,
   lockModesFor,
   normalizeDraft,
+  pichichiApplies,
   readStoredDraft,
   storeDraft,
   validateStep,
@@ -129,6 +130,31 @@ describe('borrador de liga', () => {
     // El pichichi es cosa del fútbol.
     const worlds = draftWith({ competitionId: 4, poolFormat: 'FULL_BRACKET', pichichi: true });
     expect(worlds.pichichi).toBe(false);
+  });
+
+  it('ofrece el pichichi en el fútbol por jornadas, pero no en superviviente, en otro deporte ni al juntar competiciones', () => {
+    const matchday = draftWith({ competitionId: 1, poolFormat: 'MATCH_DAY', pichichi: true });
+    expect(pichichiApplies(matchday, ctx)).toBe(true);
+    expect(matchday.pichichi).toBe(true);
+    expect(buildCreateRequest(matchday, ctx).pichichi).toBe(true);
+    // Superviviente y eliminatorias sorteadas (Champions) no lo juegan.
+    expect(draftWith({ competitionId: 1, poolFormat: 'SURVIVOR', pichichi: true }).pichichi).toBe(
+      false,
+    );
+    expect(
+      draftWith({ competitionId: 2, poolFormat: 'KNOCKOUTS_ONLY', pichichi: true }).pichichi,
+    ).toBe(false);
+    // Otro deporte, competición propia o partidos de varias competiciones: tampoco.
+    expect(draftWith({ competitionId: 4, poolFormat: 'MATCH_DAY', pichichi: true }).pichichi).toBe(
+      false,
+    );
+    expect(normalizeDraft({ ...matchday, custom: true, sport: 'OTHER' }, ctx).pichichi).toBe(false);
+    const several = {
+      ...matchday,
+      matches: { ...matchday.matches, mode: 'ALL' as const, competitionIds: [1, 2] },
+    };
+    expect(pichichiApplies(several, ctx)).toBe(false);
+    expect(buildCreateRequest({ ...matchday, pichichi: false }, ctx).pichichi).toBe(false);
   });
 
   it('no ofrece superviviente sin competición oficial ni cuadros en una liga regular', () => {

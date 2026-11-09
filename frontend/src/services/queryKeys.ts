@@ -69,6 +69,12 @@ export const queryKeys = {
   tournamentTopScorers: (competitionId?: Id) => key('tournamentTopScorers', competitionId),
   tournamentOfficialBracket: (competitionId?: Id) =>
     key('tournamentOfficialBracket', competitionId),
+  /** Jugadores de una competición entre los que se elige el pichichi. */
+  competitionPlayers: (competitionId?: Id) => key('competitionPlayers', competitionId),
+  /** Pichichi de la liga para quien consulta. */
+  scorerPick: (groupId?: Id) => key('scorerPick', asText(groupId)),
+  /** Cuelga de `scorerPick`: al cambiar el propio se refrescan también los de la liga. */
+  scorerPicks: (groupId: Id) => key('scorerPick', asText(groupId), 'all'),
   predictionScore: (predictionId?: Id) => key('predictionScore', asText(predictionId)),
   matches: (competitionId?: Id) => key('matches', competitionId),
   radar: (competitionId?: Id) => key('radar', competitionId),

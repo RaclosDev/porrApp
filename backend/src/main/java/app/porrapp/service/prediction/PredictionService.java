@@ -13,6 +13,7 @@ import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.MembershipRepository;
 import app.porrapp.repository.PredictionRepository;
 import app.porrapp.repository.UserAccountRepository;
+import app.porrapp.service.league.ScorerPickService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -39,6 +40,7 @@ public class PredictionService {
     private final BracketPredictionValidator bracketValidator;
     private final CustomBracketPredictionValidator customBracketValidator;
     private final CustomLockService customLockService;
+    private final ScorerPickService scorerPickService;
 
     @Transactional(readOnly = true)
     public List<Prediction> getPredictionsByGroupId(Long groupId) {
@@ -79,6 +81,7 @@ public class PredictionService {
         }
 
         validateBracket(edition, predictionData);
+        scorerPickService.prepareBracketScorer(edition, predictionData);
 
         Optional<Prediction> existing = predictionRepository.findByUserGoogleEmailAndEditionLeagueId(email, groupId);
         if (progressiveCustom(edition)) {

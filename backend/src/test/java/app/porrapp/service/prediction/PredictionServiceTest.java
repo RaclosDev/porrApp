@@ -49,6 +49,9 @@ class PredictionServiceTest {
     @Mock
     private CustomLockService customLockService;
 
+    @Mock
+    private app.porrapp.service.league.ScorerPickService scorerPickService;
+
     @InjectMocks
     private PredictionService predictionService;
 

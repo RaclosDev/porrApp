@@ -63,6 +63,17 @@ describe('scoringRules', () => {
     ).toEqual(['correctSignPoints']);
   });
 
+  it('una liga de fútbol por jornadas con pichichi puntúa también al máximo goleador', () => {
+    expect(keysOf('MATCH_DAY', true)).toEqual([
+      'exactScorePoints',
+      'correctSignPoints',
+      'goalDiffBonusPoints',
+      'topScorerPoints',
+    ]);
+    expect(keysOf('MATCH_DAY', false)).not.toContain('topScorerPoints');
+    expect(keysOf('SURVIVOR', true)).not.toContain('topScorerPoints');
+  });
+
   it('lo del empate de la NFL solo se cuenta en la NFL', () => {
     const hint = (sport: 'AMERICAN_FOOTBALL' | 'BASKETBALL') =>
       scoringSections('MATCH_DAY', false, false, false, true, sport)[0].fields[0].hint;
@@ -84,7 +95,7 @@ describe('scoringRules', () => {
   });
 
   it('cada formato muestra sus reglas', () => {
-    expect(keysOf('MATCH_DAY', true)).toEqual([
+    expect(keysOf('MATCH_DAY', false)).toEqual([
       'exactScorePoints',
       'correctSignPoints',
       'goalDiffBonusPoints',

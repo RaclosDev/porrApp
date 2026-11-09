@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -301,5 +302,71 @@ class EspnSportsDataProviderTest {
                 request.getAllValues().get(0).uri().toString());
         assertEquals("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
                 request.getAllValues().get(1).uri().toString());
+    }
+
+    @Test
+    @DisplayName("La tabla de goleadores llega con la temporada a la que pertenece")
+    void fetchScoringLeaders_returnsTheGoalLeadersOfTheSeason() throws Exception {
+        String json = """
+                {"season": {"year": 2026},
+                 "stats": [
+                   {"name": "assistsLeaders", "leaders": [{"value": 9, "athlete": {"displayName": "Lamine Yamal"}}]},
+                   {"name": "goalsLeaders", "leaders": [
+                     {"value": 12, "athlete": {"id": "231388", "displayName": "Kylian Mbappé"}},
+                     {"value": 9, "athlete": {"id": "45843", "displayName": "Robert Lewandowski"}}]}]}""";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        SportsDataProvider.ScoringLeaders leaders = provider.fetchScoringLeaders("esp.1");
+
+        assertEquals(2026, leaders.seasonYear());
+        assertEquals(2, leaders.leaders().size());
+        assertEquals("Kylian Mbappé", leaders.leaders().get(0).path("athlete").path("displayName").asText());
+        ArgumentCaptor<HttpRequest> request = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/statistics",
+                request.getValue().uri().toString());
+    }
+
+    @Test
+    @DisplayName("Sin goleadores publicados la tabla llega vacía, y de una competición que no se sigue no se pide")
+    void fetchScoringLeaders_withoutGoalLeaders() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn("{\"stats\": []}".getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        SportsDataProvider.ScoringLeaders leaders = provider.fetchScoringLeaders("esp.1");
+
+        assertNull(leaders.seasonYear());
+        assertEquals(0, leaders.leaders().size());
+        assertNull(provider.fetchScoringLeaders("xxx.1"));
+        verify(httpClient, times(1)).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("La plantilla de un equipo se pide por su id numérico")
+    void fetchTeamRoster_returnsTheAthletes() throws Exception {
+        String json = "{\"athletes\": [{\"id\": \"231388\", \"displayName\": \"Kylian Mbappé\"}]}";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode roster = provider.fetchTeamRoster("esp.1", "86");
+
+        assertEquals(1, roster.size());
+        assertEquals("Kylian Mbappé", roster.get(0).path("displayName").asText());
+        ArgumentCaptor<HttpRequest> request = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/teams/86/roster",
+                request.getValue().uri().toString());
+        // Un id que no es un número no llega a la URL.
+        assertNull(provider.fetchTeamRoster("esp.1", "86/../../x"));
+        assertNull(provider.fetchTeamRoster("esp.1", null));
+        assertNull(provider.fetchTeamRoster("xxx.1", "86"));
+        verify(httpClient, times(1)).send(any(HttpRequest.class), any());
     }
 }

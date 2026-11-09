@@ -39,6 +39,8 @@ class PredictionPersistenceTest {
     @Autowired private TestEntityManager em;
     @Autowired private PredictionService predictions;
     @Autowired private PredictionRepository repository;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private app.porrapp.service.league.ScorerPickService scorerPickService;
 
     @Test
     void savingAgainUpdatesTheExistingPredictionAndPreservesItsPaymentRecord() {

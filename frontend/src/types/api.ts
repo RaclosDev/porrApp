@@ -190,6 +190,57 @@ export interface TopScorer {
   imageUrl: string;
 }
 
+/** Jugador de la competición entre los que se elige el pichichi. */
+export interface ScorerCandidate {
+  /** Id del jugador en el proveedor; vacío si solo se le conoce por sus goles. */
+  playerId: string;
+  name: string;
+  shortName: string;
+  team: string;
+  position: string;
+  goals: number;
+}
+
+/**
+ * Qué se sabe del pichichi de una porra: `PLAYER` (elegido de la lista o asignado), `MATCHED` (lo escrito
+ * encaja con un solo jugador), `DOUBTFUL` (no se sabe a quién se refiere) o `UNMATCHED` (aún no hay lista
+ * con la que compararlo).
+ */
+type ScorerPickStatus = 'PLAYER' | 'MATCHED' | 'DOUBTFUL' | 'UNMATCHED';
+
+/** Pichichi de una porra con el jugador real al que se refiere. */
+export interface ScorerPickView {
+  predictionId: number;
+  userId: number | null;
+  participantName: string | null;
+  /** Lo que escribió o eligió el participante. */
+  writtenName: string;
+  status: ScorerPickStatus;
+  playerId: string | null;
+  playerName: string | null;
+  team: string;
+  /** El jugador lo asignó el administrador de la liga. */
+  byAdmin: boolean;
+  /** Quien consulta puede asignarle un jugador ahora. */
+  canAssign: boolean;
+  /** Si es dudoso, los jugadores con los que encaja lo escrito. */
+  candidates: ScorerCandidate[];
+}
+
+/** Pichichi de la liga para quien consulta. */
+export interface ScorerPickState {
+  /** La liga juega el pichichi. */
+  enabled: boolean;
+  /** Se elige dentro del cuadro (torneo con grupos), no aparte. */
+  inBracket: boolean;
+  locked: boolean;
+  /** Cuándo se cierra (ISO); null si aún no se sabe. */
+  lockAt: string | null;
+  mine: ScorerPickView | null;
+  /** Quien consulta es el administrador y puede asignar los dudosos. */
+  canResolve: boolean;
+}
+
 // --- Pronósticos de cuadro completo ---
 
 export type TeamPair = [string | null, string | null] | string[];

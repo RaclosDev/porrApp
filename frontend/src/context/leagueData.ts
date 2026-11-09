@@ -187,8 +187,10 @@ function useLeagueState() {
     // Las competiciones de una liga que junta varias, para elegir cuál se ve en la Tabla.
     activeGroupCompetitions:
       (groupInfo?.multiCompetition && groupInfo.competitions) || EMPTY_COMPETITIONS,
-    // El pichichi se juega con los goleadores oficiales del Mundial: solo en sus cuadros.
+    // El pichichi que se elige dentro del cuadro de un torneo con grupos.
     activeGroupPichichi: leagueKind === 'groupStage' && Boolean(groupInfo?.pichichi),
+    // El que se elige aparte, en una liga de fútbol por jornadas.
+    activeGroupScorerPick: leagueKind === 'matchday' && Boolean(groupInfo?.pichichi),
     // Rondas del torneo con grupos de la liga: llegan con ella, sin pedir el torneo.
     activeTournamentRounds: groupInfo?.tournamentRounds ?? null,
     activeGroupIsLocked: Boolean(groupInfo?.isLocked),

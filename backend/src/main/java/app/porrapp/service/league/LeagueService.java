@@ -197,8 +197,11 @@ public class LeagueService {
                         : defaultLockDate != null
                         ? app.porrapp.model.PredictionLockMode.FIXED_DATE
                         : app.porrapp.model.PredictionLockMode.FIRST_MATCH)
-                // El único pichichi oficial es el del cuadro del Mundial.
-                .pichichi(pichichi && Edition.isGroupTournamentBracket(comp, poolFormat))
+                // Si no se dice nada, pichichi solo en el cuadro de un torneo con grupos, como siempre; pedido
+                // expresamente, en cualquier competición de fútbol que lo admita.
+                .pichichi(pichichi && (request.pichichi() == null
+                        ? Edition.isGroupTournamentBracket(comp, poolFormat)
+                        : Edition.allowsPichichi(comp, poolFormat, false)))
                 .status("ACTIVE")
                 .scoringRulesJson((app.porrapp.model.Sport.isTennis(comp)
                         ? app.porrapp.scoring.ScoringRuleSet.defaultTennis()

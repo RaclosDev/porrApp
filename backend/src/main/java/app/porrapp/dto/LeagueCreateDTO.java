@@ -32,7 +32,7 @@ public class LeagueCreateDTO {
     private String poolFormat;
 
     /** Indica si el grupo tendrá premio o clasificación específica para el Pichichi. */
-    private Boolean pichichi = true;
+    private Boolean pichichi;
 
     // Ajustes opcionales: sin ellos la liga se crea con los valores por defecto, como siempre.
 

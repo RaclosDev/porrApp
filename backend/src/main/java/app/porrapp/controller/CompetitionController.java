@@ -18,10 +18,20 @@ import java.util.List;
 public class CompetitionController {
 
     private final CompetitionService competitionService;
+    private final app.porrapp.service.tournament.CompetitionPlayerService competitionPlayerService;
 
     @GetMapping
     public List<CompetitionDTO> getAllCompetitions() {
         return competitionService.findSyncableCompetitions();
+    }
+
+    /**
+     * Jugadores entre los que elegir el pichichi de una competición de fútbol: sus plantillas y sus
+     * goleadores, por orden alfabético. Vacío si no se tienen.
+     */
+    @GetMapping("/{id}/players")
+    public List<app.porrapp.dto.ScorerCandidateDTO> getCompetitionPlayers(@PathVariable Long id) {
+        return competitionPlayerService.players(id);
     }
 
     /** Clasificación oficial de una liga regular (LaLiga, Premier, Champions...). */

@@ -2,6 +2,8 @@ package app.porrapp.service.tournament;
 
 import app.porrapp.model.Competition;
 import app.porrapp.repository.CompetitionRepository;
+import app.porrapp.repository.EditionRepository;
+import app.porrapp.repository.MatchRepository;
 import app.porrapp.service.prediction.ScoreInvalidationService;
 import app.porrapp.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -24,6 +26,7 @@ import java.net.http.HttpClient;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -52,6 +55,12 @@ class TopScorerServiceTest {
     @Mock
     private CompetitionRepository competitionRepository;
 
+    @Mock
+    private EditionRepository editionRepository;
+
+    @Mock
+    private MatchRepository matchRepository;
+
     private final Competition worldCup = Competition.builder().id(2L).name("Mundial")
             .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
 
@@ -62,7 +71,8 @@ class TopScorerServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         topScorerService = new TopScorerService(objectMapper, webSocketService, httpClient, sportsDataProvider,
-                scoreInvalidationService, knockoutBracketService, topScorerStore, competitionRepository);
+                scoreInvalidationService, knockoutBracketService, topScorerStore, competitionRepository,
+                editionRepository, matchRepository);
         lenient().when(competitionRepository.findByExternalIdIn(any())).thenReturn(List.of(worldCup));
     }
 
@@ -70,7 +80,7 @@ class TopScorerServiceTest {
     @DisplayName("Tras arrancar con el torneo cerrado valen los goleadores guardados: ni proveedor ni recálculo")
     void storedScorersAreUsedAfterARestartWithoutAskingTheProvider() {
         List<TopScorerDTO> stored = List.of(new TopScorerDTO("Kylian Mbappé", "K. Mbappé", 8, "F", "1", "Francia", ""));
-        when(topScorerStore.load(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(stored);
+        when(topScorerStore.load(2L)).thenReturn(stored);
         when(knockoutBracketService.isOver(worldCup)).thenReturn(true);
 
         topScorerService.scheduledRefresh();
@@ -78,8 +88,8 @@ class TopScorerServiceTest {
 
         assertEquals(stored, topScorerService.getTopScorers(worldCup));
         verifyNoInteractions(sportsDataProvider, scoreInvalidationService, webSocketService);
-        verify(topScorerStore, times(1)).load(Competition.WORLD_CUP_EXTERNAL_ID);
-        verify(topScorerStore, never()).replace(anyString(), any());
+        verify(topScorerStore, times(1)).load(2L);
+        verify(topScorerStore, never()).replace(anyLong(), any());
     }
 
     @Test
@@ -87,12 +97,12 @@ class TopScorerServiceTest {
     void scorersAreStoredOnlyWhenTheyChange() throws Exception {
         when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString()))
                 .thenReturn(goalBy("Kylian Mbappé"));
-        doThrow(new IllegalStateException("base de datos caída")).when(topScorerStore).replace(anyString(), any());
+        doThrow(new IllegalStateException("base de datos caída")).when(topScorerStore).replace(anyLong(), any());
 
         topScorerService.refresh(worldCup);
         topScorerService.refresh(worldCup);
 
-        verify(topScorerStore, times(1)).replace(eq(Competition.WORLD_CUP_EXTERNAL_ID), eq(topScorerService.getTopScorers(worldCup)));
+        verify(topScorerStore, times(1)).replace(eq(2L), eq(topScorerService.getTopScorers(worldCup)));
         assertEquals(1, topScorerService.getTopScorers(worldCup).size());
     }
 
@@ -100,7 +110,7 @@ class TopScorerServiceTest {
     @DisplayName("Si no se pueden leer los guardados, se reintenta en la siguiente consulta")
     void aFailedReadOfStoredScorersIsRetried() {
         List<TopScorerDTO> stored = List.of(new TopScorerDTO("Harry Kane", "H. Kane", 6, "F", "2", "Inglaterra", ""));
-        when(topScorerStore.load(Competition.WORLD_CUP_EXTERNAL_ID))
+        when(topScorerStore.load(2L))
                 .thenThrow(new IllegalStateException("base de datos caída"))
                 .thenReturn(stored);
 
@@ -340,6 +350,102 @@ class TopScorerServiceTest {
         verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
+    private final Competition laLiga = Competition.builder().id(7L).name("LaLiga").externalId("esp.1")
+            .formatType("LEAGUE").season("2026/27").build();
+
+    private SportsDataProvider.ScoringLeaders leadersTable(int season, int mbappe, int lewandowski) throws Exception {
+        return new SportsDataProvider.ScoringLeaders(season, objectMapper.readTree("""
+                [{"value": %d, "athlete": {"id": "45843", "displayName": "Robert Lewandowski",
+                   "shortName": "R. Lewandowski", "team": {"displayName": "Barcelona"}}},
+                 {"value": %d, "athlete": {"id": "231388", "displayName": "Kylian Mbappé",
+                   "shortName": "K. Mbappé", "team": {"displayName": "Real Madrid"},
+                   "position": {"abbreviation": "F"}}},
+                 {"value": 0, "athlete": {"id": "1", "displayName": "Sin goles"}}]""".formatted(lewandowski, mbappe)));
+    }
+
+    @Test
+    @DisplayName("Los goleadores de una liga salen de la tabla del proveedor y solo se recalcula si cambia quién va en cabeza")
+    void leagueScorersComeFromTheLeadersTable() throws Exception {
+        when(sportsDataProvider.supports("esp.1")).thenReturn(true);
+        when(sportsDataProvider.fetchScoringLeaders("esp.1"))
+                .thenReturn(leadersTable(2026, 12, 9))
+                .thenReturn(leadersTable(2026, 13, 10))
+                .thenReturn(leadersTable(2026, 13, 14));
+
+        topScorerService.refresh(laLiga);
+
+        List<TopScorerDTO> scorers = topScorerService.getTopScorers(laLiga);
+        assertEquals(List.of("Kylian Mbappé", "Robert Lewandowski"), scorers.stream().map(TopScorerDTO::name).toList());
+        assertEquals(12, scorers.get(0).goals());
+        assertEquals("231388", scorers.get(0).playerId());
+        assertEquals("Real Madrid", scorers.get(0).team());
+        verify(topScorerStore).replace(eq(7L), eq(scorers));
+        verify(scoreInvalidationService, times(1)).invalidateCompetition(7L);
+        verify(sportsDataProvider, never()).fetchScoreboardEvents(anyString(), anyString());
+
+        // Más goles con el mismo líder: se guardan, pero no cambia ningún punto.
+        topScorerService.refresh(laLiga);
+        assertEquals(13, topScorerService.getTopScorers(laLiga).get(0).goals());
+        verify(scoreInvalidationService, times(1)).invalidateCompetition(7L);
+
+        // Cambia el líder: ahora sí.
+        topScorerService.refresh(laLiga);
+        assertEquals("Robert Lewandowski", topScorerService.getTopScorers(laLiga).get(0).name());
+        verify(scoreInvalidationService, times(2)).invalidateCompetition(7L);
+        verify(webSocketService, times(2)).notifyResultsChanged(List.of(7L));
+        verify(webSocketService, never()).broadcastUpdate(anyString());
+    }
+
+    @Test
+    @DisplayName("La tabla de otra temporada no vale, ni se pide la de una competición propia, archivada o de otro deporte")
+    void aLeadersTableOfAnotherSeasonIsIgnored() throws Exception {
+        when(sportsDataProvider.supports(anyString())).thenReturn(true);
+        when(sportsDataProvider.fetchScoringLeaders("esp.1")).thenReturn(leadersTable(2027, 3, 1));
+        Competition archived = Competition.builder().id(8L).name("LaLiga 25/26").externalId("esp.1")
+                .season("2025/26").archivedAt(java.time.Instant.now()).build();
+        Competition nba = Competition.builder().id(9L).name("NBA").externalId(Competition.NBA_EXTERNAL_ID).build();
+
+        topScorerService.refresh(laLiga);
+        topScorerService.refresh(archived);
+        topScorerService.refresh(nba);
+
+        assertTrue(topScorerService.getTopScorers(laLiga).isEmpty());
+        verify(sportsDataProvider, times(1)).fetchScoringLeaders(anyString());
+        verify(topScorerStore, never()).replace(anyLong(), any());
+        verifyNoInteractions(scoreInvalidationService);
+    }
+
+    @Test
+    @DisplayName("Mientras se juega un partido de una liga con pichichi, su tabla se pide en cada pasada")
+    void theLeadersTableIsRefreshedWhileItsCompetitionPlays() throws Exception {
+        Competition premier = Competition.builder().id(11L).name("Premier").externalId("eng.1").season("2026/27").build();
+        when(editionRepository.findCompetitionsWithPichichi()).thenReturn(List.of(laLiga, premier, worldCup));
+        when(sportsDataProvider.supports(anyString())).thenReturn(true);
+        when(sportsDataProvider.fetchScoringLeaders("esp.1")).thenReturn(leadersTable(2026, 12, 9));
+        when(matchRepository.existsByCompetitionIdAndMatchDateBetween(eq(7L), any(), any())).thenReturn(true);
+
+        topScorerService.refreshWhilePlaying();
+
+        verify(sportsDataProvider).fetchScoringLeaders("esp.1");
+        verify(sportsDataProvider, never()).fetchScoringLeaders("eng.1");
+        // Los goles de un torneo con grupos llegan con sus partidos.
+        verify(matchRepository, never()).existsByCompetitionIdAndMatchDateBetween(eq(2L), any(), any());
+        verify(sportsDataProvider, never()).fetchScoreboardEvents(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("La pasada de cada media hora incluye las ligas en las que se juega el pichichi")
+    void theScheduledRefreshIncludesLeaguesWithPichichi() throws Exception {
+        when(competitionRepository.findByExternalIdIn(any())).thenReturn(List.of());
+        when(editionRepository.findCompetitionsWithPichichi()).thenReturn(List.of(laLiga));
+        when(sportsDataProvider.supports("esp.1")).thenReturn(true);
+        when(sportsDataProvider.fetchScoringLeaders("esp.1")).thenReturn(leadersTable(2026, 12, 9));
+
+        topScorerService.scheduledRefresh();
+
+        assertEquals(2, topScorerService.getTopScorers(laLiga).size());
+    }
+
     @Configuration
     static class TestContextConfig {
         @Bean
@@ -380,6 +486,16 @@ class TopScorerServiceTest {
         @Bean
         public CompetitionRepository competitionRepository() {
             return mock(CompetitionRepository.class);
+        }
+
+        @Bean
+        public EditionRepository editionRepository() {
+            return mock(EditionRepository.class);
+        }
+
+        @Bean
+        public MatchRepository matchRepository() {
+            return mock(MatchRepository.class);
         }
     }
 }

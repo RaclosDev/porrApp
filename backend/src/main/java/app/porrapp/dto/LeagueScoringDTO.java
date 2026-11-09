@@ -44,7 +44,7 @@ public record LeagueScoringDTO(
         boolean tennis = app.porrapp.model.Sport.isTennis(edition.getCompetition());
         return new LeagueScoringDTO(
                 edition.getPoolFormat() != null ? edition.getPoolFormat().name() : null,
-                edition.isPichichi(),
+                edition.scoresPichichi(),
                 editable,
                 ScoringRuleSet.MAX_POINTS,
                 ScoringRuleSet.forEdition(edition),

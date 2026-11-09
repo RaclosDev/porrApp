@@ -357,7 +357,8 @@ const NBA_EXACT: ScoringSection = {
 
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
- * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
+ * grupos, así que sus reglas de grupo no se muestran. Una liga de fútbol por jornadas puede jugar
+ * también el pichichi. En unas eliminatorias sorteadas ronda a ronda
  * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi. Sin empate
  * (`winnerOnly`: NFL, NBA, competiciones propias) cada partido puntúa solo el ganador, y lo del empate de
  * la NFL solo se cuenta en la NFL. De un torneo con grupos (`tournament`) solo salen las rondas que
@@ -379,7 +380,7 @@ export function scoringSections(
   if (format === 'MATCH_DAY' && fights) return [FIGHTS];
   if (format === 'MATCH_DAY' && winnerOnly)
     return [sport === 'AMERICAN_FOOTBALL' ? NFL_MATCHDAY : WINNER_MATCHDAY];
-  if (format === 'MATCH_DAY') return [MATCHDAY];
+  if (format === 'MATCH_DAY') return pichichi ? [MATCHDAY, TOP_SCORER] : [MATCHDAY];
   if (format === 'SURVIVOR' && sport === 'LEAGUE_OF_LEGENDS') return [SURVIVOR_NO_DRAWS];
   if (format === 'SURVIVOR' && sport === 'AMERICAN_FOOTBALL') return [SURVIVOR_WEEKS];
   if (format === 'SURVIVOR') return [SURVIVOR];

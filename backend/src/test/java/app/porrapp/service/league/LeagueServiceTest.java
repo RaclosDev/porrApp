@@ -219,8 +219,8 @@ class LeagueServiceTest {
     }
 
     @Test
-    @DisplayName("Solo el cuadro del Mundial guarda el pichichi")
-    void createGroup_KeepsPichichiOnlyForTheWorldCupBracket() {
+    @DisplayName("El pichichi se guarda en el cuadro del Mundial y, si se pide, en cualquier liga de fútbol por jornadas")
+    void createGroup_KeepsPichichiWhereItCanBePlayed() {
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
         when(leagueRepository.save(any(League.class))).thenReturn(league);
         when(competitionRepository.findById(5L)).thenReturn(Optional.of(Competition.builder().id(5L)
@@ -234,11 +234,21 @@ class LeagueServiceTest {
                 app.porrapp.model.PoolFormat.MATCH_DAY).withPichichi(true));
         leagueService.createLeague(NewLeague.of("Mundial", "admin@test.com", 2L,
                 app.porrapp.model.PoolFormat.FULL_BRACKET).withPichichi(true));
+        // Sin pedirlo, solo el cuadro del torneo con grupos: como antes de abrirlo a las demás.
+        leagueService.createLeague(NewLeague.of("Champions sin pedirlo", "admin@test.com", 5L,
+                app.porrapp.model.PoolFormat.MATCH_DAY));
+        leagueService.createLeague(NewLeague.of("Mundial sin pedirlo", "admin@test.com", 2L,
+                app.porrapp.model.PoolFormat.FULL_BRACKET));
+        // En superviviente no se juega a puntos, ni se le pregunta a quien no lo quiere.
+        leagueService.createLeague(NewLeague.of("Superviviente", "admin@test.com", 5L,
+                app.porrapp.model.PoolFormat.SURVIVOR).withPichichi(true));
+        leagueService.createLeague(NewLeague.of("Mundial sin pichichi", "admin@test.com", 2L,
+                app.porrapp.model.PoolFormat.FULL_BRACKET).withPichichi(false));
 
         org.mockito.ArgumentCaptor<app.porrapp.model.Edition> saved =
                 org.mockito.ArgumentCaptor.forClass(app.porrapp.model.Edition.class);
-        verify(editionRepository, org.mockito.Mockito.times(3)).save(saved.capture());
-        assertEquals(java.util.List.of(false, false, true),
+        verify(editionRepository, org.mockito.Mockito.times(7)).save(saved.capture());
+        assertEquals(java.util.List.of(true, true, true, false, true, false, false),
                 saved.getAllValues().stream().map(app.porrapp.model.Edition::isPichichi).toList());
     }
 

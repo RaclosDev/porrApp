@@ -67,6 +67,12 @@ class LeaderboardServiceTest {
     @Mock
     private EditionRepository editionRepository;
 
+    @Mock
+    private app.porrapp.repository.ScorerPickRepository scorerPickRepository;
+
+    @Mock
+    private app.porrapp.service.league.LeagueClosure leagueClosure;
+
     @Spy
     private DefaultScoringStrategy scoringStrategy = new DefaultScoringStrategy();
 

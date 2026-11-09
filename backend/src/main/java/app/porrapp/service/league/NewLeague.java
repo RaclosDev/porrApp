@@ -8,7 +8,8 @@ import app.porrapp.model.Sport;
  * personalizada ({@code customCompetitionName}).
  *
  * @param customSport  deporte de la competición personalizada; null si no se indica o no es personalizada
- * @param pichichi     si la liga puntúa al máximo goleador; sin indicarlo, sí (las personalizadas nunca)
+ * @param pichichi     si la liga puntúa al máximo goleador; sin indicarlo, solo en el cuadro de un torneo con
+ *                     grupos (las personalizadas nunca)
  * @param creationKey  clave de idempotencia: repetir la creación con la misma devuelve la misma liga
  */
 public record NewLeague(String name, String adminEmail, Long competitionId, PoolFormat poolFormat,
