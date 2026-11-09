@@ -312,6 +312,37 @@ describe('matchday editing and navigation', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Finalizados 1' }));
     expect(screen.getByText('Jugado')).toBeInTheDocument();
   });
+
+  it('en una jornada terminada cada pestaña cuenta los partidos que lista', async () => {
+    vi.mocked(api.fetchMatchdayFixtures).mockResolvedValue(
+      Array.from({ length: 9 }, (_, index) => ({
+        ...fixture(index + 1, 'Jornada 1', `Local ${index + 1}`),
+        finished: true,
+        locked: true,
+      })),
+    );
+    render(tree());
+
+    // La pestaña abierta es la de los nueve terminados, no una vacía con un 0.
+    expect(await screen.findByRole('tab', { name: 'Finalizados 9' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getAllByText(/^Local \d$/)).toHaveLength(9);
+    expect(screen.queryByRole('tab', { name: /Todos/ })).not.toBeInTheDocument();
+
+    // Las otras dos dicen 0 y, al abrirlas, no listan ninguno.
+    const empties = [
+      ['Por jugar 0', 'No queda nada por jugar.'],
+      ['Pendientes 0', 'No tienes predicciones pendientes.'],
+    ];
+    for (const [tab, message] of empties) {
+      fireEvent.click(screen.getByRole('tab', { name: tab }));
+      expect(screen.getByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.queryByText(/^Local \d$/)).not.toBeInTheDocument();
+      expect(screen.getByText(message)).toBeInTheDocument();
+    }
+  });
 });
 
 describe('opening a league from a reminder link', () => {

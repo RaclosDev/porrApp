@@ -394,6 +394,23 @@
   margin-left: 4px;
 }
 
+/* Puntos que da la casilla en el visor: «+2» en verde, «0» en rojo. */
+.team-slot-points {
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(46, 204, 113, 0.1);
+  color: var(--hit);
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.team-slot-points.is-zero {
+  background: rgba(231, 76, 60, 0.1);
+  color: var(--miss);
+}
+
 .team-slot-score {
   flex-shrink: 0;
   min-width: 1.5em;
@@ -417,6 +434,34 @@
 .mb-match-next .team-slot-status,
 .bracket-tree-match .team-slot-status {
   display: none;
+}
+
+/*
+ * En el árbol de escritorio el nombre manda: la columna es estrecha, así que lo que acompaña a la
+ * casilla (puntos, sello) va de pegatina en la esquina de abajo, donde no pisa ni el nombre ni los
+ * puntos de la ronda, sin quitarle ancho.
+ */
+.bracket-tree-match .team-slot {
+  position: relative;
+  gap: 0;
+}
+
+.bracket-tree-match .team-slot-points,
+.bracket-tree-match .team-slot-sticker {
+  position: absolute;
+  bottom: -7px;
+  right: 5px;
+  z-index: 1;
+  margin: 0;
+  background: #fffdf7;
+}
+
+.bracket-tree-match .team-slot-points {
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  line-height: 1.35;
 }
 
 .pick-legend {
@@ -461,8 +506,9 @@
     inset 0 0 0 999px color-mix(in srgb, var(--miss) 8%, transparent);
 }
 
-/* En móvil el nombre puede ocupar dos líneas para no quedarse en «Invictus G…» junto a los sellos. */
-.mb-match-card .team-slot .team-slot-name {
+/* El nombre puede ocupar dos líneas para no quedarse en «Invictus G…» o «Ale…». */
+.mb-match-card .team-slot .team-slot-name,
+.bracket-tree-match .team-slot .team-slot-name {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;

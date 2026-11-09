@@ -24,7 +24,7 @@ public record TournamentFormatDTO(List<String> groups, int bestThirds, boolean t
                 key(format.firstRound()), format.firstKnockoutRound());
     }
 
-    private static String key(KnockoutRound round) {
+    static String key(KnockoutRound round) {
         return switch (round) {
             case ROUND_OF_32 -> "r32";
             case ROUND_OF_16 -> "r16";

@@ -133,6 +133,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } catch {
           /* ignore */
         }
+        if (!isCancelled) useAppStore.getState().setProfileChecked(true);
 
         const myGroups = await fetchMyGroups();
         if (

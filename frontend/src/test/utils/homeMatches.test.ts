@@ -41,6 +41,20 @@ describe('hasShownScore', () => {
 });
 
 describe('upcomingMatches', () => {
+  it('does not show last season results while the next playoffs have not started', () => {
+    const finals = game({
+      id: 1,
+      home: 'Thunder',
+      away: 'Knicks',
+      date: '2026-06-14T00:00:00Z',
+      status: 'FINISHED',
+      finished: true,
+    });
+    expect(upcomingMatches([finals], 6, NOW)).toEqual({ finished: true, matches: [] });
+    const recent = { ...finals, id: 2, date: '2026-10-30T00:00:00Z' };
+    expect(upcomingMatches([finals, recent], 6, NOW).matches).toEqual([recent]);
+  });
+
   it('never lists past matches as upcoming nor placeholders as matches', () => {
     const { finished, matches } = upcomingMatches(
       [

@@ -25,9 +25,7 @@ export default function ViewerSlot({ name, details, featured }: ViewerSlotProps)
   }
   const rightContent =
     slotPoints !== null ? (
-      <span
-        className={`ml-1 text-[0.85em] font-bold py-0.5 px-1 rounded-[4px] ${slotPoints === '0' ? 'text-[var(--miss)]' : 'text-[var(--hit)]'} ${slotPoints === '0' ? 'bg-[rgba(231,76,60,0.1)] bg-none' : 'bg-[rgba(46,204,113,0.1)] bg-none'}`}
-      >
+      <span className={`team-slot-points${slotPoints === '0' ? ' is-zero' : ''}`}>
         {slotPoints}
       </span>
     ) : null;

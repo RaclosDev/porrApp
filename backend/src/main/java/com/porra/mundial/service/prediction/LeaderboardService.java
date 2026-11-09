@@ -121,7 +121,7 @@ public class LeaderboardService {
             }
         }
 
-        addLeagueMembersWithoutPredictions(groupId, leaderboard);
+        addLeagueMembersWithoutPredictions(groupId, leaderboard, membershipPayment);
         leaderboard.sort(LEADERBOARD_ORDER);
         return leaderboard;
     }
@@ -205,7 +205,8 @@ public class LeaderboardService {
         return !Boolean.TRUE.equals(pred.getPaid());
     }
 
-    private void addLeagueMembersWithoutPredictions(Long groupId, List<ParticipantScoreDTO> leaderboard) {
+    private void addLeagueMembersWithoutPredictions(Long groupId, List<ParticipantScoreDTO> leaderboard,
+            Map<Long, String> membershipPayment) {
         if (groupId == null) return;
         // Superviviente: quien no ha elegido nunca también cae en cuanto se le pasa una jornada.
         Edition survivorEdition = editionRepository.findByLeagueIdAndStatus(groupId, "ACTIVE")
@@ -230,7 +231,9 @@ public class LeaderboardService {
                     .name(com.porra.mundial.util.TextSanitizer.fixParticipantName(user.getParticipantName()))
                     .avatarUrl(user.getAvatarUrl())
                     .predictionName("")
-                    .pending(false)
+                    // Mismo criterio que en Administrar: con cuota, quien no ha pagado sale pendiente.
+                    .pending(membershipPayment != null
+                            && !"PAID".equalsIgnoreCase(membership.getPaymentStatus()))
                     .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
                     .eliminated(survivorEdition != null
                             && survivors.standing(survivorEdition, user.getId(), null, List.of()).eliminated())

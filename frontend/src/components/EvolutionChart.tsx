@@ -19,6 +19,7 @@ export default function EvolutionChart({
   userName,
   allGames,
   groupId,
+  tournament,
 }: EvolutionChartProps) {
   const [mode, setMode] = useState<'rank' | 'points'>('rank');
   const [timeScale, setTimeScale] = useState<TimeScale>('rounds');
@@ -90,8 +91,8 @@ export default function EvolutionChart({
   };
 
   const activeStages = useMemo(
-    () => buildStages(timeScale, validResults, allGames),
-    [timeScale, allGames, validResults],
+    () => buildStages(timeScale, validResults, allGames, tournament ?? undefined),
+    [timeScale, allGames, validResults, tournament],
   );
 
   const evolutionData = useMemo(

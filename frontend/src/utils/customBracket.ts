@@ -27,6 +27,20 @@ export function pairWinners(pairs: CustomPair[], picks: string[]): string[] | nu
   return winners;
 }
 
+/** Lo que se lee donde iría el rival de un equipo que no juega la ronda. */
+export const BYE_LABEL = 'Pasa directo';
+
+/**
+ * Texto del hueco que espera al ganador de un cruce anterior. Nombra la ronda de la que viene
+ * cuando es reconocible ("Ganador semifinal 1"); en rondas más tempranas, el número del cruce.
+ */
+export function winnerPlaceholder(matchNumber: number, previousMatches: number): string {
+  if (previousMatches === 2) return `Ganador semifinal ${matchNumber}`;
+  if (previousMatches === 3 || previousMatches === 4) return `Ganador cuartos ${matchNumber}`;
+  if (previousMatches > 4 && previousMatches <= 8) return `Ganador octavos ${matchNumber}`;
+  return `Ganador C${matchNumber}`;
+}
+
 export function getCustomRoundTitle(roundIndex: number, totalRounds: number): string {
   const distance = totalRounds - 1 - roundIndex;
   switch (distance) {
@@ -83,9 +97,15 @@ export function computeCustomBracketRounds(
       // Con un número impar de cruces, el último de la ronda siguiente no tiene rival.
       const isBye =
         a === null && (roundIndex === 0 ? firstRound[m]?.[1] === null : m * 2 + 1 >= previousCount);
-      const homePlaceholder = h || (roundIndex === 0 ? 'Equipo' : `Ganador C${m * 2 + 1}`);
+      const homePlaceholder =
+        h || (roundIndex === 0 ? 'Equipo' : winnerPlaceholder(m * 2 + 1, previousCount));
       const awayPlaceholder =
-        a || (isBye ? 'Descanso' : roundIndex === 0 ? 'Equipo' : `Ganador C${m * 2 + 2}`);
+        a ||
+        (isBye
+          ? BYE_LABEL
+          : roundIndex === 0
+            ? 'Equipo'
+            : winnerPlaceholder(m * 2 + 2, previousCount));
 
       matches.push({
         home: h,
@@ -253,7 +273,7 @@ export function computeCustomResultRounds(matches: Match[]): CustomResultRound[]
         home: match.home,
         away: match.away_team_id ? match.away : null,
         homePlaceholder: match.home,
-        awayPlaceholder: match.away_team_id ? match.away : 'Descanso',
+        awayPlaceholder: match.away_team_id ? match.away : BYE_LABEL,
         isBye: !match.away_team_id,
       }));
       previousWinners = created.map(customMatchWinner);
@@ -267,8 +287,10 @@ export function computeCustomResultRounds(matches: Match[]): CustomResultRound[]
           match: null,
           home,
           away,
-          homePlaceholder: home ?? `Ganador C${slot * 2 + 1}`,
-          awayPlaceholder: isBye ? 'Descanso' : (away ?? `Ganador C${slot * 2 + 2}`),
+          homePlaceholder: home ?? winnerPlaceholder(slot * 2 + 1, previousWinners.length),
+          awayPlaceholder: isBye
+            ? BYE_LABEL
+            : (away ?? winnerPlaceholder(slot * 2 + 2, previousWinners.length)),
           isBye,
         });
       }

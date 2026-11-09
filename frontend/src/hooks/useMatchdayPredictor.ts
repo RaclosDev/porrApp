@@ -77,7 +77,9 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
   const queryClient = useQueryClient();
 
   const [selectedRound, setSelectedRound] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('UPCOMING');
+  const [statusFilter, setStatusFilterState] = useState<StatusFilter>('UPCOMING');
+  // Jornada en la que se pulsó «Por jugar» a mano: ahí se respeta aunque esté vacía.
+  const [upcomingPickedRound, setUpcomingPickedRound] = useState<string | null>(null);
   const [selectedMatchForFriends, setSelectedMatchForFriends] = useState<MatchdayFixture | null>(
     null,
   );
@@ -320,11 +322,20 @@ export function useMatchdayPredictor(context: ReturnType<typeof useAppContext>) 
     [roundFixtures, localPredictions, activeGroupIsLocked, survivorPicked],
   );
 
-  // En una jornada ya jugada, «Por jugar» estaría vacío: se muestran los finalizados.
+  // En una jornada ya jugada, «Por jugar» estaría vacío: se abre en los finalizados. Si se pulsa esa
+  // pestaña a mano, se enseña lo que cuenta: ninguno.
   const activeFilter: StatusFilter =
-    statusFilter === 'UPCOMING' && counts.upcoming === 0 && counts.finished > 0
+    statusFilter === 'UPCOMING' &&
+    counts.upcoming === 0 &&
+    counts.finished > 0 &&
+    upcomingPickedRound !== activeRound
       ? 'FINISHED'
       : statusFilter;
+
+  const setStatusFilter = (filter: StatusFilter) => {
+    setStatusFilterState(filter);
+    setUpcomingPickedRound(filter === 'UPCOMING' ? activeRound : null);
+  };
 
   const displayedFixtures = useMemo(
     () =>

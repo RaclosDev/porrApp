@@ -1,4 +1,4 @@
-import type { TournamentFormat } from '../types/api';
+import type { TournamentFormat, TournamentRounds } from '../types/api';
 import { legacyR32Order, type TopologyVersion } from './bracketTopology';
 
 /**
@@ -52,8 +52,13 @@ const ROUND_LABELS: Record<BracketRound, string> = {
 };
 
 /** Rondas que juega el torneo, desde la primera de su cuadro. */
-export const roundsOf = (format: TournamentFormat): BracketRound[] =>
+export const roundsOf = (format: Pick<TournamentRounds, 'firstRound'>): BracketRound[] =>
   BRACKET_ROUNDS.slice(Math.max(0, BRACKET_ROUNDS.indexOf(format.firstRound)));
+
+/** El torneo juega esa ronda: una que no es del cuadro (grupos, finales, total) la juegan todos. */
+export const playsRound = (format: Pick<TournamentRounds, 'firstRound'>, round: string): boolean =>
+  !BRACKET_ROUNDS.includes(round as BracketRound) ||
+  roundsOf(format).includes(round as BracketRound);
 
 /** Títulos de las rondas del torneo, para las columnas de su cuadro. */
 export const roundLabelsOf = (format: TournamentFormat): string[] =>

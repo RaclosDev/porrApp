@@ -586,6 +586,11 @@
       padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
+    /* Lo que se enfoca o se trae a la vista (teclado, anclas) tampoco se queda tras la barra. */
+    html:has(.has-mobile-bottom-nav) {
+      scroll-padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    }
+
     .mobile-bottom-nav .mobile-nav-item:active {
       transform: scale(0.92);
     }
