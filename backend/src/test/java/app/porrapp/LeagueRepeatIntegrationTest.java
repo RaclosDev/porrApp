@@ -285,6 +285,26 @@ class LeagueRepeatIntegrationTest {
         assertThat(leagues.findById(repeated.getId()).orElseThrow().getPreviousLeagueId()).isNull();
     }
 
+    @Test
+    @DisplayName("Una liga anterior a los valores generales se repite con las reglas con las que se jugó")
+    void repeatsWithTheRulesOfAnOlderLeague() {
+        League old = leagueSetupService.create(official("Los de antes"), LeagueSetup.NONE);
+        Edition played = editions.findByLeagueIdAndStatus(old.getId(), "ACTIVE").orElseThrow();
+        // Como quedó guardada entonces: sin reglas propias, puntuaba con las del Mundial.
+        played.setScoringRulesJson(null);
+        editions.save(played);
+        newSeason();
+
+        League repeated = leagueRepeatService.repeat(old.getId(), admin.getGoogleEmail());
+
+        Edition edition = editions.findByLeagueIdAndStatus(repeated.getId(), "ACTIVE").orElseThrow();
+        assertThat(ScoringRuleSet.forEdition(edition)).isEqualTo(ScoringRuleSet.forEdition(played));
+        assertThat(ScoringRuleSet.forEdition(edition).getChampionPoints()).isEqualTo(200);
+        assertThat(edition.getScoringRulesJson()).contains("\"championPoints\":200");
+        // La vieja sigue como estaba.
+        assertThat(editions.findById(played.getId()).orElseThrow().getScoringRulesJson()).isNull();
+    }
+
     private NewLeague official(String name) {
         return new NewLeague(name, admin.getGoogleEmail(), played.getId(), PoolFormat.MATCH_DAY, false, null, null);
     }

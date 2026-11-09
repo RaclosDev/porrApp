@@ -1,4 +1,5 @@
 import type {
+  LeagueScoring,
   PoolFormat,
   ScoringRuleKey,
   ScoringRules,
@@ -6,6 +7,7 @@ import type {
   TournamentRounds,
 } from '../types/api';
 import { WORLD_CUP_2026_FORMAT, roundsOf, type BracketRound } from './firstKnockoutRound';
+import { allowsDraw } from './matchday';
 
 interface ScoringField {
   key: ScoringRuleKey;
@@ -402,22 +404,40 @@ export function scoringSections(
   return pichichi ? [...sections, TOP_SCORER] : sections;
 }
 
+/** Reglas que cuentan en una liga, según su formato, su deporte y las rondas de su torneo. */
+export const leagueScoringSections = (scoring: LeagueScoring): ScoringSection[] =>
+  scoringSections(
+    scoring.poolFormat,
+    scoring.pichichi,
+    scoring.knockoutDraw,
+    scoring.nbaSeries,
+    !allowsDraw(scoring.sport),
+    scoring.sport ?? null,
+    scoring.fights,
+    scoring.tournamentRounds ?? undefined,
+  );
+
+/** Sus claves: las demás reglas son de otros deportes o formatos, y en esta liga ni se ven ni se tocan. */
+export const applicableRuleKeys = (scoring: LeagueScoring): ScoringRuleKey[] =>
+  leagueScoringSections(scoring).flatMap((section) => section.fields.map((field) => field.key));
+
 /**
  * Puntuación con la que nace una liga y máximo por regla: los mismos valores que
- * `ScoringRuleSet` en el servidor. Sirven para configurarla antes de que la liga exista.
+ * `ScoringRuleSet` en el servidor. Sirven para configurarla antes de que la liga exista. Son generales,
+ * no los de un torneo: en un cuadro cada ronda vale más que la anterior y el campeón es lo que más vale.
  */
 export const DEFAULT_SCORING_RULES: ScoringRules = {
-  groupQualifierPoints: 10,
-  groupExactPositionPoints: 10,
-  roundOf32Points: 25,
-  roundOf16Points: 30,
-  quarterFinalPoints: 40,
-  semiFinalPoints: 60,
-  championPoints: 200,
-  runnerUpPoints: 150,
-  thirdPlacePoints: 100,
-  fourthPlacePoints: 75,
-  topScorerPoints: 200,
+  groupQualifierPoints: 5,
+  groupExactPositionPoints: 5,
+  roundOf32Points: 10,
+  roundOf16Points: 15,
+  quarterFinalPoints: 20,
+  semiFinalPoints: 30,
+  championPoints: 50,
+  runnerUpPoints: 30,
+  thirdPlacePoints: 20,
+  fourthPlacePoints: 10,
+  topScorerPoints: 30,
   exactScorePoints: 5,
   correctSignPoints: 3,
   goalDiffBonusPoints: 1,

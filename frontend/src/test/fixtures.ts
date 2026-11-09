@@ -38,19 +38,19 @@ export const standing = (fields: Partial<TeamStanding>): TeamStanding => ({
   ...fields,
 });
 
-/** Reglas por defecto del backend (`ScoringRuleSet.defaultWorldCup2026`). */
+/** Reglas por defecto del backend (`ScoringRuleSet.defaults`). */
 export const DEFAULT_SCORING: ScoringRules = {
-  groupQualifierPoints: 10,
-  groupExactPositionPoints: 10,
-  roundOf32Points: 25,
-  roundOf16Points: 30,
-  quarterFinalPoints: 40,
-  semiFinalPoints: 60,
-  championPoints: 200,
-  runnerUpPoints: 150,
-  thirdPlacePoints: 100,
-  fourthPlacePoints: 75,
-  topScorerPoints: 200,
+  groupQualifierPoints: 5,
+  groupExactPositionPoints: 5,
+  roundOf32Points: 10,
+  roundOf16Points: 15,
+  quarterFinalPoints: 20,
+  semiFinalPoints: 30,
+  championPoints: 50,
+  runnerUpPoints: 30,
+  thirdPlacePoints: 20,
+  fourthPlacePoints: 10,
+  topScorerPoints: 30,
   exactScorePoints: 5,
   correctSignPoints: 3,
   goalDiffBonusPoints: 1,

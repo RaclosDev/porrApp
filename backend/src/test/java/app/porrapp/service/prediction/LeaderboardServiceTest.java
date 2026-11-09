@@ -419,7 +419,7 @@ class LeaderboardServiceTest {
     }
 
     @Test
-    @DisplayName("Cada porra puntúa con las reglas de su edición, y sin reglas guardadas con las de por defecto")
+    @DisplayName("Cada porra puntúa con las reglas de su edición, y una anterior sin reglas guardadas con las que tenía")
     void getLeaderboard_ScoresEachEditionWithItsOwnRules() {
         Edition defaults = Edition.builder().id(1L).pichichi(false).build();
         Edition storedDefaults = Edition.builder().id(2L).pichichi(false)
@@ -437,8 +437,9 @@ class LeaderboardServiceTest {
 
         assertEquals(List.of(300L, 100L, 200L), leaderboard.stream().map(ParticipantScoreDTO::getId).toList());
         assertEquals(500, leaderboard.get(0).getFinals());
+        // La liga anterior conserva los 200 del campeón; la nueva nace con los 50 generales.
         assertEquals(200, leaderboard.get(1).getFinals());
-        assertEquals(200, leaderboard.get(2).getFinals());
+        assertEquals(50, leaderboard.get(2).getFinals());
         org.mockito.Mockito.verify(predictionRepository).saveCalculatedScore(org.mockito.ArgumentMatchers.eq(300L),
                 org.mockito.ArgumentMatchers.eq(500), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),

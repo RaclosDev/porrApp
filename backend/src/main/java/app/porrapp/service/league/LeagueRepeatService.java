@@ -126,8 +126,8 @@ public class LeagueRepeatService {
         // en los dos casos la liga nueva se queda con el cierre que le toca por defecto.
         boolean keepsLock = lockMode != null && lockMode != PredictionLockMode.FIXED_DATE
                 && !PoolFormat.isRaceBased(edition.getPoolFormat());
-        ScoringRuleSet scoring = edition.getScoringRulesJson() == null ? null
-                : ScoringRuleSet.fromJson(edition.getScoringRulesJson());
+        // Siempre las de la liga vieja, aunque no las tuviera guardadas: no las de por defecto de hoy.
+        ScoringRuleSet scoring = ScoringRuleSet.forEdition(edition);
         return new LeagueSetup(old.getRules(), old.isEntryFee() ? Boolean.TRUE : null, scoring,
                 keepsLock ? lockMode : null, keepsLock ? edition.getLockOffsetMinutes() : null, null,
                 matchSelection(edition, next));

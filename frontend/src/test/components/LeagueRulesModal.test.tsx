@@ -34,8 +34,8 @@ describe('LeagueRulesModal', () => {
       'aria-selected',
       'true',
     );
-    expect(pointsOf('Dieciseisavos')).toContain('25');
-    expect(pointsOf('Campeón')).toContain('200');
+    expect(pointsOf('Dieciseisavos')).toContain('10');
+    expect(pointsOf('Campeón')).toContain('50');
     expect(screen.getByText('Pichichi')).toBeInTheDocument();
     expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
     expect(screen.queryByText('Cuota de 10 €')).not.toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('LeagueRulesModal', () => {
     setup({ id: 7, name: 'Eurocopa' });
 
     expect(await screen.findByText('Octavos')).toBeInTheDocument();
-    expect(pointsOf('Octavos')).toContain('30');
+    expect(pointsOf('Octavos')).toContain('15');
     expect(screen.queryByText('Dieciseisavos')).not.toBeInTheDocument();
     expect(screen.queryByText('Tercer puesto')).not.toBeInTheDocument();
     expect(screen.getByText('Campeón')).toBeInTheDocument();
