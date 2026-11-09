@@ -114,10 +114,34 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         JsonNode root = executeGet(url);
         if (root == null) return objectMapper.createArrayNode();
 
-        JsonNode teamsArray = root.path("sports").path(0).path("leagues").path(0).path("teams");
+        JsonNode teamsArray = teamsOf(root);
         if (!teamsArray.isArray()) return objectMapper.createArrayNode();
         if (NflSchedule.isNfl(slug)) NflSchedule.namespaceTeamIds(teamsArray);
+        else addSpanishNames(teamsArray, teamsOf(executeGet(url + "?lang=es")));
         return teamsArray;
+    }
+
+    private static JsonNode teamsOf(JsonNode root) {
+        return root.path("sports").path(0).path("leagues").path(0).path("teams");
+    }
+
+    /**
+     * El catálogo se pide en inglés, que es como llegan los equipos en los partidos, y otra vez en español:
+     * ESPN ya traduce selecciones y clubes, y ese es el nombre con el que nace un equipo nuevo.
+     */
+    private static void addSpanishNames(JsonNode teams, JsonNode spanishTeams) {
+        Map<String, String> spanish = new java.util.HashMap<>();
+        for (JsonNode item : spanishTeams) {
+            JsonNode team = item.path("team");
+            String name = team.path("displayName").asText("");
+            if (!name.isBlank()) spanish.put(team.path("id").asText(), name);
+        }
+        for (JsonNode item : teams) {
+            String name = spanish.get(item.path("team").path("id").asText());
+            if (name != null && item.path("team") instanceof tools.jackson.databind.node.ObjectNode team) {
+                team.put(LOCAL_NAME_FIELD, name);
+            }
+        }
     }
 
     @Override
