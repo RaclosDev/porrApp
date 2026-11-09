@@ -12,6 +12,7 @@ import {
   lockModesFor,
   pichichiApplies,
   scoringEditable,
+  selectedCompetition,
 } from './leagueDraft';
 import { FieldError, OptionCard, StepSection } from './parts';
 import type { StepProps } from './useLeagueDraft';
@@ -124,6 +125,7 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
     fights: isFightNights(draft, ctx),
     nbaSeries: isNbaDraft(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
     sport: draft.sport === 'OTHER' ? null : draft.sport,
+    tournamentRounds: selectedCompetition(draft, ctx)?.tournamentRounds,
     editable: draft.customScoring,
     maxPoints: SCORING_MAX_POINTS,
     rules: defaults,
