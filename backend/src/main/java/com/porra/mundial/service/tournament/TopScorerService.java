@@ -22,7 +22,10 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.Comparator;
 
-/** Goleadores del Mundial a partir de los partidos de ESPN; se refresca cada 30 min y al terminar un partido. */
+/**
+ * Goleadores del Mundial a partir de los partidos de ESPN; se refresca cada 30 min y al terminar un partido.
+ * Con el torneo ya cerrado se cargan una vez al arrancar y no se vuelven a pedir.
+ */
 @Service
 @Slf4j
 public class TopScorerService {
@@ -32,18 +35,21 @@ public class TopScorerService {
     private final HttpClient httpClient;
     private final SportsDataProvider sportsDataProvider;
     private final ScoreInvalidationService scoreInvalidationService;
+    private final KnockoutBracketService knockoutBracketService;
 
     public TopScorerService(
             ObjectMapper objectMapper,
             WebSocketService webSocketService,
             HttpClient httpClient,
             @Qualifier("espnSportsDataProvider") SportsDataProvider sportsDataProvider,
-            ScoreInvalidationService scoreInvalidationService) {
+            ScoreInvalidationService scoreInvalidationService,
+            KnockoutBracketService knockoutBracketService) {
         this.objectMapper = objectMapper;
         this.webSocketService = webSocketService;
         this.httpClient = httpClient;
         this.sportsDataProvider = sportsDataProvider;
         this.scoreInvalidationService = scoreInvalidationService;
+        this.knockoutBracketService = knockoutBracketService;
     }
 
 
@@ -67,6 +73,8 @@ public class TopScorerService {
     @Scheduled(initialDelay = 5_000, fixedDelay = 1_800_000)
     @SchedulerLock(name = "topScorers", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     public void scheduledRefresh() {
+        // Con el torneo cerrado los goleadores ya no cambian: basta con tenerlos cargados una vez tras arrancar.
+        if (!cachedScorers.get().isEmpty() && knockoutBracketService.worldCupIsOver()) return;
         refresh();
     }
 

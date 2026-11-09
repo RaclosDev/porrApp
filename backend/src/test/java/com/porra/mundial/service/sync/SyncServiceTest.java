@@ -122,6 +122,17 @@ class SyncServiceTest {
     }
 
     @Test
+    void fullSyncDoesNotAskForAWorldCupThatIsOver() throws Exception {
+        when(knockoutBracketService.worldCupIsOver()).thenReturn(true);
+
+        syncService.syncAll();
+
+        verify(provider, never()).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
+        verify(knockoutBracketService, never()).worldCupMatches();
+        assertEquals(SyncService.STATUS_SUCCESS, syncService.getLastSyncStatus());
+    }
+
+    @Test
     void liveSyncDoesNothingWithoutMatchesInPlay() {
         when(matchRepository.findCompetitionIdsWithOpenMatchesBetween(any(), any())).thenReturn(List.of());
 

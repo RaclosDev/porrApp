@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +43,33 @@ class KnockoutBracketServiceTest {
     private Team brazil;
     private Team argentina;
     private Team placeholder;
+
+    @Test
+    void worldCupIsOverOnceEveryMatchIsFinishedAndTheLastOneIsOld() {
+        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(2L));
+        when(matchRepository.countByCompetitionId(2L)).thenReturn(104L);
+        when(matchRepository.countOpenOrStartingSince(eq(2L), any(Instant.class))).thenReturn(0L);
+
+        assertTrue(service.worldCupIsOver());
+    }
+
+    @Test
+    void worldCupIsNotOverWithAnOpenOrRecentMatch() {
+        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(2L));
+        when(matchRepository.countByCompetitionId(2L)).thenReturn(104L);
+        when(matchRepository.countOpenOrStartingSince(eq(2L), any(Instant.class))).thenReturn(1L);
+
+        assertFalse(service.worldCupIsOver());
+    }
+
+    @Test
+    void worldCupIsNotOverBeforeItsMatchesAreImported() {
+        when(competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(Optional.of(2L));
+        when(matchRepository.countByCompetitionId(2L)).thenReturn(0L);
+
+        assertFalse(service.worldCupIsOver());
+        verify(matchRepository, never()).countOpenOrStartingSince(anyLong(), any(Instant.class));
+    }
 
     @BeforeEach
     void setUp() {
