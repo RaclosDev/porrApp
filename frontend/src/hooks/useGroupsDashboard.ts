@@ -6,6 +6,7 @@ import {
   leaveGroup,
   updateGroup,
   deleteGroup,
+  repeatGroup,
   uploadGroupImage,
   deleteGroupImage,
 } from '../services/api';
@@ -198,6 +199,31 @@ export function useGroupsDashboard() {
     }
   };
 
+  /** Crea la liga de la temporada nueva con los mismos miembros y ajustes, y la deja como activa. */
+  const handleRepeatGroup = async (group: Group) => {
+    if (
+      !(await confirmAction({
+        title: `¿Repetir «${group.name}»?`,
+        message: `Se creará otra liga para la temporada ${group.nextSeason ?? 'nueva'} con los mismos miembros y ajustes. Los puntos empiezan de cero y esta se queda con su clasificación final.`,
+        confirmLabel: 'Repetir liga',
+      }))
+    )
+      return;
+    try {
+      const repeated = await repeatGroup(group.id);
+      rememberKnownGroup(repeated.id);
+      const groupId = repeated.id.toString();
+      queryClient.setQueryData(queryKeys.group(groupId), repeated);
+      await refreshGroups();
+      changeGroup(groupId);
+      toast.success(
+        `«${repeated.name}» ya tiene su liga de la temporada ${repeated.season ?? 'nueva'}.`,
+      );
+    } catch (e) {
+      setError(errorMessage(e, 'No se pudo repetir la liga'));
+    }
+  };
+
   const handleJoin = async (e?: { preventDefault?: () => void }) => {
     e?.preventDefault?.();
     if (!joinCode.trim()) return;
@@ -297,6 +323,7 @@ export function useGroupsDashboard() {
     handleUploadGroupImage,
     handleRemoveGroupImage,
     handleDeleteGroup,
+    handleRepeatGroup,
     handleEnterGroup,
     handleLeaveGroup,
     handleCopyCode,

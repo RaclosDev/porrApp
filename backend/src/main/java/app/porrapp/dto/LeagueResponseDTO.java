@@ -75,6 +75,16 @@ public class LeagueResponseDTO {
     private boolean publicLeague;
     /** Liga con cuota de inscripción. */
     private boolean entryFee;
+    /** Temporada de la competición que juega la liga ("2025/26", "2026"); null si no se sabe. */
+    private String season;
+    /** Esa temporada ya ha terminado: la liga se queda con su clasificación final. */
+    private boolean seasonEnded;
+    /** La liga ha terminado, la competición ya tiene temporada nueva y nadie la ha repetido aún. */
+    private boolean canRepeat;
+    /** Temporada nueva para la que se puede repetir la liga. */
+    private String nextSeason;
+    /** La liga que repite a esta en la temporada nueva; solo para quien también es miembro de ella. */
+    private Long nextLeagueId;
 
     /**
      * Vista completa de una liga con los datos de su edición activa.

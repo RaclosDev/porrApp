@@ -143,7 +143,7 @@ describe('GroupMembersModal', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /Puntuación/ }));
     fireEvent.change(await screen.findByLabelText('Campeón'), { target: { value: '300' } });
-    expect(screen.getByText('Por defecto: 200')).toBeInTheDocument();
+    expect(screen.getByText('Por defecto: 50')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Guardar cambios/i }));
 
     await waitFor(() =>

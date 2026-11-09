@@ -73,8 +73,8 @@ class LeagueScoringControllerTest {
                 .andExpect(jsonPath("$.matchSignOnly").value(true))
                 .andExpect(jsonPath("$.editable").value(false))
                 .andExpect(jsonPath("$.maxPoints").value(1000))
-                .andExpect(jsonPath("$.rules.championPoints").value(200))
-                .andExpect(jsonPath("$.defaults.roundOf32Points").value(25));
+                .andExpect(jsonPath("$.rules.championPoints").value(50))
+                .andExpect(jsonPath("$.defaults.roundOf32Points").value(10));
     }
 
     @Test

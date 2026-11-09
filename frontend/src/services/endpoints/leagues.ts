@@ -229,6 +229,16 @@ export const deleteGroup = (id: number | string) =>
     fallbackError: 'Error al borrar la liga',
   });
 
+/**
+ * Repite una liga terminada para la temporada nueva: otra liga con los mismos miembros y ajustes.
+ * Solo el administrador; repetir la petición devuelve la misma liga.
+ */
+export const repeatGroup = (id: number | string) =>
+  request<Group>(`/groups/${id}/repeat`, {
+    method: 'POST',
+    fallbackError: 'No se pudo repetir la liga',
+  });
+
 export const joinGroup = (joinCode: string) =>
   request<Group>('/groups/join', {
     method: 'POST',

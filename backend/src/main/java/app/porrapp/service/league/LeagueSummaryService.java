@@ -41,6 +41,7 @@ public class LeagueSummaryService {
     private final PredictionRepository predictionRepository;
     private final MatchPredictionRepository matchPredictionRepository;
     private final MatchSelectionService matchSelectionService;
+    private final LeagueClosure leagueClosure;
 
     @Transactional(readOnly = true)
     public List<LeagueSummaryDTO> summaries(String email) {
@@ -69,7 +70,7 @@ public class LeagueSummaryService {
             rank = 1 + (int) ranking.stream().filter(row -> row.getTotal() > mine.getTotal()).count();
         }
         return new LeagueSummaryDTO(groupId, rank, points, ranking.size(),
-                pendingPredictions(edition, prediction, now));
+                pendingPredictions(edition, prediction, now), leagueClosure.isFinished(edition, now));
     }
 
     /** Partidos de la próxima semana que aún admiten predicción y el usuario no ha predicho. */

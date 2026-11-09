@@ -80,6 +80,27 @@ public class ProfileImageService {
         return leagueRepository.save(league);
     }
 
+    /**
+     * Copia la imagen de una liga a otra (la que la repite). La copia tiene su propia clave: la URL de una
+     * no sirve para la otra. Sin imagen en la primera no hace nada.
+     */
+    @Transactional
+    public void copyLeagueImage(League from, League to) {
+        LeagueImage source = leagueImageRepository.findById(from.getId()).orElse(null);
+        if (source == null || from.getImageUpdatedAt() == null) return;
+        Instant now = Instant.now();
+        leagueImageRepository.save(LeagueImage.builder()
+                .leagueId(to.getId())
+                .contentType(source.getContentType())
+                .data(source.getData())
+                .sizeBytes(source.getSizeBytes())
+                .updatedAt(now)
+                .build());
+        to.setImageUpdatedAt(now);
+        to.setImageKey(ImageKeys.newKey());
+        leagueRepository.save(to);
+    }
+
     /** Uso interno del servidor (vista previa de una invitación); no comprueba la clave. */
     @Transactional(readOnly = true)
     public Optional<StoredImage> getLeagueImage(Long groupId) {

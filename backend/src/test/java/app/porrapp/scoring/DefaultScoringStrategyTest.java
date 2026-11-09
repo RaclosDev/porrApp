@@ -15,7 +15,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Reglas por defecto del Mundial 2026: 10 por pasar de grupo y 10 más por la posición exacta,
+ * Con las reglas de una liga del Mundial 2026: 10 por pasar de grupo y 10 más por la posición exacta,
  * 25 / 30 / 40 / 60 por cada equipo acertado en 1/16, octavos, cuartos y semis, 200 campeón,
  * 150 subcampeón, 100 tercero, 75 cuarto y 200 el pichichi (repartidos si hay empate).
  */
@@ -23,7 +23,15 @@ class DefaultScoringStrategyTest {
 
     private static final List<String> GROUP_A = List.of("España", "Alemania", "Japón", "Costa Rica");
 
-    private final DefaultScoringStrategy strategy = new DefaultScoringStrategy();
+    private static ScoringRuleSet.ScoringRuleSetBuilder worldCupRules() {
+        return ScoringRuleSet.builder()
+                .groupQualifierPoints(10).groupExactPositionPoints(10)
+                .roundOf32Points(25).roundOf16Points(30).quarterFinalPoints(40).semiFinalPoints(60)
+                .championPoints(200).runnerUpPoints(150).thirdPlacePoints(100).fourthPlacePoints(75)
+                .topScorerPoints(200);
+    }
+
+    private final DefaultScoringStrategy strategy = new DefaultScoringStrategy(worldCupRules().build());
 
     /** Contexto con el grupo A ya jugado y lo demás vacío; cada test cambia lo que necesita. */
     private static final class Scenario {
@@ -326,7 +334,7 @@ class DefaultScoringStrategyTest {
 
     @Test
     void usesTheLeagueRulesInsteadOfTheDefaults() {
-        ScoringRuleSet rules = ScoringRuleSet.builder().championPoints(500).groupExactPositionPoints(0).build();
+        ScoringRuleSet rules = worldCupRules().championPoints(500).groupExactPositionPoints(0).build();
         Scenario s = new Scenario();
         s.participant.setGroups(Map.of("A", GROUP_A));
         s.participant.setChampion("España");
@@ -336,6 +344,19 @@ class DefaultScoringStrategyTest {
 
         assertThat(score.getR1()).as("solo los 10 por pasar").isEqualTo(20);
         assertThat(score.getFinals()).isEqualTo(500);
+    }
+
+    @Test
+    void withoutLeagueRulesItScoresWithTheGeneralDefaults() {
+        Scenario s = new Scenario();
+        s.participant.setGroups(Map.of("A", GROUP_A));
+        s.participant.setChampion("España");
+        s.champion = "España";
+
+        ParticipantScoreDTO score = s.score(new DefaultScoringStrategy());
+
+        assertThat(score.getR1()).as("dos clasificados: 5 por pasar y 5 por el puesto").isEqualTo(20);
+        assertThat(score.getFinals()).isEqualTo(50);
     }
 
     @Test

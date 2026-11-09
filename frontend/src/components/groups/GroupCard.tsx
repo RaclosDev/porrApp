@@ -13,6 +13,7 @@ interface GroupCardProps {
   isSelected: boolean;
   isCreator: boolean;
   handleEnterGroup: GroupsDashboardState['handleEnterGroup'];
+  handleRepeatGroup: GroupsDashboardState['handleRepeatGroup'];
   handleLeaveGroup: GroupsDashboardState['handleLeaveGroup'];
   handleCopyCode: GroupsDashboardState['handleCopyCode'];
   handleCopyLink: GroupsDashboardState['handleCopyLink'];
@@ -29,6 +30,7 @@ export default function GroupCard({
   isSelected,
   isCreator,
   handleEnterGroup,
+  handleRepeatGroup,
   handleLeaveGroup,
   handleCopyCode,
   handleCopyLink,
@@ -38,12 +40,27 @@ export default function GroupCard({
   setSelectedCustomCompetition,
 }: GroupCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [repeating, setRepeating] = useState(false);
   const actionsId = `group-actions-${group.id}`;
+  // Terminada desde que se juega su último partido, antes de que se archive la temporada.
+  const ended = Boolean(group.seasonEnded || summary?.finished);
   const meta = [
     competitionLabel(group),
+    // Terminada, la temporada la distingue de la liga que la repite, que se llama igual.
+    ended ? group.season : null,
     group.poolFormat ? poolFormatShortLabel(group.poolFormat) : null,
   ].filter(Boolean);
   const pending = summary?.pendingPredictions ?? 0;
+  const nextSeason = group.nextSeason ?? 'nueva';
+
+  const repeat = async () => {
+    setRepeating(true);
+    try {
+      await handleRepeatGroup(group);
+    } finally {
+      setRepeating(false);
+    }
+  };
 
   return (
     <li
@@ -83,6 +100,11 @@ export default function GroupCard({
               </span>
             )}
           </span>
+          {ended && (
+            <InkStamp tone="red" size="sm">
+              Terminada
+            </InkStamp>
+          )}
           {isSelected && (
             <InkStamp tone="ink" size="sm">
               Activa
@@ -104,6 +126,36 @@ export default function GroupCard({
           />
         </button>
       </div>
+
+      {group.nextLeagueId != null ? (
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            className="glass-btn w-full py-2 px-3 text-[0.85rem] min-h-11"
+            onClick={() => handleEnterGroup(group.nextLeagueId as number)}
+          >
+            Ir a la liga de la temporada nueva
+          </button>
+        </div>
+      ) : group.canRepeat && isCreator ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 pb-3">
+          <p className="m-0 flex-1 min-w-[12rem] text-[0.85rem]">
+            Ya hay temporada {nextSeason}: repite la liga con los mismos miembros y ajustes.
+          </p>
+          <button
+            type="button"
+            className="glass-btn primary-btn py-2 px-4 text-[0.88rem] font-extrabold min-h-11"
+            onClick={repeat}
+            disabled={repeating}
+          >
+            {repeating ? 'Repitiendo…' : 'Repetir liga'}
+          </button>
+        </div>
+      ) : group.canRepeat ? (
+        <p className="m-0 px-3 pb-3 text-muted text-[0.82rem]">
+          Ya hay temporada {nextSeason}: quien administra la liga puede repetirla.
+        </p>
+      ) : null}
 
       {expanded && (
         <div id={actionsId} className="flex flex-col gap-2 px-3 pb-3 pt-1">

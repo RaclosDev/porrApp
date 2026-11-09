@@ -52,6 +52,21 @@ class SeasonCalendarRefresherTest {
     }
 
     @Test
+    @DisplayName("Una temporada archivada no se vuelve a importar: solo la vigente")
+    void skipsArchivedSeasons() {
+        when(competitions.findAll()).thenReturn(List.of(
+                Competition.builder().id(1L).name("LaLiga").externalId("esp.1").season("2025/26")
+                        .archivedAt(java.time.Instant.now()).build(),
+                Competition.builder().id(2L).name("LaLiga").externalId("esp.1").season("2026/27").build()));
+        when(imports.importCompetitionData(2L)).thenReturn(new CompetitionImportService.ImportResult("LaLiga", 20, 380));
+
+        refresher.refreshAllSeasons();
+
+        verify(imports, never()).importCompetitionData(1L);
+        verify(imports).importCompetitionData(2L);
+    }
+
+    @Test
     @DisplayName("Un torneo con grupos ya cerrado no se vuelve a importar; mientras se juega, sí")
     void skipsTheWorldCupOnceItIsOver() {
         Competition worldCup = Competition.builder().id(7L).name("Mundial")

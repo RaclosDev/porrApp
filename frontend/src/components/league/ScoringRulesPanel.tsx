@@ -1,5 +1,9 @@
 import type { LeagueScoring, ScoringRuleKey } from '../../types/api';
-import { scoringFieldError, scoringSections, type ScoringDraft } from '../../utils/scoringRules';
+import {
+  leagueScoringSections,
+  scoringFieldError,
+  type ScoringDraft,
+} from '../../utils/scoringRules';
 import { allowsDraw } from '../../utils/matchday';
 
 /** Cómo se juega superviviente con las vidas y la regla del empate de esta liga. */
@@ -41,16 +45,7 @@ export default function ScoringRulesPanel({
   const winnerOnly = !allowsDraw(scoring.sport);
   // Una serie del LoL nunca acaba en empate: la regla del empate no pinta nada.
   const seriesOnly = scoring.sport === 'LEAGUE_OF_LEGENDS';
-  const sections = scoringSections(
-    scoring.poolFormat,
-    scoring.pichichi,
-    scoring.knockoutDraw,
-    scoring.nbaSeries,
-    winnerOnly,
-    scoring.sport ?? null,
-    scoring.fights,
-    scoring.tournamentRounds ?? undefined,
-  );
+  const sections = leagueScoringSections(scoring);
   const current = (key: ScoringRuleKey) =>
     draft?.[key] ?? String(scoring.rules[key] ?? scoring.defaults[key]);
 

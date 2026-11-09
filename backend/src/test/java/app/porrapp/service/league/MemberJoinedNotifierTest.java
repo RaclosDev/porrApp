@@ -82,6 +82,35 @@ class MemberJoinedNotifierTest {
     }
 
     @Test
+    void aRepeatedLeagueIsAnnouncedToItsMembersButNotToWhoRepeatedIt() {
+        assertThat(notifier.notifyRepeated(new LeagueRepeatedEvent(5L, 1L, "2026/27"))).isEqualTo(2);
+
+        verify(sender, never()).send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt());
+        verify(sender, never()).send(eq("https://push.test/m"), anyString(), anyString(), anyString(), anyInt());
+        verify(notificationLog).record(eq(2L), argThat(m -> m.title().equals("Nueva temporada de tu liga")
+                && m.body().equals("Los del barrio sigue en la temporada 2026/27. Ya puedes hacer tus predicciones.")
+                && m.url().equals("/?group=5")), any());
+        verify(notificationLog).record(eq(4L), any(), any());
+    }
+
+    @Test
+    void aRepeatedLeagueWithoutSeasonLabelStillReadsWell() {
+        notifier.notifyRepeated(new LeagueRepeatedEvent(5L, 1L, null));
+
+        verify(notificationLog).record(eq(2L),
+                argThat(m -> m.body().startsWith("Los del barrio sigue en la temporada nueva.")), any());
+    }
+
+    @Test
+    void aRepeatedLeaguePushFailureIsSwallowed() {
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt()))
+                .thenThrow(new IllegalStateException("push caído"));
+
+        assertThatCode(() -> notifier.onLeagueRepeated(new LeagueRepeatedEvent(5L, 1L, "2026")))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void respectsTheMemberJoinedPreference() {
         notifier.notifyMembers(joined);
 

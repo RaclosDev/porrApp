@@ -107,6 +107,7 @@ class LeagueAccessMatrixIntegrationTest {
                 request(base).PUT(HttpRequest.BodyPublishers.ofString("{\"name\":\"Cambiada\"}")).header("Content-Type", json),
                 request(base).DELETE(),
                 request(base + "/regenerate-code").POST(HttpRequest.BodyPublishers.noBody()),
+                request(base + "/repeat").POST(HttpRequest.BodyPublishers.noBody()),
                 request(base + "/scoring").PUT(HttpRequest.BodyPublishers.ofString("{}")).header("Content-Type", json),
                 request(base + "/members/" + adminId).DELETE(),
                 request(base + "/members/" + adminId + "/payment")
