@@ -80,6 +80,12 @@ public class Competition {
         return archivedAt != null;
     }
 
+    /** Año en que empieza su temporada ("2026/27" → 2026); null si no está anotada o no se entiende. */
+    public Integer seasonStartYear() {
+        if (season == null || !season.matches("[0-9]{4}(/[0-9]{2})?")) return null;
+        return Integer.valueOf(season.substring(0, 4));
+    }
+
     /** Deporte de la competición: el guardado en las personalizadas, el de su id externo en las oficiales. */
     public Sport sport() {
         return ownerLeague != null && sport != null ? sport : Sport.ofExternalId(externalId);

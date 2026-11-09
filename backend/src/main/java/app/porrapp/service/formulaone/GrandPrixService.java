@@ -234,11 +234,21 @@ public class GrandPrixService {
         return classificationService.classification(grandPrixOf(edition, matchId));
     }
 
-    /** Comprueba que la liga es de Fórmula 1 y que el usuario puede verla. */
+    /**
+     * Comprueba que la liga es de Fórmula 1 y que el usuario puede verla.
+     *
+     * @return el año de su temporada si ya está archivada (su Mundial es el de ese año, no el que está en
+     * curso), o null si juega la temporada vigente
+     */
     @Transactional(readOnly = true)
-    public void assertGrandPrixLeague(String email, Long groupId) {
-        grandPrixEdition(groupId);
+    public Integer standingsSeason(String email, Long groupId) {
+        Edition edition = grandPrixEdition(groupId);
         leagueService.assertCanView(groupId, email);
+        if (!edition.getCompetition().isArchived()) return null;
+        Integer year = edition.getCompetition().seasonStartYear();
+        // Sin saber de qué año es, enseñar el Mundial en curso sería enseñar el de otra temporada.
+        if (year == null) throw BusinessException.notFound("El Mundial de esa temporada ya no está disponible");
+        return year;
     }
 
     private Edition grandPrixEdition(Long groupId) {

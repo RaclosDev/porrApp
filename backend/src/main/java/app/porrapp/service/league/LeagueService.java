@@ -105,6 +105,9 @@ public class LeagueService {
             if (comp.getOwnerLeague() != null) {
                 throw BusinessException.forbidden("Esta competición pertenece a otra liga");
             }
+            if (comp.isArchived()) {
+                throw BusinessException.badRequest("Esa temporada ya ha terminado: vuelve a elegir la competición");
+            }
             // Sin proveedor de datos la liga se quedaría sin equipos ni partidos.
             if (comp.getExternalId() == null || comp.getExternalId().isBlank()) {
                 throw BusinessException.badRequest("Esta competición no se puede seguir: elige otra");

@@ -88,21 +88,24 @@ public class CompetitionImportService {
             if (formulaOne != null) return importFormulaOne(formulaOne);
             ImportSnapshot snapshot = downloadImport(competitionId);
             checkImportCancellation();
-            ImportCommit committed = new TransactionTemplate(transactionManager).execute(status -> applyImport(snapshot));
+            // Lo descargado es de la temporada que el proveedor da por vigente: se guarda en su fila.
+            Competition competition = enterSeason(snapshot.competition(), snapshot.season());
+            ImportCommit committed = new TransactionTemplate(transactionManager)
+                    .execute(status -> applyImport(snapshot, competition));
             if (committed == null) throw new IllegalStateException("La importación no confirmó sus datos");
             matchEventProcessor.invalidateTeamCache();
             // ESPN no numera las jornadas de liga: sin esto cada día con partidos sería una jornada.
-            if (!Thread.currentThread().isInterrupted()) officialMatchdayService.numberMatchdays(snapshot.competition());
+            if (!Thread.currentThread().isInterrupted()) officialMatchdayService.numberMatchdays(competition);
             committed.batch().publishNotifications();
-            if (GroupTournamentTables.applies(snapshot.competition())) {
+            if (GroupTournamentTables.applies(competition)) {
                 webSocketService.notifyResultsChanged();
             } else {
-                java.util.List<Long> imported = java.util.List.of(snapshot.competition().getId());
+                java.util.List<Long> imported = java.util.List.of(competition.getId());
                 scoreInvalidationService.evictLeaderboardsAfterCommit(imported);
                 webSocketService.notifyResultsChanged(imported);
             }
-            if (GroupTournamentTables.applies(snapshot.competition()) && !Thread.currentThread().isInterrupted()) {
-                topScorerService.refresh(snapshot.competition());
+            if (GroupTournamentTables.applies(competition) && !Thread.currentThread().isInterrupted()) {
+                topScorerService.refresh(competition);
             }
             return committed.result();
         } finally {
@@ -110,11 +113,29 @@ public class CompetitionImportService {
         }
     }
 
-    /** La Fórmula 1 no tiene equipos ni partidos: sus Grandes Premios los carga su propio servicio. */
-    private ImportResult importFormulaOne(Competition competition) {
+    /**
+     * Anota la temporada o cambia a la nueva, en su propia transacción y antes de guardar nada. Si falla,
+     * la competición sigue en la fila que tenía: un cambio de temporada a medias nunca frena la importación.
+     */
+    private Competition enterSeason(Competition competition, CompetitionSeasonService.Season season) {
+        try {
+            Competition entered = seasonService.enterSeason(competition.getId(), season);
+            return entered != null ? entered : competition;
+        } catch (RuntimeException error) {
+            log.warn("No se pudo mirar la temporada de {}: {}", competition.getName(), error.getMessage());
+            return competition;
+        }
+    }
+
+    /**
+     * La Fórmula 1 no tiene equipos ni partidos: sus Grandes Premios los carga su propio servicio. Su
+     * temporada es el año natural.
+     */
+    private ImportResult importFormulaOne(Competition stored) {
+        Competition competition = enterSeason(stored,
+                CompetitionSeasonService.Season.ofYear(LocalDate.now(AppTime.ZONE).getYear()));
         try {
             var result = formulaOneSyncService.importSeason(competition);
-            annotateFormulaOneSeason(competition);
             if (result.updated() > 0) {
                 java.util.List<Long> imported = java.util.List.of(competition.getId());
                 scoreInvalidationService.evictLeaderboardsAfterCommit(imported);
@@ -125,16 +146,6 @@ public class CompetitionImportService {
             throw error;
         } catch (Exception error) {
             throw new IllegalStateException("No se pudo cargar la Fórmula 1: " + error.getMessage(), error);
-        }
-    }
-
-    /** La temporada de la Fórmula 1 es el año natural. Que no se pueda anotar no estropea la carga. */
-    private void annotateFormulaOneSeason(Competition competition) {
-        try {
-            seasonService.annotate(competition.getId(),
-                    CompetitionSeasonService.Season.ofYear(LocalDate.now(AppTime.ZONE).getYear()));
-        } catch (RuntimeException error) {
-            log.warn("No se pudo anotar la temporada de {}: {}", competition.getName(), error.getMessage());
         }
     }
 
@@ -227,14 +238,13 @@ public class CompetitionImportService {
         }
     }
 
-    private ImportCommit applyImport(ImportSnapshot snapshot) {
+    private ImportCommit applyImport(ImportSnapshot snapshot, Competition target) {
         checkImportCancellation();
-        Competition competition = competitionRepository.findById(snapshot.competition().getId()).orElseThrow();
-        if (!Objects.equals(competition.getExternalId(), snapshot.competition().getExternalId())) {
+        Competition competition = competitionRepository.findById(target.getId()).orElseThrow();
+        if (!Objects.equals(competition.getExternalId(), snapshot.competition().getExternalId())
+                || competition.isArchived()) {
             throw new IllegalStateException("La competición cambió durante la descarga");
         }
-        // Antes de guardar lo descargado: la etiqueta se decide con los partidos que la fila ya tenía.
-        seasonService.annotate(competition.getId(), snapshot.season());
         Map<String, Team> teams = matchEventProcessor.freshTeamCache();
         int importedTeams = matchEventProcessor.importTeams(snapshot.teams(), teams);
         MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition, true);

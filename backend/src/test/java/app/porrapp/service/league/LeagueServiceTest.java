@@ -162,6 +162,21 @@ class LeagueServiceTest {
     }
 
     @Test
+    @DisplayName("createLeague no admite una temporada ya archivada")
+    void createLeague_RejectsAnArchivedSeason() {
+        when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
+        when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));
+        when(competitionRepository.findById(8L)).thenReturn(Optional.of(Competition.builder().id(8L)
+                .externalId("esp.1").season("2025/26").archivedAt(java.time.Instant.now()).build()));
+
+        BusinessException error = assertThrows(BusinessException.class, () -> leagueService.createLeague(
+                NewLeague.of("Otra liga", "admin@test.com", 8L, app.porrapp.model.PoolFormat.MATCH_DAY).withPichichi(false)));
+
+        assertTrue(error.getMessage().contains("temporada"));
+        verify(leagueRepository, never()).save(any());
+    }
+
+    @Test
     void existingCustomCompetitionCannotBeReusedByAnotherLeague() {
         when(leagueRepository.findByJoinCode(anyString())).thenReturn(Optional.empty());
         when(userAccountRepository.findByGoogleEmail("admin@test.com")).thenReturn(Optional.of(admin));

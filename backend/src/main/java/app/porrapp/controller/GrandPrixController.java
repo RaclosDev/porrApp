@@ -34,11 +34,10 @@ public class GrandPrixController {
         return grandPrixService.board(CurrentUser.email(principal), groupId);
     }
 
-    /** Mundial de pilotos y de constructores (el mismo para todas las ligas de Fórmula 1). */
+    /** Mundial de pilotos y de constructores de la temporada que juega la liga. */
     @GetMapping("/standings")
     public FormulaOneStandingsDTO standings(@RequestParam Long groupId, Principal principal) {
-        grandPrixService.assertGrandPrixLeague(CurrentUser.email(principal), groupId);
-        return standingsService.standings();
+        return standingsService.standings(grandPrixService.standingsSeason(CurrentUser.email(principal), groupId));
     }
 
     /** Predicciones de la liga en los Grandes Premios ya cerrados de la temporada (estadísticas y buscador). */

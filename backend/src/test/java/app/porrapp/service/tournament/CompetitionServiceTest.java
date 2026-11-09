@@ -167,6 +167,24 @@ class CompetitionServiceTest {
     }
 
     @Test
+    void anArchivedSeasonKeepsItsOwnTableInsteadOfTheLiveOne() {
+        when(competitions.findById(5L)).thenReturn(Optional.of(Competition.builder().id(5L).externalId("esp.1")
+                .season("2025/26").archivedAt(java.time.Instant.now()).build()));
+        when(competitions.findById(9L)).thenReturn(Optional.of(Competition.builder().id(9L).externalId("nba.regular")
+                .formatType("LEAGUE").season("2025/26").archivedAt(java.time.Instant.now()).build()));
+        when(matches.findByCompetitionId(5L)).thenReturn(List.of(result("Betis", "Sevilla", 2, 0)));
+        when(matches.findByCompetitionId(9L)).thenReturn(List.of(result("Knicks", "Nets", 110, 98)));
+
+        assertThat(service.getStandings(5L)).extracting(LeagueStandingDTO::getTeamName)
+                .containsExactly("Betis", "Sevilla");
+        assertThat(service.getStandings(9L)).extracting(LeagueStandingDTO::getTeamName)
+                .containsExactly("Knicks", "Nets");
+
+        // La tabla en vivo del proveedor ya es la de la temporada siguiente.
+        verifyNoInteractions(espn, nba);
+    }
+
+    @Test
     void theNflTableJoinsBothConferencesRankedByWinShare() throws Exception {
         when(competitions.findById(6L)).thenReturn(Optional.of(
                 Competition.builder().id(6L).externalId("nfl").build()));

@@ -225,6 +225,45 @@ class CompetitionImportTransactionTest {
     }
 
     @Test
+    void anImportOfANewerSeasonArchivesTheOldRowAndFillsTheNewOne() throws Exception {
+        Instant now = Instant.now();
+        Competition old = competitions.save(Competition.builder().name("Liga que cambia").externalId("test.import-season")
+                .formatType("LEAGUE").season(String.valueOf(OffsetDateTime.now().getYear() - 2)).build());
+        Match played = matches.save(Match.builder().externalId("990900").competition(old)
+                .matchDate(now.minus(java.time.Duration.ofDays(300))).finished(true)
+                .status(MatchStatusNormalized.FINISHED).build());
+        when(provider.fetchSeasonWindow("test.import-season")).thenReturn(new SportsDataProvider.SeasonWindow(
+                now.minus(java.time.Duration.ofDays(10)).toString(), now.plus(java.time.Duration.ofDays(290)).toString()));
+        JsonNode catalog = provider.fetchTeams("esp.1");
+        when(provider.fetchTeams("test.import-season")).thenReturn(catalog);
+        when(provider.fetchScoreboardEvents(anyString(), anyString()))
+                .thenReturn(json.createArrayNode().add(events().get(0)));
+        Long nextId = null;
+        try {
+            sync.importCompetitionData(old.getId());
+
+            Competition next = competitions.findByExternalId("test.import-season").orElseThrow();
+            nextId = next.getId();
+            assertThat(nextId).isNotEqualTo(old.getId());
+            assertThat(next.getSeason()).isNotNull().isNotEqualTo(old.getSeason());
+            assertThat(competitions.findById(old.getId()).orElseThrow().isArchived()).isTrue();
+            assertThat(matches.findByCompetitionId(old.getId())).extracting(Match::getId).containsExactly(played.getId());
+            assertThat(matches.findByCompetitionId(nextId)).extracting(Match::getExternalId).containsExactly("990001");
+            verify(matchdays).numberMatchdays(argThat(row -> row.getId().equals(next.getId())));
+
+            // La siguiente importación ya va a la fila nueva y no vuelve a cambiar nada.
+            sync.importCompetitionData(nextId);
+            assertThat(competitions.findByExternalId("test.import-season")).map(Competition::getId).contains(nextId);
+            assertThat(matches.findByCompetitionId(nextId)).hasSize(1);
+        } finally {
+            removeImportedTestRows();
+            matches.deleteById(played.getId());
+            if (nextId != null) competitions.deleteById(nextId);
+            competitions.deleteById(old.getId());
+        }
+    }
+
+    @Test
     void processingFailureRollsBackDataCacheAndNotificationsAndCanBeRetried() throws Exception {
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(events());
         Map<String, app.porrapp.model.Team> before = processor.teamCache();

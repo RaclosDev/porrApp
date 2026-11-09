@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
@@ -159,6 +160,29 @@ class GrandPrixSeasonPicksTest {
 
         assertThrows(BusinessException.class, () -> service.seasonPicks("otro@test.com", GROUP_ID));
         verify(matchPredictionRepository, never()).findWithMatchAndUserByEditionId(100L);
+    }
+
+    @Test
+    @DisplayName("El Mundial de una liga es el de su temporada: el vigente, o el de su año si ya está archivada")
+    void standingsBelongToTheLeagueSeason() {
+        assertNull(service.standingsSeason(EMAIL, GROUP_ID));
+
+        competition.setSeason("2026");
+        competition.setArchivedAt(now);
+        assertEquals(2026, service.standingsSeason(EMAIL, GROUP_ID));
+
+        // Sin saber de qué año es no se enseña el Mundial en curso, que sería el de otra temporada.
+        competition.setSeason(null);
+        assertThrows(BusinessException.class, () -> service.standingsSeason(EMAIL, GROUP_ID));
+    }
+
+    @Test
+    @DisplayName("El Mundial tampoco se enseña a quien no puede ver la liga")
+    void standingsRejectOutsiders() {
+        doThrow(BusinessException.forbidden("No perteneces a esta liga privada"))
+                .when(leagueService).assertCanView(GROUP_ID, "otro@test.com");
+
+        assertThrows(BusinessException.class, () -> service.standingsSeason("otro@test.com", GROUP_ID));
     }
 
     @Test

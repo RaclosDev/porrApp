@@ -158,6 +158,27 @@ public class LolEsportsDataProvider implements SportsDataProvider {
         return result;
     }
 
+    /**
+     * Cada edición (Worlds 2026, MSI 2027) es una temporada: la del año de la última serie del calendario,
+     * de su primer a su último día. Solo dice qué temporada es; la importación sigue trayendo todo lo
+     * descargado, por eso no acota el inicio.
+     */
+    @Override
+    public SeasonWindow fetchSeasonWindow(String competitionSlug) throws Exception {
+        List<Instant> starts = schedule(competitionSlug).stream()
+                .map(LolEsportsDataProvider::startTime)
+                .filter(java.util.Objects::nonNull)
+                .sorted()
+                .toList();
+        if (starts.isEmpty()) return null;
+        Instant last = starts.get(starts.size() - 1);
+        int year = last.atZone(SPAIN_ZONE).getYear();
+        Instant first = starts.stream().filter(start -> start.atZone(SPAIN_ZONE).getYear() == year)
+                .findFirst().orElse(last);
+        return new SeasonWindow(null, last.plus(Duration.ofDays(1)).toString(),
+                first.minus(Duration.ofDays(1)).toString());
+    }
+
     private static boolean matchesRange(Instant start, String dateRange) {
         if (dateRange == null || dateRange.isBlank() || dateRange.contains("-")) return true;
         LocalDate day = start.atZone(SPAIN_ZONE).toLocalDate();
