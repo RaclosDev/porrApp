@@ -5,7 +5,6 @@ import tools.jackson.databind.ObjectMapper;
 import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.CompetitionTeam;
 import com.porra.mundial.model.TournamentFormat;
-import com.porra.mundial.sports.UfcDataProvider;
 import com.porra.mundial.model.Team;
 import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.CompetitionTeamRepository;
@@ -33,8 +32,8 @@ import java.util.List;
 /**
  * Prepara los datos base al arrancar:
  * <ul>
- *   <li>las competiciones soportadas,</li>
- *   <li>los equipos del Mundial 2026 si la base de datos está vacía,</li>
+ *   <li>las competiciones del catálogo ({@code seed/competitions.json}),</li>
+ *   <li>los equipos de los torneos con grupos que aún no los tienen,</li>
  *   <li>una sincronización inicial en segundo plano para que Tomcat arranque sin esperar a ESPN.</li>
  * </ul>
  * Las correcciones de datos puntuales van en migraciones de Flyway, no aquí.
@@ -45,7 +44,8 @@ import java.util.List;
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
 
-    private static final String WORLD_CUP_TEAMS_SEED = "seed/world-cup-2026-teams.json";
+    /** Catálogo de competiciones oficiales que existen desde el primer arranque. */
+    static final String COMPETITIONS_SEED = "seed/competitions.json";
 
     private final CompetitionRepository competitionRepository;
     private final TeamRepository teamRepository;
@@ -60,31 +60,36 @@ public class DataInitializer implements CommandLineRunner {
     private final InitialSyncExecutor initialSyncExecutor;
     private final CacheManager cacheManager;
 
+    /**
+     * Competición del catálogo.
+     *
+     * @param teams fichero con los equipos sorteados en sus grupos; null si los trae el proveedor al importar
+     */
+    record CompetitionSeed(String name, String externalId, String formatType, String teams) {
+    }
+
     /** Equipo del fichero de semilla con sus probabilidades iniciales. */
     record TeamSeed(String name, String group, double winOdds, double qualifyOdds, double outrightOdds) {
     }
 
+    /**
+     * Añadir una competición es añadir una línea al catálogo. Los cuadros de tenis salen de
+     * {@link TennisTournaments}, que además sabe leerlos de ESPN.
+     */
     @Override
     @Transactional
     public void run(String... args) {
-        seedCompetitionIfMissing("FIFA World Cup 2026", Competition.WORLD_CUP_EXTERNAL_ID, "TOURNAMENT");
-        seedCompetitionIfMissing("LaLiga EA Sports", "esp.1", "LEAGUE");
-        seedCompetitionIfMissing("UEFA Champions League", "uefa.champions", "LEAGUE");
-        seedCompetitionIfMissing("Premier League", "eng.1", "LEAGUE");
-        seedCompetitionIfMissing("Worlds de League of Legends", "lol.worlds", "TOURNAMENT");
-        seedCompetitionIfMissing("UFC", UfcDataProvider.COMPETITION_ID, Competition.EVENTS_FORMAT);
-        seedCompetitionIfMissing("Fórmula 1", Competition.FORMULA_ONE_EXTERNAL_ID, "RACE");
-        seedCompetitionIfMissing("NBA · Playoffs", Competition.NBA_EXTERNAL_ID, "TOURNAMENT");
-        seedCompetitionIfMissing("NBA · Temporada regular", Competition.NBA_REGULAR_SEASON_EXTERNAL_ID, "LEAGUE");
+        List<CompetitionSeed> catalogue = readSeed(COMPETITIONS_SEED, new TypeReference<>() {
+        });
+        for (CompetitionSeed seed : catalogue) {
+            seedCompetitionIfMissing(seed.name(), seed.externalId(), seed.formatType());
+        }
         for (TennisTournaments.Tournament tournament : TennisTournaments.ALL) {
             for (TennisTournaments.Draw draw : tournament.draws()) {
                 seedCompetitionIfMissing(tournament.competitionName(draw), tournament.externalId(draw), "TOURNAMENT");
             }
         }
-
-        seedWorldCupTeamsIfMissing();
-
-
+        catalogue.stream().filter(seed -> seed.teams() != null).forEach(this::seedTeamsIfMissing);
     }
 
     @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
@@ -107,36 +112,37 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    private void seedWorldCupTeamsIfMissing() {
-        // Se mira si ya hay equipos con grupo, no si la tabla está vacía: en una base nueva existen
-        // el comodín "Por definir" y los equipos que crean las migraciones de datos (V33.1).
-        if (teamRepository.existsByGroupNameIsNotNullAndGroupNameNot("-")) {
+    /**
+     * Equipos de un torneo con grupos, si aún no tiene ninguno. Un equipo que ya existe (juega otra
+     * competición) se reutiliza: su grupo es el de su participación en este torneo, no el del equipo.
+     */
+    private void seedTeamsIfMissing(CompetitionSeed competitionSeed) {
+        Competition competition = competitionRepository.findByExternalId(competitionSeed.externalId()).orElse(null);
+        if (competition == null || competitionTeamRepository.existsByCompetitionId(competition.getId())) {
             return;
         }
-        Competition worldCup = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElse(null);
-        List<TeamSeed> seeds = readTeamSeeds();
-        seeds.forEach(seed -> {
-            Team team = teamRepository.save(Team.builder()
-                    .name(seed.name())
-                    .groupName(seed.group())
-                    .winOdds(seed.winOdds())
-                    .qualifyOdds(seed.qualifyOdds())
-                    .outrightOdds(seed.outrightOdds())
-                    .build());
-            if (worldCup != null) {
-                competitionTeamRepository.save(CompetitionTeam.builder()
-                        .competition(worldCup).team(team).groupName(seed.group()).build());
-            }
+        List<TeamSeed> seeds = readSeed(competitionSeed.teams(), new TypeReference<>() {
         });
-        log.info("Cargados {} equipos del Mundial 2026 desde {}", seeds.size(), WORLD_CUP_TEAMS_SEED);
+        seeds.forEach(seed -> {
+            Team team = teamRepository.findByName(seed.name())
+                    .orElseGet(() -> teamRepository.save(Team.builder()
+                            .name(seed.name())
+                            .groupName(seed.group())
+                            .winOdds(seed.winOdds())
+                            .qualifyOdds(seed.qualifyOdds())
+                            .outrightOdds(seed.outrightOdds())
+                            .build()));
+            competitionTeamRepository.save(CompetitionTeam.builder()
+                    .competition(competition).team(team).groupName(seed.group()).build());
+        });
+        log.info("Cargados {} equipos de {} desde {}", seeds.size(), competition.getName(), competitionSeed.teams());
     }
 
-    private List<TeamSeed> readTeamSeeds() {
-        try (InputStream in = new ClassPathResource(WORLD_CUP_TEAMS_SEED).getInputStream()) {
-            return objectMapper.readValue(in, new TypeReference<>() {
-            });
+    private <T> T readSeed(String resource, TypeReference<T> type) {
+        try (InputStream in = new ClassPathResource(resource).getInputStream()) {
+            return objectMapper.readValue(in, type);
         } catch (IOException e) {
-            throw new IllegalStateException("No se pudo leer " + WORLD_CUP_TEAMS_SEED, e);
+            throw new IllegalStateException("No se pudo leer " + resource, e);
         }
     }
 

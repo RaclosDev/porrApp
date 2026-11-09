@@ -20,6 +20,4 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     
     Optional<Team> findByExternalId(String externalId);
 
-    /** Hay algún equipo con grupo asignado ("-" marca los que no juegan fase de grupos). */
-    boolean existsByGroupNameIsNotNullAndGroupNameNot(String excludedGroup);
 }

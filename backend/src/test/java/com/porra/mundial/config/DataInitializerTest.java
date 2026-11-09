@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import tools.jackson.databind.ObjectMapper;
 import static org.mockito.Mockito.*;
@@ -28,7 +29,8 @@ class DataInitializerTest {
     @Mock SyncService sync;
     @Mock StandingsService standings;
     @Mock KnockoutBracketService knockout;
-    @Mock ObjectMapper mapper;
+    @Mock CompetitionTeamRepository competitionTeams;
+    @Spy ObjectMapper mapper = tools.jackson.databind.json.JsonMapper.builder().build();
     @Mock InitialSyncExecutor executor;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS) CacheManager cacheManager;
     @InjectMocks DataInitializer initializer;
@@ -121,11 +123,66 @@ class DataInitializerTest {
 
     @Test
     void seedingDoesNotStartNetworkWorkBeforeItsTransactionCommits() {
-        when(teams.existsByGroupNameIsNotNullAndGroupNameNot("-")).thenReturn(true);
-
         initializer.run();
 
         verify(sync, after(200).never()).syncAll();
         verifyNoInteractions(standings, knockout);
+    }
+
+    @Test
+    void theCatalogueFileCreatesTheCompetitionsThatAreMissing() {
+        when(competitions.findByExternalId(anyString())).thenAnswer(invocation -> "esp.1".equals(invocation.getArgument(0))
+                ? java.util.Optional.of(Competition.builder().id(1L).externalId("esp.1").build())
+                : java.util.Optional.empty());
+
+        initializer.run();
+
+        var saved = org.mockito.ArgumentCaptor.forClass(Competition.class);
+        verify(competitions, atLeastOnce()).save(saved.capture());
+        var ids = saved.getAllValues().stream().map(Competition::getExternalId).toList();
+        org.junit.jupiter.api.Assertions.assertTrue(ids.containsAll(java.util.List.of(
+                Competition.WORLD_CUP_EXTERNAL_ID, "uefa.champions", "eng.1", "lol.worlds",
+                com.porra.mundial.sports.UfcDataProvider.COMPETITION_ID, Competition.FORMULA_ONE_EXTERNAL_ID,
+                Competition.NBA_EXTERNAL_ID, Competition.NBA_REGULAR_SEASON_EXTERNAL_ID)));
+        org.junit.jupiter.api.Assertions.assertFalse(ids.contains("esp.1"));
+        var ufc = saved.getAllValues().stream()
+                .filter(c -> com.porra.mundial.sports.UfcDataProvider.COMPETITION_ID.equals(c.getExternalId())).findFirst().orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(Competition.EVENTS_FORMAT, ufc.getFormatType());
+    }
+
+    @Test
+    void aTournamentWithoutTeamsGetsTheOnesInItsSeedAndReusesTheExistingOnes() {
+        Competition worldCup = Competition.builder().id(2L).name("Mundial")
+                .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+        when(competitions.findByExternalId(anyString())).thenAnswer(invocation ->
+                Competition.WORLD_CUP_EXTERNAL_ID.equals(invocation.getArgument(0))
+                        ? java.util.Optional.of(worldCup) : java.util.Optional.empty());
+        when(competitionTeams.existsByCompetitionId(2L)).thenReturn(false);
+        var spain = com.porra.mundial.model.Team.builder().id(9L).name("España").build();
+        when(teams.findByName(anyString())).thenReturn(java.util.Optional.empty());
+        when(teams.findByName("España")).thenReturn(java.util.Optional.of(spain));
+        when(teams.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        initializer.run();
+
+        verify(teams, times(47)).save(any());
+        var links = org.mockito.ArgumentCaptor.forClass(com.porra.mundial.model.CompetitionTeam.class);
+        verify(competitionTeams, times(48)).save(links.capture());
+        org.junit.jupiter.api.Assertions.assertTrue(links.getAllValues().stream()
+                .anyMatch(link -> link.getTeam() == spain && link.getGroupName() != null && link.getCompetition() == worldCup));
+    }
+
+    @Test
+    void aTournamentThatAlreadyHasItsTeamsIsLeftAlone() {
+        Competition worldCup = Competition.builder().id(2L).externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+        when(competitions.findByExternalId(anyString())).thenAnswer(invocation ->
+                Competition.WORLD_CUP_EXTERNAL_ID.equals(invocation.getArgument(0))
+                        ? java.util.Optional.of(worldCup) : java.util.Optional.empty());
+        when(competitionTeams.existsByCompetitionId(2L)).thenReturn(true);
+
+        initializer.run();
+
+        verifyNoInteractions(teams);
+        verify(competitionTeams, never()).save(any());
     }
 }
