@@ -65,6 +65,7 @@ export const queryKeys = {
   /** Datos oficiales de un torneo con fase de grupos, por competición. */
   tournamentStandings: (competitionId?: Id) => key('tournamentStandings', competitionId),
   tournamentGroupOdds: (competitionId?: Id) => key('tournamentGroupOdds', competitionId),
+  tournamentFormat: (competitionId?: Id) => key('tournamentFormat', competitionId),
   tournamentTopScorers: (competitionId?: Id) => key('tournamentTopScorers', competitionId),
   tournamentOfficialBracket: (competitionId?: Id) =>
     key('tournamentOfficialBracket', competitionId),

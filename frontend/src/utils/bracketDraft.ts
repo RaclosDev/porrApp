@@ -5,10 +5,12 @@ import {
   type BracketState,
   type BracketTeam,
 } from '../store/useAppStore';
-import type { GroupOdds, PredictionData, TeamPair } from '../types/api';
+import type { GroupOdds, PredictionData, TeamPair, TournamentFormat } from '../types/api';
 import { orderR32, legacyR32Order, topologyVersion, type TopologyVersion } from './bracketTopology';
+import { thirdPlaceRules } from './matrix';
 import {
-  WORLD_CUP_2026_FIRST_ROUND,
+  BRACKET_ROUNDS,
+  WORLD_CUP_2026_FORMAT,
   firstRoundInLegacyOrder,
   groupSpot,
   isThirdSlot,
@@ -84,16 +86,30 @@ export function normalizeGroupsDraft(groups: unknown): Record<string, GroupSelec
   return res;
 }
 
+/**
+ * Primera ronda guardada de un pronóstico: los cruces de la ronda en la que empieza su torneo. Los
+ * dieciseisavos del Mundial se guardaron antes como `r1`.
+ */
+export const storedFirstRound = (
+  data: Pick<PredictionData, 'r1' | 'r32' | 'r16' | 'qf' | 'sf'>,
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
+): TeamPair[] | undefined => {
+  if (format.firstRound !== 'r32') return data[format.firstRound] ?? undefined;
+  return data.r32?.length ? data.r32 : (data.r1 ?? data.r32 ?? undefined);
+};
+
+/** Deduce los puestos de grupo de la primera ronda de un cuadro (la del torneo de `format`). */
 export function extractGroupsFromR32(
   r32: unknown,
   groupOdds: GroupOdds | Record<string, never> = {},
   version?: TopologyVersion,
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
 ): { groups: Record<string, GroupSelection>; thirds: string[] } {
   const groups: Record<string, GroupSelection> = {};
   const thirds: string[] = [];
   if (!r32) return { groups, thirds };
 
-  // Normalize r32 into 16 match pairs: [[home, away], ...]
+  // Normaliza la ronda a pares [[local, visitante], ...]
   let pairs: SlotLike[][] = [];
   if (r32 && typeof r32 === 'object') {
     const side = r32 as { left?: unknown; right?: unknown };
@@ -110,7 +126,7 @@ export function extractGroupsFromR32(
     }
   }
 
-  if (pairs.length < 16) return { groups, thirds };
+  if (pairs.length < format.firstKnockoutRound.length) return { groups, thirds };
   pairs = legacyR32Order(pairs, version);
 
   const getTeamName = (slot: SlotLike) => {
@@ -133,7 +149,7 @@ export function extractGroupsFromR32(
     if (!thirds.includes(team)) thirds.push(team);
   };
 
-  firstRoundInLegacyOrder(WORLD_CUP_2026_FIRST_ROUND).forEach((slots, index) => {
+  firstRoundInLegacyOrder(format.firstKnockoutRound).forEach((slots, index) => {
     slots.forEach((slot, side) => {
       const team = pairs[index]?.[side];
       if (isThirdSlot(slot)) {
@@ -176,7 +192,9 @@ export function buildR32FromGroups(
   groupsInput: unknown,
   thirdsRaw: (string | { team?: string; name?: string })[] = [],
   version?: TopologyVersion,
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
 ): string[][] | null {
+  const bestThirds = format.bestThirds;
   if (!groupsInput || typeof groupsInput !== 'object') return null;
   const groups = normalizeGroupsDraft(groupsInput);
   if (!hasValidGroupSelections(groups)) return null;
@@ -188,7 +206,7 @@ export function buildR32FromGroups(
       .map((t) => (typeof t === 'string' ? t.trim() : t?.team || t?.name || ''))
       .filter((t) => t && !t.includes('º') && t !== 'Por definir' && t !== '???');
   }
-  if (advancingThirds.length < 8) {
+  if (advancingThirds.length < bestThirds) {
     Object.keys(groups).forEach((g) => {
       const th = groups[g]?.third;
       if (
@@ -210,19 +228,22 @@ export function buildR32FromGroups(
     if (groups[g]?.second) teamToGroup[groups[g].second] = g;
   });
 
-  const thirdObjects = advancingThirds.slice(0, 8).map((t) => ({
+  const thirdObjects = advancingThirds.slice(0, bestThirds).map((t) => ({
     team: t,
     group: teamToGroup[t] || 'A',
   }));
 
-  const solvedMatrix = solveThirdPlaceMatrix(thirdObjects);
-  const thirdSlotTeams = Array(8).fill(null);
+  const solvedMatrix = solveThirdPlaceMatrix(
+    thirdObjects,
+    thirdPlaceRules(format.firstKnockoutRound),
+  );
+  const thirdSlotTeams = Array(bestThirds).fill(null);
   if (solvedMatrix) {
     solvedMatrix.forEach((m, idx) => {
       thirdSlotTeams[idx] = m?.team || null;
     });
   } else {
-    advancingThirds.slice(0, 8).forEach((t, idx) => {
+    advancingThirds.slice(0, bestThirds).forEach((t, idx) => {
       thirdSlotTeams[idx] = t;
     });
   }
@@ -236,7 +257,7 @@ export function buildR32FromGroups(
   };
 
   return orderR32(
-    firstRoundInLegacyOrder(WORLD_CUP_2026_FIRST_ROUND).map(([home, away]) => [
+    firstRoundInLegacyOrder(format.firstKnockoutRound).map(([home, away]) => [
       teamOf(home),
       teamOf(away),
     ]),
@@ -249,8 +270,14 @@ type StoredPrediction = Omit<PredictionData, 'groups'> & {
   groups?: Record<string, string[] | GroupSelection>;
 };
 
+/** Cruces por lado de cada ronda de un cuadro completo, y el prefijo de sus identificadores. */
+const SIDE_SIZES = [8, 4, 2, 1];
+const ID_PREFIXES = ['', '8', '4', '2'];
+
+/** Reconstruye el cuadro del editor a partir del pronóstico guardado de un torneo. */
 export function reconstructBracketState(
   data: StoredPrediction | null | undefined,
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
 ): BracketState | null {
   if (!data) return null;
   const toSlot = (name: string | null | undefined) =>
@@ -280,37 +307,36 @@ export function reconstructBracketState(
   const pairToMatch = (pair: string[] | undefined, id: string): BracketMatch | null =>
     pair && (pair[0] || pair[1]) ? { home: toSlot(pair[0]), away: toSlot(pair[1]), id } : null;
 
-  let r32Data: TeamPair[] | null = null;
-  if (Array.isArray(data.r32) && data.r32.length >= 16) {
-    r32Data = data.r32;
-  } else if (Array.isArray(data.r1) && data.r1.length >= 16) {
-    r32Data = data.r1;
+  const size = format.firstKnockoutRound.length;
+  const start = Math.max(0, BRACKET_ROUNDS.indexOf(format.firstRound));
+  const stored = storedFirstRound(data, format);
+  let firstRound: TeamPair[] | null = null;
+  if (Array.isArray(stored) && stored.length >= size) {
+    firstRound = stored;
   } else if (data.groups && hasValidGroupSelections(normalizeGroupsDraft(data.groups))) {
-    r32Data = buildR32FromGroups(data.groups, data.thirds, data.topologyVersion);
+    firstRound = buildR32FromGroups(data.groups, data.thirds, data.topologyVersion, format);
   }
+  const hasFirstRound = Boolean(firstRound && firstRound.length >= size);
+  const empty = getDefaultBracketState(data.topologyVersion, format);
 
-  const hasR32 = Boolean(r32Data && r32Data.length >= 16);
+  const round = (index: number) => {
+    const key = BRACKET_ROUNDS[index];
+    if (index < start) return { left: [], right: [] };
+    if (index === start && !hasFirstRound) return empty[key];
+    const pairs = index === start ? firstRound : data[key] || [];
+    const perSide = index === start ? size / 2 : SIDE_SIZES[index];
+    return {
+      left: toMatches(pairs, 0, perSide, `L${ID_PREFIXES[index]}`),
+      right: toMatches(pairs, perSide, perSide, `R${ID_PREFIXES[index]}`),
+    };
+  };
 
   return {
     topologyVersion: topologyVersion(data.topologyVersion),
-    r32: hasR32
-      ? {
-          left: toMatches(r32Data, 0, 8, 'L'),
-          right: toMatches(r32Data, 8, 8, 'R'),
-        }
-      : getDefaultBracketState(data.topologyVersion).r32,
-    r16: {
-      left: toMatches(data.r16 || [], 0, 4, 'L8'),
-      right: toMatches(data.r16 || [], 4, 4, 'R8'),
-    },
-    qf: {
-      left: toMatches(data.qf || [], 0, 2, 'L4'),
-      right: toMatches(data.qf || [], 2, 2, 'R4'),
-    },
-    sf: {
-      left: toMatches(data.sf || [], 0, 1, 'L2'),
-      right: toMatches(data.sf || [], 1, 1, 'R2'),
-    },
+    r32: round(0),
+    r16: round(1),
+    qf: round(2),
+    sf: round(3),
     final: pairToMatch(data.final, 'FINAL'),
     champion: toSlot(data.champion),
     thirdPlaceMatch: pairToMatch(data.thirdPlaceMatch, 'THIRD'),

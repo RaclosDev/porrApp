@@ -1,10 +1,19 @@
-import type { GroupOdds, GroupStandings, Match, PredictionData, TeamPair } from '../types/api';
+import type {
+  GroupOdds,
+  GroupStandings,
+  Match,
+  PredictionData,
+  TeamPair,
+  TournamentFormat,
+} from '../types/api';
 import {
   buildR32FromGroups,
   extractGroupsFromR32,
   hasValidGroupSelections,
+  storedFirstRound,
   type GroupSelection,
 } from './bracketDraft';
+import { WORLD_CUP_2026_FORMAT } from './firstKnockoutRound';
 
 /** Pronóstico listo para el visor: grupos como posiciones y cruces con nombres. */
 export type ViewerPrediction = Omit<PredictionData, 'groups'> & {
@@ -106,6 +115,7 @@ export const injectQualifiedTeams = (
 export const normalizePart = (
   partData: PredictionData | null,
   odds: GroupOdds | undefined,
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
 ): ViewerPrediction | null => {
   if (!partData) return null;
   const normalized: ViewerPrediction = JSON.parse(JSON.stringify(partData));
@@ -135,6 +145,7 @@ export const normalizePart = (
   // Tercer puesto vacío pero con semifinales y final: son los dos semifinalistas eliminados.
   const final = normalized.final;
   if (
+    format.thirdPlaceMatch &&
     (!normalized.thirdPlaceMatch?.[0] || !normalized.thirdPlaceMatch?.[1]) &&
     sf &&
     sf.length >= 2 &&
@@ -146,12 +157,9 @@ export const normalizePart = (
     if (t1 && t2) normalized.thirdPlaceMatch = [t1, t2];
   }
 
-  if (!hasValidGroupSelections(normalized.groups) && (normalized.r32 || normalized.r1)) {
-    const extracted = extractGroupsFromR32(
-      normalized.r32 || normalized.r1,
-      odds,
-      normalized.topologyVersion,
-    );
+  const firstRound = storedFirstRound(normalized, format);
+  if (!hasValidGroupSelections(normalized.groups) && firstRound) {
+    const extracted = extractGroupsFromR32(firstRound, odds, normalized.topologyVersion, format);
     if (hasValidGroupSelections(extracted.groups)) {
       normalized.groups = extracted.groups;
       if (!normalized.thirds || normalized.thirds.length === 0) {
@@ -160,13 +168,19 @@ export const normalizePart = (
     }
   }
 
+  // Los dieciseisavos que falten se deducen de los grupos; solo los tiene un torneo que los juega.
+  if (format.firstRound !== 'r32') return normalized;
   if (!Array.isArray(normalized.r32) || normalized.r32.length < 16) {
     if (Array.isArray(normalized.r1) && normalized.r1.length >= 16) {
       normalized.r32 = normalized.r1;
     } else if (normalized.groups && hasValidGroupSelections(normalized.groups)) {
       normalized.r32 =
-        buildR32FromGroups(normalized.groups, normalized.thirds, normalized.topologyVersion) ??
-        undefined;
+        buildR32FromGroups(
+          normalized.groups,
+          normalized.thirds,
+          normalized.topologyVersion,
+          format,
+        ) ?? undefined;
     }
   }
 

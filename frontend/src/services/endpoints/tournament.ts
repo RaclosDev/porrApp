@@ -8,12 +8,16 @@ import type {
   MatchRadar,
   PredictionData,
   TopScorer,
+  TournamentFormat,
 } from '../../types/api';
 import { request, query } from '../http';
 
 /** Datos oficiales de un torneo con fase de grupos (grupos, cuotas, goleadores y cuadro). */
 const tournament = (competitionId: number, read: string) =>
   `/competitions/${competitionId}/tournament/${read}`;
+
+export const fetchTournamentFormat = (competitionId: number) =>
+  request<TournamentFormat>(tournament(competitionId, 'format'));
 
 export const fetchTournamentStandings = (competitionId: number) =>
   request<GroupStandings>(tournament(competitionId, 'standings'));

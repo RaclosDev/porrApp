@@ -6,11 +6,12 @@ import {
   hasValidGroupSelections,
   normalizeGroupsDraft,
   reconstructBracketState,
+  storedFirstRound,
   type GroupSelection,
 } from '../utils/bracketDraft';
 import { isEmptyBracket } from '../utils/bracketEditor';
 import type { BracketState } from '../store/useAppStore';
-import type { GroupOdds, PredictionSummary } from '../types/api';
+import type { GroupOdds, PredictionSummary, TournamentFormat } from '../types/api';
 
 interface HydrationInput {
   isAuthenticated: boolean;
@@ -20,6 +21,8 @@ interface HydrationInput {
   topScorer: string;
   bracketState: BracketState;
   groupOdds: GroupOdds | undefined;
+  /** Forma del torneo de la liga, o `null` mientras no se sabe: hasta entonces no se vuelca nada. */
+  format: TournamentFormat | null;
   participantsHashes: PredictionSummary[];
   setBracketState: (state: BracketState) => void;
   setTopScorer: (scorer: string) => void;
@@ -37,6 +40,7 @@ interface HydrationInput {
 export function useSavedBracketHydration(input: HydrationInput) {
   const { isAuthenticated, activeGroupId, userId, setBracketState, setTopScorer, setUserName } =
     input;
+  const format = input.format;
 
   // Valores que la hidratación consulta al llegar la respuesta, sin volver a lanzarla.
   const latestRef = useRef(input);
@@ -48,7 +52,7 @@ export function useSavedBracketHydration(input: HydrationInput) {
   const hydratedScopeRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!(isAuthenticated || Boolean(getAuthToken())) || !activeGroupId) return;
+    if (!(isAuthenticated || Boolean(getAuthToken())) || !activeGroupId || !format) return;
     const scope = `${userId}:${activeGroupId}`;
     if (hydratedScopeRef.current === scope) return;
     hydratedScopeRef.current = scope;
@@ -87,11 +91,13 @@ export function useSavedBracketHydration(input: HydrationInput) {
 
         let norm = normalizeGroupsDraft(currentData.groups);
         let normThirds = Array.isArray(currentData.thirds) ? currentData.thirds : [];
-        if (!hasValidGroupSelections(norm) && (currentData.r32 || currentData.r1)) {
+        const firstRound = storedFirstRound(currentData, format);
+        if (!hasValidGroupSelections(norm) && firstRound) {
           const extracted = extractGroupsFromR32(
-            currentData.r32 || currentData.r1,
+            firstRound,
             latest.groupOdds,
             currentData.topologyVersion,
+            format,
           );
           norm = extracted.groups;
           if (normThirds.length === 0) normThirds = extracted.thirds;
@@ -109,7 +115,7 @@ export function useSavedBracketHydration(input: HydrationInput) {
           latest.setSavedThirdsDraft(normThirds);
           writeDraft('advancing', groupId, userId, normThirds);
         }
-        const hydrated = reconstructBracketState(currentData);
+        const hydrated = reconstructBracketState(currentData, format);
         if (hydrated && isEmptyBracket(latest.bracketState)) {
           setBracketState(hydrated);
         }
@@ -126,5 +132,5 @@ export function useSavedBracketHydration(input: HydrationInput) {
       // Una petición cortada a medias no cuenta como hidratada.
       if (!settled && hydratedScopeRef.current === scope) hydratedScopeRef.current = null;
     };
-  }, [userId, activeGroupId, isAuthenticated, setBracketState, setTopScorer, setUserName]);
+  }, [userId, activeGroupId, isAuthenticated, format, setBracketState, setTopScorer, setUserName]);
 }

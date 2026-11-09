@@ -10,6 +10,8 @@ interface BracketViewProps {
   finalAway: string | null;
   thirdHome: string | null;
   thirdAway: string | null;
+  /** El torneo juega el partido por el tercer puesto. */
+  thirdPlaceMatch: boolean;
   getCenterPointsTotal: () => number;
   hiddenRounds: Record<number, boolean>;
   leftRounds: ViewerData['leftRounds'];
@@ -26,6 +28,7 @@ export default function BracketView({
   finalAway,
   thirdHome,
   thirdAway,
+  thirdPlaceMatch,
   getCenterPointsTotal,
   hiddenRounds,
   leftRounds,
@@ -53,10 +56,12 @@ export default function BracketView({
               champion={renderSlot(champName, { roundIndex: 'champion' })}
               thirdWinner={thirdWinnerName}
               thirdPlace={
-                <>
-                  {renderSlot(thirdHome, { roundIndex: 'thirdPlaceMatch', isHome: true })}
-                  {renderSlot(thirdAway, { roundIndex: 'thirdPlaceMatch', isHome: false })}
-                </>
+                thirdPlaceMatch ? (
+                  <>
+                    {renderSlot(thirdHome, { roundIndex: 'thirdPlaceMatch', isHome: true })}
+                    {renderSlot(thirdAway, { roundIndex: 'thirdPlaceMatch', isHome: false })}
+                  </>
+                ) : undefined
               }
               footer={centerTotal > 0 ? <p className="finale-points">+{centerTotal} pts</p> : null}
             />

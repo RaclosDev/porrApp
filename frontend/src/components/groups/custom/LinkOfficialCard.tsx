@@ -6,7 +6,7 @@ import { queryKeys } from '../../../services/queryKeys';
 import type { Group } from '../../../types/api';
 import type { SaveAction } from './customCompetition';
 import { confirmAction } from '../../../utils/confirmAction';
-import { isWorldCupCompetition } from '../../../context/leagueKind';
+import { isGroupTournament } from '../../../context/leagueKind';
 
 /**
  * Pasa una liga de cuadro personalizado a una competición oficial con cuadro propio (Worlds de LoL…):
@@ -20,7 +20,8 @@ export default function LinkOfficialCard({ group, save }: { group: Group; save: 
     staleTime: 5 * 60_000,
   });
   const options = (competitions.data ?? []).filter(
-    (item) => item.formatType === 'TOURNAMENT' && !isWorldCupCompetition(item.externalId),
+    (item) =>
+      item.formatType === 'TOURNAMENT' && !isGroupTournament(item.groupTournament, item.externalId),
   );
   const [selected, setSelected] = useState('');
   const fallback = options.find((item) => item.externalId === 'lol.worlds') ?? options[0];

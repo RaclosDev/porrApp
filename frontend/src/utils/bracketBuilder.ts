@@ -1,7 +1,12 @@
-/** Cuadro oficial del Mundial (grupos, mejores terceros y cruces) a partir de su clasificación y sus partidos. */
-import type { GroupOdds, GroupStandings, Match } from '../types/api';
+/** Cuadro oficial de un torneo con grupos (mejores terceros y cruces) a partir de su clasificación y sus partidos. */
+import type { GroupOdds, GroupStandings, Match, TournamentFormat } from '../types/api';
 import { teamKey } from './teamKey';
-import { WORLD_CUP_2026_FIRST_ROUND, firstRoundLabels } from './firstKnockoutRound';
+import {
+  WORLD_CUP_2026_FORMAT,
+  firstRoundLabels,
+  roundsOf,
+  type BracketRound,
+} from './firstKnockoutRound';
 import { alignOfficialRound, nextPools } from './officialBracketLayout';
 
 /** Equipo clasificado según el marcador; provisional si el partido no ha terminado. */
@@ -78,14 +83,27 @@ export const slotName = (slot: BracketSlot | undefined): string | null => {
   return typeof slot === 'string' ? slot : slot.name;
 };
 
+/** Cómo llama el proveedor a los partidos de cada ronda. */
+const ROUND_NAMES: Record<BracketRound, string[]> = {
+  r32: ['r32', '32', '16avo'],
+  r16: ['r16', 'octav'],
+  qf: ['qf', 'quarter', 'cuart'],
+  sf: ['sf', 'semi'],
+};
+
+/**
+ * Cuadro oficial de un torneo con grupos. Empieza en la ronda que diga su forma (sin forma, la del
+ * Mundial); las rondas anteriores, que el torneo no juega, quedan sin cruces.
+ */
 export function buildBracketData(
   officialPoints: GroupStandings,
   groupOdds: GroupOdds,
   allGames: Match[],
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
 ) {
   const points = officialPoints || {};
 
-  const fallbackR32 = firstRoundLabels(WORLD_CUP_2026_FIRST_ROUND);
+  const fallbackFirstRound = firstRoundLabels(format.firstKnockoutRound);
 
   const sanitizedToReal: Record<string, string> = {};
   if (groupOdds) {
@@ -126,17 +144,16 @@ export function buildBracketData(
   };
 
   const safeGames = Array.isArray(allGames) ? allGames : [];
+  const playedIn = (round: BracketRound) =>
+    safeGames
+      .filter((m) => matchRound(m, ...ROUND_NAMES[round]))
+      .sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
 
-  const explicitR32 = safeGames
-    .filter((m) => matchRound(m, 'r32', '32', '16avo'))
-    .sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
-  const allR16 = safeGames
-    .filter((m) => matchRound(m, 'r16', 'octav'))
-    .sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
-  const realR32Matches = explicitR32;
+  const rounds = roundsOf(format);
+  const realFirstRound = playedIn(rounds[0]);
 
   const opponentMap: Record<string, string> = {};
-  realR32Matches.forEach((m) => {
+  realFirstRound.forEach((m) => {
     const h = m.home,
       a = m.away;
     if (h && a && h !== 'Por definir' && a !== 'Por definir') {
@@ -145,17 +162,17 @@ export function buildBracketData(
     }
   });
 
-  const r32WinnerOf: Record<string, ProvisionalTeam> = {};
-  realR32Matches.forEach((m) => {
+  const firstRoundWinnerOf: Record<string, ProvisionalTeam> = {};
+  realFirstRound.forEach((m) => {
     const winnerName = matchWinner(m);
     if (winnerName && m.home_score != null && m.away_score != null) {
       const winnerObj = { name: winnerName, isProvisional: !m.finished };
-      r32WinnerOf[m.home] = winnerObj;
-      r32WinnerOf[m.away] = winnerObj;
+      firstRoundWinnerOf[m.home] = winnerObj;
+      firstRoundWinnerOf[m.away] = winnerObj;
     }
   });
 
-  let r32 = fallbackR32.map((match) =>
+  let firstRound = fallbackFirstRound.map((match) =>
     match.map((teamName) => {
       if (typeof teamName === 'string' && teamName.includes('º Grupo ')) {
         const parts = teamName.split(' ');
@@ -167,7 +184,7 @@ export function buildBracketData(
     }),
   );
 
-  r32 = r32.map((match) => {
+  firstRound = firstRound.map((match) => {
     return match.map((teamName, idx) => {
       if (typeof teamName === 'string' && teamName.startsWith('3º ')) {
         const otherTeam = match[idx === 0 ? 1 : 0];
@@ -179,43 +196,6 @@ export function buildBracketData(
       return teamName;
     });
   });
-
-  const r32Pools = r32.map((pair) => pair.filter((name) => name && !name.includes('º')));
-  const r16Pools = nextPools(r32Pools);
-  const qfPools = nextPools(r16Pools);
-  const sfPools = nextPools(qfPools);
-  const r16: BracketSlot[][] = alignOfficialRound(allR16, r32Pools);
-  for (let i = 0; i < 16; i += 2) {
-    const r16Idx = Math.floor(i / 2);
-    const homeTeam = r32[i][0];
-    const awayTeam = r32[i + 1][0];
-
-    if (homeTeam && !homeTeam.includes('º')) {
-      const winner = r32WinnerOf[homeTeam];
-      if (winner && !r16[r16Idx][0]) r16[r16Idx][0] = winner;
-    }
-    if (awayTeam && !awayTeam.includes('º')) {
-      const winner = r32WinnerOf[awayTeam];
-      if (winner && !r16[r16Idx][1]) r16[r16Idx][1] = winner;
-    }
-  }
-
-  const realQF = safeGames
-    .filter((m) => matchRound(m, 'qf', 'quarter', 'cuart'))
-    .sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
-  const realSF = safeGames
-    .filter((m) => matchRound(m, 'sf', 'semi'))
-    .sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime());
-  const realFinal = safeGames.filter(
-    (m) =>
-      matchRound(m, 'final') &&
-      !matchRound(m, 'semi', 'quarter', 'cuart', 'octav', 'third', 'tercer', '3rd', '3er', '16avo'),
-  );
-  const realThird = safeGames.filter((m) => matchRound(m, 'third', 'tercer', '3rd', '3er'));
-  const qf: BracketSlot[][] = alignOfficialRound(realQF, r16Pools);
-  const sf: BracketSlot[][] = alignOfficialRound(realSF, qfPools);
-  const final_: BracketSlot[] = alignOfficialRound(realFinal, sfPools)[0];
-  const thirdPlaceMatch: BracketSlot[] = alignOfficialRound(realThird, sfPools)[0];
 
   const findMatch = (n1: string, n2: string) =>
     safeGames.find(
@@ -254,21 +234,57 @@ export function buildBracketData(
     return null;
   };
 
-  for (let i = 0; i < 8; i += 2) {
-    const idx = Math.floor(i / 2);
-    if (!qf[idx][0]) qf[idx][0] = findWinner(r16[i][0], r16[i][1]);
-    if (!qf[idx][1]) qf[idx][1] = findWinner(r16[i + 1][0], r16[i + 1][1]);
-  }
-  for (let i = 0; i < 4; i += 2) {
-    const idx = Math.floor(i / 2);
-    if (!sf[idx][0]) sf[idx][0] = findWinner(qf[i][0], qf[i][1]);
-    if (!sf[idx][1]) sf[idx][1] = findWinner(qf[i + 1][0], qf[i + 1][1]);
-  }
-  if (!final_[0]) final_[0] = findWinner(sf[0][0], sf[0][1]);
-  if (!final_[1]) final_[1] = findWinner(sf[1][0], sf[1][1]);
+  // Cada ronda se alinea con los equipos que pueden llegar a cada hueco desde la anterior, y lo que
+  // el proveedor aún no ha publicado se rellena con los ganadores que ya se conocen.
+  const built: Partial<Record<BracketRound, BracketSlot[][]>> = { [rounds[0]]: firstRound };
+  let pools = firstRound.map((pair) => pair.filter((name) => name && !name.includes('º')));
+  let previous: BracketSlot[][] = firstRound;
+  rounds.slice(1).forEach((round, index) => {
+    const aligned: BracketSlot[][] = alignOfficialRound(playedIn(round), pools);
+    for (let i = 0; i + 1 < previous.length; i += 2) {
+      const target = aligned[i / 2];
+      if (index === 0) {
+        // En la primera ronda el rival puede ser aún un hueco: basta con el equipo que ya está.
+        const homeTeam = firstRound[i][0];
+        const awayTeam = firstRound[i + 1][0];
+        if (homeTeam && !homeTeam.includes('º') && !target[0]) {
+          target[0] = firstRoundWinnerOf[homeTeam] ?? null;
+        }
+        if (awayTeam && !awayTeam.includes('º') && !target[1]) {
+          target[1] = firstRoundWinnerOf[awayTeam] ?? null;
+        }
+      } else {
+        if (!target[0]) target[0] = findWinner(previous[i][0], previous[i][1]);
+        if (!target[1]) target[1] = findWinner(previous[i + 1][0], previous[i + 1][1]);
+      }
+    }
+    built[round] = aligned;
+    previous = aligned;
+    pools = nextPools(pools);
+  });
+  const sf = built.sf ?? [];
+  const sfPools = pools;
 
-  if (!thirdPlaceMatch[0]) thirdPlaceMatch[0] = findLoser(sf[0][0], sf[0][1]);
-  if (!thirdPlaceMatch[1]) thirdPlaceMatch[1] = findLoser(sf[1][0], sf[1][1]);
+  const realFinal = safeGames.filter(
+    (m) =>
+      matchRound(m, 'final') &&
+      !matchRound(m, 'semi', 'quarter', 'cuart', 'octav', 'third', 'tercer', '3rd', '3er', '16avo'),
+  );
+  const realThird = format.thirdPlaceMatch
+    ? safeGames.filter((m) => matchRound(m, 'third', 'tercer', '3rd', '3er'))
+    : [];
+  const final_: BracketSlot[] = alignOfficialRound(realFinal, sfPools)[0] ?? [null, null];
+  const thirdPlaceMatch: BracketSlot[] = alignOfficialRound(realThird, sfPools)[0] ?? [null, null];
+
+  if (sf.length >= 2) {
+    if (!final_[0]) final_[0] = findWinner(sf[0][0], sf[0][1]);
+    if (!final_[1]) final_[1] = findWinner(sf[1][0], sf[1][1]);
+
+    if (format.thirdPlaceMatch) {
+      if (!thirdPlaceMatch[0]) thirdPlaceMatch[0] = findLoser(sf[0][0], sf[0][1]);
+      if (!thirdPlaceMatch[1]) thirdPlaceMatch[1] = findLoser(sf[1][0], sf[1][1]);
+    }
+  }
 
   let champion = findWinner(final_[0], final_[1]);
   let thirdPlaceWinner = findWinner(thirdPlaceMatch[0], thirdPlaceMatch[1]);
@@ -293,13 +309,14 @@ export function buildBracketData(
 
   return {
     topologyVersion: 2 as const,
-    r32,
-    r16,
-    qf,
+    r32: built.r32 ?? [],
+    r16: built.r16 ?? [],
+    qf: built.qf ?? [],
     sf,
     final: final_,
     champion: champion,
-    thirdPlaceMatch: thirdPlaceMatch,
+    /** Cruce por el tercer puesto, o `null` si el torneo no lo juega. */
+    thirdPlaceMatch: format.thirdPlaceMatch ? thirdPlaceMatch : null,
     thirdPlaceWinner: thirdPlaceWinner,
   };
 }

@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTournamentData } from '../context/leagueData';
 import { useAppContext, useBracketDraft } from '../context/AppContext';
 import { createPrediction } from '../services/api';
-import { advanceBracketWinner, replaceR32Team } from '../utils/bracketTransitions';
+import { advanceBracketWinner, firstRoundOf, replaceR32Team } from '../utils/bracketTransitions';
 import { getDefaultBracketState, type BracketTeam } from '../store/useAppStore';
 import { errorMessage } from '../utils/errors';
+import { WORLD_CUP_2026_FORMAT } from '../utils/firstKnockoutRound';
 import { readGroupsDraft, readThirdsDraft, removeDraft, writeDraft } from '../utils/drafts';
 import {
   extractGroupsFromR32,
@@ -18,6 +19,8 @@ import {
   buildBracketPrediction,
   fillKnownQualifiers,
   hasAnyRealTeam,
+  hasShapeOf,
+  isEmptyBracket,
   hasIncompleteR32,
   hasPlaceholderSlots,
   officialGroupStatus,
@@ -42,7 +45,13 @@ export function useBracket() {
     activeGroupLockDate,
     participantsHashes,
   } = useAppContext();
-  const { groupOdds, groupStandings: officialPoints } = useTournamentData();
+  // Sin forma del servidor, la del Mundial: la de todos los cuadros anteriores.
+  const {
+    groupOdds,
+    groupStandings: officialPoints,
+    format = WORLD_CUP_2026_FORMAT,
+    loadingFormat = false,
+  } = useTournamentData();
 
   const [predictionName, setPredictionName] = useState('');
   const [savedPredictionId, setSavedPredictionId] = useState<string | null>(null);
@@ -72,6 +81,12 @@ export function useBracket() {
         .filter(Boolean)
     : [];
 
+  // El cuadro vacío es el del torneo de la liga: al saber su forma, sustituye al de otra.
+  useEffect(() => {
+    if (loadingFormat || hasShapeOf(bracketState, format) || !isEmptyBracket(bracketState)) return;
+    setBracketState(getDefaultBracketState(2, format));
+  }, [bracketState, format, loadingFormat, setBracketState]);
+
   useEffect(() => {
     if (!isKnockoutsOnly) return;
     const filled = fillKnownQualifiers(bracketState, officialPoints, groupOdds);
@@ -93,6 +108,7 @@ export function useBracket() {
     topScorer,
     bracketState,
     groupOdds,
+    format: loadingFormat ? null : format,
     participantsHashes,
     setBracketState,
     setTopScorer,
@@ -105,10 +121,12 @@ export function useBracket() {
 
   /** Si el cuadro tiene equipos pero no hay borrador de grupos, lo deduce del cuadro y lo guarda. */
   const storeGroupsFromBracket = useCallback(() => {
+    if (!hasShapeOf(bracketState, format)) return;
     const extracted = extractGroupsFromR32(
-      bracketState.r32,
+      firstRoundOf(bracketState),
       groupOdds,
       bracketState.topologyVersion,
+      format,
     );
     if (!hasValidGroupSelections(extracted.groups)) return;
     setSavedGroupsDraft(extracted.groups);
@@ -117,7 +135,7 @@ export function useBracket() {
       setSavedThirdsDraft(extracted.thirds);
       writeDraft('advancing', activeGroupId, userId, extracted.thirds);
     }
-  }, [bracketState, groupOdds, activeGroupId, userId]);
+  }, [bracketState, groupOdds, format, activeGroupId, userId]);
 
   useEffect(() => {
     if (hasValidGroupSelections(savedGroupsDraft) || !hasAnyRealTeam(bracketState)) return;
@@ -141,7 +159,7 @@ export function useBracket() {
     selections: Record<string, GroupSelection>,
     advancingThirds: string[],
   ) => {
-    setBracketState(applyGroupStage(bracketState, selections, advancingThirds));
+    setBracketState(applyGroupStage(bracketState, selections, advancingThirds, format));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -159,7 +177,7 @@ export function useBracket() {
       return;
     }
     if (isKnockoutsOnly && hasIncompleteR32(bracketState)) {
-      toast.error('Rellena todos los equipos de dieciseisavos.');
+      toast.error('Rellena todos los equipos de la primera ronda.');
       return;
     }
     const predictionData = buildBracketPrediction({
@@ -170,6 +188,7 @@ export function useBracket() {
       groups: readGroupsDraft(activeGroupId, userId),
       thirds: readThirdsDraft(activeGroupId, userId) ?? [],
       knockoutsOnly: isKnockoutsOnly,
+      thirdPlaceMatch: format.thirdPlaceMatch,
     });
     if (activeGroupIsLocked) {
       toast.error('El plazo para enviar o modificar porras en esta liga ha finalizado.');
@@ -195,7 +214,7 @@ export function useBracket() {
   const handleResetToGroupStage = () => {
     // Antes de vaciar el cuadro se guardan los grupos que se deducen de él.
     if (!hasValidGroupSelections(savedGroupsDraft)) storeGroupsFromBracket();
-    setBracketState(getDefaultBracketState(bracketState.topologyVersion));
+    setBracketState(getDefaultBracketState(bracketState.topologyVersion, format));
     removeDraft('bracket', activeGroupId, userId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -203,6 +222,9 @@ export function useBracket() {
   return {
     bracketState,
     setBracketState,
+    format,
+    /** El cuadro aún no es el del torneo de la liga (se está cargando su forma). */
+    shapePending: loadingFormat || !hasShapeOf(bracketState, format),
     userName,
     setUserName,
     topScorer,

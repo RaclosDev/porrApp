@@ -9,6 +9,7 @@ import {
   fetchLeaderboardMatchdays,
   fetchMatchRadar,
   fetchMatches,
+  fetchTournamentFormat,
   fetchTournamentGroupOdds,
   fetchTournamentStandings,
   fetchTournamentTopScorers,
@@ -17,7 +18,8 @@ import { isApiError } from '../services/apiError';
 import { queryKeys } from '../services/queryKeys';
 import { featuredGroupQuery, leaguePredictionsQuery, myGroupsQuery } from '../services/queries';
 import { useAppStore } from '../store/useAppStore';
-import type { Group, LeagueCompetition, MatchRadar } from '../types/api';
+import type { Group, LeagueCompetition, MatchRadar, TournamentFormat } from '../types/api';
+import { WORLD_CUP_2026_FORMAT } from '../utils/firstKnockoutRound';
 import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
 import { MATCH_KINDS, leagueKindOf, type LeagueKind } from './leagueKind';
 import { isKnockoutOnlyCup } from '../utils/knockoutDrawPending';
@@ -76,6 +78,13 @@ const localCopy = {
     return cached && typeof cached === 'object' ? (cached as T) : previous;
   },
 };
+
+/** La respuesta trae los cruces de la primera ronda: sin ellos no hay cuadro que pintar. */
+const isTournamentFormat = (value: unknown): value is TournamentFormat =>
+  Boolean(value) &&
+  Array.isArray((value as TournamentFormat).firstKnockoutRound) &&
+  (value as TournamentFormat).firstKnockoutRound.length > 0 &&
+  Array.isArray((value as TournamentFormat).groups);
 
 const isObject = (value: unknown): value is object =>
   Boolean(value) && typeof value === 'object' && typeof value !== 'function';
@@ -286,6 +295,21 @@ export function useTournamentData() {
       localCopy.objectOr(`cached_tournament_group_odds_${tournamentId}`, previous),
   });
 
+  // La forma de un torneo no cambia: se pide una vez y se guarda para la próxima visita.
+  const { data: format, isLoading: loadingFormat } = useQuery({
+    queryKey: queryKeys.tournamentFormat(tournamentId),
+    enabled: groupStage,
+    staleTime: Infinity,
+    retry: 1,
+    queryFn: async () => {
+      const data = await fetchTournamentFormat(tournamentId as number);
+      localCopy.write(`cached_tournament_format_${tournamentId}`, data);
+      return data;
+    },
+    placeholderData: (previous) =>
+      localCopy.objectOr(`cached_tournament_format_${tournamentId}`, previous),
+  });
+
   const {
     data: topScorers,
     isLoading: topScorersLoading,
@@ -307,6 +331,13 @@ export function useTournamentData() {
     groupStandings: groupStage && isObject(standings) ? standings : EMPTY_OBJECT,
     /** Selecciones de cada grupo con sus cuotas, para ordenar el cuadro antes del torneo. */
     groupOdds: groupStage && isObject(odds) ? odds : EMPTY_OBJECT,
+    /**
+     * Forma del torneo (grupos, terceros que pasan y dónde empieza su cuadro). Si el servidor no la
+     * da, la del Mundial, que es la de todos los cuadros anteriores.
+     */
+    format: groupStage && isTournamentFormat(format) ? format : WORLD_CUP_2026_FORMAT,
+    /** Aún no se sabe la forma del torneo: su cuadro no se puede pintar todavía. */
+    loadingFormat: groupStage && loadingFormat && !isTournamentFormat(format),
     loading: groupStage && loadingStandings && !standings,
     /** La liga juega el pichichi (y se piden los goleadores). */
     pichichi,

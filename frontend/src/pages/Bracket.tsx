@@ -3,11 +3,9 @@ import { useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
 import { BracketFinalMatch } from '../components/BracketFinale';
-import BracketCanvas, {
-  TeamSlot,
-  WORLD_CUP_ROUND_LABELS,
-  type SlotContext,
-} from '../components/BracketCanvas';
+import BracketCanvas, { TeamSlot, type SlotContext } from '../components/BracketCanvas';
+import { firstRoundIndex } from '../utils/bracketTransitions';
+import { roundLabelsOf, roundsOf } from '../utils/firstKnockoutRound';
 import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
 import { useBracket } from '../hooks/useBracket';
@@ -52,6 +50,8 @@ function WorldCupBracket() {
   const myPred = useMyLeaguePrediction();
   const {
     bracketState,
+    format,
+    shapePending,
     userName,
     setUserName,
     topScorer,
@@ -92,14 +92,26 @@ function WorldCupBracket() {
     );
   }
 
+  if (shapePending) return <LeagueLoadState />;
+
+  // El lienzo numera las rondas desde la primera del torneo; el cuadro guardado, desde dieciseisavos.
+  const firstRound = firstRoundIndex(bracketState);
+  const advance = (
+    team: BracketTeam | null | undefined,
+    side: SlotContext['side'],
+    canvasRound: number,
+    matchIndex: number,
+  ) => advanceTeam(team, side, canvasRound + firstRound, matchIndex);
+
   /** Si el equipo ya está elegido para pasar de ronda desde esa casilla. */
   const isPicked = (
     team: BracketTeam | null | undefined,
     side: SlotContext['side'] | 'center',
-    roundIndex: number,
+    canvasRound: number,
     matchIndex: number,
   ) => {
     if (!team?.name) return false;
+    const roundIndex = side === 'center' ? canvasRound : canvasRound + firstRound;
     let picked: BracketTeam | null | undefined;
     if (side === 'center') {
       picked = roundIndex === 4 ? bracketState.champion : bracketState.thirdPlaceWinner;
@@ -156,7 +168,7 @@ function WorldCupBracket() {
           name={name}
           rightContent={statusIndicator}
           pressed={isPicked(team, side, roundIndex, matchIndex)}
-          onClick={() => advanceTeam(team, side, roundIndex, matchIndex)}
+          onClick={() => advance(team, side, roundIndex, matchIndex)}
         />
       );
     }
@@ -164,7 +176,7 @@ function WorldCupBracket() {
       <TeamSlot
         name={team?.name}
         pressed={isPicked(team, side, roundIndex, matchIndex)}
-        onClick={() => advanceTeam(team, side, roundIndex, matchIndex)}
+        onClick={() => advance(team, side, roundIndex, matchIndex)}
       />
     );
   };
@@ -190,6 +202,7 @@ function WorldCupBracket() {
           userId={userId}
           initialSelections={savedGroupsDraft}
           initialThirds={savedThirdsDraft}
+          bestThirds={format.bestThirds}
         />
       ) : (
         <>
@@ -232,19 +245,9 @@ function WorldCupBracket() {
 
           <div className={mobileStep === 'bracket' ? '' : 'mobile-step-hidden'}>
             <BracketCanvas
-              roundLabels={WORLD_CUP_ROUND_LABELS}
-              leftRounds={[
-                bracketState.r32.left,
-                bracketState.r16.left,
-                bracketState.qf.left,
-                bracketState.sf.left,
-              ]}
-              rightRounds={[
-                bracketState.r32.right,
-                bracketState.r16.right,
-                bracketState.qf.right,
-                bracketState.sf.right,
-              ]}
+              roundLabels={roundLabelsOf(format)}
+              leftRounds={roundsOf(format).map((round) => bracketState[round].left)}
+              rightRounds={roundsOf(format).map((round) => bracketState[round].right)}
               renderSlot={renderSlot}
               renderFinal={(expandedThirdPlace) => (
                 <BracketFinalMatch
@@ -273,24 +276,26 @@ function WorldCupBracket() {
                   champion={<TeamSlot name={bracketState.champion?.name} />}
                   thirdWinner={bracketState.thirdPlaceWinner?.name}
                   thirdPlace={
-                    <>
-                      <TeamSlot
-                        name={bracketState.thirdPlaceMatch?.home?.name}
-                        pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
-                        onClick={() =>
-                          bracketState.thirdPlaceMatch?.home &&
-                          advanceTeam(bracketState.thirdPlaceMatch.home, 'center', 5, 0)
-                        }
-                      />
-                      <TeamSlot
-                        name={bracketState.thirdPlaceMatch?.away?.name}
-                        pressed={isPicked(bracketState.thirdPlaceMatch?.away, 'center', 5, 0)}
-                        onClick={() =>
-                          bracketState.thirdPlaceMatch?.away &&
-                          advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
-                        }
-                      />
-                    </>
+                    format.thirdPlaceMatch ? (
+                      <>
+                        <TeamSlot
+                          name={bracketState.thirdPlaceMatch?.home?.name}
+                          pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
+                          onClick={() =>
+                            bracketState.thirdPlaceMatch?.home &&
+                            advanceTeam(bracketState.thirdPlaceMatch.home, 'center', 5, 0)
+                          }
+                        />
+                        <TeamSlot
+                          name={bracketState.thirdPlaceMatch?.away?.name}
+                          pressed={isPicked(bracketState.thirdPlaceMatch?.away, 'center', 5, 0)}
+                          onClick={() =>
+                            bracketState.thirdPlaceMatch?.away &&
+                            advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
+                          }
+                        />
+                      </>
+                    ) : undefined
                   }
                 />
               )}

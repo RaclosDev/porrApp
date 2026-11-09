@@ -10,6 +10,7 @@ import ViewerTabs from './prediction/ViewerTabs';
 import GroupsView from './prediction/GroupsView';
 import ThirdsView from './prediction/ThirdsView';
 import BracketView from './prediction/BracketView';
+import { WORLD_CUP_2026_FORMAT } from '../utils/firstKnockoutRound';
 import GroupTeamRow from './prediction/GroupTeamRow';
 import RoundFooter from './prediction/RoundFooter';
 import ViewerSlot from './prediction/ViewerSlot';
@@ -71,7 +72,13 @@ function WorldCupPredictionViewer({
 }: PredictionViewerProps) {
   const state = useAppContext();
   const { viewerPredictionId, setViewerPredictionId, allGames } = state;
-  const { groupStandings: officialPoints, groupOdds, tournamentId } = useTournamentData();
+  // Sin forma del servidor, la del Mundial: la de todos los cuadros anteriores.
+  const {
+    groupStandings: officialPoints,
+    groupOdds,
+    tournamentId,
+    format = WORLD_CUP_2026_FORMAT,
+  } = useTournamentData();
   const { participantsHashes } = state;
   const effectivePredictionId = predictionId || viewerPredictionId;
   const handleClose = useCallback(
@@ -107,6 +114,7 @@ function WorldCupPredictionViewer({
     allGames,
     initialPart,
     tournamentId,
+    format,
   );
 
   const [activeTab, setActiveTab] = useState<ViewerTab>(() =>
@@ -131,7 +139,7 @@ function WorldCupPredictionViewer({
     }
   }, [initialSection, effectivePredictionId]);
 
-  const thirds = useMemo(() => advancingThirds(part, groupOdds), [part, groupOdds]);
+  const thirds = useMemo(() => advancingThirds(part, groupOdds, format), [part, groupOdds, format]);
   const allThirdTeams = useMemo(() => thirdPlacedTeams(part), [part]);
 
   if (!effectivePredictionId) return null;
@@ -243,6 +251,7 @@ function WorldCupPredictionViewer({
             finalAway={finalAway}
             thirdHome={thirdHome}
             thirdAway={thirdAway}
+            thirdPlaceMatch={format.thirdPlaceMatch}
             getCenterPointsTotal={getCenterPointsTotal}
             hiddenRounds={HIDDEN_ROUNDS}
             leftRounds={leftRounds}
