@@ -48,7 +48,7 @@ public enum Sport {
     /** Si el partido admite predecir el empate; sin competición, como en fútbol. */
     public static boolean allowsDraws(Match match) {
         Competition competition = match == null ? null : match.getCompetition();
-        return competition == null || ofExternalId(competition.getExternalId()).allowsDraws();
+        return competition == null || competition.rulesSport().allowsDraws();
     }
 
     /** La competición es un torneo de tenis oficial. */

@@ -54,8 +54,31 @@ public class Competition {
     @Column(name = "format_type", length = 30)
     private String formatType = "LEAGUE";
 
+    /**
+     * Deporte elegido al crear una competición personalizada. Null en las oficiales, cuyo deporte sale
+     * de su id externo, y en las personalizadas de otro deporte.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private Sport sport;
+
     @Builder.Default
     private Instant createdAt = Instant.now();
+
+    /** Deporte de la competición: el guardado en las personalizadas, el de su id externo en las oficiales. */
+    public Sport sport() {
+        return ownerLeague != null && sport != null ? sport : Sport.ofExternalId(externalId);
+    }
+
+    /**
+     * Deporte cuyas reglas de predicción sigue. Una competición personalizada no tiene las series, los
+     * sets ni las veladas del proveedor: de su deporte solo cuenta si un partido puede acabar en empate,
+     * así que se juega como el fútbol (1X2) o como el baloncesto (quién gana).
+     */
+    public Sport rulesSport() {
+        if (ownerLeague == null) return Sport.ofExternalId(externalId);
+        return sport().allowsDraws() ? Sport.FOOTBALL : Sport.BASKETBALL;
+    }
 
     /**
      * Competiciones con fase de liga (jornadas) seguida de eliminatorias: además de por jornadas, se

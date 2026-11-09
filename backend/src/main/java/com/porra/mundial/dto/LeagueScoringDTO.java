@@ -51,6 +51,6 @@ public record LeagueScoringDTO(
                 com.porra.mundial.service.prediction.DrawnKnockout.applies(edition)
                         && com.porra.mundial.service.prediction.DrawnKnockout.playsSeries(edition),
                 edition.getCompetition() != null
-                        ? Sport.ofExternalId(edition.getCompetition().getExternalId()).name() : null);
+                        ? edition.getCompetition().rulesSport().name() : null);
     }
 }

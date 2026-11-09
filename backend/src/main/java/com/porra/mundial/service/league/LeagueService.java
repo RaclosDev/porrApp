@@ -161,6 +161,7 @@ public class LeagueService {
                     .name(customCompetitionName.trim())
                     .formatType(poolFormat == com.porra.mundial.model.PoolFormat.MATCH_DAY ? "LEAGUE" : "TOURNAMENT")
                     .ownerLeague(group)
+                    .sport(request.customSport())
                     .build());
         }
 
