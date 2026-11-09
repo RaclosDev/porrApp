@@ -38,7 +38,8 @@ public class SpaPageController {
     /** Pantallas de la app: existen, pero no tienen sentido en un buscador. */
     public static final Set<String> APP = Set.of(
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
-            "/mis-ligas", "/crear-liga", "/bracket", "/tabla", "/prediction", "/jornadas", "/restablecer-contrasena");
+            "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/bracket", "/tabla", "/prediction", "/jornadas",
+            "/restablecer-contrasena");
 
     private static final String NOINDEX = "noindex";
     private static final MediaType MANIFEST = MediaType.valueOf("application/manifest+json");
@@ -51,7 +52,8 @@ public class SpaPageController {
             "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey",
             "/privacidad", "/aviso-legal",
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
-            "/mis-ligas", "/crear-liga", "/bracket", "/tabla", "/prediction", "/jornadas", "/restablecer-contrasena"})
+            "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/bracket", "/tabla", "/prediction", "/jornadas",
+            "/restablecer-contrasena"})
     public ResponseEntity<Resource> page(HttpServletRequest request) {
         String path = request.getRequestURI();
         ResponseEntity.BodyBuilder response = html(HttpStatus.OK);

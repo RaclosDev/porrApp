@@ -36,6 +36,7 @@ const RECONNECT_KEYS = [
   queryKeys.myPredictions(),
   queryKeys.myGroups(),
   queryKeys.scorerPick(),
+  queryKeys.trackers(),
 ];
 
 /** Consultas que cambian cuando avanza solo el minuto de juego. */
@@ -197,6 +198,10 @@ export function useWebSocket(queryClient: QueryClient) {
             if (msg.leagueId != null) {
               queueInvalidations(leagueKeys(msg.leagueId, isMyLeague(queryClient, msg.leagueId)));
             }
+          } else if (msg.type === 'TRACKER_UPDATED') {
+            // En directo: sin el retraso aleatorio de los demás avisos, que reparte la carga de
+            // miles de clientes; aquí avisa a un grupo pequeño y solo se recarga lo que esté en pantalla.
+            invalidateAll(queryClient, [queryKeys.trackers()]);
           } else if (msg.type === 'MATCH_SCORE_UPDATED') {
             if (msg.matchId) {
               queryClient.setQueriesData(

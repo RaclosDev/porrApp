@@ -21,6 +21,9 @@ const asText = (id: Id | undefined) => (typeof id === 'number' ? String(id) : id
 
 export const queryKeys = {
   competitions: () => key('competitions'),
+  /** Marcadores de juegos; cada marcador cuelga del prefijo, así que invalidarlo refresca todos. */
+  trackers: () => key('trackers'),
+  tracker: (id: Id) => key('trackers', asText(id)),
   myGroups: (isAuthenticated?: boolean) => key('myGroups', isAuthenticated),
   /** Cuelga de `myGroups`: invalidar las ligas también refresca el resumen. */
   myLeagueSummaries: () => key('myGroups', 'summary'),
