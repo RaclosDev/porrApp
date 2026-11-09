@@ -11,12 +11,21 @@ import StatusFilterTabs from '../components/matchday/StatusFilterTabs';
 import FixtureCard from '../components/matchday/FixtureCard';
 import FightCard from '../components/matchday/FightCard';
 import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
+import ScorerPickCard from '../components/matchday/ScorerPickCard';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
 import { useRequestedGroup } from '../hooks/useRequestedGroup';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
 import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
+import type { StatusFilter } from '../utils/matchday';
+
+/** Qué decir cuando la pestaña elegida no tiene partidos, en vez de dejar la lista en blanco. */
+const EMPTY_FILTER_TEXT: Record<StatusFilter, string> = {
+  UPCOMING: 'No queda nada por jugar.',
+  PENDING: 'No tienes predicciones pendientes.',
+  FINISHED: 'Todavía no hay nada finalizado.',
+};
 
 /** «Jornadas»: solo las ligas que se predicen partido a partido; el resto tiene su propia porra. */
 function MatchdayPredictor() {
@@ -37,7 +46,7 @@ function MatchdayPredictor() {
     matchday: league,
     fightCard: league,
     tennisDraw: league,
-    worldCup: <Navigate to="/prediction" replace />,
+    groupStage: <Navigate to="/prediction" replace />,
     customBracket: <Navigate to="/prediction" replace />,
     ownBracket: <Navigate to="/prediction" replace />,
     knockoutDraw: <Navigate to="/prediction" replace />,
@@ -59,6 +68,8 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
     activeCompetitionId,
     activeCompetitionExternalId,
     activeGroupPicksMatches,
+    activeGroupScorerPick,
+    isAuthenticated,
   } = context;
   // Los descansos solo se deducen si la liga lleva todos los partidos de la semana.
   const nflWeeks = activeCompetitionExternalId === 'nfl' && !activeGroupPicksMatches;
@@ -90,6 +101,14 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
           weeks={
             activeCompetitionExternalId === 'nfl' || isNbaRegularSeason(activeCompetitionExternalId)
           }
+        />
+      )}
+
+      {activeGroupScorerPick && activeGroupId != null && (
+        <ScorerPickCard
+          groupId={activeGroupId}
+          competitionId={activeCompetitionId}
+          canEdit={isAuthenticated}
         />
       )}
 
@@ -134,6 +153,10 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
             ? 'El cuadro aún no está publicado: los partidos aparecerán aquí en cuanto ESPN lo publique.'
             : 'No hay partidos programados para esta competición o jornada.'}
         </div>
+      )}
+
+      {!md.isLoading && md.fixtures.length > 0 && md.displayedFixtures.length === 0 && (
+        <p className="m-0 py-6 text-center text-muted">{EMPTY_FILTER_TEXT[md.statusFilter]}</p>
       )}
 
       <div className="flex flex-col gap-3.5">

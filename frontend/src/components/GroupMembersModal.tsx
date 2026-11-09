@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 import { updateGroupEntryFee } from '../services/api';
 import LeagueMembersTab from './league/LeagueMembersTab';
 import LeagueSettingsTab, { type LeagueSettingsSection } from './league/LeagueSettingsTab';
+import ScorerPicksReview from './league/ScorerPicksReview';
 import LeaveConfirmDialog from './league/LeaveConfirmDialog';
 import { useInviteCode } from './league/useInviteCode';
 import { useLeagueMembersAdmin } from './league/useLeagueMembersAdmin';
@@ -378,6 +379,8 @@ export default function GroupMembersModal({
               lockSection={lockSection}
             />
           )}
+
+          {currentTab === 'scoring' && <ScorerPicksReview groupId={groupId} />}
         </div>
 
         {isAdmin && isDirty && (

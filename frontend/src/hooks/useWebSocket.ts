@@ -7,14 +7,14 @@ import { getAuthToken } from '../services/api';
 /** Consultas que cambian cuando cambia un resultado. */
 const SCORE_DEPENDENT_KEYS = [
   queryKeys.radar(),
-  queryKeys.worldCupStandings(),
+  queryKeys.tournamentStandings(),
   queryKeys.leaderboard(),
   queryKeys.leaderboardMatchdays(),
   queryKeys.matchdayFixtures(),
   queryKeys.matchFriendPredictions(),
   queryKeys.matchdayStats(),
   queryKeys.competitionStandings(),
-  queryKeys.worldCupOfficialBracket(),
+  queryKeys.tournamentOfficialBracket(),
   queryKeys.predictionScore(),
   // Fórmula 1: los Grandes Premios se cargan en segundo plano y los resultados llegan con la sincronización.
   queryKeys.grandPrix(),
@@ -24,17 +24,18 @@ const DATA_DEPENDENT_KEYS = [
   ...SCORE_DEPENDENT_KEYS,
   queryKeys.predictions(),
   queryKeys.matches(),
-  queryKeys.worldCupTopScorers(),
+  queryKeys.tournamentTopScorers(),
 ];
 
 const RECONNECT_KEYS = [
   ...DATA_DEPENDENT_KEYS,
-  queryKeys.worldCupGroupOdds(),
+  queryKeys.tournamentGroupOdds(),
   queryKeys.group(),
   queryKeys.groupMembers(),
   queryKeys.leagueScoring(),
   queryKeys.myPredictions(),
   queryKeys.myGroups(),
+  queryKeys.scorerPick(),
 ];
 
 /** Consultas que cambian cuando avanza solo el minuto de juego. */
@@ -58,6 +59,7 @@ const leagueKeys = (leagueId: string | number, isMine: boolean) => [
   queryKeys.matchdayFixtures(leagueId),
   queryKeys.matchFriendPredictions(leagueId),
   queryKeys.matchdayStats(leagueId),
+  queryKeys.scorerPick(leagueId),
   // Están en pantalla en casi todas las vistas: solo se piden si la liga es mía, para que
   // el aviso de una liga pública no haga recargar a todos los conectados.
   ...(isMine

@@ -1,4 +1,13 @@
-import type { PoolFormat, ScoringRuleKey, ScoringRules, Sport } from '../types/api';
+import type {
+  LeagueScoring,
+  PoolFormat,
+  ScoringRuleKey,
+  ScoringRules,
+  Sport,
+  TournamentRounds,
+} from '../types/api';
+import { WORLD_CUP_2026_FORMAT, roundsOf, type BracketRound } from './firstKnockoutRound';
+import { allowsDraw } from './matchday';
 
 interface ScoringField {
   key: ScoringRuleKey;
@@ -55,7 +64,7 @@ const FIGHTS: ScoringSection = {
   ],
 };
 
-/** NFL y NBA: se predice quién gana, sin marcador ni empate. */
+/** NBA y competiciones propias sin empate: se predice quién gana, sin marcador. */
 const WINNER_MATCHDAY: ScoringSection = {
   id: 'matches',
   title: 'Cada partido',
@@ -63,7 +72,18 @@ const WINNER_MATCHDAY: ScoringSection = {
     {
       key: 'correctSignPoints',
       label: 'Ganador acertado',
-      hint: 'Aciertas quién gana el partido. En la NFL, si acaba en empate, no suma nadie.',
+      hint: 'Aciertas quién gana el partido.',
+    },
+  ],
+};
+
+/** NFL: se predice quién gana, pero un partido puede acabar en empate tras la prórroga. */
+const NFL_MATCHDAY: ScoringSection = {
+  ...WINNER_MATCHDAY,
+  fields: [
+    {
+      ...WINNER_MATCHDAY.fields[0],
+      hint: 'Aciertas quién gana el partido. Si acaba en empate, no suma nadie.',
     },
   ],
 };
@@ -113,6 +133,17 @@ const KNOCKOUTS: ScoringSection = {
     { key: 'semiFinalPoints', label: 'Semifinales', hint: 'Cada equipo que llega a la final.' },
   ],
 };
+
+/** Ronda del cuadro que puntúa cada regla de las eliminatorias. */
+const KNOCKOUT_FIELD_ROUND: Partial<Record<ScoringRuleKey, BracketRound>> = {
+  roundOf32Points: 'r32',
+  roundOf16Points: 'r16',
+  quarterFinalPoints: 'qf',
+  semiFinalPoints: 'sf',
+};
+
+/** Reglas que solo puntúan si se juega el partido por el tercer puesto. */
+const THIRD_PLACE_FIELDS: ScoringRuleKey[] = ['thirdPlacePoints', 'fourthPlacePoints'];
 
 const PODIUM: ScoringSection = {
   id: 'podium',
@@ -326,9 +357,13 @@ const NBA_EXACT: ScoringSection = {
 
 /**
  * Reglas que cuentan en cada formato. Las porras de solo eliminatorias no pronostican los
- * grupos, así que sus reglas de grupo no se muestran. En unas eliminatorias sorteadas ronda a ronda
- * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi. En la NFL
- * (`winnerOnly`) cada partido puntúa solo el ganador.
+ * grupos, así que sus reglas de grupo no se muestran. Una liga de fútbol por jornadas puede jugar
+ * también el pichichi. En unas eliminatorias sorteadas ronda a ronda
+ * (Champions, Copa del Rey) se puntúa cada cruce acertado, sin podio ni pichichi. Sin empate
+ * (`winnerOnly`: NFL, NBA, competiciones propias) cada partido puntúa solo el ganador, y lo del empate de
+ * la NFL solo se cuenta en la NFL. De un torneo con grupos (`tournament`) solo salen las rondas que
+ * juega: sin dieciseisavos si empieza en octavos, sin tercer y cuarto puesto si no hay partido por el
+ * tercero.
  */
 export function scoringSections(
   format: PoolFormat | null,
@@ -338,36 +373,72 @@ export function scoringSections(
   winnerOnly = false,
   sport: Sport | null = null,
   fights = false,
+  tournament: TournamentRounds = WORLD_CUP_2026_FORMAT,
 ): ScoringSection[] {
   if (sport === 'TENNIS') return [TENNIS];
   if (format === 'MATCH_DAY' && sport === 'LEAGUE_OF_LEGENDS') return [LOL_MATCHDAY];
-  if (format === 'MATCH_DAY') return [fights ? FIGHTS : winnerOnly ? WINNER_MATCHDAY : MATCHDAY];
+  if (format === 'MATCH_DAY' && fights) return [FIGHTS];
+  if (format === 'MATCH_DAY' && winnerOnly)
+    return [sport === 'AMERICAN_FOOTBALL' ? NFL_MATCHDAY : WINNER_MATCHDAY];
+  if (format === 'MATCH_DAY') return pichichi ? [MATCHDAY, TOP_SCORER] : [MATCHDAY];
   if (format === 'SURVIVOR' && sport === 'LEAGUE_OF_LEGENDS') return [SURVIVOR_NO_DRAWS];
   if (format === 'SURVIVOR' && sport === 'AMERICAN_FOOTBALL') return [SURVIVOR_WEEKS];
   if (format === 'SURVIVOR') return [SURVIVOR];
   if (format === 'GRAND_PRIX') return [GRAND_PRIX];
   if (nbaSeries) return [NBA_SERIES, NBA_EXACT];
   if (knockoutDraw) return [DRAWN_KNOCKOUTS];
-  const sections = format === 'KNOCKOUTS_ONLY' ? [KNOCKOUTS, PODIUM] : [GROUPS, KNOCKOUTS, PODIUM];
+  const rounds = roundsOf(tournament);
+  const knockouts: ScoringSection = {
+    ...KNOCKOUTS,
+    fields: KNOCKOUTS.fields.filter((field) => {
+      const round = KNOCKOUT_FIELD_ROUND[field.key];
+      return !round || rounds.includes(round);
+    }),
+  };
+  const podium: ScoringSection = tournament.thirdPlaceMatch
+    ? PODIUM
+    : {
+        ...PODIUM,
+        fields: PODIUM.fields.filter((field) => !THIRD_PLACE_FIELDS.includes(field.key)),
+      };
+  const sections = format === 'KNOCKOUTS_ONLY' ? [knockouts, podium] : [GROUPS, knockouts, podium];
   return pichichi ? [...sections, TOP_SCORER] : sections;
 }
 
+/** Reglas que cuentan en una liga, según su formato, su deporte y las rondas de su torneo. */
+export const leagueScoringSections = (scoring: LeagueScoring): ScoringSection[] =>
+  scoringSections(
+    scoring.poolFormat,
+    scoring.pichichi,
+    scoring.knockoutDraw,
+    scoring.nbaSeries,
+    !allowsDraw(scoring.sport),
+    scoring.sport ?? null,
+    scoring.fights,
+    scoring.tournamentRounds ?? undefined,
+  );
+
+/** Sus claves: las demás reglas son de otros deportes o formatos, y en esta liga ni se ven ni se tocan. */
+export const applicableRuleKeys = (scoring: LeagueScoring): ScoringRuleKey[] =>
+  leagueScoringSections(scoring).flatMap((section) => section.fields.map((field) => field.key));
+
 /**
  * Puntuación con la que nace una liga y máximo por regla: los mismos valores que
- * `ScoringRuleSet` en el servidor. Sirven para configurarla antes de que la liga exista.
+ * `ScoringRuleSet` en el servidor. Sirven para configurarla antes de que la liga exista. Son generales,
+ * no los de un torneo: en un cuadro cada ronda vale más que la anterior y el campeón es lo que más vale.
  */
 export const DEFAULT_SCORING_RULES: ScoringRules = {
-  groupQualifierPoints: 10,
-  groupExactPositionPoints: 10,
-  roundOf32Points: 25,
-  roundOf16Points: 30,
-  quarterFinalPoints: 40,
-  semiFinalPoints: 60,
-  championPoints: 200,
-  runnerUpPoints: 150,
-  thirdPlacePoints: 100,
-  fourthPlacePoints: 75,
-  topScorerPoints: 200,
+  groupQualifierPoints: 5,
+  groupExactPositionPoints: 5,
+  roundOf32Points: 10,
+  roundOf16Points: 15,
+  quarterFinalPoints: 20,
+  semiFinalPoints: 30,
+  championPoints: 50,
+  runnerUpPoints: 30,
+  thirdPlacePoints: 20,
+  fourthPlacePoints: 10,
+  topScorerPoints: 30,
   exactScorePoints: 5,
   correctSignPoints: 3,
   goalDiffBonusPoints: 1,
