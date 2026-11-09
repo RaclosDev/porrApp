@@ -16,6 +16,8 @@ for (const viewport of [
       localStorage.setItem('userId', '7');
       localStorage.setItem('activeGroupId', '1');
       localStorage.setItem('activeCompetitionId', '2');
+      // La oferta de llave de acceso ya contestada: sale por encima de todo y taparía el botón.
+      localStorage.setItem('passkey_prompt_answered:7', '1');
     });
     const league = withLeagueKind('customBracket', {
       id: 1,
