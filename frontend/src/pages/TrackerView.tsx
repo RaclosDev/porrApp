@@ -1,11 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
 import TrackerStandings from '../components/tracker/TrackerStandings';
 import TrackerIdentity from '../components/tracker/TrackerIdentity';
-import TrackerQr from '../components/tracker/TrackerQr';
+import TrackerInvite from '../components/tracker/TrackerInvite';
 import TrackerRoundForm from '../components/tracker/TrackerRoundForm';
 import {
   addTrackerPlayer,
@@ -22,10 +22,6 @@ import {
 import { queryKeys } from '../services/queryKeys';
 import { confirmAction } from '../utils/confirmAction';
 import { errorMessage } from '../utils/errors';
-import { copyWithToast } from '../utils/leagueInvite';
-
-const trackerLink = (code: string) =>
-  `${window.location.origin}/marcador/unirse/${encodeURIComponent(code)}`;
 
 const formatDay = (iso: string) =>
   new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
@@ -40,7 +36,8 @@ export default function TrackerView() {
   const queryClient = useQueryClient();
   const [picked, setPicked] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [newPlayer, setNewPlayer] = useState('');
+  // null: lo decide el marcador (abierto mientras no se ha apuntado ninguna partida).
+  const [inviteOpen, setInviteOpen] = useState<boolean | null>(null);
 
   const query = useQuery({
     queryKey: queryKeys.tracker(id),
@@ -107,14 +104,6 @@ export default function TrackerView() {
     if (confirmed) await change(() => deleteTrackerRound(tracker.id, roundId), 'No se pudo borrar');
   };
 
-  const submitPlayer = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!newPlayer.trim()) return;
-    if (await change(() => addTrackerPlayer(tracker.id, newPlayer), 'No se pudo añadir')) {
-      setNewPlayer('');
-    }
-  };
-
   const remove = async () => {
     const confirmed = await confirmAction({
       title: tracker.owner ? '¿Borrar el marcador?' : '¿Salir del marcador?',
@@ -135,15 +124,36 @@ export default function TrackerView() {
   };
 
   const empty = tracker.rounds.length === 0;
+  const inviting = inviteOpen ?? (tracker.owner && empty);
 
   return (
     <section className="view-section active create-league tracker">
-      <header className="create-league-header">
-        <h1 className="m-0 poster-title text-[1.8rem] text-white">{tracker.name}</h1>
-        <p className="create-league-progress" role="status">
-          En directo: se actualiza solo cuando se apunta una partida.
-        </p>
+      <header className="create-league-header tracker-head">
+        <div>
+          <h1 className="m-0 poster-title text-[1.8rem] text-white">{tracker.name}</h1>
+          <p className="create-league-progress" role="status">
+            En directo: se actualiza solo cuando se apunta una partida.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="glass-btn create-league-small-btn"
+          aria-expanded={inviting}
+          onClick={() => setInviteOpen(!inviting)}
+        >
+          {inviting ? 'Cerrar' : 'Invitar'}
+        </button>
       </header>
+
+      {inviting && (
+        <TrackerInvite
+          tracker={tracker}
+          busy={busy}
+          onAddPlayer={(name) =>
+            change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir')
+          }
+        />
+      )}
 
       {session && (
         <section
@@ -269,42 +279,6 @@ export default function TrackerView() {
         </section>
       )}
 
-      <section
-        className="paper-panel album-sheet tracker-section"
-        aria-labelledby="tracker-share-title"
-      >
-        <h2 id="tracker-share-title" className="tracker-heading">
-          Invitar a otros
-        </h2>
-        <p className="tracker-note">
-          Quien abra el enlace o escanee el QR lo ve en directo desde su móvil. Código:{' '}
-          <strong>{tracker.joinCode}</strong>
-        </p>
-        <TrackerQr link={trackerLink(tracker.joinCode)} name={tracker.name} />
-        <div className="tracker-actions">
-          <button
-            type="button"
-            className="glass-btn create-league-small-btn"
-            onClick={() => void copyWithToast(trackerLink(tracker.joinCode), 'Enlace copiado')}
-          >
-            Copiar enlace
-          </button>
-          <button
-            type="button"
-            className="glass-btn create-league-small-btn"
-            onClick={() =>
-              window.open(
-                `https://wa.me/?text=${encodeURIComponent(trackerLink(tracker.joinCode))}`,
-                '_blank',
-                'noopener,noreferrer',
-              )
-            }
-          >
-            WhatsApp
-          </button>
-        </div>
-      </section>
-
       {tracker.owner && (
         <section
           className="paper-panel album-sheet tracker-section"
@@ -323,23 +297,6 @@ export default function TrackerView() {
               Empezar sesión nueva
             </button>
           </div>
-          <form className="tracker-add-player" onSubmit={submitPlayer} noValidate>
-            <label htmlFor="tracker-new-player" className="sr-only">
-              Nuevo jugador
-            </label>
-            <input
-              id="tracker-new-player"
-              className="glass-input"
-              maxLength={40}
-              autoComplete="off"
-              placeholder="Nuevo jugador"
-              value={newPlayer}
-              onChange={(event) => setNewPlayer(event.target.value)}
-            />
-            <button type="submit" className="glass-btn create-league-small-btn" disabled={busy}>
-              Añadir
-            </button>
-          </form>
         </section>
       )}
 

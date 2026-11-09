@@ -208,15 +208,6 @@ export default function CreateLeague() {
 
       <WizardSteps current={current} reachable={reachable} onSelect={goTo} />
 
-      {current === 0 && (
-        <p className="create-league-progress">
-          ¿Un juego de mesa o de cartas, sin predicciones?{' '}
-          <Link to="/marcador/nuevo" className="create-league-link">
-            Crea un marcador para llevar la cuenta
-          </Link>
-        </p>
-      )}
-
       <form
         className="paper-panel album-sheet create-league-sheet"
         onSubmit={handleSubmit}

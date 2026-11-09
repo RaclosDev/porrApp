@@ -5,36 +5,29 @@ import { createTracker } from '../services/endpoints/trackers';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
 
-const MIN_PLAYERS = 2;
-const MAX_PLAYERS = 20;
+const UNIT_SUGGESTIONS = ['puntos', 'fichas', 'victorias', 'rondas'];
 
-/** Crear un marcador para un juego de mesa o de cartas: nombre, unidad y los nombres de los jugadores. */
+/**
+ * Crear un marcador para un juego de mesa o de cartas: solo nombre y qué se cuenta. Los jugadores no se
+ * piden aquí: se invita a los amigos al crearlo y cada uno entra solo (o se apunta a mano).
+ */
 export default function CreateTracker() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [unit, setUnit] = useState('puntos');
   const [lowerWins, setLowerWins] = useState(false);
-  const [players, setPlayers] = useState(['', '', '']);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const setPlayer = (index: number, value: string) =>
-    setPlayers((prev) => prev.map((current, i) => (i === index ? value : current)));
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (busy) return;
-    const names = players.map((player) => player.trim()).filter(Boolean);
     if (!name.trim()) return setError('Ponle nombre al marcador.');
-    if (names.length < MIN_PLAYERS) return setError('Añade al menos dos jugadores.');
-    if (new Set(names.map((player) => player.toLowerCase())).size !== names.length) {
-      return setError('Los nombres de los jugadores no pueden repetirse.');
-    }
     setError('');
     setBusy(true);
     try {
-      const tracker = await createTracker({ name, unit, lowerWins, players: names });
+      const tracker = await createTracker({ name, unit, lowerWins });
       await queryClient.invalidateQueries({ queryKey: queryKeys.trackers() });
       navigate(`/marcador/${tracker.id}`, { replace: true });
     } catch (reason) {
@@ -46,7 +39,7 @@ export default function CreateTracker() {
   return (
     <section className="view-section active create-league">
       <header className="create-league-header">
-        <h1 className="m-0 poster-title text-[1.8rem] text-white">Nuevo marcador</h1>
+        <h1 className="m-0 poster-title text-[1.8rem] text-white">Marcador de juego</h1>
         <p className="create-league-progress">
           Para juegos de mesa o de cartas: sin predicciones, solo llevar la cuenta.
         </p>
@@ -57,7 +50,7 @@ export default function CreateTracker() {
         noValidate
       >
         <div className="create-league-field">
-          <label htmlFor="tracker-name">Nombre del marcador</label>
+          <label htmlFor="tracker-name">Nombre</label>
           <input
             id="tracker-name"
             className="glass-input"
@@ -68,18 +61,33 @@ export default function CreateTracker() {
             onChange={(event) => setName(event.target.value)}
           />
         </div>
+
         <div className="create-league-field">
-          <label htmlFor="tracker-unit">Qué se apunta</label>
+          <label htmlFor="tracker-unit">¿Qué se cuenta en cada partida?</label>
+          <div className="tracker-unit-options">
+            {UNIT_SUGGESTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`glass-btn create-league-small-btn${unit === option ? ' is-active' : ''}`}
+                aria-pressed={unit === option}
+                onClick={() => setUnit(option)}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
           <input
             id="tracker-unit"
             className="glass-input"
             maxLength={20}
             autoComplete="off"
-            placeholder="puntos, fichas, victorias…"
+            placeholder="O escribe lo tuyo"
             value={unit}
             onChange={(event) => setUnit(event.target.value)}
           />
         </div>
+
         <div className="tracker-check">
           <input
             id="tracker-lower"
@@ -89,36 +97,12 @@ export default function CreateTracker() {
           />
           <label htmlFor="tracker-lower">Gana quien menos suma (como en el golf)</label>
         </div>
-        <fieldset className="create-league-fieldset">
-          <legend>
-            Jugadores ({MIN_PLAYERS} a {MAX_PLAYERS})
-          </legend>
-          {players.map((player, index) => (
-            <div key={index} className="create-league-field">
-              <label htmlFor={`tracker-player-${index}`} className="sr-only">
-                Jugador {index + 1}
-              </label>
-              <input
-                id={`tracker-player-${index}`}
-                className="glass-input"
-                maxLength={40}
-                autoComplete="off"
-                placeholder={`Jugador ${index + 1}`}
-                value={player}
-                onChange={(event) => setPlayer(index, event.target.value)}
-              />
-            </div>
-          ))}
-          {players.length < MAX_PLAYERS && (
-            <button
-              type="button"
-              className="glass-btn create-league-small-btn"
-              onClick={() => setPlayers((prev) => [...prev, ''])}
-            >
-              Añadir jugador
-            </button>
-          )}
-        </fieldset>
+
+        <p className="create-league-hint">
+          Al crearlo te saldrá un QR y un enlace para invitar a tus amigos; cada uno aparecerá como
+          jugador al entrar.
+        </p>
+
         {error && (
           <p className="create-league-error is-block" role="alert">
             {error}

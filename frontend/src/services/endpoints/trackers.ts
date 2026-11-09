@@ -66,7 +66,6 @@ export interface TrackerDraft {
   name: string;
   unit: string;
   lowerWins: boolean;
-  players: string[];
 }
 
 export const fetchTrackers = () => request<TrackerSummary[]>('/trackers');
