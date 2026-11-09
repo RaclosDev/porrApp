@@ -59,9 +59,9 @@ describe('cuadro de una competición oficial con series propias', () => {
     ]);
     expect(rounds[1].slots.map((slot) => [slot.homePlaceholder, slot.awayPlaceholder])).toEqual([
       ['IG', 'Gen.G'],
-      ['BLG', 'Ganador C4'],
+      ['BLG', 'Ganador cuartos 4'],
     ]);
-    expect(rounds[2].slots[0].homePlaceholder).toBe('Ganador C1');
+    expect(rounds[2].slots[0].homePlaceholder).toBe('Ganador semifinal 1');
   });
 
   it('coloca cada semifinal junto a los cuartos de los que salen sus equipos', () => {

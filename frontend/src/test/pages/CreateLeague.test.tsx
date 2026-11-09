@@ -163,3 +163,78 @@ it('enseña el error del servidor y conserva el borrador para reintentar con la 
     customCompetitionName: 'Torneo',
   });
 });
+
+it('una competición propia de LoL enseña sus reglas, no las series oficiales ni el 1X2', async () => {
+  renderAt();
+
+  fireEvent.click(await screen.findByRole('radio', { name: 'League of Legends' }));
+  next();
+  fireEvent.click(screen.getByRole('radio', { name: /Competición personalizada/ }));
+  fireEvent.change(screen.getByLabelText('Nombre de la competición'), {
+    target: { value: 'Liga del barrio' },
+  });
+  next();
+
+  const matchday = screen.getByRole('radio', { name: /Por jornadas/ });
+  expect(matchday).toHaveAccessibleDescription(
+    'Predices quién gana cada partido, jornada a jornada.',
+  );
+  fireEvent.click(matchday);
+  next();
+
+  expect(screen.getByRole('heading', { level: 4, name: 'Cada partido' })).toBeInTheDocument();
+  expect(screen.getByText('Ganador acertado')).toBeInTheDocument();
+  expect(screen.getByText('Aciertas quién gana el partido.')).toBeInTheDocument();
+  expect(screen.queryByText(/serie|1X2|goles|NFL/i)).not.toBeInTheDocument();
+});
+
+it('una liga oficial de LoL sí explica sus series', async () => {
+  vi.mocked(fetchCompetitions).mockResolvedValue([
+    {
+      id: 5,
+      name: 'LEC',
+      externalId: 'lol.lec',
+      formatType: 'LEAGUE',
+      sport: 'LEAGUE_OF_LEGENDS',
+    },
+  ]);
+  renderAt();
+
+  fireEvent.click(await screen.findByRole('radio', { name: 'League of Legends' }));
+  next();
+  fireEvent.click(screen.getByRole('radio', { name: 'LEC' }));
+  next();
+  fireEvent.click(screen.getByRole('radio', { name: /Por jornadas/ }));
+  next();
+
+  expect(screen.getByRole('heading', { level: 4, name: 'Cada serie' })).toBeInTheDocument();
+  expect(screen.getByText('Resultado de la serie')).toBeInTheDocument();
+});
+
+it('el resumen de un superviviente de LoL no habla del empate', async () => {
+  vi.mocked(fetchCompetitions).mockResolvedValue([
+    {
+      id: 5,
+      name: 'LEC',
+      externalId: 'lol.lec',
+      formatType: 'LEAGUE',
+      sport: 'LEAGUE_OF_LEGENDS',
+    },
+    { id: 1, name: 'LaLiga', externalId: 'esp.1', formatType: 'LEAGUE' },
+  ]);
+  storeDraft({ ...emptyDraft(), competitionId: 5, poolFormat: 'SURVIVOR', name: 'Vivos' });
+  const { unmount } = renderAt('/crear-liga?paso=6');
+  expect(
+    await screen.findByText('1 punto por jornada superada, eliminado al primer fallo'),
+  ).toBeInTheDocument();
+  unmount();
+
+  // En fútbol el empate sí cuenta.
+  storeDraft({ ...emptyDraft(), competitionId: 1, poolFormat: 'SURVIVOR', name: 'Vivos' });
+  renderAt('/crear-liga?paso=6');
+  expect(
+    await screen.findByText(
+      '1 punto por jornada superada, eliminado al primer fallo, el empate elimina',
+    ),
+  ).toBeInTheDocument();
+});

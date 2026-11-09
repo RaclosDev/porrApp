@@ -1,6 +1,8 @@
 import type { Match } from '../types/api';
 import {
+  BYE_LABEL,
   getCustomRoundTitle,
+  winnerPlaceholder,
   type CustomResultRound,
   type CustomResultSlot,
 } from './customBracket';
@@ -90,8 +92,10 @@ export function computeOfficialResultRounds(matches: Match[]): CustomResultRound
         match: null,
         home,
         away,
-        homePlaceholder: home ?? `Ganador C${position * 2 + 1}`,
-        awayPlaceholder: isBye ? 'Descanso' : (away ?? `Ganador C${position * 2 + 2}`),
+        homePlaceholder: home ?? winnerPlaceholder(position * 2 + 1, previous.length),
+        awayPlaceholder: isBye
+          ? BYE_LABEL
+          : (away ?? winnerPlaceholder(position * 2 + 2, previous.length)),
         isBye,
       };
     });

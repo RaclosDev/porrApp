@@ -12,6 +12,7 @@ import com.porra.mundial.dto.PaymentStatusResponse;
 import com.porra.mundial.dto.StatusResponse;
 import com.porra.mundial.model.League;
 import com.porra.mundial.model.PoolFormat;
+import com.porra.mundial.model.Sport;
 import com.porra.mundial.service.league.LeagueService;
 import com.porra.mundial.service.league.LeagueMembershipService;
 import com.porra.mundial.service.league.NewLeague;
@@ -41,6 +42,16 @@ public class LeagueController {
 
     /** Formato admitido para la cabecera {@code Idempotency-Key} (p. ej. un UUID). */
     private static final Pattern IDEMPOTENCY_KEY = Pattern.compile("[A-Za-z0-9_-]{8,64}");
+
+    /** Deporte de una competición personalizada; null si no se indica (se juega con empate). */
+    private static Sport customSport(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Sport.valueOf(value.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deporte no válido");
+        }
+    }
 
     private final LeagueService leagueService;
     private final LeagueSetupService leagueSetupService;
@@ -76,7 +87,8 @@ public class LeagueController {
         try {
             group = leagueSetupService.create(new NewLeague(payload.getName().trim(), principal.getName(),
                     payload.getCompetitionId(), PoolFormat.fromString(payload.getPoolFormat()), payload.getPichichi(),
-                    payload.getCustomCompetitionName(), idempotencyKey), payload.toSetup());
+                    payload.getCustomCompetitionName(), idempotencyKey)
+                    .withCustomSport(customSport(payload.getCustomSport())), payload.toSetup());
         } catch (DataIntegrityViolationException e) {
             // Dos peticiones con la misma clave a la vez: la segunda choca con el índice único.
             if (idempotencyKey == null) {

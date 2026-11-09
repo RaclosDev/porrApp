@@ -213,7 +213,7 @@ public class MatchPredictionService {
                     .competitionName(multiCompetition && match.getCompetition() != null
                             ? match.getCompetition().getName() : null)
                     .sport(match.getCompetition() != null
-                            ? Sport.ofExternalId(match.getCompetition().getExternalId()).name() : null)
+                            ? match.getCompetition().rulesSport().name() : null)
                     .finished(match.getFinished())
                     .status(match.getStatus() != null ? match.getStatus().name() : null)
                     .actualHomeScore(match.getHomeScore())

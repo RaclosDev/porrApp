@@ -41,6 +41,19 @@ describe('LeagueRulesModal', () => {
     expect(screen.queryByText('Cuota de 10 €')).not.toBeInTheDocument();
   });
 
+  it('de un torneo que empieza en octavos no enseña dieciseisavos ni tercer puesto', async () => {
+    api.fetchLeagueScoring.mockResolvedValue(
+      leagueScoring({ tournamentRounds: { firstRound: 'r16', thirdPlaceMatch: false } }),
+    );
+    setup({ id: 7, name: 'Eurocopa' });
+
+    expect(await screen.findByText('Octavos')).toBeInTheDocument();
+    expect(pointsOf('Octavos')).toContain('30');
+    expect(screen.queryByText('Dieciseisavos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tercer puesto')).not.toBeInTheDocument();
+    expect(screen.getByText('Campeón')).toBeInTheDocument();
+  });
+
   it('enseña solo las reglas de cada formato', async () => {
     api.fetchLeagueScoring.mockResolvedValue(
       leagueScoring({

@@ -229,7 +229,7 @@ describe('sesión con refresh token', () => {
       url === '/api/auth/session/refresh' ? json(200, { token: 'nuevo' }) : json(401),
     );
 
-    await expect(fetchMe()).rejects.toThrow('401');
+    await expect(fetchMe()).rejects.toThrow('Tu sesión ha caducado');
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(getAuthToken()).toBe('nuevo');
@@ -241,7 +241,7 @@ describe('sesión con refresh token', () => {
     window.addEventListener('auth-expired', expired);
     stubFetch(() => json(401));
 
-    await expect(fetchMe()).rejects.toThrow('401');
+    await expect(fetchMe()).rejects.toThrow('Tu sesión ha caducado');
 
     expect(getAuthToken()).toBeNull();
     expect(localStorage.getItem('has_session')).toBeNull();
@@ -261,7 +261,7 @@ describe('sesión con refresh token', () => {
       }),
     );
 
-    await expect(fetchMe()).rejects.toThrow('401');
+    await expect(fetchMe()).rejects.toThrow('Tu sesión ha caducado');
 
     expect(expired).not.toHaveBeenCalled();
     expect(localStorage.getItem('has_session')).toBe('1');

@@ -24,6 +24,9 @@ public class LeagueCreateDTO {
     /** Nombre de una competición manual exclusiva de esta liga. */
     private String customCompetitionName;
 
+    /** Deporte de la competición manual (FOOTBALL, BASKETBALL...). Sin indicarlo se juega con empate. */
+    private String customSport;
+
     /** Formato o modalidad de la porra (FULL_BRACKET, KNOCKOUTS_ONLY, MATCH_DAY). */
     @NotBlank(message = "El formato de la porra es obligatorio")
     private String poolFormat;

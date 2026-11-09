@@ -14,6 +14,7 @@ const euroLeague: Group = withLeagueKind('groupStage', {
   competitionName: 'Eurocopa 2024',
   competitionExternalId: 'uefa.euro',
   groupTournament: true,
+  tournamentRounds: { firstRound: 'r16', thirdPlaceMatch: false },
   formatType: 'TOURNAMENT',
   poolFormat: 'FULL_BRACKET',
   pichichi: false,
@@ -79,5 +80,48 @@ test('the official bracket of a tournament that starts in the round of 16 has no
   await expect(board.getByText('1º Grupo B', { exact: true })).toBeVisible();
   await expect(board.getByText('3º A/D/E/F', { exact: true })).toBeVisible();
   await expect(page.getByText('Tercer puesto', { exact: true })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('the ranking of a tournament that starts in the round of 16 names only the rounds it plays', async ({
+  page,
+}) => {
+  const score = (id: number, name: string, r16: number) => ({
+    id,
+    userId: id,
+    name,
+    total: 10 + r16,
+    r1: 10,
+    r32: 0,
+    r16,
+    qf: 0,
+    sf: 0,
+    finals: 0,
+    scorer: 0,
+    matchPoints: 0,
+    pending: false,
+    log: [],
+  });
+  await page.route('**/api/leaderboard*', (route) =>
+    new URL(route.request().url()).pathname === '/api/leaderboard'
+      ? route.fulfill({ json: [score(1, 'Ana', 30), score(2, 'Luis', 0)] })
+      : route.fallback(),
+  );
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/demo');
+  await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
+  await page.goto('/ranking');
+
+  // La liga dice sus rondas: la tabla no pide el torneo y aun así no enseña dieciseisavos.
+  const headers = page.getByRole('columnheader');
+  await expect(headers.filter({ hasText: 'Octavos' })).toHaveCount(1);
+  await expect(headers.filter({ hasText: 'Cuartos' })).toHaveCount(1);
+  await expect(headers.filter({ hasText: 'Dieciseisavos' })).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Gráfica', exact: true }).click();
+  const chart = page.getByRole('tabpanel', { name: 'Gráfica', exact: true });
+  await expect(chart.getByText('Octavos', { exact: true }).first()).toBeVisible();
+  await expect(chart.getByText('Dieciseisavos', { exact: true })).toHaveCount(0);
   expect(errors).toEqual([]);
 });

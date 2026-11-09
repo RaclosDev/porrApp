@@ -72,7 +72,7 @@ describe('CustomTournamentHome', () => {
     expect(center.getAllByText('Eliminado')[0].closest('.team-slot')).toHaveTextContent(
       /Gen\.G.*1/,
     );
-    expect(center.getByText('Ganador C2')).toBeInTheDocument();
+    expect(center.getByText('Ganador semifinal 2')).toBeInTheDocument();
     // El escudo sale también en la final, donde el cruce aún no existe.
     expect(center.getAllByRole('img', { name: 'T1' })).toHaveLength(2);
     expect(screen.getByRole('region', { name: 'Próximo partido del cuadro' })).toHaveTextContent(
@@ -116,7 +116,7 @@ describe('CustomTournamentHome', () => {
     const right = within(screen.getByRole('region', { name: 'Cruces del lado derecho' }));
     expect(left.getByText('Rayo')).toBeInTheDocument();
     expect(right.getByText('Solo')).toBeInTheDocument();
-    expect(right.getByText('Descanso')).toBeInTheDocument();
+    expect(right.getByText('Pasa directo')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Grupos' }));
     const card = within(screen.getByRole('button', { name: 'Ver detalles del Grupo A' }));

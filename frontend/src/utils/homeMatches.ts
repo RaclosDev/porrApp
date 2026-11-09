@@ -106,9 +106,13 @@ function aroundNow(matches: Match[]): Match[] {
   return matches.slice(start, start + LONG_ROUND_SHOWN);
 }
 
+/** Un resultado de hace más de tres meses es de la temporada pasada, no un «último resultado». */
+const PAST_SEASON_MS = 90 * 24 * 60 * 60 * 1000;
+
 /**
  * Próximos partidos de un torneo con cuadro: los que están en juego primero y después los siguientes
- * por fecha. Si ya no queda ninguno, los últimos resultados.
+ * por fecha. Si ya no queda ninguno, los últimos resultados, salvo que sean de una temporada pasada:
+ * entre unas eliminatorias y las siguientes (los playoffs de la NBA) pasan meses.
  */
 export function upcomingMatches(
   matches: Match[],
@@ -129,7 +133,9 @@ export function upcomingMatches(
       ),
     };
   }
-  const played = defined.filter((match) => match.finished).sort((a, b) => byDate(b, a));
+  const played = defined
+    .filter((match) => match.finished && (!match.date || timeOf(match) >= now - PAST_SEASON_MS))
+    .sort((a, b) => byDate(b, a));
   return { finished: true, matches: played.slice(0, limit) };
 }
 

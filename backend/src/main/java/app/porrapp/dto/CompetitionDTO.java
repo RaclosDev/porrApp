@@ -22,6 +22,7 @@ import java.util.Map;
  *                     pronosticar como «Solo eliminatorias», ronda a ronda
  * @param groupTournament torneo con fase de grupos que se predice entero antes de empezar (grupos,
  *                        terceros y cuadro), con la forma de su {@code TournamentFormat}
+ * @param tournamentRounds rondas eliminatorias de ese torneo con grupos; null si la competición no lo es
  * @param tennis     torneo, categoría, cuadro y fechas de un cuadro de tenis; null en otros deportes
  * @param bracketClosesAt por formato de cuadro, cuándo empieza lo que pronostica (su primer cruce y, en el
  *                        cuadro completo, también los grupos): desde entonces no se puede crear la liga.
@@ -29,7 +30,7 @@ import java.util.Map;
  */
 public record CompetitionDTO(Long id, String name, String externalId, String formatType, Sport sport,
                              boolean finished, Boolean groupStage, boolean knockoutDraw, boolean groupTournament,
-                             TennisInfo tennis,
+                             TournamentRoundsDTO tournamentRounds, TennisInfo tennis,
                              Map<PoolFormat, Instant> bracketClosesAt) {
 
     /** Partidos importados de una competición: todos, los que faltan por terminar y los de grupos. */
@@ -83,7 +84,8 @@ public record CompetitionDTO(Long id, String name, String externalId, String for
                 competition.sport(),
                 finished,
                 tennis != null ? Boolean.FALSE : imported ? calendar.groupMatches() > 0 : null,
-                competition.drawsKnockoutRounds(), competition.isGroupTournament(), tennis,
+                competition.drawsKnockoutRounds(), competition.isGroupTournament(),
+                TournamentRoundsDTO.of(competition), tennis,
                 bracketClosesAt == null ? Map.of() : Map.copyOf(bracketClosesAt));
     }
 }

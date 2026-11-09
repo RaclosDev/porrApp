@@ -86,7 +86,7 @@ describe('CustomBracket', () => {
     expect(left.getByRole('heading', { name: 'Cuartos' })).toBeInTheDocument();
     expect(screen.getAllByRole('tab', { name: 'Cuartos' })[0]).toBeInTheDocument();
     const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));
-    expect(center.getAllByText('Ganador C1').length).toBeGreaterThan(0);
+    expect(center.getAllByText('Ganador semifinal 1').length).toBeGreaterThan(0);
 
     pick('T1');
     expect(screen.getAllByRole('button', { name: 'Pasar a T1' })[0]).toHaveAttribute(
@@ -213,7 +213,7 @@ describe('CustomBracket', () => {
     expect(screen.getByRole('list', { name: 'Leyenda del cuadro' })).toHaveTextContent(
       /^Acertada.*Fallada$/,
     );
-    expect(right.getAllByText('Descanso').length).toBeGreaterThan(0);
+    expect(right.getAllByText('Pasa directo').length).toBeGreaterThan(0);
     // El equipo que descansa no se elige: pasa solo a semifinales.
     expect(right.queryByRole('button', { name: 'Pasar a Solo' })).toBeNull();
     const center = within(screen.getByRole('region', { name: 'Semifinales y final' }));

@@ -1,4 +1,6 @@
 import type { SortColumn } from '../../hooks/useLeaderboard';
+import type { TournamentRounds } from '../../types/api';
+import { WORLD_CUP_2026_FORMAT, playsRound } from '../../utils/firstKnockoutRound';
 
 export interface LeaderboardColumn {
   key: SortColumn;
@@ -64,6 +66,11 @@ interface ColumnOptions {
    * columna repetiría el total.
    */
   roundPointsColumn?: boolean;
+  /**
+   * Rondas del torneo con grupos de la liga: una que no juega (dieciseisavos si empieza en octavos)
+   * saldría siempre a 0. Sin el dato, las del Mundial 2026.
+   */
+  tournament?: TournamentRounds | null;
 }
 
 /** Columnas de la tabla según el formato de la liga. */
@@ -74,6 +81,7 @@ export function leaderboardColumns({
   ownBracketHasGroupPoints,
   selectedMatchday,
   roundPointsColumn = true,
+  tournament,
 }: ColumnOptions): LeaderboardColumn[] {
   const scorerColumn: LeaderboardColumn[] = pichichi
     ? [{ key: 'scorer', label: 'Pichichi', kind: 'detail' }]
@@ -103,7 +111,7 @@ export function leaderboardColumns({
       { key: 'r32', label: 'Cuadro', kind: 'detail' },
     ];
   }
-  return [
+  const groupTournamentColumns: LeaderboardColumn[] = [
     { key: 'total', label: 'Total', kind: 'total' },
     { key: 'matchPoints', label: 'Jornadas', kind: 'detail' },
     { key: 'r1', label: 'F.Grupos', kind: 'detail' },
@@ -114,4 +122,6 @@ export function leaderboardColumns({
     { key: 'finals', label: 'Finales', kind: 'detail' },
     ...scorerColumn,
   ];
+  const rounds = tournament ?? WORLD_CUP_2026_FORMAT;
+  return groupTournamentColumns.filter((column) => playsRound(rounds, column.key));
 }

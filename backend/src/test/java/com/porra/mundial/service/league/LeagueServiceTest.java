@@ -133,12 +133,14 @@ class LeagueServiceTest {
         when(competitionRepository.save(any(Competition.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         leagueService.createLeague(NewLeague.custom("Liga Privada", "admin@test.com", "Torneo local",
-                com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(false));
+                com.porra.mundial.model.PoolFormat.MATCH_DAY).withPichichi(false)
+                .withCustomSport(com.porra.mundial.model.Sport.BASKETBALL));
 
         var competition = org.mockito.ArgumentCaptor.forClass(Competition.class);
         verify(competitionRepository).save(competition.capture());
         assertEquals(league, competition.getValue().getOwnerLeague());
         assertEquals("Torneo local", competition.getValue().getName());
+        assertEquals(com.porra.mundial.model.Sport.BASKETBALL, competition.getValue().sport());
         verify(editionRepository).save(argThat(edition -> !edition.isPichichi()
                 && edition.getCompetition() == competition.getValue()));
     }

@@ -77,7 +77,7 @@ public record CompetitionDTO(Long id, String name, String externalId, String for
                 : imported && calendar.unfinished() == 0 && !competition.playsSeries();
         return new CompetitionDTO(competition.getId(), competition.getName(),
                 competition.getExternalId(), competition.getFormatType(),
-                Sport.ofExternalId(competition.getExternalId()),
+                competition.sport(),
                 finished,
                 tennis != null ? Boolean.FALSE : imported ? calendar.groupMatches() > 0 : null,
                 competition.drawsKnockoutRounds(), tennis,
