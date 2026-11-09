@@ -114,8 +114,9 @@ function PrivacyContent() {
         <li>
           Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos),
           Google (inicio de sesión; su código solo se carga cuando abres el botón de «Continuar con
-          Google»), Resend (solo manda el correo para cambiar la contraseña cuando lo pides) y, solo
-          si aceptas la analítica, Google Analytics, sin compartir los datos con otros servicios de
+          Google»), Resend (solo manda el correo para cambiar la contraseña cuando lo pides), Sentry
+          (recibe los errores técnicos de la app, sin tu email, tu IP ni tu cuenta) y, solo si
+          aceptas la analítica, Google Analytics, sin compartir los datos con otros servicios de
           Google ni usarlos para publicidad. Los servicios de avisos push del navegador (Google,
           Apple o Mozilla) solo reciben el aviso cifrado.
         </li>
