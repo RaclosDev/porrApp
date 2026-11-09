@@ -195,3 +195,23 @@
     }
   }
 }
+
+.tracker-me {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.tracker-qr {
+  display: block;
+  margin: 0.75rem auto;
+  inline-size: min(220px, 100%);
+  block-size: auto;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: #fff;
+  padding: 6px;
+}
+
+.tracker-qr.is-loading {
+  min-block-size: 220px;
+}

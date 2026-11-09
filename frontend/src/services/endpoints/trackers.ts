@@ -1,7 +1,7 @@
 /** Marcadores de juegos de mesa o de cartas: partidas apuntadas, sesiones y clasificación acumulada. */
 import { request } from '../http';
 
-export interface TrackerPlayer {
+interface TrackerPlayer {
   id: number;
   name: string;
 }
@@ -16,7 +16,7 @@ export interface TrackerStanding {
   sessionsWon: number;
 }
 
-export interface TrackerSession {
+interface TrackerSession {
   id: number;
   number: number;
   startedAt: string;
@@ -25,7 +25,7 @@ export interface TrackerSession {
   winners: number[];
 }
 
-export interface TrackerRound {
+interface TrackerRound {
   id: number;
   sessionId: number;
   number: number;
@@ -43,6 +43,10 @@ export interface Tracker {
   /** Solo quien lo creó apunta partidas; el resto lo ve en directo. */
   owner: boolean;
   joinCode: string;
+  /** Jugador que soy yo (con mi cuenta), si ya me he apuntado a uno. */
+  myPlayerId: number | null;
+  /** Jugadores ya reclamados por alguien con cuenta. */
+  claimedPlayerIds: number[];
   currentSessionId: number | null;
   players: TrackerPlayer[];
   sessions: TrackerSession[];
@@ -122,4 +126,17 @@ export const leaveTracker = (id: number) =>
   request<void>(`/trackers/${id}/membership`, {
     method: 'DELETE',
     fallbackError: 'No se pudo salir del marcador',
+  });
+
+export const claimTrackerPlayer = (id: number, playerId: number) =>
+  request<Tracker>(`/trackers/${id}/me`, {
+    method: 'PUT',
+    json: { playerId },
+    fallbackError: 'No se pudo apuntarte a ese jugador',
+  });
+
+export const releaseTrackerPlayer = (id: number) =>
+  request<Tracker>(`/trackers/${id}/me`, {
+    method: 'DELETE',
+    fallbackError: 'No se pudo quitarte del jugador',
   });

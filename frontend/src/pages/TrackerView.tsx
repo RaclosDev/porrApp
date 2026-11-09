@@ -4,14 +4,18 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
 import TrackerStandings from '../components/tracker/TrackerStandings';
+import TrackerIdentity from '../components/tracker/TrackerIdentity';
+import TrackerQr from '../components/tracker/TrackerQr';
 import TrackerRoundForm from '../components/tracker/TrackerRoundForm';
 import {
   addTrackerPlayer,
   addTrackerRound,
+  claimTrackerPlayer,
   deleteTracker,
   deleteTrackerRound,
   fetchTracker,
   leaveTracker,
+  releaseTrackerPlayer,
   startTrackerSession,
   type Tracker,
 } from '../services/endpoints/trackers';
@@ -174,6 +178,7 @@ export default function TrackerView() {
             standings={session.standings}
             unit={tracker.unit}
             empty={session.rounds === 0}
+            myPlayerId={tracker.myPlayerId}
           />
           {session.winners.length > 0 && !isCurrent && (
             <p className="tracker-note">
@@ -197,6 +202,7 @@ export default function TrackerView() {
           unit={tracker.unit}
           showSessions
           empty={empty}
+          myPlayerId={tracker.myPlayerId}
         />
         {tracker.lowerWins && <p className="tracker-note">Gana quien menos suma.</p>}
       </section>
@@ -212,6 +218,15 @@ export default function TrackerView() {
           />
         </div>
       )}
+
+      <TrackerIdentity
+        tracker={tracker}
+        busy={busy}
+        onClaim={(playerId) =>
+          change(() => claimTrackerPlayer(tracker.id, playerId), 'No se pudo apuntarte')
+        }
+        onRelease={() => change(() => releaseTrackerPlayer(tracker.id), 'No se pudo quitarte')}
+      />
 
       {session && (
         <section
@@ -262,9 +277,10 @@ export default function TrackerView() {
           Invitar a otros
         </h2>
         <p className="tracker-note">
-          Quien abra el enlace lo ve en directo desde su móvil. Código:{' '}
+          Quien abra el enlace o escanee el QR lo ve en directo desde su móvil. Código:{' '}
           <strong>{tracker.joinCode}</strong>
         </p>
+        <TrackerQr link={trackerLink(tracker.joinCode)} name={tracker.name} />
         <div className="tracker-actions">
           <button
             type="button"

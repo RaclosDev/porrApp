@@ -1,9 +1,11 @@
 package app.porrapp.service.league;
 
+import app.porrapp.dto.ScoreTrackerDTO;
 import app.porrapp.dto.ScoreTrackerRoundRequest;
 import app.porrapp.exception.BusinessException;
 import app.porrapp.model.ScoreTracker;
 import app.porrapp.model.ScoreTrackerMember;
+import app.porrapp.model.ScoreTrackerPlayer;
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.ScoreTrackerMemberRepository;
 import app.porrapp.repository.ScoreTrackerPlayerRepository;
@@ -19,8 +21,10 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -86,5 +90,42 @@ class ScoreTrackerServiceTest {
     @Test
     void ownerCannotLeaveTheirOwnTracker() {
         assertThatThrownBy(() -> service.leave("dueno@x.com", 10L)).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void aMemberClaimsAPlayerAndReleasesThePreviousOne() {
+        ScoreTrackerPlayer ana = ScoreTrackerPlayer.builder().id(100L).trackerId(10L).name("Ana").build();
+        ScoreTrackerPlayer berto = ScoreTrackerPlayer.builder().id(101L).trackerId(10L).name("Berto").build();
+        ana.setUserId(2L);
+        when(players.findById(101L)).thenReturn(Optional.of(berto));
+        when(players.findByTrackerIdAndUserId(10L, 2L)).thenReturn(Optional.of(ana));
+
+        ScoreTrackerDTO view = service.claimPlayer("miembro@x.com", 10L, 101L);
+
+        assertThat(ana.getUserId()).isNull();
+        assertThat(berto.getUserId()).isEqualTo(2L);
+        assertThat(view).isNotNull();
+        verify(webSocket).notifyTrackerChanged(eq(10L), any());
+    }
+
+    @Test
+    void aPlayerAlreadyClaimedBySomeoneElseCannotBeTaken() {
+        ScoreTrackerPlayer ana = ScoreTrackerPlayer.builder().id(100L).trackerId(10L).name("Ana").userId(1L).build();
+        when(players.findById(100L)).thenReturn(Optional.of(ana));
+
+        assertThatThrownBy(() -> service.claimPlayer("miembro@x.com", 10L, 100L)).isInstanceOf(BusinessException.class);
+        assertThat(ana.getUserId()).isEqualTo(1L);
+    }
+
+    @Test
+    void strangersAndPlayersOfAnotherTrackerCannotBeClaimed() {
+        ScoreTrackerPlayer other = ScoreTrackerPlayer.builder().id(200L).trackerId(11L).name("Zoe").build();
+        when(players.findById(200L)).thenReturn(Optional.of(other));
+
+        assertThatThrownBy(() -> service.claimPlayer("ajeno@x.com", 10L, 100L)).isInstanceOf(BusinessException.class)
+                .hasMessage("Marcador no encontrado");
+        assertThatThrownBy(() -> service.claimPlayer("miembro@x.com", 10L, 200L)).isInstanceOf(BusinessException.class)
+                .hasMessage("Jugador no válido");
+        assertThat(other.getUserId()).isNull();
     }
 }

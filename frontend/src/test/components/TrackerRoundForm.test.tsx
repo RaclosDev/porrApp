@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import TrackerRoundForm from '../../components/tracker/TrackerRoundForm';
+import TrackerIdentity from '../../components/tracker/TrackerIdentity';
 import TrackerStandings from '../../components/tracker/TrackerStandings';
 import type { Tracker } from '../../services/endpoints/trackers';
 
@@ -11,6 +12,8 @@ const tracker: Tracker = {
   lowerWins: false,
   owner: true,
   joinCode: 'ABCDEFGH',
+  myPlayerId: null,
+  claimedPlayerIds: [],
   currentSessionId: 1,
   players: [
     { id: 11, name: 'Ana' },
@@ -86,5 +89,42 @@ describe('TrackerStandings', () => {
 
     expect(screen.queryByRole('columnheader', { name: 'Sesiones' })).not.toBeInTheDocument();
     expect(screen.getAllByText('–')).toHaveLength(3);
+  });
+});
+
+describe('TrackerIdentity', () => {
+  it('deja elegir un jugador libre y no ofrece los que ya son de otra persona', () => {
+    const onClaim = vi.fn().mockResolvedValue(true);
+    const shared = { ...tracker, claimedPlayerIds: [11] };
+    render(<TrackerIdentity tracker={shared} busy={false} onClaim={onClaim} onRelease={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Soy Ana' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Soy Berto' }));
+    expect(onClaim).toHaveBeenCalledWith(12);
+  });
+
+  it('si ya eres un jugador lo dice y deja quitarte', () => {
+    const onRelease = vi.fn().mockResolvedValue(true);
+    const mine = { ...tracker, myPlayerId: 12, claimedPlayerIds: [12] };
+    render(<TrackerIdentity tracker={mine} busy={false} onClaim={vi.fn()} onRelease={onRelease} />);
+
+    expect(screen.getByText('Berto')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitarme' }));
+    expect(onRelease).toHaveBeenCalled();
+  });
+
+  it('marca con (tú) tu fila en la clasificación', () => {
+    const rows = [{ playerId: 12, name: 'Berto', total: 1, rank: 1, roundsWon: 1, sessionsWon: 0 }];
+    render(
+      <TrackerStandings
+        caption="Sesión"
+        standings={rows}
+        unit="puntos"
+        empty={false}
+        myPlayerId={12}
+      />,
+    );
+
+    expect(screen.getByRole('row', { name: /Berto \(tú\)/ })).toBeInTheDocument();
   });
 });

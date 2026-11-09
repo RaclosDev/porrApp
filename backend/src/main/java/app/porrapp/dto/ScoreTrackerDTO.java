@@ -5,11 +5,13 @@ import java.util.Map;
 
 /**
  * Marcador completo para quien lo ve: jugadores, sesiones con su clasificación, partidas y la
- * clasificación acumulada de todas las sesiones.
+ * clasificación acumulada de todas las sesiones. {@code myPlayerId} es el jugador que el usuario
+ * ha reclamado como suyo y {@code claimedPlayerIds} los que ya tienen cuenta asociada.
  */
 public record ScoreTrackerDTO(Long id, String name, String unit, boolean lowerWins, boolean owner,
-                              String joinCode, Long currentSessionId, List<Player> players,
-                              List<Session> sessions, List<Round> rounds, List<Standing> overall) {
+                              String joinCode, Long myPlayerId, List<Long> claimedPlayerIds, Long currentSessionId,
+                              List<Player> players, List<Session> sessions, List<Round> rounds,
+                              List<Standing> overall) {
 
     public record Player(Long id, String name) {
     }

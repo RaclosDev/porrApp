@@ -8,10 +8,19 @@ interface Props {
   showSessions?: boolean;
   /** Sin partidas aún nadie va primero. */
   empty: boolean;
+  /** Jugador que es el usuario, para marcarlo en la tabla. */
+  myPlayerId?: number | null;
 }
 
 /** Clasificación de un marcador: posición con empates, total y partidas (y sesiones) ganadas. */
-export default function TrackerStandings({ caption, standings, unit, showSessions, empty }: Props) {
+export default function TrackerStandings({
+  caption,
+  standings,
+  unit,
+  showSessions,
+  empty,
+  myPlayerId,
+}: Props) {
   return (
     <div className="tracker-table-wrap">
       <table className="tracker-table">
@@ -37,7 +46,15 @@ export default function TrackerStandings({ caption, standings, unit, showSession
           {standings.map((row) => (
             <tr key={row.playerId} className={!empty && row.rank === 1 ? 'is-leader' : undefined}>
               <td>{empty ? '–' : row.rank}</td>
-              <th scope="row">{row.name}</th>
+              <th scope="row">
+                {row.name}
+                {row.playerId === myPlayerId && (
+                  <>
+                    {' '}
+                    <span className="tracker-me">(tú)</span>
+                  </>
+                )}
+              </th>
               <td className="is-num">{row.total}</td>
               <td className="is-num">{row.roundsWon}</td>
               {showSessions && <td className="is-num">{row.sessionsWon}</td>}

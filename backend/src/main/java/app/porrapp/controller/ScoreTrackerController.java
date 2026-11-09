@@ -1,5 +1,6 @@
 package app.porrapp.controller;
 
+import app.porrapp.dto.ScoreTrackerClaimRequest;
 import app.porrapp.dto.ScoreTrackerDTO;
 import app.porrapp.dto.ScoreTrackerJoinRequest;
 import app.porrapp.dto.ScoreTrackerPlayerRequest;
@@ -71,6 +72,18 @@ public class ScoreTrackerController {
     public ScoreTrackerDTO addPlayer(@PathVariable Long id, @Valid @RequestBody ScoreTrackerPlayerRequest request,
                                      Principal principal) {
         return service.addPlayer(principal.getName(), id, request.name());
+    }
+
+    /** El usuario se apunta a uno de los jugadores como «soy yo». */
+    @PutMapping("/{id}/me")
+    public ScoreTrackerDTO claimPlayer(@PathVariable Long id, @Valid @RequestBody ScoreTrackerClaimRequest request,
+                                       Principal principal) {
+        return service.claimPlayer(principal.getName(), id, request.playerId());
+    }
+
+    @DeleteMapping("/{id}/me")
+    public ScoreTrackerDTO releasePlayer(@PathVariable Long id, Principal principal) {
+        return service.releasePlayer(principal.getName(), id);
     }
 
     @DeleteMapping("/{id}")

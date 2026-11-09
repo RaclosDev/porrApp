@@ -237,6 +237,41 @@ public class ScoreTrackerService {
         return changed(tracker, userId);
     }
 
+    /**
+     * El usuario dice cuál de los jugadores es él, para que en cada móvil se vea quién es quién. Solo uno
+     * por marcador (cambiar de jugador libera el anterior) y nadie puede quitarle el suyo a otro.
+     */
+    @Transactional
+    public ScoreTrackerDTO claimPlayer(String email, Long trackerId, Long playerId) {
+        Long userId = userId(email);
+        ScoreTracker tracker = visible(userId, trackerId);
+        ScoreTrackerPlayer target = players.findById(playerId)
+                .filter(found -> found.getTrackerId().equals(trackerId))
+                .orElseThrow(() -> BusinessException.badRequest("Jugador no válido"));
+        if (target.getUserId() != null && !target.getUserId().equals(userId)) {
+            throw BusinessException.conflict("Ese jugador ya es de otra persona");
+        }
+        if (userId.equals(target.getUserId())) return view(tracker, userId);
+        players.findByTrackerIdAndUserId(trackerId, userId).ifPresent(previous -> {
+            previous.setUserId(null);
+            players.saveAndFlush(previous);
+        });
+        target.setUserId(userId);
+        players.save(target);
+        return changed(tracker, userId);
+    }
+
+    @Transactional
+    public ScoreTrackerDTO releasePlayer(String email, Long trackerId) {
+        Long userId = userId(email);
+        ScoreTracker tracker = visible(userId, trackerId);
+        players.findByTrackerIdAndUserId(trackerId, userId).ifPresent(mine -> {
+            mine.setUserId(null);
+            players.save(mine);
+        });
+        return changed(tracker, userId);
+    }
+
     /** Borra el marcador entero (solo su creador). */
     @Transactional
     public void delete(String email, Long trackerId) {
@@ -286,8 +321,13 @@ public class ScoreTrackerService {
 
     private ScoreTrackerDTO view(ScoreTracker tracker, Long userId) {
         Long trackerId = tracker.getId();
-        List<Player> playerList = players.findByTrackerIdOrderByPositionAsc(trackerId).stream()
+        List<ScoreTrackerPlayer> playerRows = players.findByTrackerIdOrderByPositionAsc(trackerId);
+        List<Player> playerList = playerRows.stream()
                 .map(player -> new Player(player.getId(), player.getName())).toList();
+        Long myPlayerId = playerRows.stream().filter(player -> userId.equals(player.getUserId()))
+                .map(ScoreTrackerPlayer::getId).findFirst().orElse(null);
+        List<Long> claimed = playerRows.stream().filter(player -> player.getUserId() != null)
+                .map(ScoreTrackerPlayer::getId).toList();
         List<ScoreTrackerSession> sessionList = sessions.findByTrackerIdOrderByIdAsc(trackerId);
         List<ScoreTrackerRound> roundList = rounds.findByTrackerIdOrderByIdAsc(trackerId);
         Map<Long, Map<Long, Integer>> pointsByRound = new HashMap<>();
@@ -327,7 +367,7 @@ public class ScoreTrackerService {
                 sessionsWon);
         Long current = sessionList.isEmpty() ? null : sessionList.get(sessionList.size() - 1).getId();
         return new ScoreTrackerDTO(trackerId, tracker.getName(), tracker.getUnit(), lowerWins,
-                tracker.getOwnerUserId().equals(userId), tracker.getJoinCode(), current, playerList,
-                sessionViews, roundViews, overall);
+                tracker.getOwnerUserId().equals(userId), tracker.getJoinCode(), myPlayerId, claimed, current,
+                playerList, sessionViews, roundViews, overall);
     }
 }

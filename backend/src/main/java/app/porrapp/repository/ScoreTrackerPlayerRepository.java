@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ScoreTrackerPlayerRepository extends JpaRepository<ScoreTrackerPlayer, Long> {
 
@@ -13,4 +14,6 @@ public interface ScoreTrackerPlayerRepository extends JpaRepository<ScoreTracker
     List<ScoreTrackerPlayer> findByTrackerIdIn(Collection<Long> trackerIds);
 
     long countByTrackerId(Long trackerId);
+
+    Optional<ScoreTrackerPlayer> findByTrackerIdAndUserId(Long trackerId, Long userId);
 }
