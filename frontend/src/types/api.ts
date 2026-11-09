@@ -288,6 +288,8 @@ export interface LeagueSummary {
   points: number | null;
   participants: number;
   pendingPredictions: number;
+  /** La liga ha terminado: se ha jugado todo lo que cuenta para ella. */
+  finished?: boolean;
 }
 
 /** Una de las competiciones de una liga que junta varias. */

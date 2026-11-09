@@ -354,6 +354,78 @@
     min-width: 44px;
   }
 
+  /* Cierre de una liga terminada: campeón, podio y resultado del usuario, encima del inicio. */
+  .league-closing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    max-width: 1080px;
+    margin: 4px auto 18px;
+    padding: 20px 16px;
+    text-align: center;
+  }
+
+  .league-closing-title {
+    margin: 0;
+    font-size: clamp(1.5rem, 6vw, 2.2rem);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .league-closing .matchday-podium {
+    width: 100%;
+  }
+
+  .league-closing .ranking-podium {
+    margin-bottom: 0;
+  }
+
+  .league-closing-result {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .league-closing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 18px;
+    margin-top: 4px;
+  }
+
+  .league-closing-share {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 18px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--marker-ink);
+    color: var(--paper);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .league-closing-share:hover,
+  .league-closing-share:focus-visible {
+    filter: brightness(1.12);
+  }
+
+  .league-closing-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--marker-ink);
+    font-weight: 700;
+    text-underline-offset: 4px;
+  }
+
   @media (max-width: 600px) {
     .home-hero {
       padding: 16px;

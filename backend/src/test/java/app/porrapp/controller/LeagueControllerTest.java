@@ -111,13 +111,14 @@ class LeagueControllerTest {
     @DisplayName("El resumen de mis ligas se pide con el email de la sesión")
     void leagueSummariesUseSessionEmail() throws Exception {
         Mockito.when(leagueSummaryService.summaries("member@test.com"))
-                .thenReturn(List.of(new LeagueSummaryDTO(10L, 2, 40, 5, 3)));
+                .thenReturn(List.of(new LeagueSummaryDTO(10L, 2, 40, 5, 3, true)));
 
         mockMvc.perform(get("/api/groups/mine/summary").principal(userPrincipal("member@test.com")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].groupId").value(10))
                 .andExpect(jsonPath("$[0].rank").value(2))
-                .andExpect(jsonPath("$[0].pendingPredictions").value(3));
+                .andExpect(jsonPath("$[0].pendingPredictions").value(3))
+                .andExpect(jsonPath("$[0].finished").value(true));
     }
 
     @Test

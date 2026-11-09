@@ -153,6 +153,13 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             + " AND (m.finished = FALSE OR m.finished IS NULL OR m.matchDate IS NULL OR m.matchDate >= :since)")
     long countOpenOrStartingSince(@Param("competitionId") Long competitionId, @Param("since") Instant since);
 
+    /** Si alguna de esas competiciones tiene un partido por jugar: ni terminado ni cancelado. */
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN TRUE ELSE FALSE END FROM Match m"
+            + " WHERE m.competition.id IN :competitionIds"
+            + " AND (m.finished = FALSE OR m.finished IS NULL)"
+            + " AND (m.status IS NULL OR m.status <> app.porrapp.model.MatchStatusNormalized.CANCELLED)")
+    boolean existsOpenInCompetitions(@Param("competitionIds") Collection<Long> competitionIds);
+
     /** Competiciones con algún partido sin terminar cuyo inicio cae en el intervalo (partidos en juego). */
     @Query("SELECT DISTINCT m.competition.id FROM Match m WHERE (m.finished = FALSE OR m.finished IS NULL)"
             + " AND m.matchDate BETWEEN :from AND :to")
