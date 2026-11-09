@@ -12,6 +12,8 @@ export interface FunnelRow<T extends string> {
   status?: RealStatus;
   /** Texto pequeño junto al recuento, p. ej. «3 aciertos». */
   note?: string;
+  /** Total propio de la fila, si no todas se cuentan sobre el mismo. */
+  total?: number;
 }
 
 interface PickFunnelProps<T extends string> {
@@ -64,7 +66,7 @@ export default function PickFunnel<T extends string>({
                   />
                 </span>
                 <span className="shrink-0 text-[0.78rem] text-muted tabular-nums">
-                  {row.count} de {total}
+                  {row.count} de {row.total ?? total}
                   {row.note ? ` · ${row.note}` : ''}
                 </span>
               </span>

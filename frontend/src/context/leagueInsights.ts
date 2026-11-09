@@ -9,7 +9,7 @@ export interface LeagueInsights {
 }
 
 const NO_INSIGHTS: LeagueInsights = { stats: null, search: false };
-/** Lo más elegido por la liga y quién pone a cada equipo o piloto. */
+/** Lo más elegido por la liga y quién pone a cada equipo o piloto, comparado con lo real. */
 const MOST_PICKED: LeagueInsights = { stats: 'Más elegidos', search: true };
 /** Reparto de predicciones de cada partido ya empezado. */
 const BY_MATCH: LeagueInsights = { stats: 'Estadísticas por partido', search: false };
@@ -24,9 +24,9 @@ export const LEAGUE_INSIGHTS: Record<LeagueKind, LeagueInsights> = {
   matchday: BY_MATCH,
   fightCard: BY_MATCH,
   tennisDraw: BY_MATCH,
-  customBracket: NO_INSIGHTS,
-  ownBracket: NO_INSIGHTS,
-  knockoutDraw: NO_INSIGHTS,
+  customBracket: MOST_PICKED,
+  ownBracket: MOST_PICKED,
+  knockoutDraw: MOST_PICKED,
   loading: NO_INSIGHTS,
   error: NO_INSIGHTS,
   none: NO_INSIGHTS,

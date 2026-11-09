@@ -11,6 +11,9 @@ import PickFunnel from '../components/insights/PickFunnel';
 import GrandPrixInsightsGate from '../components/insights/GrandPrixInsightsGate';
 import GrandPrixSearch from '../components/insights/GrandPrixSearch';
 import { useGrandPrixInsights } from '../hooks/useGrandPrixInsights';
+import KnockoutInsightsGate from '../components/insights/KnockoutInsightsGate';
+import KnockoutSearch from '../components/insights/KnockoutSearch';
+import { useKnockoutInsights } from '../hooks/useKnockoutInsights';
 import StagePickersList from '../components/insights/StagePickersList';
 import WhatsAppIcon from '../components/WhatsAppIcon';
 import {
@@ -76,9 +79,9 @@ function realSituation(official: OfficialState, team: string): string | null {
 }
 
 /**
- * Buscador: en las ligas de cuadro, elige un equipo y mira cuántos cuadros lo llevan a cada
- * ronda, quién lo pone y hasta dónde lo lleva el resto; en la Fórmula 1, elige un piloto y mira
- * quién lo ha puesto y en qué puesto en cada Gran Premio.
+ * Buscador: en las ligas de cuadro y en las eliminatorias, elige un equipo y mira cuántas
+ * predicciones lo llevan a cada ronda, quién lo pone y hasta dónde lo lleva el resto; en la
+ * Fórmula 1, elige un piloto y mira quién lo ha puesto y en qué puesto en cada Gran Premio.
  */
 function Search() {
   const { leagueKind, activeGroupId, userGroups, changeGroup, groupError } = useAppContext();
@@ -112,11 +115,36 @@ function Search() {
     tennisDraw: <Navigate to="/stats" replace />,
     // En la Fórmula 1 se busca un piloto a lo largo de la temporada.
     grandPrix: <GrandPrixSearchPage />,
-    customBracket: <Navigate to="/" replace />,
-    ownBracket: <Navigate to="/" replace />,
-    knockoutDraw: <Navigate to="/" replace />,
+    // En el resto de cuadros se busca un equipo en el cuadro de esa competición.
+    customBracket: <KnockoutSearchPage />,
+    ownBracket: <KnockoutSearchPage />,
+    knockoutDraw: <KnockoutSearchPage />,
   };
   return views[leagueKind];
+}
+
+function KnockoutSearchPage() {
+  const insights = useKnockoutInsights();
+  const count = insights.entries.length;
+  return (
+    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
+      <InsightsHeader
+        leagueName={insights.leagueName}
+        summary={count > 0 ? `${count} ${count === 1 ? 'predicción' : 'predicciones'}` : undefined}
+      />
+      <KnockoutInsightsGate insights={insights}>
+        <KnockoutSearch
+          entries={insights.entries}
+          field={insights.field}
+          logos={insights.logos}
+          leagueName={insights.leagueName}
+          groupId={insights.groupId}
+          avatarByUserId={insights.avatarByUserId}
+          onOpen={insights.openPrediction}
+        />
+      </KnockoutInsightsGate>
+    </section>
+  );
 }
 
 function GrandPrixSearchPage() {

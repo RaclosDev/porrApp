@@ -84,6 +84,18 @@ vi.mock('../../components/insights/GrandPrixStats', () => ({
 vi.mock('../../components/insights/GrandPrixSearch', () => ({
   default: () => <p>Buscador de pilotos</p>,
 }));
+vi.mock('../../hooks/useKnockoutInsights', () => ({
+  useKnockoutInsights: () => ({ entries: [], leagueName: 'Liga', groupId: '7' }),
+}));
+vi.mock('../../components/insights/KnockoutInsightsGate', () => ({
+  default: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock('../../components/insights/KnockoutStats', () => ({
+  default: () => <p>Más elegidos del cuadro</p>,
+}));
+vi.mock('../../components/insights/KnockoutSearch', () => ({
+  default: () => <p>Buscador de equipos del cuadro</p>,
+}));
 vi.mock('../../components/CustomPredictionViewer', () => ({
   default: () => <p>Visor del cuadro propio</p>,
 }));
@@ -184,9 +196,9 @@ const SCREENS: ScreenCase[] = [
       none: 'Estadísticas',
       unknown: UNKNOWN,
       worldCup: WORLD_CUP,
-      customBracket: ROUTES['/'],
-      ownBracket: ROUTES['/'],
-      knockoutDraw: ROUTES['/'],
+      customBracket: 'Más elegidos del cuadro',
+      ownBracket: 'Más elegidos del cuadro',
+      knockoutDraw: 'Más elegidos del cuadro',
       matchday: 'Estadísticas por partido',
       fightCard: 'Estadísticas por partido',
       tennisDraw: 'Estadísticas por partido',
@@ -203,9 +215,9 @@ const SCREENS: ScreenCase[] = [
       none: 'Buscar',
       unknown: UNKNOWN,
       worldCup: WORLD_CUP,
-      customBracket: ROUTES['/'],
-      ownBracket: ROUTES['/'],
-      knockoutDraw: ROUTES['/'],
+      customBracket: 'Buscador de equipos del cuadro',
+      ownBracket: 'Buscador de equipos del cuadro',
+      knockoutDraw: 'Buscador de equipos del cuadro',
       matchday: ROUTES['/stats'],
       fightCard: ROUTES['/stats'],
       tennisDraw: ROUTES['/stats'],

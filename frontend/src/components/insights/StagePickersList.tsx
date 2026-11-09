@@ -1,8 +1,13 @@
 import { UserAvatar } from '../Avatar';
-import type { BracketEntry, StagePickers } from '../../utils/bracketStats';
+/** Lo que hace falta de una predicción para listarla y abrirla. */
+interface PickerEntry {
+  id: string;
+  name: string;
+  userId: number | null;
+}
 
 interface StagePickersListProps {
-  pickers: StagePickers;
+  pickers: { yes: PickerEntry[]; no: { entry: PickerEntry; note?: string }[] };
   avatarByUserId: Map<number, string>;
   onOpen: (predictionId: string) => void;
 }
@@ -14,7 +19,7 @@ function PersonButton({
   note,
   muted = false,
 }: {
-  entry: BracketEntry;
+  entry: PickerEntry;
   avatarByUserId: Map<number, string>;
   onOpen: (predictionId: string) => void;
   note?: string;

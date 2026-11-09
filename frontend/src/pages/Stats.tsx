@@ -2,15 +2,17 @@ import { useAppContext } from '../context/AppContext';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { useBracketInsights } from '../hooks/useBracketInsights';
 import { useGrandPrixInsights } from '../hooks/useGrandPrixInsights';
+import { useKnockoutInsights } from '../hooks/useKnockoutInsights';
 import InsightsHeader from '../components/insights/InsightsHeader';
 import BracketInsightsGate from '../components/insights/BracketInsightsGate';
 import BracketStats from '../components/insights/BracketStats';
 import GrandPrixInsightsGate from '../components/insights/GrandPrixInsightsGate';
 import GrandPrixStats from '../components/insights/GrandPrixStats';
+import KnockoutInsightsGate from '../components/insights/KnockoutInsightsGate';
+import KnockoutStats from '../components/insights/KnockoutStats';
 import MatchdayStatsView from '../components/insights/MatchdayStatsView';
 import { InsightsNotice } from '../components/insights/InsightCard';
 import type { OfficialState } from '../utils/bracketStats';
-import { Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
@@ -23,8 +25,9 @@ function tournamentSummary(official: OfficialState): string {
 }
 
 /**
- * Estadísticas de la liga activa. En las ligas de cuadro y en la Fórmula 1, lo más elegido
- * comparado con lo real; en las de jornadas, el reparto de pronósticos de cada partido ya empezado.
+ * Estadísticas de la liga activa. En las ligas de cuadro, en las eliminatorias y en la Fórmula 1,
+ * lo más elegido comparado con lo real; en las de jornadas, el reparto de pronósticos de cada
+ * partido ya empezado.
  */
 function Stats() {
   const { leagueKind, groupError } = useAppContext();
@@ -39,12 +42,29 @@ function Stats() {
     fightCard: <MatchdayStatsPage />,
     tennisDraw: <MatchdayStatsPage />,
     grandPrix: <GrandPrixStatsPage />,
-    // Sin estadísticas propias: los cuadros propios y las eliminatorias sorteadas.
-    customBracket: <Navigate to="/" replace />,
-    ownBracket: <Navigate to="/" replace />,
-    knockoutDraw: <Navigate to="/" replace />,
+    // Lo más elegido compara las predicciones con el cuadro real de esa competición.
+    customBracket: <KnockoutStatsPage />,
+    ownBracket: <KnockoutStatsPage />,
+    knockoutDraw: <KnockoutStatsPage />,
   };
   return views[leagueKind];
+}
+
+/** Lo más elegido en cada ronda de unas eliminatorias o de un cuadro propio. */
+function KnockoutStatsPage() {
+  const insights = useKnockoutInsights();
+  const count = insights.entries.length;
+  return (
+    <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
+      <InsightsHeader
+        leagueName={insights.leagueName}
+        summary={count > 0 ? `${count} ${count === 1 ? 'predicción' : 'predicciones'}` : undefined}
+      />
+      <KnockoutInsightsGate insights={insights}>
+        <KnockoutStats entries={insights.entries} field={insights.field} logos={insights.logos} />
+      </KnockoutInsightsGate>
+    </section>
+  );
 }
 
 /** Lo más elegido de cada Gran Premio ya cerrado, comparado con el resultado. */
