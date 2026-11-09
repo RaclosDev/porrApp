@@ -133,12 +133,13 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     /**
-     * Equipos de un torneo con grupos, si aún no tiene ninguno. Un equipo que ya existe (juega otra
-     * competición) se reutiliza: su grupo es el de su participación en este torneo, no el del equipo.
+     * Sorteo de un torneo con grupos, si aún no lo tiene. Un equipo que ya existe (juega otra competición)
+     * se reutiliza: su grupo es el de su participación en este torneo, no el del equipo.
      */
     private void seedTeamsIfMissing(CompetitionSeed competitionSeed) {
         Competition competition = competitionRepository.findByExternalId(competitionSeed.externalId()).orElse(null);
-        if (competition == null || competitionTeamRepository.existsByCompetitionId(competition.getId())) {
+        if (competition == null
+                || competitionTeamRepository.existsByCompetitionIdAndGroupNameIsNotNull(competition.getId())) {
             return;
         }
         List<TeamSeed> seeds = readSeed(competitionSeed.teams(), new TypeReference<>() {
@@ -153,16 +154,29 @@ public class DataInitializer implements CommandLineRunner {
                             .qualifyOdds(seed.qualifyOdds())
                             .outrightOdds(seed.outrightOdds())
                             .build()));
-            competitionTeamRepository.save(CompetitionTeam.builder()
-                    .competition(competition).team(team).groupName(seed.group()).build());
+            // Si sus partidos se importaron antes que su sorteo, el equipo ya está ligado: solo falta el grupo.
+            CompetitionTeam participation = competitionTeamRepository
+                    .findByCompetitionIdAndTeamId(competition.getId(), team.getId())
+                    .orElseGet(() -> CompetitionTeam.builder().competition(competition).team(team).build());
+            participation.setGroupName(seed.group());
+            competitionTeamRepository.save(participation);
         });
         log.info("Cargados {} equipos de {} desde {}", seeds.size(), competition.getName(), competitionSeed.teams());
     }
 
+    /** Por su id externo; por el nombre solo si la semilla no trae id o el equipo guardado aún no tiene el suyo. */
     private java.util.Optional<Team> existingTeam(TeamSeed seed) {
         java.util.Optional<Team> byId = seed.externalId() == null
                 ? java.util.Optional.empty() : teamRepository.findByExternalId(seed.externalId());
-        return byId.isPresent() ? byId : teamRepository.findByName(seed.name());
+        if (byId.isPresent()) return byId;
+        return teamRepository.findAllCatalogByName(seed.name()).stream()
+                .filter(team -> seed.externalId() == null || team.getExternalId() == null)
+                .findFirst()
+                .map(team -> {
+                    if (team.getExternalId() != null || seed.externalId() == null) return team;
+                    team.setExternalId(seed.externalId());
+                    return teamRepository.save(team);
+                });
     }
 
     private <T> T readSeed(String resource, TypeReference<T> type) {

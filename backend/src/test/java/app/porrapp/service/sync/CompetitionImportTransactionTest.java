@@ -102,8 +102,9 @@ class CompetitionImportTransactionTest {
             matchPredictions.deleteAll(matchPredictions.findByMatchId(match.getId()));
             matches.delete(match);
         });
-        teams.findByExternalId("991001").ifPresent(teams::delete);
-        teams.findByExternalId("991002").ifPresent(teams::delete);
+        for (String id : java.util.List.of("soccer-991001", "soccer-991002", "991001", "991002")) {
+            teams.findByExternalId(id).ifPresent(teams::delete);
+        }
         processor.teamCache().clear();
         caches.getCache("leaderboard").clear();
     }
@@ -219,7 +220,7 @@ class CompetitionImportTransactionTest {
 
         assertThatThrownBy(() -> sync.importCompetitionData(competitionId)).isInstanceOf(IllegalStateException.class);
 
-        assertThat(teams.findByExternalId("991001")).isEmpty();
+        assertThat(teams.findByExternalId("soccer-991001")).isEmpty();
         assertThat(caches.getCache("leaderboard").get("before-import").get()).isEqualTo("existing ranking");
         verifyNoInteractions(updates);
     }
@@ -272,9 +273,9 @@ class CompetitionImportTransactionTest {
 
         assertThatThrownBy(() -> sync.importCompetitionData(competitionId)).isInstanceOf(IllegalStateException.class);
 
-        assertThat(teams.findByExternalId("991001")).isEmpty();
+        assertThat(teams.findByExternalId("soccer-991001")).isEmpty();
         assertThat(matches.findByExternalId("990001")).isEmpty();
-        assertThat(before).doesNotContainKey("991001");
+        assertThat(before).doesNotContainKey("soccer-991001");
         assertThat(caches.getCache("leaderboard").get("before-import").get()).isEqualTo("existing ranking");
         verifyNoInteractions(updates);
 
@@ -282,7 +283,7 @@ class CompetitionImportTransactionTest {
                 .thenReturn(json.createArrayNode().add(events().get(0)));
         sync.importCompetitionData(competitionId);
 
-        assertThat(teams.findByExternalId("991001")).isPresent();
+        assertThat(teams.findByExternalId("soccer-991001")).isPresent();
         assertThat(matches.findByExternalId("990001")).isPresent();
         assertThat(caches.getCache("leaderboard").get("before-import")).isNull();
         verify(updates).broadcastMatchScore(any(), eq("Import Home"), eq("Import Away"), eq(2), eq(1), eq("FINISHED"));

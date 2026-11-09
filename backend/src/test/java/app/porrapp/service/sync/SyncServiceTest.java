@@ -303,7 +303,7 @@ class SyncServiceTest {
                 () -> importService.importCompetitionData(5L));
 
         verifyNoInteractions(transactionManager);
-        verify(matchEventProcessor, never()).importTeams(any(), any());
+        verify(matchEventProcessor, never()).importTeams(any(), any(), any());
     }
 
     @Test

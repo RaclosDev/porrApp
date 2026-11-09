@@ -262,7 +262,7 @@ public class CompetitionImportService {
             throw new IllegalStateException("La competición cambió durante la descarga");
         }
         Map<String, Team> teams = matchEventProcessor.freshTeamCache();
-        int importedTeams = matchEventProcessor.importTeams(snapshot.teams(), teams);
+        int importedTeams = matchEventProcessor.importTeams(snapshot.teams(), teams, competition);
         MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition, true);
         for (JsonNode event : snapshot.events()) {
             checkImportCancellation();

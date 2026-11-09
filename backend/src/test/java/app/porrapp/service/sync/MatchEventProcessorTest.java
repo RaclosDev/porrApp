@@ -42,6 +42,7 @@ class MatchEventProcessorTest {
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Mock private TeamRepository teamRepository;
+    @Mock private app.porrapp.repository.CompetitionTeamRepository competitionTeamRepository;
     @Mock private MatchRepository matchRepository;
     @Mock private MatchPredictionService matchPredictionService;
     @Mock private TopScorerService topScorerService;
@@ -58,10 +59,9 @@ class MatchEventProcessorTest {
 
     @BeforeEach
     void setUp() {
-        spain = Team.builder().id(1L).name("España").nameEn("Spain").externalId("164").build();
-        uruguay = Team.builder().id(2L).name("Uruguay").nameEn("Uruguay").externalId("212").build();
-        cache = new HashMap<>(Map.of("España", spain, "Spain", spain, "164", spain,
-                "Uruguay", uruguay, "212", uruguay));
+        spain = Team.builder().id(1L).name("España").nameEn("Spain").externalId("soccer-164").build();
+        uruguay = Team.builder().id(2L).name("Uruguay").nameEn("Uruguay").externalId("soccer-212").build();
+        cache = new HashMap<>(Map.of("soccer-164", spain, "soccer-212", uruguay));
     }
 
     private JsonNode event(String state, boolean completed, String note, String homeScore, String awayScore,
@@ -224,7 +224,6 @@ class MatchEventProcessorTest {
     void createsATennisPlayerThatArrivesWithItsMatch() throws Exception {
         Competition paris = Competition.builder().id(7L).name("Masters de París").externalId("tennis.atp.13")
                 .formatType("TOURNAMENT").build();
-        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
         when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
         JsonNode event = JSON.readTree("""
                 {"id": "tennis-186507", "date": "2026-11-08T14:00Z", "season": {"slug": "final"},
@@ -248,8 +247,7 @@ class MatchEventProcessorTest {
     @DisplayName("Descarta huecos del calendario sin ningún equipo conocido")
     void skipsEventsWithoutKnownTeams() throws Exception {
         Team placeholder = Team.builder().id(99L).name(Team.PLACEHOLDER_NAME).nameEn(Team.PLACEHOLDER_NAME_EN).build();
-        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
-        when(teamRepository.findByName(Team.PLACEHOLDER_NAME)).thenReturn(Optional.of(placeholder));
+        when(teamRepository.findCatalogByName(Team.PLACEHOLDER_NAME)).thenReturn(Optional.of(placeholder));
 
         processor.process(event("pre", false, "Final", "", "", "Winner SF1", "9001", "Winner SF2", "9002", "[]"),
                 cache, new MatchEventProcessor.Batch(worldCup));
@@ -397,8 +395,9 @@ class MatchEventProcessorTest {
         Map<String, Team> refreshed = processor.teamCache();
 
         assertNotSame(inUse, refreshed);
-        assertSame(spain, inUse.get("España"), "una sincronización en curso conserva sus equipos");
-        assertSame(uruguay, refreshed.get("212"));
+        assertSame(spain, inUse.get("soccer-164"), "una sincronización en curso conserva sus equipos");
+        assertNull(inUse.get("España"), "un equipo con id externo no se busca por su nombre");
+        assertSame(uruguay, refreshed.get("soccer-212"));
         assertSame(refreshed, processor.teamCache());
     }
 
@@ -521,7 +520,7 @@ class MatchEventProcessorTest {
         Competition nfl = Competition.builder().id(30L).name("NFL").externalId("nfl").formatType("LEAGUE").build();
         Team ravens = Team.builder().id(31L).name("Baltimore Ravens").externalId("33").build();
         Team jaguars = Team.builder().id(32L).name("Jacksonville Jaguars").externalId("30").build();
-        Map<String, Team> nflTeams = new HashMap<>(Map.of("Baltimore Ravens", ravens, "Jacksonville Jaguars", jaguars));
+        Map<String, Team> nflTeams = new HashMap<>(Map.of("33", ravens, "30", jaguars));
         when(matchRepository.findByExternalId("401873037")).thenReturn(Optional.empty());
         when(matchRepository.save(any(Match.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -539,7 +538,7 @@ class MatchEventProcessorTest {
     @Test
     @DisplayName("Importar el catálogo no cambia el nombre en español de un equipo que ya existe")
     void importTeamsKeepsTheLocalNameOfAnExistingTeam() throws Exception {
-        when(teamRepository.findByName("España")).thenReturn(Optional.of(spain));
+        when(teamRepository.findByExternalId("soccer-164")).thenReturn(Optional.of(spain));
         when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
         JsonNode teams = JSON.readTree("""
                 [{"team": {"id": "164", "displayName": "Spain", "abbreviation": "ESP",
@@ -547,31 +546,162 @@ class MatchEventProcessorTest {
                 """);
         Map<String, Team> imported = new HashMap<>();
 
-        assertEquals(1, processor.importTeams(teams, imported));
+        assertEquals(1, processor.importTeams(teams, imported, worldCup));
 
         assertEquals("España", spain.getName());
         assertEquals("Spain", spain.getNameEn());
         assertEquals("https://example.test/esp.png", spain.getLogoUrl());
-        assertSame(spain, imported.get("España"));
-        assertSame(spain, imported.get("Spain"));
-        assertSame(spain, imported.get("164"));
+        assertSame(spain, imported.get("soccer-164"));
+        verify(competitionTeamRepository).link(2L, 1L);
+    }
+
+    @Test
+    @DisplayName("Dos clubes que se llaman igual son dos equipos: el id externo los distingue")
+    void importTeamsKeepsTwoClubsWithTheSameNameApart() throws Exception {
+        Competition libertadores = Competition.builder().id(13L).name("Copa Libertadores")
+                .externalId("conmebol.libertadores").formatType("TOURNAMENT").build();
+        Team english = Team.builder().id(87L).name("Liverpool").nameEn("Liverpool").externalId("soccer-364")
+                .logoUrl("https://example.test/364.png").build();
+        Map<String, Team> known = new HashMap<>(Map.of("soccer-364", english));
+        when(teamRepository.findByExternalId("soccer-5492")).thenReturn(Optional.empty());
+        when(teamRepository.save(any(Team.class))).thenAnswer(inv -> {
+            Team saved = inv.getArgument(0);
+            if (saved.getId() == null) saved.setId(500L);
+            return saved;
+        });
+        JsonNode teams = JSON.readTree("""
+                [{"team": {"id": "5492", "displayName": "Liverpool", "logos": [{"href": "https://example.test/5492.png"}]}}]
+                """);
+
+        processor.importTeams(teams, known, libertadores);
+
+        Team uruguayan = known.get("soccer-5492");
+        assertNotSame(english, uruguayan);
+        assertEquals("Liverpool", uruguayan.getName());
+        assertEquals("soccer-364", english.getExternalId());
+        assertEquals("https://example.test/364.png", english.getLogoUrl());
+        verify(competitionTeamRepository).link(13L, 500L);
+        verify(competitionTeamRepository, never()).link(13L, 87L);
+    }
+
+    @Test
+    @DisplayName("Un rival con el nombre de otro club pero otro id no es ese club")
+    void aCompetitorWithAKnownNameButAnotherIdIsNotThatTeam() throws Exception {
+        Team english = Team.builder().id(87L).name("Liverpool").nameEn("Liverpool").externalId("soccer-364").build();
+        Team placeholder = Team.builder().id(99L).name(Team.PLACEHOLDER_NAME).nameEn(Team.PLACEHOLDER_NAME_EN).build();
+        cache.put("soccer-364", english);
+        when(teamRepository.findByExternalId("soccer-5492")).thenReturn(Optional.empty());
+        when(teamRepository.findCatalogByName(Team.PLACEHOLDER_NAME)).thenReturn(Optional.of(placeholder));
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(event("pre", false, "", "", "", "Liverpool", "5492", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertSame(placeholder, savedMatch().getHomeTeam());
+        assertEquals("soccer-364", english.getExternalId());
+        verify(teamRepository, never()).save(english);
+    }
+
+    @Test
+    @DisplayName("Un equipo de fútbol guardado con el id sin prefijo se reconoce y recibe el id nuevo")
+    void aFootballTeamSavedBeforeThePrefixIsRecognisedAndUpgraded() throws Exception {
+        Team legacy = Team.builder().id(3L).name("Francia").nameEn("France").externalId("478").build();
+        cache.put("478", legacy);
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(event("pre", false, "Group H", "", "", "France", "478", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertSame(legacy, savedMatch().getHomeTeam());
+        assertEquals("soccer-478", legacy.getExternalId());
+        assertSame(legacy, cache.get("soccer-478"));
+        verify(teamRepository).save(legacy);
+        verify(teamRepository, never()).findByExternalId(anyString());
+    }
+
+    @Test
+    @DisplayName("El id sin prefijo también se reconoce en la base si la caché aún no tiene al equipo")
+    void aLegacyFootballIdIsAlsoFoundInTheDatabase() throws Exception {
+        Team legacy = Team.builder().id(3L).name("Francia").nameEn("France").externalId("478").build();
+        when(teamRepository.findByExternalId("soccer-478")).thenReturn(Optional.empty());
+        when(teamRepository.findByExternalId("478")).thenReturn(Optional.of(legacy));
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(event("pre", false, "Group H", "", "", "France", "478", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertSame(legacy, savedMatch().getHomeTeam());
+        assertEquals("soccer-478", legacy.getExternalId());
+        verify(teamRepository, never()).save(argThat(team -> team != legacy));
+    }
+
+    @Test
+    @DisplayName("Un equipo sembrado sin id externo se reconoce por su nombre una vez y recibe su id")
+    void aSeededTeamWithoutExternalIdIsAdoptedByNameOnce() throws Exception {
+        Team seeded = Team.builder().id(4L).name("México").build();
+        cache.put("México", seeded);
+        when(teamRepository.findByExternalId("soccer-203")).thenReturn(Optional.empty());
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+
+        processor.process(event("pre", false, "Group A", "", "", "Mexico", "203", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertSame(seeded, savedMatch().getHomeTeam());
+        assertEquals("México", seeded.getName());
+        assertEquals("soccer-203", seeded.getExternalId());
+        assertEquals("Mexico", seeded.getNameEn());
+    }
+
+    @Test
+    @DisplayName("Un hueco «TBD» del calendario se queda en el comodín sin darle su id")
+    void aTbdCompetitorNeverGivesItsIdToThePlaceholder() throws Exception {
+        Team placeholder = Team.builder().id(99L).name(Team.PLACEHOLDER_NAME).nameEn(Team.PLACEHOLDER_NAME_EN).build();
+        cache.put(Team.PLACEHOLDER_NAME, placeholder);
+        cache.put(Team.PLACEHOLDER_NAME_EN, placeholder);
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(worldCup);
+
+        processor.process(event("pre", false, "Final", "", "", "Spain", "164", "TBD", "-2", "[]"), cache, batch);
+
+        Match saved = savedMatch();
+        assertSame(placeholder, saved.getAwayTeam());
+        assertNull(placeholder.getExternalId());
+        verify(teamRepository, never()).save(any());
+        verify(competitionTeamRepository).link(2L, 1L);
+        verify(competitionTeamRepository, never()).link(2L, 99L);
+    }
+
+    @Test
+    @DisplayName("Un equipo se liga a la competición una vez, y no si ya lo estaba")
+    void aTeamIsLinkedToTheCompetitionItPlaysOnlyOnce() throws Exception {
+        when(competitionTeamRepository.findTeamIdsByCompetitionId(2L)).thenReturn(List.of(2L));
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(worldCup);
+        JsonNode event = event("pre", false, "Group H", "", "", "Spain", "164", "Uruguay", "212", "[]");
+
+        processor.process(event, cache, batch);
+        processor.process(event, cache, batch);
+
+        verify(competitionTeamRepository, times(1)).findTeamIdsByCompetitionId(2L);
+        verify(competitionTeamRepository, times(1)).link(2L, 1L);
+        verify(competitionTeamRepository, never()).link(2L, 2L);
     }
 
     @Test
     @DisplayName("Un equipo nuevo del catálogo se guarda con su nombre en español")
     void importTeamsCreatesNewTeamsWithTheirLocalName() throws Exception {
-        when(teamRepository.findByName(anyString())).thenReturn(Optional.empty());
-        when(teamRepository.findByExternalId("478")).thenReturn(Optional.empty());
+        when(teamRepository.findByExternalId("soccer-478")).thenReturn(Optional.empty());
         when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
         JsonNode teams = JSON.readTree("""
                 [{"team": {"id": "478", "displayName": "France"}}]
                 """);
         Map<String, Team> imported = new HashMap<>();
 
-        processor.importTeams(teams, imported);
+        processor.importTeams(teams, imported, worldCup);
 
-        Team france = imported.get("478");
+        Team france = imported.get("soccer-478");
         assertEquals("Francia", france.getName());
         assertEquals("France", france.getNameEn());
+        assertEquals("soccer-478", france.getExternalId());
     }
 }
