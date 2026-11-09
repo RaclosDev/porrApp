@@ -42,6 +42,8 @@ public class SeasonCalendarRefresher {
     public void refreshAllSeasons() {
         List<Competition> official = competitionRepository.findAll().stream()
                 .filter(c -> c.getOwnerLeague() == null && c.getExternalId() != null && !c.getExternalId().isBlank())
+                // Una temporada archivada ya no cambia: importarla le metería partidos de la vigente.
+                .filter(c -> !c.isArchived())
                 .filter(c -> !(c.isGroupTournament() && knockoutBracketService.isOver(c)))
                 .sorted(Comparator.comparing(Competition::getId))
                 .toList();

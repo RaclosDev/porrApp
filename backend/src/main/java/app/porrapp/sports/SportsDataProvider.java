@@ -82,6 +82,14 @@ public interface SportsDataProvider {
         return null;
     }
 
-    /** Fechas de inicio y fin de una temporada tal como las da el proveedor. */
-    record SeasonWindow(String start, String end) {}
+    /**
+     * Fechas de inicio y fin de una temporada tal como las da el proveedor. {@code start} y {@code end}
+     * acotan lo que se importa; {@code seasonStart} es cuándo empieza de verdad la temporada si lo importado
+     * arranca antes (los playoffs de la NBA traen también los anteriores), o null si no se sabe.
+     */
+    record SeasonWindow(String start, String end, String seasonStart) {
+        public SeasonWindow(String start, String end) {
+            this(start, end, start);
+        }
+    }
 }

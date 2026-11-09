@@ -63,6 +63,7 @@ public class CompetitionImportService {
     private final SyncLock syncLock;
     private final OfficialMatchdayService officialMatchdayService;
     private final app.porrapp.service.formulaone.FormulaOneSyncService formulaOneSyncService;
+    private final CompetitionSeasonService seasonService;
 
     /**
      * Importa el catálogo de equipos (con escudos) y el calendario de la temporada de una competición.
@@ -113,6 +114,7 @@ public class CompetitionImportService {
     private ImportResult importFormulaOne(Competition competition) {
         try {
             var result = formulaOneSyncService.importSeason(competition);
+            annotateFormulaOneSeason(competition);
             if (result.updated() > 0) {
                 java.util.List<Long> imported = java.util.List.of(competition.getId());
                 scoreInvalidationService.evictLeaderboardsAfterCommit(imported);
@@ -126,10 +128,21 @@ public class CompetitionImportService {
         }
     }
 
+    /** La temporada de la Fórmula 1 es el año natural. Que no se pueda anotar no estropea la carga. */
+    private void annotateFormulaOneSeason(Competition competition) {
+        try {
+            seasonService.annotate(competition.getId(),
+                    CompetitionSeasonService.Season.ofYear(LocalDate.now(AppTime.ZONE).getYear()));
+        } catch (RuntimeException error) {
+            log.warn("No se pudo anotar la temporada de {}: {}", competition.getName(), error.getMessage());
+        }
+    }
+
     private static final int MAX_IMPORT_TEAMS = 1000;
     private static final int MAX_IMPORT_EVENTS = 2000;
 
-    private record ImportSnapshot(Competition competition, JsonNode teams, List<JsonNode> events) {}
+    private record ImportSnapshot(Competition competition, JsonNode teams, List<JsonNode> events,
+            CompetitionSeasonService.Season season) {}
     private record ImportCommit(ImportResult result, MatchEventProcessor.Batch batch) {}
 
     /** Descarga secuencial y acotada; no se abre la transacción de escritura hasta tener toda la respuesta. */
@@ -149,7 +162,8 @@ public class CompetitionImportService {
         long deadline = System.nanoTime() + Duration.ofMinutes(2).toNanos();
         try {
             if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
-            Window window = seasonWindow(provider.fetchSeasonWindow(slug), today);
+            SportsDataProvider.SeasonWindow season = provider.fetchSeasonWindow(slug);
+            Window window = seasonWindow(season, today);
             Instant windowStart = window.start();
             Instant windowEnd = window.end();
             JsonNode teams = provider.fetchTeams(slug);
@@ -178,7 +192,8 @@ public class CompetitionImportService {
             }
             checkImportCancellation();
             if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
-            return new ImportSnapshot(competition, teams, List.copyOf(selected));
+            return new ImportSnapshot(competition, teams, List.copyOf(selected),
+                    CompetitionSeasonService.Season.of(season));
         } catch (Exception error) {
             if (error instanceof InterruptedException) Thread.currentThread().interrupt();
             throw new IllegalStateException("No se pudo descargar la importación de " + competition.getName(), error);
@@ -218,6 +233,8 @@ public class CompetitionImportService {
         if (!Objects.equals(competition.getExternalId(), snapshot.competition().getExternalId())) {
             throw new IllegalStateException("La competición cambió durante la descarga");
         }
+        // Antes de guardar lo descargado: la etiqueta se decide con los partidos que la fila ya tenía.
+        seasonService.annotate(competition.getId(), snapshot.season());
         Map<String, Team> teams = matchEventProcessor.freshTeamCache();
         int importedTeams = matchEventProcessor.importTeams(snapshot.teams(), teams);
         MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(competition, true);

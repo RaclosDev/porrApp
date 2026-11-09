@@ -198,8 +198,10 @@ public class SyncService {
         }
     }
 
+    /** Con proveedor y vigente: una temporada archivada no se sincroniza, sus partidos ya no cambian. */
     private static boolean hasProvider(Competition competition) {
-        return competition.getExternalId() != null && !competition.getExternalId().isBlank();
+        return competition.getExternalId() != null && !competition.getExternalId().isBlank()
+                && !competition.isArchived();
     }
 
     /** Sincroniza las competiciones, recalcula los torneos con grupos si hace falta y avisa a los clientes. Requiere {@code syncLock}. */

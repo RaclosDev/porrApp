@@ -53,6 +53,20 @@ class EspnNbaDataProviderTest {
     }
 
     @Test
+    @DisplayName("Los playoffs importan desde los anteriores, pero su temporada empieza donde dice ESPN")
+    void thePlayoffWindowKnowsWhereItsSeasonStarts() throws Exception {
+        when(espn.fetchEspnJson(EspnNbaDataProvider.SCOREBOARD)).thenReturn(mapper.readTree(
+                "{\"leagues\":[{\"season\":{\"year\":2027,\"startDate\":\"2026-10-01T07:00Z\","
+                        + "\"endDate\":\"2027-06-27T06:59Z\"}}]}"));
+
+        SportsDataProvider.SeasonWindow window = provider.fetchSeasonWindow("nba");
+
+        assertEquals("2026-04-01T00:00Z", window.start());
+        assertEquals("2027-06-27T06:59Z", window.end());
+        assertEquals("2026-10-01T07:00Z", window.seasonStart());
+    }
+
+    @Test
     @DisplayName("El partido que da la cuarta victoria marca quién gana la serie, con la ronda de las Finales")
     void clinchingGameAdvancesTheSeriesWinner() throws Exception {
         JsonNode event = adapt(game("401766128", 3, "FINAL", "NBA Finals - Game 7", "STATUS_FINAL",

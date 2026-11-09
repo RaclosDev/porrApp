@@ -68,6 +68,12 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     long countByCompetitionId(Long competitionId);
 
+    /** Si la competición guarda algún partido anterior a esa fecha. */
+    boolean existsByCompetitionIdAndMatchDateBefore(Long competitionId, Instant date);
+
+    /** Si la competición guarda algún partido posterior a esa fecha. */
+    boolean existsByCompetitionIdAndMatchDateAfter(Long competitionId, Instant date);
+
     /**
      * Por competición: partidos, partidos sin terminar y partidos de fase de grupos. Sirve para saber al
      * crear una liga si la competición ya acabó y si tiene grupos que pronosticar.
