@@ -86,6 +86,26 @@ class MatchEventProcessorTest {
         return captor.getValue();
     }
 
+    @Test
+    @DisplayName("Una roja directa resta lo que diga el reglamento del torneo: 4 en el Mundial y 3 en la Eurocopa")
+    void aDirectRedCardCostsWhatTheTournamentRulesSay() throws Exception {
+        when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
+        Competition euro = Competition.builder().id(9L).name("UEFA Euro 2024").externalId("uefa.euro")
+                .formatType("TOURNAMENT").build();
+        String cards = """
+                [{"yellowCard": true, "team": {"id": "164"}, "athletesInvolved": [{"id": "p1"}]},
+                 {"yellowCard": true, "team": {"id": "164"}, "athletesInvolved": [{"id": "p1"}]},
+                 {"redCard": true, "team": {"id": "212"}, "athletesInvolved": [{"id": "p9"}]}]
+                """;
+
+        processor.process(event("post", true, "Group H", "2", "1", "Spain", "164", "Uruguay", "212", cards), cache,
+                new MatchEventProcessor.Batch(euro));
+
+        Match match = savedMatch();
+        assertEquals(-3, match.getHomeFairPlay(), "amarilla (-1) + segunda amarilla (-2)");
+        assertEquals(-3, match.getAwayFairPlay(), "roja directa en la UEFA");
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.CsvSource({"STATUS_CANCELED,CANCELLED", "STATUS_POSTPONED,POSTPONED", "STATUS_SUSPENDED,SUSPENDED", "STATUS_ABANDONED,ABANDONED"})
     void preservesProviderInterruptionStatus(String external, MatchStatusNormalized expected) throws Exception {

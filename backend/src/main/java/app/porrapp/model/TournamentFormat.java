@@ -23,12 +23,14 @@ import java.util.TreeSet;
  * @param seededGroups        los grupos están sorteados antes de tener calendario: cada equipo lleva el
  *                            suyo; si no, los grupos son los que digan los partidos del torneo
  * @param thirdPlaceMatch     los perdedores de las semifinales juegan por el tercer puesto
+ * @param tiebreak            reglamento con el que se desempatan sus grupos: el de su organizador; si no
+ *                            se dice, el de la FIFA
  * @param firstKnockoutRound  cruces de la primera ronda eliminatoria, en el orden del cuadro: cada lado es
  *                            un puesto de grupo ("1E", "2A") o el tercero de uno de varios grupos ("3ABCDF").
  *                            Su tamaño dice en qué ronda empieza el cuadro (16 cruces, dieciseisavos; 8, octavos…)
  */
 public record TournamentFormat(String season, Instant bracketDeadline, int bestThirds, int groupMatchesPerTeam,
-                               boolean seededGroups, boolean thirdPlaceMatch,
+                               boolean seededGroups, boolean thirdPlaceMatch, GroupTiebreak tiebreak,
                                List<List<String>> firstKnockoutRound) {
 
     static final String REGISTRY = "/seed/tournament-formats.json";
@@ -39,11 +41,12 @@ public record TournamentFormat(String season, Instant bracketDeadline, int bestT
 
     /** Grupos tomados del calendario del torneo, sin terceros que pasen ni cuadro que predecir. */
     private static final TournamentFormat GROUPS_FROM_CALENDAR =
-            new TournamentFormat(null, null, 0, 0, false, false, List.of());
+            new TournamentFormat(null, null, 0, 0, false, false, GroupTiebreak.FIFA, List.of());
 
     private static final Map<String, TournamentFormat> REGISTERED = load();
 
     public TournamentFormat {
+        tiebreak = tiebreak == null ? GroupTiebreak.FIFA : tiebreak;
         firstKnockoutRound = firstKnockoutRound == null ? List.of()
                 : firstKnockoutRound.stream().map(List::copyOf).toList();
     }

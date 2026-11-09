@@ -38,6 +38,17 @@ class TournamentFormatTest {
     }
 
     @Test
+    @DisplayName("Cada torneo desempata con el reglamento de su organizador y, si no dice nada, con el de la FIFA")
+    void eachTournamentBreaksTiesWithItsOrganizersRules() {
+        assertThat(TournamentFormat.registered(Competition.WORLD_CUP_EXTERNAL_ID).tiebreak()).isEqualTo(GroupTiebreak.FIFA);
+        assertThat(TournamentFormat.registered("uefa.euro").tiebreak()).isEqualTo(GroupTiebreak.UEFA);
+        assertThat(TournamentFormat.of(Competition.builder().externalId("conmebol.libertadores").build()).tiebreak())
+                .isEqualTo(GroupTiebreak.FIFA);
+        assertThat(new TournamentFormat("2030", null, 0, 3, true, false, null, List.of()).tiebreak())
+                .isEqualTo(GroupTiebreak.FIFA);
+    }
+
+    @Test
     @DisplayName("Cada tercero que pasa tiene un hueco en la primera ronda, y cada puesto de grupo aparece una vez")
     void everyRegisteredFormatIsConsistent() {
         for (String externalId : TournamentFormat.registeredExternalIds()) {

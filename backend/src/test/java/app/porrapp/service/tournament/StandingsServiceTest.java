@@ -236,6 +236,42 @@ class StandingsServiceTest {
         verifyNoInteractions(matchRepository);
     }
 
+    @Test
+    void theThirdOfEachGroupCarriesItsPlaceAmongThirdsByTheTournamentRules() {
+        // Dos terceros con 3 puntos y 2-2: «Ganador» ganó un partido y vio más tarjetas; «Empates» empató los tres.
+        Team winner = Team.builder().id(1L).name("Ganador").build();
+        Team drawer = Team.builder().id(2L).name("Empates").build();
+        Team rival = Team.builder().id(3L).name("Rival").build();
+        List<GroupStanding> rows = List.of(
+                GroupStanding.builder().groupName("A").team(rival).points(9).position(1).matchesPlayed(3).build(),
+                GroupStanding.builder().groupName("A").team(winner).points(3).goalDiff(0).goalsFor(2)
+                        .fairPlayPoints(-5).position(3).matchesPlayed(3).build(),
+                GroupStanding.builder().groupName("B").team(drawer).points(3).goalDiff(0).goalsFor(2)
+                        .fairPlayPoints(-1).position(3).matchesPlayed(3).build());
+        Match win = Match.builder().round("group").groupName("A").homeTeam(winner).awayTeam(rival)
+                .homeScore(2).awayScore(0).finished(true).build();
+
+        // La UEFA mira las victorias antes que las tarjetas, y para eso lee los partidos.
+        Competition euro = Competition.builder().id(9L).name("Eurocopa 2024").externalId("uefa.euro").build();
+        when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(9L)).thenReturn(rows);
+        when(matchRepository.findByCompetitionId(9L)).thenReturn(List.of(win));
+
+        var euroPoints = standingsService.getGroupPoints(euro);
+
+        assertEquals(1, euroPoints.get("A").get("Ganador").get("third"));
+        assertEquals(2, euroPoints.get("B").get("Empates").get("third"));
+        assertEquals(false, euroPoints.get("A").get("Rival").containsKey("third"));
+
+        // La FIFA pasa de los goles a las tarjetas con lo que ya dice la clasificación.
+        when(standingRepository.findByCompetitionIdOrderByGroupNameAscPositionAsc(WORLD_CUP_ID)).thenReturn(rows);
+
+        var worldCupPoints = standingsService.getGroupPoints(worldCup);
+
+        assertEquals(1, worldCupPoints.get("B").get("Empates").get("third"));
+        assertEquals(2, worldCupPoints.get("A").get("Ganador").get("third"));
+        verify(matchRepository, never()).findByCompetitionId(WORLD_CUP_ID);
+    }
+
     private static final long WORLD_CUP_ID = 2L;
 
     /** El equipo, sorteado en el grupo H del torneo. */

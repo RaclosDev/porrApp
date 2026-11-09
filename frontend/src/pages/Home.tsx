@@ -65,6 +65,7 @@ function WorldCupGroups() {
   const {
     groupOdds,
     groupStandings,
+    format,
     loading: loadingWorldCup,
     pichichi,
     topScorers,
@@ -216,7 +217,7 @@ function WorldCupGroups() {
 
       <div className="hide-on-desktop mb-5 flex flex-col items-center w-full">
         <div className={activeMobilePanel === 'thirds' ? '' : 'mobile-step-hidden'}>
-          <BestThirdsPanel officialPoints={groupStandings} />
+          <BestThirdsPanel officialPoints={groupStandings} qualifying={format.bestThirds} />
         </div>
         <div className={activeMobilePanel === 'live' ? '' : 'mobile-step-hidden'}>
           <LiveMatchesPanel
@@ -240,7 +241,7 @@ function WorldCupGroups() {
       {/* Paneles desktop (siempre visibles, solo en groups) */}
       <div className="hide-on-mobile flex flex-wrap justify-center items-start mb-5 w-full gap-5">
         <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
-          <BestThirdsPanel officialPoints={groupStandings} />
+          <BestThirdsPanel officialPoints={groupStandings} qualifying={format.bestThirds} />
         </div>
         <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel
