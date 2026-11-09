@@ -12,7 +12,9 @@ import java.util.List;
 @Repository
 public interface EditionRepository extends JpaRepository<Edition, Long> {
     
-    @Query("SELECT e FROM Edition e LEFT JOIN FETCH e.league LEFT JOIN FETCH e.competition WHERE e.league.id = :leagueId AND e.status = :status")
+    /** La edición con su liga, el administrador de esta (con él se comprueban los permisos) y su competición. */
+    @Query("SELECT e FROM Edition e LEFT JOIN FETCH e.league l LEFT JOIN FETCH l.adminUser LEFT JOIN FETCH e.competition"
+            + " WHERE e.league.id = :leagueId AND e.status = :status")
     Optional<Edition> findByLeagueIdAndStatus(@Param("leagueId") Long leagueId, @Param("status") String status);
     
     List<Edition> findByLeagueId(Long leagueId);

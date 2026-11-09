@@ -31,7 +31,7 @@ public class League {
 
     /** Usuario que creó la liga y que actúa como administrador de la misma. */
     @com.fasterxml.jackson.annotation.JsonIgnore
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_user_id", nullable = false)
     private UserAccount adminUser;
 

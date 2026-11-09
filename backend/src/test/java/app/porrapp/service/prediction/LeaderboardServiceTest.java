@@ -102,7 +102,7 @@ class LeaderboardServiceTest {
                 .competition(Competition.builder().externalId("esp.1").build()).build();
         Prediction prediction = championPrediction(123L, edition);
         when(predictionRepository.findById(123L)).thenReturn(Optional.of(prediction));
-        when(matchPredictionRepository.findByPredictionId(123L)).thenReturn(List.of(
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(123L))).thenReturn(List.of(
                 MatchPrediction.builder().pointsAwarded(3).build()));
         officialChampion("España");
         ParticipantScoreDTO score = leaderboardService.calculateScoreForPrediction(123L);
@@ -453,7 +453,7 @@ class LeaderboardServiceTest {
         Edition custom = Edition.builder().id(3L).pichichi(false)
                 .scoringRulesJson(ScoringRuleSet.builder().championPoints(350).build().toJson()).build();
         when(predictionRepository.findById(300L)).thenReturn(Optional.of(championPrediction(300L, custom)));
-        when(matchPredictionRepository.findByPredictionId(300L)).thenReturn(List.of());
+        when(matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(300L))).thenReturn(List.of());
         officialChampion("España");
 
         ParticipantScoreDTO score = leaderboardService.calculateScoreForPrediction(300L);

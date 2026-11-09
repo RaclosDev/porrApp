@@ -51,6 +51,9 @@ export const createPrediction = (
     fallbackError: 'Hubo un error al guardar la porra.',
   }).then(announceSaved);
 
+/** Jornada que pide solo la que está en curso en la liga, en vez de la temporada entera. */
+export const CURRENT_ROUND = 'current';
+
 export const fetchMatchdayFixtures = (groupId: number | string, round = '') =>
   request<MatchdayFixture[]>(`/predictions/matchday${query({ groupId, round })}`);
 

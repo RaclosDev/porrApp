@@ -280,7 +280,7 @@ public class LeagueService {
     // (ni hacer crecer la caché con cada intento) ni ocultar una liga creada después.
     @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode", unless = "#result == null")
     public Optional<League> getLeagueByJoinCode(String joinCode) {
-        return leagueRepository.findByJoinCode(joinCode);
+        return leagueRepository.findByJoinCode(joinCode).map(LeagueService::withAdminLoaded);
     }
 
     /**
@@ -420,7 +420,16 @@ public class LeagueService {
 
     @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
     public Optional<League> getLeagueById(Long id) {
-        return leagueRepository.findById(id);
+        return leagueRepository.findById(id).map(LeagueService::withAdminLoaded);
+    }
+
+    /**
+     * La liga con su administrador cargado. Estas ligas se guardan en caché y se leen después sin sesión:
+     * si la transacción ya tenía la liga sin él (cargada desde su edición), aquí se termina de cargar.
+     */
+    private static League withAdminLoaded(League league) {
+        org.hibernate.Hibernate.initialize(league.getAdminUser());
+        return league;
     }
 
     /**
