@@ -96,6 +96,9 @@ vi.mock('../../components/insights/KnockoutStats', () => ({
 vi.mock('../../components/insights/KnockoutSearch', () => ({
   default: () => <p>Buscador de equipos del cuadro</p>,
 }));
+vi.mock('../../components/insights/TennisSearch', () => ({
+  default: () => <p>Buscador de jugadores</p>,
+}));
 vi.mock('../../components/CustomPredictionViewer', () => ({
   default: () => <p>Visor del cuadro propio</p>,
 }));
@@ -220,7 +223,7 @@ const SCREENS: ScreenCase[] = [
       knockoutDraw: 'Buscador de equipos del cuadro',
       matchday: ROUTES['/stats'],
       fightCard: ROUTES['/stats'],
-      tennisDraw: ROUTES['/stats'],
+      tennisDraw: 'Buscador de jugadores',
       grandPrix: 'Buscador de pilotos',
     },
   },

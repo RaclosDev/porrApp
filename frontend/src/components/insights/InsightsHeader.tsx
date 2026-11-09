@@ -19,7 +19,7 @@ const tabClass = ({ isActive }: { isActive: boolean }) =>
  */
 export default function InsightsHeader({ leagueName, summary }: InsightsHeaderProps) {
   const { leagueKind } = useAppContext();
-  const { stats, search } = LEAGUE_INSIGHTS[leagueKind];
+  const { stats, tab, search } = LEAGUE_INSIGHTS[leagueKind];
   return (
     <header className="mb-5 flex flex-col items-center gap-3 text-center">
       <div>
@@ -40,7 +40,7 @@ export default function InsightsHeader({ leagueName, summary }: InsightsHeaderPr
             onFocus={() => prefetchRoute('/stats')}
           >
             <BarChart3 size={16} aria-hidden="true" />
-            {stats}
+            {tab ?? stats}
           </NavLink>
           <NavLink
             to="/search"

@@ -21,6 +21,8 @@ interface PickFunnelProps<T extends string> {
   total: number;
   selected: T;
   onSelect: (id: T) => void;
+  /** Las etiquetas largas (ronda y rival) pasan de línea en vez de cortarse. */
+  wrapLabels?: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export default function PickFunnel<T extends string>({
   total,
   selected,
   onSelect,
+  wrapLabels = false,
 }: PickFunnelProps<T>) {
   return (
     <ul className="m-0 flex list-none flex-col gap-1 p-0">
@@ -47,7 +50,7 @@ export default function PickFunnel<T extends string>({
             >
               <span className="flex items-center gap-2">
                 <span
-                  className={`min-w-0 flex-1 truncate ${row.sub ? 'text-[0.9rem] text-muted' : 'font-semibold text-main'}`}
+                  className={`min-w-0 flex-1 ${wrapLabels ? 'break-words' : 'truncate'} ${row.sub ? 'text-[0.9rem] text-muted' : 'font-semibold text-main'}`}
                 >
                   {row.label}
                 </span>

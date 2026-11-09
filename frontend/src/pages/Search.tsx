@@ -7,6 +7,7 @@ import InsightsHeader from '../components/insights/InsightsHeader';
 import { InsightsNotice, TeamFlag } from '../components/insights/InsightCard';
 import BracketInsightsGate from '../components/insights/BracketInsightsGate';
 import SubjectPicker from '../components/insights/SubjectPicker';
+import TennisSearch from '../components/insights/TennisSearch';
 import PickFunnel from '../components/insights/PickFunnel';
 import GrandPrixInsightsGate from '../components/insights/GrandPrixInsightsGate';
 import GrandPrixSearch from '../components/insights/GrandPrixSearch';
@@ -81,7 +82,8 @@ function realSituation(official: OfficialState, team: string): string | null {
 /**
  * Buscador: en las ligas de cuadro y en las eliminatorias, elige un equipo y mira cuántas
  * predicciones lo llevan a cada ronda, quién lo pone y hasta dónde lo lleva el resto; en la
- * Fórmula 1, elige un piloto y mira quién lo ha puesto y en qué puesto en cada Gran Premio.
+ * Fórmula 1, elige un piloto y mira quién lo ha puesto y en qué puesto en cada Gran Premio; en el
+ * tenis, elige un jugador y mira quién lo da ganador en cada partido del cuadro.
  */
 function Search() {
   const { leagueKind, activeGroupId, userGroups, changeGroup, groupError } = useAppContext();
@@ -112,7 +114,8 @@ function Search() {
     worldCup: <WorldCupSearch />,
     matchday: <Navigate to="/stats" replace />,
     fightCard: <Navigate to="/stats" replace />,
-    tennisDraw: <Navigate to="/stats" replace />,
+    // En el tenis se busca un jugador en los partidos del cuadro que ya han empezado.
+    tennisDraw: <TennisSearchPage />,
     // En la Fórmula 1 se busca un piloto a lo largo de la temporada.
     grandPrix: <GrandPrixSearchPage />,
     // En el resto de cuadros se busca un equipo en el cuadro de esa competición.
@@ -121,6 +124,20 @@ function Search() {
     knockoutDraw: <KnockoutSearchPage />,
   };
   return views[leagueKind];
+}
+
+function TennisSearchPage() {
+  const { activeGroupId, activeGroupName } = useAppContext();
+  return (
+    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
+      <InsightsHeader leagueName={activeGroupName} summary="Por jugador" />
+      {activeGroupId ? (
+        <TennisSearch groupId={activeGroupId} leagueName={activeGroupName} />
+      ) : (
+        <InsightsNotice title="No hay ninguna liga seleccionada" />
+      )}
+    </section>
+  );
 }
 
 function KnockoutSearchPage() {
