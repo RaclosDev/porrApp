@@ -42,8 +42,8 @@ class OfficialResultsServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(knockoutBracketService.matchesOf(worldCup)).thenReturn(matches);
-        when(topScorerService.getTopScorers(worldCup)).thenReturn(List.of());
+        org.mockito.Mockito.lenient().when(knockoutBracketService.matchesOf(worldCup)).thenReturn(matches);
+        org.mockito.Mockito.lenient().when(topScorerService.getTopScorers(worldCup)).thenReturn(List.of());
     }
 
     private static Team team(String name) {
@@ -168,7 +168,7 @@ class OfficialResultsServiceTest {
         when(standingsService.getStandings(worldCup)).thenReturn(groups);
         List<List<String>> expected = new ArrayList<>();
         int third = 0;
-        for (var slots : app.porrapp.model.WorldCupBracketTopology.ROUND_OF_32) {
+        for (var slots : app.porrapp.model.TournamentFormat.registered("fifa.world").firstKnockoutRound()) {
             String home = slots.get(0).substring(1) + slots.get(0).charAt(0);
             String away = slots.get(1).startsWith("3") ? "Third" + third++
                     : slots.get(1).substring(1) + slots.get(1).charAt(0);
@@ -218,4 +218,53 @@ class OfficialResultsServiceTest {
         assertThat(service.current(worldCup).champion()).isEqualTo("A1");
     }
 
+    @Test
+    void aTournamentThatStartsInTheRoundOfSixteenHasNoEarlierRoundNorThirdPlace() {
+        Competition euro = Competition.builder().id(9L).name("Eurocopa").externalId("uefa.euro").build();
+        when(knockoutBracketService.matchesOf(euro)).thenReturn(matches);
+        when(topScorerService.getTopScorers(euro)).thenReturn(List.of());
+        List<GroupStanding> groups = new ArrayList<>();
+        for (char group = 'A'; group <= 'F'; group++) {
+            for (int position = 1; position <= 4; position++) {
+                groups.add(standing(String.valueOf(group), "" + group + position, position, 12 - position,
+                        // Los mejores terceros: A, B, D y E.
+                        position == 3 && (group == 'C' || group == 'F') ? -5 : 0));
+            }
+        }
+        when(standingsService.getStandings(euro)).thenReturn(groups);
+        knockout("r16", "B1", "A3", "B1");
+        knockout("r16", "A1", "C2", "A1");
+        knockout("r16", "F1", "B3", "F1");
+        knockout("r16", "D2", "E2", "D2");
+        knockout("r16", "C1", "E3", "C1");
+        knockout("r16", "A2", "B2", "A2");
+        knockout("r16", "E1", "D3", "E1");
+        knockout("r16", "D1", "F2", "D1");
+        knockout("qf", "B1", "A1", "B1");
+        knockout("qf", "F1", "D2", "F1");
+        knockout("qf", "C1", "A2", "C1");
+        knockout("qf", "E1", "D1", "E1");
+        knockout("sf", "B1", "F1", "B1");
+        knockout("sf", "C1", "E1", "C1");
+        knockout("final", "B1", "C1", "B1");
+
+        OfficialResultsService.OfficialResults results = service.current(euro);
+        PredictionDataDTO bracket = results.bracket();
+
+        assertThat(bracket.getR32()).isNull();
+        assertThat(bracket.getThirds()).containsExactlyInAnyOrder("A3", "B3", "D3", "E3");
+        assertThat(bracket.getR16()).hasSize(8);
+        assertThat(bracket.getR16().get(0)).containsExactly("B1", "A3");
+        assertThat(bracket.getR16().get(4)).containsExactly("C1", "E3");
+        assertThat(bracket.getQf()).containsExactly(List.of("B1", "A1"), List.of("F1", "D2"),
+                List.of("C1", "A2"), List.of("E1", "D1"));
+        assertThat(bracket.getSf()).containsExactly(List.of("B1", "F1"), List.of("C1", "E1"));
+        assertThat(bracket.getFinalMatch()).containsExactly("B1", "C1");
+        assertThat(bracket.getChampion()).isEqualTo("B1");
+        assertThat(bracket.getThirdPlaceMatch()).isNull();
+        assertThat(bracket.getThirdPlaceWinner()).isNull();
+        // Nadie llega a octavos desde una ronda anterior: esa lista es la que puntúa los dieciseisavos.
+        assertThat(results.roundOf16()).isEmpty();
+        assertThat(results.quarterFinals()).containsExactlyInAnyOrder("B1", "A1", "F1", "D2", "C1", "A2", "E1", "D1");
+    }
 }

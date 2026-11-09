@@ -75,4 +75,27 @@ class TournamentControllerTest {
             mockMvc.perform(get("/api/competitions/5/tournament/" + read)).andExpect(status().isNotFound());
         }
     }
+
+    @Test
+    void theFormatTellsHowToDrawTheBracket() throws Exception {
+        mockMvc.perform(get("/api/competitions/7/tournament/format"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groups.length()").value(12))
+                .andExpect(jsonPath("$.bestThirds").value(8))
+                .andExpect(jsonPath("$.thirdPlaceMatch").value(true))
+                .andExpect(jsonPath("$.firstRound").value("r32"))
+                .andExpect(jsonPath("$.firstKnockoutRound.length()").value(16))
+                .andExpect(jsonPath("$.firstKnockoutRound[0][1]").value("3ABCDF"));
+
+        Competition euro = Competition.builder().id(9L).name("Eurocopa").externalId("uefa.euro").build();
+        Mockito.when(tournaments.tournament(9L)).thenReturn(euro);
+        mockMvc.perform(get("/api/competitions/9/tournament/format"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groups.length()").value(6))
+                .andExpect(jsonPath("$.bestThirds").value(4))
+                .andExpect(jsonPath("$.thirdPlaceMatch").value(false))
+                .andExpect(jsonPath("$.firstRound").value("r16"))
+                .andExpect(jsonPath("$.firstKnockoutRound.length()").value(8));
+        mockMvc.perform(get("/api/competitions/5/tournament/format")).andExpect(status().isNotFound());
+    }
 }

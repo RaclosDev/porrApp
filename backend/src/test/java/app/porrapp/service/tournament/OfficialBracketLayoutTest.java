@@ -21,7 +21,7 @@ class OfficialBracketLayoutTest {
         // 2A contra 2B es el tercer cruce del cuadro; el proveedor lo da con los equipos al revés.
         Match reversed = match("Canadá", "Sudáfrica");
 
-        List<List<String>> round = OfficialBracketLayout.firstRound(app.porrapp.model.WorldCupBracketTopology.ROUND_OF_32, GROUPS, List.of(reversed));
+        List<List<String>> round = OfficialBracketLayout.firstRound(app.porrapp.model.TournamentFormat.registered("fifa.world").firstKnockoutRound(), GROUPS, List.of(reversed));
 
         assertThat(round).hasSize(16);
         assertThat(round.get(2)).containsExactly("Sudáfrica", "Canadá");

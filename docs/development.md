@@ -65,6 +65,7 @@ El backend escucha en el puerto 8080. Mantén estable `JWT_SECRET` entre arranqu
 | `GOOGLE_CLIENT_ID` | Google OAuth; Compose lo usa también en la build del frontend |
 | `VITE_GOOGLE_CLIENT_ID` | Google OAuth en `frontend/.env.local` al ejecutar Vite por separado |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos |
+| `APP_SEED_PAST_TOURNAMENTS` | `true` da de alta torneos ya jugados (Eurocopa 2024) para probar en local un torneo con grupos de otra forma. Nunca en producción |
 
 La plantilla completa está en [`.env.example`](../.env.example).
 

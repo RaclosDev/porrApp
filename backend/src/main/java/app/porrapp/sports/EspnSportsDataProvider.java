@@ -46,7 +46,7 @@ public class EspnSportsDataProvider implements SportsDataProvider {
 
     private static final Set<String> KNOWN_SLUGS = Set.of(
             "esp.1", "esp.2", "esp.copa_del_rey", "uefa.champions", "uefa.europa",
-            "uefa.europa.conf", "eng.1", "ita.1", "ger.1", "fra.1", "fifa.world",
+            "uefa.europa.conf", "eng.1", "ita.1", "ger.1", "fra.1", "fifa.world", "uefa.euro",
             "conmebol.libertadores", "mex.1", "usa.1", "por.1", "ned.1"
     );
 

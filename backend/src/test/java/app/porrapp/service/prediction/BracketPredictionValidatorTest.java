@@ -238,4 +238,88 @@ class BracketPredictionValidatorTest {
 
         assertThrows(BusinessException.class, () -> validator.validate(edition, data));
     }
+
+    /** Eurocopa: 6 grupos de 4, pasan los dos primeros y 4 terceros, y el cuadro empieza en octavos. */
+    private Edition euro(PoolFormat format) {
+        List<CompetitionTeam> teams = new ArrayList<>();
+        for (char group = 'A'; group <= 'F'; group++) {
+            for (int number = 1; number <= 4; number++) {
+                teams.add(CompetitionTeam.builder().team(Team.builder().name(group + "" + number).build())
+                        .groupName(String.valueOf(group)).build());
+            }
+        }
+        when(repository.findGroupTeams(any())).thenReturn(teams);
+        return Edition.builder().poolFormat(format)
+                .competition(Competition.builder().externalId("uefa.euro").build()).build();
+    }
+
+    private PredictionDataDTO euroBracket() {
+        var data = new PredictionDataDTO();
+        data.setTopologyVersion(2);
+        Map<String, List<String>> groups = new HashMap<>();
+        for (char g = 'A'; g <= 'F'; g++) groups.put(String.valueOf(g), List.of(g + "1", g + "2", g + "3", g + "4"));
+        data.setGroups(groups);
+        data.setThirds(List.of("A3", "B3", "D3", "E3"));
+        data.setR16(List.of(List.of("B1", "A3"), List.of("A1", "C2"), List.of("F1", "B3"), List.of("D2", "E2"),
+                List.of("C1", "E3"), List.of("A2", "B2"), List.of("E1", "D3"), List.of("D1", "F2")));
+        data.setQf(List.of(List.of("B1", "A1"), List.of("F1", "D2"), List.of("C1", "A2"), List.of("E1", "D1")));
+        data.setSf(List.of(List.of("B1", "F1"), List.of("C1", "E1")));
+        data.setFinalMatch(List.of("B1", "C1"));
+        data.setChampion("B1");
+        return data;
+    }
+
+    @Test
+    void aTournamentThatStartsInTheRoundOfSixteenIsValidatedFromThatRound() {
+        Edition edition = euro(PoolFormat.FULL_BRACKET);
+
+        assertDoesNotThrow(() -> validator.validate(edition, euroBracket()));
+    }
+
+    @Test
+    void aTournamentThatStartsInTheRoundOfSixteenHasNoRoundOfThirtyTwo() {
+        Edition edition = euro(PoolFormat.FULL_BRACKET);
+        var data = euroBracket();
+        data.setR32(List.of(List.of("B1", "A3")));
+
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
+    }
+
+    @Test
+    void theFirstRoundOfEachTournamentFollowsItsOwnGroupSlots() {
+        Edition edition = euro(PoolFormat.FULL_BRACKET);
+        var wrongWinner = euroBracket();
+        // El primer cruce es del primero del B, no del A.
+        wrongWinner.setR16(List.of(List.of("A1", "A3")));
+        wrongWinner.setQf(null);
+        wrongWinner.setSf(null);
+        wrongWinner.setFinalMatch(null);
+        wrongWinner.setChampion(null);
+        assertThrows(BusinessException.class, () -> validator.validate(edition, wrongWinner));
+
+        var wrongThird = euroBracket();
+        // El hueco del primero del C solo admite terceros de D, E o F.
+        wrongThird.setR16(List.of(List.of("B1", "A3"), List.of("A1", "C2"), List.of("F1", "B3"), List.of("D2", "E2"),
+                List.of("C1", "A3")));
+        assertThrows(BusinessException.class, () -> validator.validate(edition, wrongThird));
+    }
+
+    @Test
+    void onlyAsManyThirdsAsTheTournamentLetsThrough() {
+        Edition edition = euro(PoolFormat.FULL_BRACKET);
+        var data = euroBracket();
+        data.setThirds(List.of("A3", "B3", "C3", "D3", "E3"));
+
+        assertThrows(BusinessException.class, () -> validator.validate(edition, data));
+    }
+
+    @Test
+    void knockoutsOnlyOfAnotherTournamentAlsoStartInItsFirstRound() {
+        Edition edition = euro(PoolFormat.KNOCKOUTS_ONLY);
+        var data = euroBracket();
+        data.setGroups(Map.of());
+        data.setThirds(null);
+
+        assertDoesNotThrow(() -> validator.validate(edition, data));
+    }
 }

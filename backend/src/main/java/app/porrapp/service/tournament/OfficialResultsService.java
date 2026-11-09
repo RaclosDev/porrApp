@@ -91,14 +91,22 @@ public class OfficialResultsService {
         bracket.setGroups(orderedTeamsPerGroup);
         bracket.setThirds(bestThirds);
         bracket.setTopologyVersion(2);
-        List<Match> firstRound = knockout.stream().filter(ROUND_OF_32).toList();
-        List<Match> secondRound = knockout.stream().filter(ROUND_OF_16).toList();
-        List<Match> quarters = knockout.stream().filter(QUARTER_FINALS).toList();
         List<Match> semis = knockout.stream().filter(SEMI_FINALS).toList();
-        bracket.setR32(OfficialBracketLayout.firstRound(format.firstKnockoutRound(), orderedTeamsPerGroup, firstRound));
-        bracket.setR16(OfficialBracketLayout.nextRound(bracket.getR32(), secondRound));
-        bracket.setQf(OfficialBracketLayout.nextRound(bracket.getR16(), quarters));
-        bracket.setSf(OfficialBracketLayout.nextRound(bracket.getQf(), semis));
+        // El cuadro empieza en la ronda que diga el torneo; las anteriores no existen y quedan sin rellenar.
+        List<List<String>> previous = null;
+        for (KnockoutRound round : format.rounds()) {
+            List<Match> played = knockout.stream().filter(round(round)).toList();
+            List<List<String>> pairs = previous == null
+                    ? OfficialBracketLayout.firstRound(format.firstKnockoutRound(), orderedTeamsPerGroup, played)
+                    : OfficialBracketLayout.nextRound(previous, played);
+            switch (round) {
+                case ROUND_OF_32 -> bracket.setR32(pairs);
+                case ROUND_OF_16 -> bracket.setR16(pairs);
+                case QUARTER_FINAL -> bracket.setQf(pairs);
+                default -> bracket.setSf(pairs);
+            }
+            previous = pairs;
+        }
         bracket.setScorer(topScorerNames(topScorerService.getTopScorers(competition)));
         List<String> finalists = OfficialBracketLayout.semifinalOutcomes(bracket.getSf(), semis, true);
         List<String> thirdPlaceTeams = OfficialBracketLayout.semifinalOutcomes(bracket.getSf(), semis, false);
@@ -109,9 +117,11 @@ public class OfficialResultsService {
         // Tercer puesto comparte las dos ramas de semifinales, pero recibe sus perdedores.
         List<String> thirdPair = OfficialBracketLayout.nextRound(bracket.getSf(),
                 knockout.stream().filter(THIRD_PLACE).toList()).get(0);
-        bracket.setThirdPlaceMatch(mergeKnown(thirdPair, thirdPlaceTeams));
         Match thirdPlaceMatch = knockout.stream().filter(THIRD_PLACE).findFirst().orElse(null);
-        bracket.setThirdPlaceWinner(thirdPlaceMatch != null ? winnerName(thirdPlaceMatch) : null);
+        if (format.thirdPlaceMatch()) {
+            bracket.setThirdPlaceMatch(mergeKnown(thirdPair, thirdPlaceTeams));
+            bracket.setThirdPlaceWinner(thirdPlaceMatch != null ? winnerName(thirdPlaceMatch) : null);
+        }
 
         return new OfficialResults(bracket, standingsService.getGroupPoints(competition), orderedTeamsPerGroup, bestThirds,
                 winnersOf(knockout, ROUND_OF_32), winnersOf(knockout, ROUND_OF_16),
