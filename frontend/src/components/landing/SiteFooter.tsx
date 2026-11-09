@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AFFILIATION_NOTICE, CONTENT_PAGES } from '../../seo/pages';
+import { SMOOTH_SCROLL_STATE } from '../ScrollOnNavigate';
 
 const linkClass = 'underline hover:text-white inline-flex items-center min-h-11';
 
@@ -24,7 +25,7 @@ export default function SiteFooter({ current }: SiteFooterProps) {
                   {page.navLabel}
                 </span>
               ) : (
-                <Link to={page.path} className={linkClass}>
+                <Link to={page.path} state={SMOOTH_SCROLL_STATE} className={linkClass}>
                   {page.navLabel}
                 </Link>
               )}
@@ -35,16 +36,17 @@ export default function SiteFooter({ current }: SiteFooterProps) {
       <div className="flex flex-wrap justify-center items-center gap-x-3">
         <Link
           to="/"
+          state={SMOOTH_SCROLL_STATE}
           className="font-bold text-white hover:underline inline-flex items-center min-h-11"
         >
           PorrApp
         </Link>
         <span aria-hidden="true">·</span>
-        <Link to="/privacidad" className={linkClass}>
+        <Link to="/privacidad" state={SMOOTH_SCROLL_STATE} className={linkClass}>
           Privacidad
         </Link>
         <span aria-hidden="true">·</span>
-        <Link to="/aviso-legal" className={linkClass}>
+        <Link to="/aviso-legal" state={SMOOTH_SCROLL_STATE} className={linkClass}>
           Aviso legal
         </Link>
       </div>

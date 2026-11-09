@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ScrollOnNavigate from '../../components/ScrollOnNavigate';
+import ScrollOnNavigate, { SMOOTH_SCROLL_STATE } from '../../components/ScrollOnNavigate';
 
 /** jsdom no hace scroll: `scrollTo` se limita a mover `scrollY` y avisar como el navegador. */
 const scrollTo = vi.fn((options: ScrollToOptions) => {
@@ -19,6 +19,7 @@ function Controls() {
   return (
     <>
       <button onClick={() => navigate('/ranking')}>ranking</button>
+      <button onClick={() => navigate('/porra-nba', { state: SMOOTH_SCROLL_STATE })}>pie</button>
       <button onClick={() => navigate('/ranking?jornada=3')}>jornada</button>
       <button onClick={() => navigate('/faq#premios')}>ancla</button>
       <button onClick={() => navigate(-1)}>atrás</button>
@@ -58,6 +59,23 @@ describe('Scroll al navegar', () => {
     click('ranking');
     expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, left: 0, behavior: 'instant' });
     expect(window.scrollY).toBe(0);
+  });
+
+  it('un enlace que lo pide sube a la página nueva con suavidad', () => {
+    renderAt('/porra-ufc');
+    userScrollsTo(2400);
+    click('pie');
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, left: 0, behavior: 'smooth' });
+  });
+
+  it('con movimiento reducido, ese enlace también salta sin animación', () => {
+    vi.mocked(window.matchMedia).mockImplementationOnce(
+      (query: string) => ({ matches: query.includes('reduce'), media: query }) as MediaQueryList,
+    );
+    renderAt('/porra-ufc');
+    userScrollsTo(2400);
+    click('pie');
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, left: 0, behavior: 'instant' });
   });
 
   it('cambiar solo la query no mueve la página', () => {

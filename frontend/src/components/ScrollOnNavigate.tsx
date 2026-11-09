@@ -57,8 +57,28 @@ function retryUntilDone(attempt: () => boolean): () => void {
 }
 
 function jumpTo(top: number) {
-  // Instantáneo: el scroll suave queda para la pestaña activa del menú.
+  // Instantáneo salvo que el enlace pida subir con suavidad (ver `SMOOTH_SCROLL_STATE`).
   window.scrollTo({ top, left: 0, behavior: 'instant' });
+}
+
+/**
+ * Estado de un enlace cuya página nueva debe subir arriba con suavidad en vez de aparecer ya
+ * arriba, como los del pie de las páginas públicas. Con movimiento reducido el salto es instantáneo.
+ */
+export const SMOOTH_SCROLL_STATE = { smoothScroll: true } as const;
+
+function wantsSmoothScroll(state: unknown): boolean {
+  return (
+    typeof state === 'object' &&
+    state !== null &&
+    (state as { smoothScroll?: unknown }).smoothScroll === true
+  );
+}
+
+function scrollToTop(smooth: boolean) {
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  if (smooth && !reduceMotion) window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  else jumpTo(0);
 }
 
 /**
@@ -69,6 +89,7 @@ function jumpTo(top: number) {
 export default function ScrollOnNavigate() {
   const location = useLocation();
   const navigationType = useNavigationType();
+  const smooth = wantsSmoothScroll(location.state);
   const currentKey = useRef(location.key);
   const previousPathname = useRef(location.pathname);
   const isFirstRender = useRef(true);
@@ -123,9 +144,9 @@ export default function ScrollOnNavigate() {
       });
     }
 
-    if (pathnameChanged) jumpTo(0);
+    if (pathnameChanged) scrollToTop(smooth);
     return undefined;
-  }, [location.key, location.pathname, location.hash, navigationType]);
+  }, [location.key, location.pathname, location.hash, navigationType, smooth]);
 
   return null;
 }
