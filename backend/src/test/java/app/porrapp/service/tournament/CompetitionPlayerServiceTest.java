@@ -139,6 +139,19 @@ class CompetitionPlayerServiceTest {
     }
 
     @Test
+    @DisplayName("Una liga nueva con pichichi pide las plantillas al momento; sin pichichi, no")
+    void aNewLeagueRequestsSquadsAtOnce() throws Exception {
+        when(playerRepository.lastFetchedAt(7L)).thenReturn(null);
+        when(editionRepository.findCompetitionsWithPichichi()).thenReturn(List.of());
+        service.refreshForNewLeague(7L);
+        verify(provider, never()).fetchTeams("esp.1");
+
+        when(editionRepository.findCompetitionsWithPichichi()).thenReturn(List.of(laLiga));
+        service.refreshForNewLeague(7L);
+        verify(provider, times(1)).fetchTeams("esp.1");
+    }
+
+    @Test
     @DisplayName("Un fallo del proveedor no rompe la pasada ni se reintenta enseguida")
     void aProviderFailureIsNotRetriedAtOnce() throws Exception {
         when(editionRepository.findCompetitionsWithPichichi()).thenReturn(List.of(laLiga));

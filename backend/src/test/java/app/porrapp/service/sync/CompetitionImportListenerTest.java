@@ -1,5 +1,6 @@
 package app.porrapp.service.sync;
 
+import app.porrapp.service.tournament.CompetitionPlayerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,8 +36,14 @@ class CompetitionImportListenerTest {
         }
 
         @Bean
-        CompetitionImportListener competitionImportListener(CompetitionImportService importService) {
-            return new CompetitionImportListener(importService);
+        CompetitionPlayerService playerService() {
+            return mock(CompetitionPlayerService.class);
+        }
+
+        @Bean
+        CompetitionImportListener competitionImportListener(CompetitionImportService importService,
+                                                            CompetitionPlayerService playerService) {
+            return new CompetitionImportListener(importService, playerService);
         }
 
         @Bean
@@ -72,11 +79,14 @@ class CompetitionImportListenerTest {
     private CompetitionImportService importService;
 
     @Autowired
+    private CompetitionPlayerService playerService;
+
+    @Autowired
     private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     void resetMock() {
-        reset(importService);
+        reset(importService, playerService);
     }
 
     @Test
@@ -109,5 +119,25 @@ class CompetitionImportListenerTest {
         assertDoesNotThrow(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                 publisher.publishEvent(new CompetitionImportRequestedEvent(5L))));
         verify(importService).importCompetitionData(5L);
+    }
+
+    @Test
+    @DisplayName("Tras importar, pide las plantillas de la competición")
+    void requestsSquadsAfterImporting() {
+        new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                publisher.publishEvent(new CompetitionImportRequestedEvent(5L)));
+
+        verify(playerService).refreshForNewLeague(5L);
+    }
+
+    @Test
+    @DisplayName("Si la importación falla, las plantillas se piden igualmente")
+    void squadsAreRequestedEvenIfTheImportFails() {
+        when(importService.importCompetitionData(5L)).thenThrow(new IllegalStateException("ESPN caído"));
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                publisher.publishEvent(new CompetitionImportRequestedEvent(5L)));
+
+        verify(playerService).refreshForNewLeague(5L);
     }
 }
