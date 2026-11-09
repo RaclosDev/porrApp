@@ -94,6 +94,14 @@ describe('api.ts service', () => {
     await expect(fetchTournamentStandings(2)).rejects.toThrow('Error del servidor (404)');
   });
 
+  it('explica un fallo del servidor sin cuerpo con palabras, no con el código', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    await expect(fetchMatches(7)).rejects.toThrow('El servidor no responde ahora mismo');
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+    await expect(fetchMatches(7)).rejects.toThrow('No tienes permiso para hacer esto.');
+  });
+
   it('mantiene la sesión ante un 403 de una liga y muestra el motivo', async () => {
     setAuthToken('test-token');
     vi.stubGlobal(
@@ -124,7 +132,7 @@ describe('api.ts service', () => {
   it('caduca la sesión cuando el token actual recibe un 401', async () => {
     setAuthToken('expired-test-token');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }));
-    await expect(fetchTournamentStandings(2)).rejects.toThrow('401');
+    await expect(fetchTournamentStandings(2)).rejects.toThrow('Tu sesión ha caducado');
     expect(getAuthToken()).toBeNull();
   });
 

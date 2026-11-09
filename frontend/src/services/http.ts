@@ -241,6 +241,16 @@ async function tokenAfter401(rejected: string | null, epoch: number): Promise<st
   }
 }
 
+/** Mensaje para quien usa la app cuando el servidor falla sin explicar por qué. */
+function defaultErrorMessage(status: number): string {
+  if (status === 401) return 'Tu sesión ha caducado. Vuelve a iniciar sesión.';
+  if (status === 403) return 'No tienes permiso para hacer esto.';
+  if (status === 429) return 'Demasiados intentos seguidos. Espera un momento y vuelve a probar.';
+  if (status >= 500)
+    return 'El servidor no responde ahora mismo. Inténtalo de nuevo en un momento.';
+  return `Error del servidor (${status})`;
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   /** Se envía como JSON. */
@@ -338,7 +348,7 @@ export async function request<T>(
     ensureCurrentSession();
     throw new ApiError(
       res.status,
-      body?.error || body?.message || options.fallbackError || `Error del servidor (${res.status})`,
+      body?.error || body?.message || options.fallbackError || defaultErrorMessage(res.status),
     );
   }
   const body = await res.json();
