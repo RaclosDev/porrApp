@@ -1,18 +1,18 @@
 /**
- * Más elegidos y Buscador de los cuadros que no son el del Mundial: eliminatorias sorteadas ronda a
- * ronda (Champions, Copa del Rey, playoffs de la NBA) y cuadros propios (competición personalizada
- * o torneo oficial). Todo es puro.
+ * Más elegidos y Buscador de cualquier cuadro: eliminatorias sorteadas ronda a ronda (Champions,
+ * Copa del Rey, playoffs de la NBA), cuadros propios (competición personalizada o torneo oficial)
+ * y torneos con fase de grupos (`groupStageBracket` los adapta). Todo es puro.
  *
- * En todos, la predicción guarda por ronda quién gana cada cruce (`customRounds`): un equipo está
- * en la lista de una ronda cuando la predicción lo hace pasarla. Se compara con el cuadro real de
- * esa misma competición.
+ * En todos, la predicción trae por ronda quién la pasa (`customRounds` guarda quién gana cada
+ * cruce): un equipo está en la lista de una ronda cuando la predicción lo hace pasarla. Se compara
+ * con el cuadro real de esa misma competición.
  */
 import type { KnockoutRound } from '../services/api';
 import type { Match, PredictionSummary } from '../types/api';
-import { percent, type RealStatus } from './bracketStats';
 import { getCustomRoundTitle, getTotalRounds } from './customBracket';
 import { bracketResults, firstRoundPairs } from './customBracketPrediction';
 import { knockoutRoundTitle } from './knockoutDraw';
+import { percent, type RealStatus } from './pickStats';
 
 /** Una ronda del cuadro real. */
 export interface FieldRound {
@@ -282,6 +282,44 @@ export function roundSurprises(
   return [...info.winners]
     .filter((team) => !info.byes.has(team) && !playing.some((entry) => hasTeam(entry, round, team)))
     .sort(byName);
+}
+
+export interface FinalPick {
+  teams: [string, string];
+  count: number;
+  percent: number;
+}
+
+/**
+ * Finales más repetidas: los dos equipos que cada predicción hace pasar las semifinales, sin
+ * importar el orden. Cuenta sobre las predicciones que ya enseñan a los dos; `real` es la final
+ * de verdad, cuando se conoce.
+ */
+export function rankFinals(
+  entries: KnockoutEntry[],
+  field: KnockoutField,
+): { total: number; real: string[] | null; finals: FinalPick[] } {
+  const semis = field.rounds.findIndex((round) => round.final) - 1;
+  const counts = new Map<string, { teams: [string, string]; count: number }>();
+  let total = 0;
+  for (const entry of semis >= 0 ? entries : []) {
+    const finalists = [...new Set((entry.picks[semis] ?? []).filter((team) => team !== null))];
+    if (finalists.length !== 2) continue;
+    total++;
+    const teams = finalists.sort(byName) as [string, string];
+    const key = teams.join('|');
+    const current = counts.get(key);
+    if (current) current.count++;
+    else counts.set(key, { teams, count: 1 });
+  }
+  const info = field.rounds[semis];
+  return {
+    total,
+    real: info?.decided && info.winners.size === 2 ? [...info.winners] : null,
+    finals: [...counts.values()]
+      .map((final) => ({ ...final, percent: percent(final.count, total) }))
+      .sort((a, b) => b.count - a.count || byName(a.teams[0], b.teams[0])),
+  };
 }
 
 /** Equipos que alguien ha puesto en alguna ronda visible, por orden alfabético. */

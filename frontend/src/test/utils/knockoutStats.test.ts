@@ -7,6 +7,7 @@ import {
   fieldFromMatches,
   passLabel,
   pickedTeams,
+  rankFinals,
   rankRound,
   roundAccuracy,
   roundPickers,
@@ -329,5 +330,46 @@ describe('Buscador de equipos', () => {
       'Campeón',
     );
     expect(teamSituation(fieldFromDraw([round('r16', [tie('A', 'B')])]), 'A')).toBeNull();
+  });
+});
+
+describe('Finales más repetidas', () => {
+  const semis = (winners: (string | null)[] = [null, null]) =>
+    fieldFromDraw([
+      round('sf', [tie('Madrid', 'Bayern', winners[0]), tie('Inter', 'PSG', winners[1])]),
+      round('final', [], false),
+    ]);
+  const finals = [
+    entry('1', 'Ana', [['Madrid', 'Inter']]),
+    entry('2', 'Berto', [['Inter', 'Madrid']]),
+    entry('3', 'Carla', [['Bayern', 'Inter']]),
+    // De Dani solo se ve una semifinal: aún no tiene final.
+    entry('4', 'Dani', [['Madrid', null]]),
+  ];
+
+  it('cuenta los dos que pasan las semifinales, sin importar el orden', () => {
+    expect(rankFinals(finals, semis())).toEqual({
+      total: 3,
+      real: null,
+      finals: [
+        { teams: ['Inter', 'Madrid'], count: 2, percent: 67 },
+        { teams: ['Bayern', 'Inter'], count: 1, percent: 33 },
+      ],
+    });
+  });
+
+  it('da la final real cuando las dos semifinales están decididas', () => {
+    expect(rankFinals(finals, semis(['Madrid', null])).real).toBeNull();
+    expect(rankFinals(finals, semis(['Madrid', 'Inter'])).real).toEqual(['Madrid', 'Inter']);
+  });
+
+  it('sin ronda anterior a la final no hay finales que contar', () => {
+    const only = fieldFromDraw([round('final', [tie('Madrid', 'Inter')])]);
+    expect(rankFinals([entry('1', 'Ana', [['Madrid']])], only)).toEqual({
+      total: 0,
+      real: null,
+      finals: [],
+    });
+    expect(rankFinals(league, draw).total).toBe(0);
   });
 });

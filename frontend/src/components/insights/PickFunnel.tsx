@@ -1,4 +1,4 @@
-import type { RealStatus } from '../../utils/bracketStats';
+import type { RealStatus } from '../../utils/pickStats';
 import { RealMark } from './PickRow';
 
 export interface FunnelRow<T extends string> {

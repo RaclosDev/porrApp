@@ -4,7 +4,7 @@
  * cuyas predicciones ya se ven. Todo es puro.
  */
 import type { MatchStats, MatchVoter, MatchVoters } from '../types/api';
-import { percent, type RealStatus } from './bracketStats';
+import { percent, type RealStatus } from './pickStats';
 import { displayRoundLabel } from './matchday';
 import { GROUP_STAGE, splitRound } from './tennisDraw';
 

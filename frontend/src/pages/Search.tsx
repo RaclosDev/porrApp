@@ -2,51 +2,27 @@ import { useMemo, type ReactNode } from 'react';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { useBracketInsights } from '../hooks/useBracketInsights';
 import InsightsHeader from '../components/insights/InsightsHeader';
-import { InsightsNotice, TeamFlag } from '../components/insights/InsightCard';
-import BracketInsightsGate from '../components/insights/BracketInsightsGate';
-import SubjectPicker from '../components/insights/SubjectPicker';
+import { InsightsNotice } from '../components/insights/InsightCard';
 import TennisSearch from '../components/insights/TennisSearch';
-import PickFunnel from '../components/insights/PickFunnel';
 import GrandPrixInsightsGate from '../components/insights/GrandPrixInsightsGate';
 import GrandPrixSearch from '../components/insights/GrandPrixSearch';
 import { useGrandPrixInsights } from '../hooks/useGrandPrixInsights';
 import KnockoutInsightsGate from '../components/insights/KnockoutInsightsGate';
-import KnockoutSearch from '../components/insights/KnockoutSearch';
+import KnockoutSearch, { type ExtraRows } from '../components/insights/KnockoutSearch';
+import { useGroupStageInsights } from '../hooks/useGroupStageInsights';
 import { useKnockoutInsights } from '../hooks/useKnockoutInsights';
-import StagePickersList from '../components/insights/StagePickersList';
-import WhatsAppIcon from '../components/WhatsAppIcon';
-import {
-  GROUP_POSITIONS,
-  KNOCKOUT_PATH,
-  STAGE_LABEL,
-  rankPicks,
-  reachLabel,
-  searchableTeams,
-  stagePickers,
-  teamFunnel,
-  type OfficialState,
-  type StageId,
-} from '../utils/bracketStats';
+import { roundOfStage, type GroupPosition } from '../utils/groupStageBracket';
+import { positionPickers, positionRows, teamsByGroup } from '../utils/groupStagePicks';
+import { pickedTeams } from '../utils/knockoutStats';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
 
-const FULL_STAGES: StageId[] = [
-  'groups',
-  ...GROUP_POSITIONS,
-  'r16',
-  'qf',
-  'sf',
-  'final',
-  'champion',
-];
-const KNOCKOUT_STAGES: StageId[] = ['r16', 'qf', 'sf', 'final', 'champion'];
-
-const teamOption = (team: string) => ({ value: team, label: team });
-
-/** Condiciones de los enlaces que se compartían con el buscador anterior. */
-const LEGACY_CONDITIONS: Record<string, StageId> = {
+/**
+ * Condiciones de los enlaces del primer buscador (`condition=reaches_r16`), que después pasaron a
+ * nombrar la ronda a la que llega el equipo (`stage=r16`). Los dos se siguen abriendo.
+ */
+const LEGACY_CONDITIONS: Record<string, string> = {
   passes_groups: 'groups',
   first_group: 'first',
   second_group: 'second',
@@ -58,26 +34,8 @@ const LEGACY_CONDITIONS: Record<string, StageId> = {
   is_champion: 'champion',
 };
 
-/** Situación real del equipo en una frase: campeón, eliminado en una ronda o aún en juego. */
-function realSituation(official: OfficialState, team: string): string | null {
-  if (!official.started) return null;
-  const { stage, out } = official.reach(team);
-  if (out || stage === 'champion') return reachLabel(stage, 'real');
-  switch (stage) {
-    case 'final':
-      return 'Juega la final';
-    case 'sf':
-      return 'En semifinales';
-    case 'qf':
-      return 'En cuartos';
-    case 'r16':
-      return 'En octavos';
-    case 'groups':
-      return 'En dieciseisavos';
-    default:
-      return 'En fase de grupos';
-  }
-}
+/** Las selecciones no traen escudo: se pinta su bandera. */
+const NO_LOGOS = {};
 
 /**
  * Buscador: en las ligas de cuadro y en las eliminatorias, elige un equipo y mira cuántas
@@ -110,8 +68,8 @@ function Search() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Buscar" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
-    // El buscador recorre los cuadros del Mundial de la liga.
-    worldCup: <WorldCupSearch />,
+    // El Mundial es un cuadro más, con los puestos de la fase de grupos aparte.
+    worldCup: <GroupStageSearchPage />,
     matchday: <Navigate to="/stats" replace />,
     fightCard: <Navigate to="/stats" replace />,
     // En el tenis se busca un jugador en los partidos del cuadro que ya han empezado.
@@ -189,155 +147,69 @@ function GrandPrixSearchPage() {
   );
 }
 
-function WorldCupSearch() {
-  const { activeGroupId } = useAppContext();
-  const insights = useBracketInsights();
-  const { entries, official, knockoutsOnly } = insights;
-  const [params, setParams] = useSearchParams();
+/**
+ * Buscador de un torneo con fase de grupos: el cuadro genérico, con los equipos ordenados por grupo
+ * y, en las ligas que también predicen los grupos, en qué puesto pone cada uno al equipo.
+ */
+function GroupStageSearchPage() {
+  const insights = useGroupStageInsights();
+  const { entries, field, tournament, officialBracket, knockoutsOnly } = insights;
+  const [params] = useSearchParams();
 
-  const stages = knockoutsOnly ? KNOCKOUT_STAGES : FULL_STAGES;
   const teamGroups = useMemo(
-    () => searchableTeams(entries, insights.officialBracket, knockoutsOnly),
-    [entries, insights.officialBracket, knockoutsOnly],
-  );
-  const allTeams = useMemo(() => teamGroups.flatMap((g) => g.teams), [teamGroups]);
-  const shortcuts = useMemo(
     () =>
-      rankPicks(entries, 'champion')
-        .slice(0, 6)
-        .map((p) => p.team),
-    [entries],
+      teamsByGroup(
+        officialBracket,
+        [...pickedTeams(entries), ...(field.rounds[0]?.teams ?? [])],
+        knockoutsOnly,
+      ),
+    [officialBracket, entries, field, knockoutsOnly],
+  );
+  const positions = useMemo<ExtraRows | undefined>(
+    () =>
+      knockoutsOnly
+        ? undefined
+        : {
+            after: 0,
+            rows: (team) => positionRows(entries, team, tournament),
+            pickers: (team, id) => positionPickers(entries, team, id as GroupPosition),
+          },
+    [knockoutsOnly, entries, tournament],
   );
 
-  const requestedTeam = params.get('team') ?? '';
-  const team = allTeams.includes(requestedTeam) ? requestedTeam : '';
-  const rows = useMemo(
-    () => (team ? teamFunnel(entries, team, stages, official) : []),
-    [entries, team, stages, official],
-  );
-
-  const requestedStage = (params.get('stage') ??
-    LEGACY_CONDITIONS[params.get('condition') ?? ''] ??
-    '') as StageId;
-  // Sin ronda pedida, la más lejana a la que alguien lleva al equipo.
-  const furthest = [...rows]
-    .reverse()
-    .find((r) => r.count > 0 && KNOCKOUT_PATH.some((s) => s === r.stage));
-  const stage: StageId = stages.includes(requestedStage)
-    ? requestedStage
-    : (furthest?.stage ?? stages[0]);
-  const pickers = useMemo(
-    () => (team ? stagePickers(entries, team, stage) : null),
-    [entries, team, stage],
-  );
-
-  const update = (next: { team?: string; stage?: StageId }) => {
-    const nextTeam = next.team ?? team;
+  // Enlaces compartidos antes de que el buscador fuera el de cualquier cuadro.
+  const stage = params.get('stage') ?? LEGACY_CONDITIONS[params.get('condition') ?? ''];
+  if (stage && !params.has('round')) {
     const query = new URLSearchParams();
-    if (activeGroupId) query.set('group', String(activeGroupId));
-    if (nextTeam) query.set('team', nextTeam);
-    if (next.stage && nextTeam) query.set('stage', next.stage);
-    setParams(query, { replace: true });
-  };
+    for (const key of ['group', 'team']) {
+      const value = params.get(key);
+      if (value) query.set(key, value);
+    }
+    const round = roundOfStage(stage, knockoutsOnly);
+    if (round) query.set('round', round);
+    return <Navigate to={`/search?${query}`} replace />;
+  }
 
-  const share = () => {
-    const url = `${window.location.origin}/search?group=${encodeURIComponent(activeGroupId)}&team=${encodeURIComponent(team)}&stage=${stage}`;
-    const row = rows.find((r) => r.stage === stage);
-    const text = `${team} · ${STAGE_LABEL[stage]}: lo pone el ${row?.percent ?? 0} % de "${insights.leagueName}". ¿Quién es quién?\n\n${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
-  };
-
-  const situation = team ? realSituation(official, team) : null;
-  const selectedRow = rows.find((r) => r.stage === stage);
-
+  const count = entries.length;
   return (
     <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
       <InsightsHeader
         leagueName={insights.leagueName}
-        summary={entries.length > 0 ? `${entries.length} cuadros` : undefined}
+        summary={count > 0 ? `${count} ${count === 1 ? 'predicción' : 'predicciones'}` : undefined}
       />
-      <BracketInsightsGate insights={insights}>
-        <div className="mx-auto flex max-w-245 flex-col gap-4">
-          <SubjectPicker
-            value={team}
-            onChange={(t) => update({ team: t })}
-            groups={teamGroups.map(({ group, teams }) => ({
-              label: group ? `Grupo ${group}` : null,
-              options: teams.map(teamOption),
-            }))}
-            shortcuts={shortcuts.map(teamOption)}
-            icon={(name) => <TeamFlag team={name} />}
-            placeholder="Elige un equipo"
-          />
-
-          {!team ? (
-            <InsightsNotice title="Elige un equipo">
-              Verás cuántos cuadros lo pasan de grupos, lo meten en cada ronda o lo hacen campeón, y
-              quién de la liga es.
-            </InsightsNotice>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-              <section
-                aria-labelledby="search-team-title"
-                className="min-w-0 rounded-[14px] border border-line bg-panel p-3.5 sm:p-4.5"
-              >
-                <div className="mb-3 flex items-center gap-2.5">
-                  <TeamFlag team={team} />
-                  <h3 id="search-team-title" className="m-0 min-w-0 flex-1 truncate text-[1.2rem]">
-                    {team}
-                  </h3>
-                  {situation && (
-                    <span className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[0.78rem] font-semibold text-muted">
-                      {situation}
-                    </span>
-                  )}
-                </div>
-                <PickFunnel
-                  rows={rows.map((row) => ({
-                    id: row.stage,
-                    label: STAGE_LABEL[row.stage],
-                    sub: GROUP_POSITIONS.some((position) => position === row.stage),
-                    count: row.count,
-                    percent: row.percent,
-                    status: row.status,
-                  }))}
-                  total={entries.length}
-                  selected={stage}
-                  onSelect={(s) => update({ stage: s })}
-                />
-              </section>
-
-              <section
-                aria-labelledby="search-pickers-title"
-                aria-live="polite"
-                className="min-w-0 rounded-[14px] border border-line bg-panel p-3.5 sm:p-4.5"
-              >
-                <h3 id="search-pickers-title" className="m-0 text-[1.05rem]">
-                  {team} · {STAGE_LABEL[stage]}
-                </h3>
-                <p className="mt-1 mb-3 text-[0.88rem] text-muted">
-                  {selectedRow?.count ?? 0} de {entries.length} cuadros ({selectedRow?.percent ?? 0}{' '}
-                  %). Toca a alguien para ver su cuadro.
-                </p>
-                {pickers && (
-                  <StagePickersList
-                    pickers={pickers}
-                    avatarByUserId={insights.avatarByUserId}
-                    onOpen={insights.openPrediction}
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={share}
-                  className="glass-btn primary-btn mt-4 inline-flex w-full items-center justify-center gap-2"
-                >
-                  <WhatsAppIcon size={18} /> Compartir búsqueda
-                </button>
-              </section>
-            </div>
-          )}
-        </div>
-      </BracketInsightsGate>
+      <KnockoutInsightsGate insights={insights}>
+        <KnockoutSearch
+          entries={entries}
+          field={field}
+          logos={NO_LOGOS}
+          leagueName={insights.leagueName}
+          groupId={insights.groupId}
+          avatarByUserId={insights.avatarByUserId}
+          onOpen={insights.openPrediction}
+          teamGroups={teamGroups}
+          extra={positions}
+        />
+      </KnockoutInsightsGate>
     </section>
   );
 }

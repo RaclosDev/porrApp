@@ -8,8 +8,7 @@ import type {
   GrandPrixPicks,
   GrandPrixRacePicks,
 } from '../types/api';
-import { percent } from './stats/entries';
-import type { RealStatus } from './stats/official';
+import { percent, type RealStatus } from './pickStats';
 
 /** Huecos que se predicen tal cual. */
 export type ExactSlot = keyof GrandPrixPicks;

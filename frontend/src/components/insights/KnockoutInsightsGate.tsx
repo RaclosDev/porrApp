@@ -3,7 +3,10 @@ import PaperLoading from '../PaperLoading';
 import type { useKnockoutInsights } from '../../hooks/useKnockoutInsights';
 import { InsightsNotice } from './InsightCard';
 
-type Insights = ReturnType<typeof useKnockoutInsights>;
+type Insights = Pick<
+  ReturnType<typeof useKnockoutInsights>,
+  'hasLeague' | 'loading' | 'error' | 'entries' | 'nextLockAt' | 'sentCount'
+>;
 
 const formatLock = (value: string | null) => {
   if (!value) return null;

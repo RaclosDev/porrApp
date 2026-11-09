@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Flag from '../Flag';
 import {
+  rankFinals,
   rankRound,
   roundAccuracy,
   roundSurprises,
@@ -38,18 +39,27 @@ interface KnockoutStatsProps {
 }
 
 /**
- * Más elegidos de unas eliminatorias o de un cuadro propio: los equipos que más predicciones hacen
- * pasar cada ronda y el campeón, comparados con el cuadro real.
+ * Más elegidos de un cuadro: los equipos que más predicciones hacen pasar cada ronda, el campeón y
+ * las finales más repetidas, comparados con el cuadro real. `children` son las tarjetas de lo que
+ * no es del cuadro (la fase de grupos, el pichichi).
  */
-export default function KnockoutStats({ entries, field, logos }: KnockoutStatsProps) {
+export default function KnockoutStats({
+  entries,
+  field,
+  logos,
+  children,
+}: KnockoutStatsProps & { children?: ReactNode }) {
   const rounds = useMemo(() => visibleRounds(entries, field), [entries, field]);
   const championRound = rounds.find((index) => field.rounds[index].final);
   // La final va en su propia tarjeta, la del campeón.
   const options = rounds.filter((index) => index !== championRound);
+  const finals = useMemo(() => rankFinals(entries, field), [entries, field]);
+  const cards =
+    Number(options.length > 0) + Number(championRound !== undefined) + Number(finals.total > 0);
 
   return (
     <div
-      className={`grid grid-cols-1 items-start gap-4 ${options.length > 0 && championRound !== undefined ? 'lg:grid-cols-2' : 'mx-auto max-w-160'}`}
+      className={`grid grid-cols-1 items-start gap-4 ${cards > 1 || children ? 'lg:grid-cols-2' : 'mx-auto max-w-160'}`}
     >
       {options.length > 0 && (
         <RoundPicks entries={entries} field={field} logos={logos} options={options} />
@@ -57,6 +67,8 @@ export default function KnockoutStats({ entries, field, logos }: KnockoutStatsPr
       {championRound !== undefined && (
         <ChampionPicks entries={entries} field={field} logos={logos} round={championRound} />
       )}
+      {finals.total > 0 && <FinalPicks {...finals} logos={logos} />}
+      {children}
     </div>
   );
 }
@@ -88,7 +100,7 @@ function RoundPicks({
                 <strong className="text-main">
                   {formatAverage(accuracy.average)} de {accuracy.size}
                 </strong>{' '}
-                {accuracy.size === 1 ? 'cruce decidido' : 'cruces decididos'}.
+                {accuracy.size === 1 ? 'equipo que ya ha pasado' : 'equipos que ya han pasado'}.
               </p>
             )}
             {surprises.length > 0 && (
@@ -179,6 +191,50 @@ function ChampionPicks({ entries, field, logos, round }: KnockoutStatsProps & { 
               note={out ? (teamSituation(field, pick.team) ?? undefined) : undefined}
               highlight={status === 'yes'}
               to={searchLink(pick.team, round)}
+            />
+          );
+        }}
+      />
+    </InsightCard>
+  );
+}
+
+/** Las finales que más se repiten en la liga y, si ya se sabe, cuál fue. */
+function FinalPicks({
+  finals,
+  total,
+  real,
+  logos,
+}: ReturnType<typeof rankFinals> & { logos: TeamLogos }) {
+  return (
+    <InsightCard
+      title="Finales más repetidas"
+      subtitle={real ? `Final real: ${real[0]} - ${real[1]}.` : undefined}
+    >
+      <ExpandableList
+        items={finals}
+        initial={5}
+        noun="finales"
+        render={(final) => {
+          const isReal = Boolean(real && final.teams.every((team) => real.includes(team)));
+          return (
+            <PickRow
+              key={final.teams.join('|')}
+              label={
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <KnockoutTeamIcon team={final.teams[0]} logos={logos} />
+                  <span className="truncate">{final.teams[0]}</span>
+                  <span className="text-muted">-</span>
+                  <span className="truncate">{final.teams[1]}</span>
+                  <KnockoutTeamIcon team={final.teams[1]} logos={logos} />
+                </span>
+              }
+              count={final.count}
+              total={total}
+              percent={final.percent}
+              status={real ? (isReal ? 'yes' : 'no') : 'pending'}
+              statusText={{ yes: 'Fue la final', no: 'No fue la final' }}
+              highlight={isReal}
             />
           );
         }}
