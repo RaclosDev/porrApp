@@ -57,6 +57,7 @@ public class SyncService {
     static final String STATUS_CIRCUIT_OPEN = "circuit_breaker_open";
 
     private final CompetitionRepository competitionRepository;
+    private final com.porra.mundial.repository.EditionRepository editionRepository;
     private final SportsDataProviderRegistry sportsDataProviderRegistry;
     private final MatchEventProcessor matchEventProcessor;
     private final KnockoutBracketService knockoutBracketService;
@@ -146,7 +147,9 @@ public class SyncService {
     }
 
     /**
-     * Sincroniza todas las competiciones con proveedor externo. Si ya hay una pasada en curso, no hace nada.
+     * Sincroniza las competiciones con proveedor externo que juega alguna liga activa. Las demás no
+     * tienen a nadie mirando: las pone al día la barrida diaria ({@link SeasonCalendarRefresher}) y entran
+     * aquí en cuanto se crea una liga sobre ellas. Si ya hay una pasada en curso, no hace nada.
      * La clasificación de grupos y el cuadro del Mundial se recalculan una vez al final, y solo si la pasada
      * ha cambiado algún resultado del Mundial (o si el recálculo anterior falló).
      * El estado de salud resume la pasada entera: basta con que falle una competición para que no sea "success".
@@ -157,11 +160,13 @@ public class SyncService {
             return;
         }
         try {
+            java.util.Set<Long> inUse = new java.util.HashSet<>(editionRepository.findCompetitionIdsInUse());
             List<Competition> competitions = competitionRepository.findAll().stream()
                     .filter(SyncService::hasProvider)
+                    .filter(competition -> inUse.contains(competition.getId()))
                     .toList();
             if (competitions.isEmpty()) {
-                log.info("No hay competiciones con proveedor externo que sincronizar.");
+                log.info("No hay competiciones con ligas activas que sincronizar.");
                 return;
             }
             recordStatus(syncCompetitions(competitions, false));
@@ -171,16 +176,20 @@ public class SyncService {
     }
 
     /**
-     * Sincroniza solo las competiciones con algún partido en juego y, de ellas, solo hoy y ayer (partidos tras medianoche).
+     * Sincroniza solo las competiciones con liga activa y algún partido en juego y, de ellas, solo hoy y
+     * ayer (partidos tras medianoche).
      * No toca el estado de salud, que resume las pasadas completas.
      */
     public void syncLive() {
         Instant now = Instant.now();
         List<Long> liveIds = matchRepository.findCompetitionIdsWithOpenMatchesBetween(
                 now.minus(LIVE_LOOKBACK), now.plus(LIVE_LOOKAHEAD));
-        if (liveIds.isEmpty() || !syncLock.tryLock()) return;
+        if (liveIds.isEmpty()) return;
+        java.util.Set<Long> inUse = new java.util.HashSet<>(editionRepository.findCompetitionIdsInUse());
+        List<Long> followedLiveIds = liveIds.stream().filter(inUse::contains).toList();
+        if (followedLiveIds.isEmpty() || !syncLock.tryLock()) return;
         try {
-            List<Competition> competitions = competitionRepository.findAllById(liveIds).stream()
+            List<Competition> competitions = competitionRepository.findAllById(followedLiveIds).stream()
                     .filter(SyncService::hasProvider)
                     .toList();
             if (!competitions.isEmpty()) syncCompetitions(competitions, true);
@@ -196,24 +205,40 @@ public class SyncService {
     /** Sincroniza las competiciones, recalcula el Mundial si hace falta y avisa a los clientes. Requiere {@code syncLock}. */
     private List<CompetitionSync> syncCompetitions(List<Competition> competitions, boolean liveOnly) {
         List<CompetitionSync> results = new ArrayList<>();
+        // Qué competiciones han cambiado, para avisar solo a quien las sigue.
+        java.util.Set<Long> changed = new java.util.LinkedHashSet<>();
+        java.util.Set<Long> ticking = new java.util.LinkedHashSet<>();
+        boolean worldCupChanged = false;
         for (Competition competition : competitions) {
             if (Thread.currentThread().isInterrupted()) {
                 results.add(CompetitionSync.failed(competition.getName(), STATUS_ERROR, "Sincronización interrumpida"));
                 break;
             }
-            results.add(syncCompetition(competition, liveOnly));
+            CompetitionSync result = syncCompetition(competition, liveOnly);
+            results.add(result);
+            if (result.matchesUpdated() > 0 || result.teamsUpdated() > 0) {
+                changed.add(competition.getId());
+                worldCupChanged |= WorldCupTables.isWorldCup(competition);
+            } else if (result.clockUpdated() > 0) {
+                ticking.add(competition.getId());
+            }
         }
         worldCupRefreshPending |= results.stream().anyMatch(CompetitionSync::worldCupResultsChanged);
         if (worldCupRefreshPending && !Thread.currentThread().isInterrupted()) {
-            results.add(refreshWorldCup());
+            CompetitionSync refresh = refreshWorldCup();
+            results.add(refresh);
+            worldCupChanged |= refresh.matchesUpdated() > 0;
             topScorerService.refresh();
         }
-        if (results.stream().anyMatch(r -> r.matchesUpdated() > 0 || r.teamsUpdated() > 0)) {
+        if (worldCupChanged) {
+            // La clasificación de grupos y el cuadro oficial están en cachés sin clave por competición.
             webSocketService.notifyResultsChanged();
-        } else if (results.stream().anyMatch(r -> r.clockUpdated() > 0)) {
-            // Solo ha avanzado el minuto de juego: no se vacían las clasificaciones.
-            webSocketService.notifyClockChanged();
+        } else if (!changed.isEmpty()) {
+            scoreInvalidationService.evictLeaderboardsAfterCommit(changed);
+            webSocketService.notifyResultsChanged(changed);
         }
+        // Solo ha avanzado el minuto de juego: no se vacían las clasificaciones.
+        if (!ticking.isEmpty()) webSocketService.notifyClockChanged(ticking);
         return results;
     }
 

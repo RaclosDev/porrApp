@@ -162,6 +162,15 @@ class MultiCompetitionLeagueIntegrationTest {
         Match copaMatch = match(copa, madrid, inter, "r16", at(week1.plusDays(2), 21));
         assertThatThrownBy(() -> predict(admin, league, copaMatch))
                 .isInstanceOf(BusinessException.class).hasMessageContaining("no pertenece");
+
+        // La sincronización frecuente y los avisos van por competición: cuentan la principal y las añadidas.
+        assertThat(editions.findCompetitionIdsInUse())
+                .contains(laliga.getId(), champions.getId(), premier.getId())
+                .doesNotContain(copa.getId());
+        assertThat(editions.findLeagueIdsUsingCompetitions(List.of(premier.getId()))).containsExactly(league.getId());
+        assertThat(editions.findLeagueIdsUsingCompetitions(List.of(laliga.getId(), copa.getId())))
+                .containsExactly(league.getId());
+        assertThat(editions.findLeagueIdsUsingCompetitions(List.of(copa.getId()))).isEmpty();
     }
 
     @Test
