@@ -19,6 +19,7 @@ import {
   type ScoringDraft,
 } from '../../utils/scoringRules';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
+import { allowsDraw } from '../../utils/matchday';
 import { isGroupTournament } from '../../context/leagueKind';
 import { isNbaCompetition, isNbaRegularSeason } from '../../utils/nbaPlayoffs';
 import {
@@ -389,8 +390,31 @@ const LOL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
   },
 };
 
+/**
+ * Deporte cuyas reglas sigue la liga (`Competition.rulesSport` en el servidor). Una competición
+ * personalizada no sabe de series, sets ni veladas: de su deporte solo cuenta si un partido puede acabar
+ * en empate, así que se juega como el fútbol (1X2) o como el baloncesto (quién gana).
+ */
+export const rulesSport = (draft: LeagueDraft): Sport | null => {
+  if (draft.sport == null || draft.sport === 'OTHER') return null;
+  if (!draft.custom) return draft.sport;
+  return allowsDraw(draft.sport) ? 'FOOTBALL' : 'BASKETBALL';
+};
+
+/** Por jornadas en una competición propia sin empate: se elige quién gana, sin series ni semanas. */
+const CUSTOM_WINNER_COPY = {
+  title: 'Por jornadas',
+  text: 'Predices quién gana cada partido, jornada a jornada.',
+};
+
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
+  // Una competición propia se explica igual en cualquier deporte: solo cambia si hay empate.
+  if (draft.custom) {
+    return format === 'MATCH_DAY' && !allowsDraw(rulesSport(draft))
+      ? CUSTOM_WINNER_COPY
+      : FORMAT_COPY[format];
+  }
   if (format === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHTS_COPY;
   if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;

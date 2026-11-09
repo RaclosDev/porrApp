@@ -20,6 +20,16 @@ describe('scoringRules', () => {
     ).toEqual(['correctSignPoints']);
   });
 
+  it('lo del empate de la NFL solo se cuenta en la NFL', () => {
+    const hint = (sport: 'AMERICAN_FOOTBALL' | 'BASKETBALL') =>
+      scoringSections('MATCH_DAY', false, false, false, true, sport)[0].fields[0].hint;
+    expect(hint('AMERICAN_FOOTBALL')).toBe(
+      'Aciertas quién gana el partido. Si acaba en empate, no suma nadie.',
+    );
+    // El baloncesto y las competiciones propias sin empate (LoL, UFC…) no hablan de otro deporte.
+    expect(hint('BASKETBALL')).toBe('Aciertas quién gana el partido.');
+  });
+
   it('en el LoL cada serie puntúa el ganador y el resultado, y superviviente no tiene empate', () => {
     const keys = (format: 'MATCH_DAY' | 'SURVIVOR') =>
       scoringSections(format, false, false, false, true, 'LEAGUE_OF_LEGENDS').flatMap((s) =>

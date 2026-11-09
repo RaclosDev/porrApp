@@ -60,3 +60,23 @@ it('turns off only the matchday finished alert', async () => {
     screen.getByRole('checkbox', { name: 'Recordarme las predicciones pendientes' }),
   ).toBeChecked();
 });
+
+it('sin claves de push en el servidor, la sección dice que no hay avisos', async () => {
+  vi.mocked(fetchPushConfig).mockResolvedValue({
+    publicKey: null,
+    remindersEnabled: true,
+    memberJoinedEnabled: true,
+    matchdayFinishedEnabled: true,
+  });
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ReminderSettings />
+    </QueryClientProvider>,
+  );
+
+  expect(screen.getByRole('region', { name: 'Avisos' })).toBeInTheDocument();
+  expect(
+    await screen.findByText('Los avisos no están disponibles ahora mismo.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+});

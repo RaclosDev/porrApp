@@ -47,10 +47,14 @@ function describeScoring(draft: LeagueDraft, ctx: DraftContext) {
     // En superviviente lo que importa son las vidas y el empate, más que los puntos.
     const points = rules?.survivorRoundPoints ?? 1;
     const lives = rules?.survivorLives ?? 1;
+    // Como en el panel de puntuación: la NFL va por semanas y una serie del LoL nunca se empata.
+    const round = draft.sport === 'AMERICAN_FOOTBALL' ? 'semana' : 'jornada';
     return [
-      `${points} ${points === 1 ? 'punto' : 'puntos'} por jornada superada`,
+      `${points} ${points === 1 ? 'punto' : 'puntos'} por ${round} superada`,
       lives === 1 ? 'eliminado al primer fallo' : `${lives} vidas`,
-      rules?.survivorDrawSurvives === 1 ? 'el empate salva' : 'el empate elimina',
+      ...(draft.sport === 'LEAGUE_OF_LEGENDS'
+        ? []
+        : [rules?.survivorDrawSurvives === 1 ? 'el empate salva' : 'el empate elimina']),
     ].join(', ');
   }
   const base = rules ? 'Personalizada' : 'Por defecto';
