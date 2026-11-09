@@ -4,6 +4,7 @@ import app.porrapp.service.prediction.ScoreInvalidationService;
 import app.porrapp.service.notification.WebSocketService;
 import app.porrapp.model.Match;
 import app.porrapp.model.Team;
+import app.porrapp.model.TeamExternalIds;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.TeamRepository;
 import app.porrapp.sports.SportsDataProviderRegistry;
@@ -106,9 +107,11 @@ public class LegacyFixtureRepairService {
         Map<String, Team> cache = new HashMap<>();
         for (JsonNode competitor : event.path("competitions").get(0).path("competitors")) {
             JsonNode official = competitor.path("team");
-            String externalId = official.path("id").asText();
+            String externalId = TeamExternalIds.of(current.getCompetition(), official.path("id").asText());
             String name = official.path("displayName").asText();
-            Team team = teams.findByExternalId(externalId).orElseGet(() -> teams.findByName(name)
+            // Por su id externo; por el nombre solo un equipo que aún no tiene el suyo.
+            Team team = teams.findByExternalId(externalId).orElseGet(() -> teams.findAllCatalogByName(name).stream()
+                    .filter(unidentified -> unidentified.getExternalId() == null).findFirst()
                     .orElseGet(() -> Team.builder().name(name).build()));
             if (legacy(team) || (team.getExternalId() != null && !externalId.equals(team.getExternalId()))) {
                 throw new IllegalStateException("Identidad de equipo incompatible con el evento oficial");
@@ -118,7 +121,6 @@ public class LegacyFixtureRepairService {
             if (!logo.isBlank()) team.setLogoUrl(logo);
             teams.save(team);
             cache.put(externalId, team);
-            cache.put(name, team);
         }
         var batch = new MatchEventProcessor.Batch(current.getCompetition());
         processor.process(event, cache, batch);

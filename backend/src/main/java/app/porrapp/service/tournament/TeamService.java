@@ -33,20 +33,6 @@ public class TeamService {
     }
 
     /**
-     * Busca un equipo por su nombre exacto en castellano (Ej. "Inglaterra").
-     */
-    public Optional<Team> findByName(String name) {
-        return teamRepository.findByName(name);
-    }
-
-    /**
-     * Busca un equipo por su identificador externo en ESPN.
-     */
-    public Optional<Team> findByExternalId(String externalId) {
-        return teamRepository.findByExternalId(externalId);
-    }
-
-    /**
      * Guarda o actualiza un equipo en la base de datos.
      */
     @org.springframework.cache.annotation.CacheEvict(value = "groupOdds", allEntries = true)

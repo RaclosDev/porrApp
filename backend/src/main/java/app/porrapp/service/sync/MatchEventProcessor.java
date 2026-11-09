@@ -12,7 +12,9 @@ import app.porrapp.model.Match;
 import app.porrapp.model.MatchStatusNormalized;
 import app.porrapp.model.Sport;
 import app.porrapp.model.Team;
+import app.porrapp.model.TeamExternalIds;
 import app.porrapp.model.TournamentFormat;
+import app.porrapp.repository.CompetitionTeamRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.TeamRepository;
 import app.porrapp.sports.TennisDataProvider;
@@ -30,7 +32,6 @@ import java.util.Locale;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -48,6 +49,7 @@ public class MatchEventProcessor {
     private static final long TEAM_CACHE_TTL_MS = 3_600_000;
 
     private final TeamRepository teamRepository;
+    private final CompetitionTeamRepository competitionTeamRepository;
     private final MatchRepository matchRepository;
     private final MatchPredictionService matchPredictionService;
     private final WebSocketService webSocketService;
@@ -70,6 +72,9 @@ public class MatchEventProcessor {
         private final List<String> errors = new ArrayList<>();
         /** Lo que solo se hace una vez por pasada (p. ej. revisar la cartelera de una velada). */
         private final Set<String> done = new HashSet<>();
+
+        /** Equipos ya ligados a la competición; se leen una vez por pasada, al ligar el primero. */
+        private Set<Long> participants;
 
         /** @return true la primera vez que se pide {@code key} en esta pasada */
         boolean firstTime(String key) { return done.add(key); }
@@ -130,7 +135,11 @@ public class MatchEventProcessor {
         boolean live() { return normalized.isLive(); }
     }
 
-    private record Competitor(JsonNode node, String nameEn, String espnId) {
+    /**
+     * Rival de un evento: {@code espnId} es el id externo con el que se guarda el equipo (con el prefijo de
+     * su deporte) y {@code providerId} el que usa el proveedor dentro del propio evento.
+     */
+    private record Competitor(JsonNode node, String nameEn, String espnId, String providerId) {
     }
 
     private record MatchMetadata(String groupName, String round) {
@@ -139,7 +148,11 @@ public class MatchEventProcessor {
     private record Scores(Integer home, Integer away, Team winner) {
     }
 
-    /** Equipos indexados por nombre, nombre en inglés e id externo; se refresca cada hora. */
+    /**
+     * Equipos del catálogo por su id externo, que es lo que los identifica: dos clubes pueden llamarse igual
+     * (el Liverpool inglés y el uruguayo). Por nombre solo están los que aún no tienen id (sembrados sin él)
+     * y el comodín. Se refresca cada hora.
+     */
     public Map<String, Team> teamCache() {
         long now = System.currentTimeMillis();
         Map<String, Team> current = teamCache;
@@ -156,9 +169,12 @@ public class MatchEventProcessor {
     Map<String, Team> freshTeamCache() {
         Map<String, Team> fresh = new ConcurrentHashMap<>();
         teamRepository.findAll().stream().filter(team -> team.getCompetition() == null).forEach(team -> {
+            if (team.getExternalId() != null) {
+                fresh.put(team.getExternalId(), team);
+                return;
+            }
             if (team.getName() != null) fresh.put(team.getName(), team);
             if (team.getNameEn() != null) fresh.put(team.getNameEn(), team);
-            if (team.getExternalId() != null) fresh.put(team.getExternalId(), team);
         });
         return fresh;
     }
@@ -169,38 +185,37 @@ public class MatchEventProcessor {
     }
 
     /**
-     * Guarda los equipos (con escudo) del catálogo de una competición.
+     * Guarda los equipos (con escudo) del catálogo de una competición y los liga a ella.
      * <p>
-     * Un equipo que ya existe conserva su nombre: los cuadros de los participantes guardan los nombres en
-     * español y se puntúan comparándolos con el de cada equipo, así que cambiar «España» por el
-     * «Spain» del proveedor dejaría sin puntos a todo el que la eligió.
+     * A un equipo lo identifica su id externo, no su nombre. Uno que ya existe conserva su nombre: los cuadros
+     * de los participantes guardan los nombres en español y se puntúan comparándolos con el de cada equipo,
+     * así que cambiar «España» por el «Spain» del proveedor dejaría sin puntos a todo el que la eligió.
      *
      * @return número de equipos importados
      */
-    public int importTeams(JsonNode teamsNode, Map<String, Team> cache) {
+    public int importTeams(JsonNode teamsNode, Map<String, Team> cache, Competition competition) {
         if (teamsNode == null || !teamsNode.isArray()) return 0;
+        Batch batch = new Batch(competition);
         int imported = 0;
         for (JsonNode item : teamsNode) {
             JsonNode t = item.path("team").isMissingNode() ? item : item.path("team");
-            String id = t.path("id").asText(null);
+            String id = TeamExternalIds.of(competition, t.path("id").asText(null));
             String displayName = t.path("displayName").asText(t.path("name").asText(null));
-            if (displayName == null || displayName.isBlank()) continue;
+            if (displayName == null || displayName.isBlank() || isPlaceholderName(displayName)) continue;
 
             String localName = Constants.getLocalName(displayName);
             String logo = t.path("logos").path(0).path("href").asText(t.path("logo").asText(null));
 
-            Team team = teamRepository.findByName(localName)
-                    .or(() -> id != null ? teamRepository.findByExternalId(id) : Optional.empty())
-                    .or(() -> teamRepository.findByName(displayName))
-                    .orElseGet(() -> Team.builder().name(localName).build());
+            Team team = id != null ? byExternalId(id, cache) : null;
+            if (team == null) team = unidentified(cache, localName, displayName);
+            if (team == null) team = Team.builder().name(localName).build();
             team.setNameEn(displayName);
             if (id != null) team.setExternalId(id);
             if (logo != null && !logo.isBlank()) team.setLogoUrl(logo);
 
-            teamRepository.save(team);
-            cache.put(team.getName(), team);
-            cache.put(displayName, team);
-            if (id != null) cache.put(id, team);
+            team = teamRepository.save(team);
+            cache.put(id != null ? id : team.getName(), team);
+            link(team, batch);
             imported++;
         }
         return imported;
@@ -215,8 +230,8 @@ public class MatchEventProcessor {
         JsonNode competitors = competition.path("competitors");
         if (!competitors.isArray() || competitors.size() < 2) return;
 
-        Competitor home = findCompetitor(competitors, "home");
-        Competitor away = findCompetitor(competitors, "away");
+        Competitor home = findCompetitor(competitors, "home", batch.competition);
+        Competitor away = findCompetitor(competitors, "away", batch.competition);
         Team homeTeam = resolveTeam(home, cache, batch);
         Team awayTeam = resolveTeam(away, cache, batch);
         // Huecos del calendario sin ningún rival conocido: no se guardan.
@@ -238,7 +253,7 @@ public class MatchEventProcessor {
                         ? new MatchMetadata(null, event.path("roundLabel").asText())
                         : parseMetadata(competition, event.path("season").path("slug").asText(""), batch.competition);
         int[] fairPlay = fight != null ? new int[]{0, 0}
-                : fairPlayPoints(competition, home, away, homeTeam, awayTeam, TournamentFormat.of(batch.competition).tiebreak());
+                : fairPlayPoints(competition, home, away, TournamentFormat.of(batch.competition).tiebreak());
 
         int bestOf = competition.path(LolEsportsDataProvider.BEST_OF_FIELD).asInt(0);
 
@@ -280,12 +295,13 @@ public class MatchEventProcessor {
                 MatchClock.of(competition, normalized, quarters));
     }
 
-    private Competitor findCompetitor(JsonNode competitors, String homeAway) {
+    private Competitor findCompetitor(JsonNode competitors, String homeAway, Competition competition) {
         for (JsonNode node : competitors) {
             if (homeAway.equals(node.path("homeAway").asText())) {
                 String name = node.path("team").path("displayName").asText(null);
-                String id = node.path("team").path("id").asText(null);
-                return name != null && id != null ? new Competitor(node, name, id) : null;
+                String providerId = node.path("team").path("id").asText(null);
+                String id = TeamExternalIds.of(competition, providerId);
+                return name != null && id != null ? new Competitor(node, name, id, providerId) : null;
             }
         }
         return null;
@@ -294,15 +310,16 @@ public class MatchEventProcessor {
     /** Equipo conocido (actualizando su nombre en inglés e id externo) o el comodín "Por definir". */
     private Team resolveTeam(Competitor competitor, Map<String, Team> cache, Batch batch) {
         Team team = competitor != null ? findTeam(competitor, cache) : null;
-        if (team == null && competitor != null && competitor.espnId().startsWith(TennisDataProvider.ID_PREFIX)) {
+        if (team == null && competitor != null && competitor.espnId().startsWith(TennisDataProvider.ID_PREFIX)
+                && !isPlaceholderName(competitor.nameEn())) {
             // Un tenista que no estaba en el cuadro importado (previa, lucky loser) o de un cuadro aún sin
             // importar: el partido ya trae su nombre y su bandera.
             team = teamRepository.save(Team.builder().name(competitor.nameEn()).nameEn(competitor.nameEn())
                     .externalId(competitor.espnId())
                     .logoUrl(competitor.node().path("team").path("logo").asText(null)).build());
-            cache.put(competitor.nameEn(), team);
             cache.put(competitor.espnId(), team);
             batch.teamsUpdated++;
+            link(team, batch);
             return team;
         }
         if (team == null) return placeholderTeam(cache);
@@ -318,23 +335,76 @@ public class MatchEventProcessor {
         }
         if (changed) {
             teamRepository.save(team);
-            cache.put(competitor.nameEn(), team);
             cache.put(competitor.espnId(), team);
             batch.teamsUpdated++;
+        }
+        link(team, batch);
+        return team;
+    }
+
+    /**
+     * Equipo de un rival por su id externo. Un hueco del calendario («TBD») nunca es un equipo, lo numere como
+     * lo numere el proveedor: se queda en el comodín, que no es de ningún proveedor.
+     */
+    private Team findTeam(Competitor competitor, Map<String, Team> cache) {
+        if (UfcDataProvider.isFighterId(competitor.espnId())) return fighter(competitor, cache);
+        if (isPlaceholderName(competitor.nameEn())) return null;
+        Team team = byExternalId(competitor.espnId(), cache);
+        return team != null ? team
+                : unidentified(cache, Constants.getLocalName(competitor.nameEn()), competitor.nameEn());
+    }
+
+    /**
+     * Equipo con ese id externo. Un equipo de fútbol guardado antes de que su id llevara prefijo se reconoce
+     * por el número a secas; quien lo pide le pone el id nuevo.
+     */
+    private Team byExternalId(String externalId, Map<String, Team> cache) {
+        String legacy = TeamExternalIds.legacy(externalId);
+        Team team = cached(externalId, cache);
+        if (team == null) team = cached(legacy, cache);
+        if (team == null) {
+            // La caché puede ser de hace una hora: el equipo pudo importarse después.
+            team = teamRepository.findByExternalId(externalId).orElse(null);
+            if (team == null && legacy != null) team = teamRepository.findByExternalId(legacy).orElse(null);
+            if (team != null) cache.put(externalId, team);
         }
         return team;
     }
 
-    private Team findTeam(Competitor competitor, Map<String, Team> cache) {
-        if (UfcDataProvider.isFighterId(competitor.espnId())) return fighter(competitor, cache);
-        String localName = Constants.getLocalName(competitor.nameEn());
-        for (String key : new String[]{localName, competitor.nameEn(), competitor.espnId()}) {
-            if (key != null && cache.containsKey(key)) return cache.get(key);
+    private static Team cached(String externalId, Map<String, Team> cache) {
+        Team team = externalId == null ? null : cache.get(externalId);
+        return team != null && externalId.equals(team.getExternalId()) ? team : null;
+    }
+
+    /**
+     * Equipo que aún no tiene id externo (sembrado sin él) y se llama así: es la única vez que el nombre
+     * identifica a un equipo, y deja de valer en cuanto recibe su id.
+     */
+    private static Team unidentified(Map<String, Team> cache, String... names) {
+        for (String name : names) {
+            Team team = name == null ? null : cache.get(name);
+            if (team != null && team.getExternalId() == null && !Team.isPlaceholder(team)) return team;
         }
-        if (localName == null) return null;
-        Team team = teamRepository.findByName(localName).orElse(null);
-        if (team != null) cache.put(localName, team);
-        return team;
+        return null;
+    }
+
+    private static boolean isPlaceholderName(String name) {
+        return Team.PLACEHOLDER_NAME.equalsIgnoreCase(name) || Team.PLACEHOLDER_NAME_EN.equalsIgnoreCase(name);
+    }
+
+    /**
+     * Liga el equipo a la competición de la pasada si aún no lo está: un equipo juega varias competiciones y
+     * cada una sabe quién participa en ella. El grupo, si el torneo lo tiene, lo pone su sorteo.
+     */
+    private void link(Team team, Batch batch) {
+        Competition competition = batch.competition;
+        if (competition == null || competition.getId() == null || team.getId() == null || Team.isPlaceholder(team)) {
+            return;
+        }
+        if (batch.participants == null) {
+            batch.participants = new HashSet<>(competitionTeamRepository.findTeamIdsByCompetitionId(competition.getId()));
+        }
+        if (batch.participants.add(team.getId())) competitionTeamRepository.link(competition.getId(), team.getId());
     }
 
     /**
@@ -360,7 +430,7 @@ public class MatchEventProcessor {
     private Team placeholderTeam(Map<String, Team> cache) {
         Team cached = cache.get(Team.PLACEHOLDER_NAME);
         if (cached != null) return cached;
-        Team placeholder = teamRepository.findByName(Team.PLACEHOLDER_NAME)
+        Team placeholder = teamRepository.findCatalogByName(Team.PLACEHOLDER_NAME)
                 .orElseGet(() -> teamRepository.save(Team.builder()
                         .name(Team.PLACEHOLDER_NAME)
                         .nameEn(Team.PLACEHOLDER_NAME_EN)
@@ -653,14 +723,13 @@ public class MatchEventProcessor {
      * Puntos de fair play (desempate de grupos) de cada equipo: amarilla -1, segunda amarilla -2 adicional
      * y roja directa lo que diga el reglamento del torneo (-4 la FIFA, -3 la UEFA).
      */
-    private int[] fairPlayPoints(JsonNode competition, Competitor home, Competitor away, Team homeTeam, Team awayTeam,
-                                 GroupTiebreak tiebreak) {
+    private int[] fairPlayPoints(JsonNode competition, Competitor home, Competitor away, GroupTiebreak tiebreak) {
         int[] points = {0, 0};
         JsonNode details = competition.path("details");
         if (!details.isArray()) return points;
 
-        String homeEspnId = home != null ? home.espnId() : null;
-        String awayEspnId = away != null ? away.espnId() : null;
+        String homeEspnId = home != null ? home.providerId() : null;
+        String awayEspnId = away != null ? away.providerId() : null;
         Set<String> booked = new HashSet<>();
         for (JsonNode detail : details) {
             boolean yellow = detail.path("yellowCard").asBoolean(false);
@@ -672,9 +741,9 @@ public class MatchEventProcessor {
             int penalty = red ? tiebreak.directRedCard() : (playerId != null && !booked.add(playerId) ? -2 : -1);
 
             String teamId = detail.path("team").path("id").asText(null);
-            if (teamId != null && (teamId.equals(homeEspnId) || Objects.equals(homeTeam.getExternalId(), teamId))) {
+            if (teamId != null && teamId.equals(homeEspnId)) {
                 points[0] += penalty;
-            } else if (teamId != null && (teamId.equals(awayEspnId) || Objects.equals(awayTeam.getExternalId(), teamId))) {
+            } else if (teamId != null && teamId.equals(awayEspnId)) {
                 points[1] += penalty;
             }
         }

@@ -85,8 +85,8 @@ class LegacyFixtureRepairPersistenceTest {
         assertThat(result.repaired()).isEqualTo(1);
         Match fixed = matches.findByExternalId("401882926").orElseThrow();
         assertThat(fixed.getId()).isEqualTo(originalId);
-        assertThat(fixed.getHomeTeam().getExternalId()).isEqualTo("96");
-        assertThat(fixed.getAwayTeam().getExternalId()).isEqualTo("2922");
+        assertThat(fixed.getHomeTeam().getExternalId()).isEqualTo("soccer-96");
+        assertThat(fixed.getAwayTeam().getExternalId()).isEqualTo("soccer-2922");
         assertThat(fixed.getHomeScore()).isEqualTo(3);
         assertThat(fixed.getAwayScore()).isZero();
         assertThat(teams.findById(placeholderId).orElseThrow().getName()).startsWith("Equipo LaLiga ");
