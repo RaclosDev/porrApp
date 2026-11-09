@@ -1,6 +1,7 @@
 import ActiveLeagueDropdown from './ActiveLeagueDropdown';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import React, { useState, useEffect, Suspense } from 'react';
+import { lazyPage } from '../services/chunkReload';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import ProfileSettingsModal, { type SettingsSection } from './ProfileSettingsModal';
@@ -22,7 +23,7 @@ import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
 import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
 import { leagueNavItems, showsFillBracketButton } from './layout/leagueNav';
 
-const PredictionViewer = React.lazy(() => import('./PredictionViewer'));
+const PredictionViewer = lazyPage(() => import('./PredictionViewer'));
 
 /** Páginas a las que puede ir quien tiene sesión pero aún no tiene ninguna liga. */
 const noLeagueAllowed = (pathname: string) =>

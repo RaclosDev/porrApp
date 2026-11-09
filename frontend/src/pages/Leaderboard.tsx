@@ -1,4 +1,5 @@
-import React, { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { lazyPage } from '../services/chunkReload';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { NoLeagueState } from '../components/NoLeagueState';
 import { BarChart3, Search, Share2 } from 'lucide-react';
@@ -15,7 +16,7 @@ import { displayRoundLabel } from '../utils/matchday';
 import type { LeagueKind } from '../context/leagueKind';
 import { LEAGUE_INSIGHTS } from '../context/leagueInsights';
 
-const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
+const EvolutionChart = lazyPage(() => import('../components/EvolutionChart'));
 
 type RankingTab = 'table' | 'evolution';
 
