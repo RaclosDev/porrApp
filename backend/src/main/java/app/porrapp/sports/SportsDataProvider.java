@@ -43,8 +43,12 @@ public interface SportsDataProvider {
         throw new UnsupportedOperationException("El proveedor no ofrece consultas por evento");
     }
 
+    /** Campo de un equipo del catálogo con su nombre en español, cuando el proveedor lo da. */
+    String LOCAL_NAME_FIELD = "localName";
+
     /**
-     * Recupera los equipos participantes en una competición con sus escudos oficiales y nombres.
+     * Recupera los equipos participantes en una competición con sus escudos oficiales y nombres:
+     * {@code displayName} en inglés, como en los partidos, y {@link #LOCAL_NAME_FIELD} en español si lo hay.
      *
      * @param competitionSlug Slug de la competición (ej. "esp.1").
      * @return Árbol JSON con los equipos o null si no está implementado.

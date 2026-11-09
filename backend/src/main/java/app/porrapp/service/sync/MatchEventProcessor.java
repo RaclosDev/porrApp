@@ -2,10 +2,10 @@ package app.porrapp.service.sync;
 
 import app.porrapp.sports.LolEsportsDataProvider;
 import app.porrapp.sports.NflSchedule;
+import app.porrapp.sports.SportsDataProvider;
 import app.porrapp.service.prediction.MatchPredictionService;
 import app.porrapp.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
-import app.porrapp.config.Constants;
 import app.porrapp.model.Competition;
 import app.porrapp.model.GroupTiebreak;
 import app.porrapp.model.Match;
@@ -187,9 +187,10 @@ public class MatchEventProcessor {
     /**
      * Guarda los equipos (con escudo) del catálogo de una competición y los liga a ella.
      * <p>
-     * A un equipo lo identifica su id externo, no su nombre. Uno que ya existe conserva su nombre: los cuadros
-     * de los participantes guardan los nombres en español y se puntúan comparándolos con el de cada equipo,
-     * así que cambiar «España» por el «Spain» del proveedor dejaría sin puntos a todo el que la eligió.
+     * A un equipo lo identifica su id externo, no su nombre. Uno nuevo nace con el nombre en español que da
+     * el proveedor; uno que ya existe conserva el suyo, aunque el proveedor lo llame distinto: los cuadros de
+     * los participantes guardan los nombres y se puntúan comparándolos con el de cada equipo, así que cambiar
+     * «EEUU» por «Estados Unidos» dejaría sin puntos a todo el que lo eligió.
      *
      * @return número de equipos importados
      */
@@ -203,7 +204,8 @@ public class MatchEventProcessor {
             String displayName = t.path("displayName").asText(t.path("name").asText(null));
             if (displayName == null || displayName.isBlank() || isPlaceholderName(displayName)) continue;
 
-            String localName = Constants.getLocalName(displayName);
+            String spanishName = t.path(SportsDataProvider.LOCAL_NAME_FIELD).asText("");
+            String localName = spanishName.isBlank() ? displayName : spanishName;
             String logo = t.path("logos").path(0).path("href").asText(t.path("logo").asText(null));
 
             Team team = id != null ? byExternalId(id, cache) : null;
@@ -350,8 +352,7 @@ public class MatchEventProcessor {
         if (UfcDataProvider.isFighterId(competitor.espnId())) return fighter(competitor, cache);
         if (isPlaceholderName(competitor.nameEn())) return null;
         Team team = byExternalId(competitor.espnId(), cache);
-        return team != null ? team
-                : unidentified(cache, Constants.getLocalName(competitor.nameEn()), competitor.nameEn());
+        return team != null ? team : unidentified(cache, competitor.nameEn());
     }
 
     /**

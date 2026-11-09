@@ -638,8 +638,9 @@ class MatchEventProcessorTest {
     @Test
     @DisplayName("Un equipo sembrado sin id externo se reconoce por su nombre una vez y recibe su id")
     void aSeededTeamWithoutExternalIdIsAdoptedByNameOnce() throws Exception {
-        Team seeded = Team.builder().id(4L).name("México").build();
+        Team seeded = Team.builder().id(4L).name("México").nameEn("Mexico").build();
         cache.put("México", seeded);
+        cache.put("Mexico", seeded);
         when(teamRepository.findByExternalId("soccer-203")).thenReturn(Optional.empty());
         when(matchRepository.findByExternalId("401")).thenReturn(Optional.empty());
 
@@ -688,12 +689,30 @@ class MatchEventProcessorTest {
     }
 
     @Test
+    @DisplayName("Un equipo que ya existe conserva su nombre aunque ESPN lo llame distinto en español")
+    void importTeamsNeverRenamesAnExistingTeam() throws Exception {
+        Team usa = Team.builder().id(7L).name("EEUU").nameEn("United States").externalId("soccer-660").build();
+        Map<String, Team> known = new HashMap<>(Map.of("soccer-660", usa));
+        when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
+        JsonNode teams = JSON.readTree("""
+                [{"team": {"id": "660", "displayName": "United States", "localName": "Estados Unidos"}}]
+                """);
+
+        processor.importTeams(teams, known, worldCup);
+
+        assertEquals("EEUU", usa.getName());
+        assertEquals("United States", usa.getNameEn());
+        assertSame(usa, known.get("soccer-660"));
+    }
+
+    @Test
     @DisplayName("Un equipo nuevo del catálogo se guarda con su nombre en español")
     void importTeamsCreatesNewTeamsWithTheirLocalName() throws Exception {
         when(teamRepository.findByExternalId("soccer-478")).thenReturn(Optional.empty());
         when(teamRepository.save(any(Team.class))).thenAnswer(inv -> inv.getArgument(0));
         JsonNode teams = JSON.readTree("""
-                [{"team": {"id": "478", "displayName": "France"}}]
+                [{"team": {"id": "478", "displayName": "France", "localName": "Francia"}},
+                 {"team": {"id": "9999", "displayName": "Newcomers"}}]
                 """);
         Map<String, Team> imported = new HashMap<>();
 
@@ -703,5 +722,7 @@ class MatchEventProcessorTest {
         assertEquals("Francia", france.getName());
         assertEquals("France", france.getNameEn());
         assertEquals("soccer-478", france.getExternalId());
+        assertEquals("Newcomers", imported.get("soccer-9999").getName(),
+                "sin nombre en español se queda el del proveedor");
     }
 }

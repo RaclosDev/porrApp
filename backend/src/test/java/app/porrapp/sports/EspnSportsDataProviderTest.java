@@ -169,20 +169,52 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
-    @DisplayName("Debe descargar y parsear el catálogo de equipos de una liga")
+    @DisplayName("El catálogo de equipos trae el nombre en inglés de los partidos y el español de ESPN")
     void fetchTeams_parsesTeamsCorrectly() throws Exception {
-        String json = "{\"sports\": [{\"leagues\": [{\"teams\": [{\"team\": {\"id\": \"96\", \"displayName\": \"Alavés\"}}]}]}]}";
+        String english = """
+                {"sports": [{"leagues": [{"teams": [
+                  {"team": {"id": "660", "displayName": "United States"}},
+                  {"team": {"id": "478", "displayName": "France"}},
+                  {"team": {"id": "9999", "displayName": "Newcomers"}}]}]}]}""";
+        String spanish = """
+                {"sports": [{"leagues": [{"teams": [
+                  {"team": {"id": "478", "displayName": "Francia"}},
+                  {"team": {"id": "660", "displayName": "Estados Unidos"}}]}]}]}""";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(english.getBytes(StandardCharsets.UTF_8), spanish.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode teams = provider.fetchTeams("fifa.world");
+
+        assertEquals(3, teams.size());
+        assertEquals("United States", teams.get(0).path("team").path("displayName").asText());
+        assertEquals("Estados Unidos", teams.get(0).path("team").path(SportsDataProvider.LOCAL_NAME_FIELD).asText());
+        assertEquals("Francia", teams.get(1).path("team").path(SportsDataProvider.LOCAL_NAME_FIELD).asText());
+        assertTrue(teams.get(2).path("team").path(SportsDataProvider.LOCAL_NAME_FIELD).isMissingNode(),
+                "un equipo que ESPN no da en español se queda sin nombre local");
+        var request = org.mockito.ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient, times(2)).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/teams",
+                request.getAllValues().get(0).uri().toString());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/teams?lang=es",
+                request.getAllValues().get(1).uri().toString());
+    }
+
+    @Test
+    @DisplayName("La NFL no tiene nombres en español: su catálogo se pide una sola vez")
+    void fetchTeams_asksTheNflCatalogOnlyOnce() throws Exception {
+        String json = "{\"sports\": [{\"leagues\": [{\"teams\": [{\"team\": {\"id\": \"33\", \"displayName\": \"Baltimore Ravens\"}}]}]}]}";
         when(httpResponse.statusCode()).thenReturn(200);
         when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
         when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
         when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
 
-        JsonNode teams = provider.fetchTeams("esp.1");
+        JsonNode teams = provider.fetchTeams("nfl");
 
-        assertNotNull(teams);
-        assertTrue(teams.isArray());
-        assertEquals(1, teams.size());
-        assertEquals("Alavés", teams.get(0).path("team").path("displayName").asText());
+        assertEquals("nfl:33", teams.get(0).path("team").path("id").asText());
+        assertTrue(teams.get(0).path("team").path(SportsDataProvider.LOCAL_NAME_FIELD).isMissingNode());
+        verify(httpClient, times(1)).send(any(HttpRequest.class), any());
     }
 
     @Test
