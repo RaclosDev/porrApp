@@ -160,14 +160,15 @@ export default defineConfig({
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/test/**', 'src/**/*.d.ts', 'src/main.tsx'],
       reporter: ['text-summary', 'html', 'json-summary'],
-      // Justo por debajo de la cobertura actual, para que no baje. utils/ guarda la lógica de
-      // puntos, cuadros y validación, así que exige más.
+      // Un par de puntos por debajo de la cobertura actual, para que no baje. utils/ guarda la
+      // lógica de puntos, cuadros y validación, y hooks/ la carga y el guardado de datos: exigen más.
       thresholds: {
-        lines: 66,
-        statements: 65,
-        functions: 60,
-        branches: 56,
-        'src/utils/**': { lines: 85, statements: 81, functions: 87, branches: 70 },
+        lines: 82,
+        statements: 81,
+        functions: 76,
+        branches: 72,
+        'src/utils/**': { lines: 93, statements: 92, functions: 94, branches: 84 },
+        'src/hooks/**': { lines: 89, statements: 87, functions: 87, branches: 79 },
       },
     },
   },
