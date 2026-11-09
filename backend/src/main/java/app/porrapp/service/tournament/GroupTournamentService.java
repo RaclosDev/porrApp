@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Datos oficiales de un torneo con fase de grupos: clasificación de sus grupos, probabilidades, cuadro
@@ -34,11 +33,6 @@ public class GroupTournamentService {
         return competitionRepository.findById(competitionId)
                 .filter(Competition::isGroupTournament)
                 .orElseThrow(() -> BusinessException.notFound("Torneo no encontrado"));
-    }
-
-    /** El torneo con grupos de ese identificador externo, si está dado de alta. */
-    public Optional<Competition> tournament(String externalId) {
-        return competitionRepository.findByExternalId(externalId).filter(Competition::isGroupTournament);
     }
 
     /** Puntos de cada equipo por grupo: grupo -> equipo -> estadística (pts, diff, gls, mp...). */
