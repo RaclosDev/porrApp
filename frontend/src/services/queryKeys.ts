@@ -40,6 +40,8 @@ export const queryKeys = {
   /** Cuelga de grandPrix: al guardar se refrescan también las de la liga. */
   grandPrixPicks: (groupId: Id, matchId: number) =>
     key('grandPrix', asText(groupId), 'picks', matchId),
+  /** Las de todos los Grandes Premios cerrados; también cuelga de grandPrix. */
+  grandPrixSeasonPicks: (groupId: Id) => key('grandPrix', asText(groupId), 'picks'),
   grandPrixClassification: (groupId: Id, matchId: number) =>
     key('grandPrixClassification', asText(groupId), matchId),
   /** Mundial de F1: es el mismo para todas las ligas, la liga solo comprueba el acceso. */

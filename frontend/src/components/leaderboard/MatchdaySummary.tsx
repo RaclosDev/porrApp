@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import type { LeagueInsights } from '../../context/leagueInsights';
 import { displayRoundLabel } from '../../utils/matchday';
 import type { MatchdayPoints } from '../../types/api';
 
@@ -19,6 +20,8 @@ interface MatchdaySummaryProps {
   onStep: (step: -1 | 1) => void;
   /** Liga de la UFC: cada jornada es una velada de peleas. */
   fightCard?: boolean;
+  /** Qué pantallas de estadísticas tiene la liga: de ahí salen los enlaces. */
+  insights: LeagueInsights;
 }
 
 /** Cabecera de la clasificación por jornadas: estado, tus puntos y puesto, y selector. */
@@ -34,6 +37,7 @@ export default function MatchdaySummary({
   onSelect,
   onStep,
   fightCard = false,
+  insights,
 }: MatchdaySummaryProps) {
   // La UFC va por veladas de peleas; la NFL (y las ligas de varias competiciones), por semanas: «Semana 9».
   const round = fightCard ? 'Velada' : /^Semana \d/.test(matchday.label) ? 'Semana' : 'Jornada';
@@ -73,14 +77,21 @@ export default function MatchdaySummary({
             <strong>{myPoints}</strong> pts
             {myRank && <span className="lb-matchday-rank">{myRank}º</span>}
           </span>
-          <Link
-            to="/stats"
-            className="lb-matchday-stats"
-            aria-label="Estadísticas por partido"
-            title="Estadísticas por partido"
-          >
-            <BarChart3 size={18} aria-hidden="true" />
-          </Link>
+          {insights.stats && (
+            <Link
+              to="/stats"
+              className="lb-matchday-stats"
+              aria-label={insights.stats}
+              title={insights.stats}
+            >
+              <BarChart3 size={18} aria-hidden="true" />
+            </Link>
+          )}
+          {insights.search && (
+            <Link to="/search" className="lb-matchday-stats" aria-label="Buscador" title="Buscador">
+              <Search size={18} aria-hidden="true" />
+            </Link>
+          )}
         </div>
       </div>
 

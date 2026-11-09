@@ -317,7 +317,7 @@ const TOURNAMENT_SEPARATOR = ' · ';
  * Torneo y ronda de una jornada. En una liga de varios torneos el backend las llama «Roland Garros 2027 ·
  * Octavos de final»; en la de un torneo, solo la ronda.
  */
-function splitRound(round: string): { tournament: string | null; round: string } {
+export function splitRound(round: string): { tournament: string | null; round: string } {
   const at = round.lastIndexOf(TOURNAMENT_SEPARATOR);
   return at < 0
     ? { tournament: null, round }

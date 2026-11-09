@@ -1,16 +1,13 @@
 import PaperLoading from '../PaperLoading';
 import { displayRoundLabel } from '../../utils/matchday';
-import { useId, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMatchdayStats } from '../../hooks/useMatchdayStats';
 import { groupByRound, latestRound } from '../../utils/matchdayStats';
 import { isApiError } from '../../services/apiError';
 import MatchStatsCard from './MatchStatsCard';
+import StepSelect from './StepSelect';
 import { InsightsNotice } from './InsightCard';
-
-const stepClass =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-[rgba(17,24,39,0.05)] text-main disabled:cursor-not-allowed disabled:opacity-35';
 
 /**
  * Estadísticas de una liga por jornadas: por cada partido que ya ha empezado, qué ha
@@ -19,14 +16,12 @@ const stepClass =
 export default function MatchdayStatsView({ groupId }: { groupId: string }) {
   const { data, isPending, error } = useMatchdayStats(groupId);
   const [params, setParams] = useSearchParams();
-  const selectId = useId();
 
   const rounds = useMemo(() => groupByRound(data?.matches ?? []), [data]);
   const requested = params.get('jornada');
   const selected =
     rounds.find((r) => r.label === requested) ??
     rounds.find((r) => r.label === latestRound(rounds));
-  const index = selected ? rounds.indexOf(selected) : -1;
 
   const select = (label: string) => setParams({ jornada: label }, { replace: true });
 
@@ -53,41 +48,12 @@ export default function MatchdayStatsView({ groupId }: { groupId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          className={stepClass}
-          onClick={() => select(rounds[index - 1].label)}
-          disabled={index <= 0}
-          aria-label="Jornada anterior"
-        >
-          <ChevronLeft size={18} aria-hidden="true" />
-        </button>
-        <label htmlFor={selectId} className="sr-only">
-          Jornada
-        </label>
-        <select
-          id={selectId}
-          className="glass-input min-w-0 max-w-65 flex-1 font-bold"
-          value={selected.label}
-          onChange={(e) => select(e.target.value)}
-        >
-          {rounds.map((r) => (
-            <option key={r.label} value={r.label}>
-              {displayRoundLabel(r.label)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className={stepClass}
-          onClick={() => select(rounds[index + 1].label)}
-          disabled={index >= rounds.length - 1}
-          aria-label="Jornada siguiente"
-        >
-          <ChevronRight size={18} aria-hidden="true" />
-        </button>
-      </div>
+      <StepSelect
+        label="Jornada"
+        options={rounds.map((r) => ({ value: r.label, label: displayRoundLabel(r.label) }))}
+        value={selected.label}
+        onChange={select}
+      />
       <p className="m-0 text-center text-[0.85rem] text-muted">
         Solo salen los partidos que ya han empezado: antes, las predicciones de los demás están
         ocultas.

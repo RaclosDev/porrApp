@@ -41,6 +41,12 @@ public class GrandPrixController {
         return standingsService.standings();
     }
 
+    /** Predicciones de la liga en los Grandes Premios ya cerrados de la temporada (estadísticas y buscador). */
+    @GetMapping("/picks")
+    public List<GrandPrixBoardDTO.RacePicks> seasonPicks(@RequestParam Long groupId, Principal principal) {
+        return grandPrixService.seasonPicks(CurrentUser.email(principal), groupId);
+    }
+
     @PutMapping("/{matchId}")
     public GrandPrixBoardDTO savePick(@PathVariable Long matchId, @RequestParam Long groupId,
                                       @RequestBody GrandPrixPickRequest request, Principal principal) {

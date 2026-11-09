@@ -1,6 +1,6 @@
 /** Agrupación por jornada y repartos de las estadísticas de una liga por jornadas. */
 import type { MatchStats } from '../types/api';
-import { percent } from './bracketStats';
+import { percent } from './pickStats';
 
 interface MatchdayRound {
   label: string;

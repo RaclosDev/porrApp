@@ -1,14 +1,4 @@
 import { useId, useState, type ReactNode } from 'react';
-import Flag from '../Flag';
-
-/** Bandera de tamaño fijo para las filas de estadísticas. */
-export const TeamFlag = ({ team }: { team: string }) => (
-  <Flag
-    team={team}
-    size="w80"
-    style={{ width: 22, height: 16, objectFit: 'cover', borderRadius: 3 }}
-  />
-);
 
 interface InsightCardProps {
   title: string;

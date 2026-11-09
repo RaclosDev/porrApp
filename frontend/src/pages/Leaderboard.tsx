@@ -13,6 +13,7 @@ import { useRequestedGroup } from '../hooks/useRequestedGroup';
 import type { MatchdayPoints } from '../types/api';
 import { displayRoundLabel } from '../utils/matchday';
 import type { LeagueKind } from '../context/leagueKind';
+import { LEAGUE_INSIGHTS } from '../context/leagueInsights';
 
 const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
 
@@ -26,32 +27,27 @@ interface RankingLayout {
   ownBracket: boolean;
   /** Adónde lleva tocar una fila: sus predicciones o el visor de su cuadro. */
   openRow: '/jornadas' | 'viewer' | null;
-  /** Enlaces a Más elegidos y Buscador, que comparan los cuadros con el oficial del Mundial. */
-  worldCupInsights: boolean;
-  /** Enlace a las estadísticas por partido y columna de puntos de jornada (no en la Fórmula 1). */
-  matchStats: boolean;
+  /** Columna de puntos de la jornada (no en la Fórmula 1). */
+  roundPointsColumn: boolean;
 }
 
 const NO_RANKING: RankingLayout = {
   byRound: false,
   ownBracket: false,
   openRow: null,
-  worldCupInsights: false,
-  matchStats: false,
+  roundPointsColumn: false,
 };
 const OWN_BRACKET_RANKING: RankingLayout = {
   byRound: false,
   ownBracket: true,
   openRow: 'viewer',
-  worldCupInsights: false,
-  matchStats: false,
+  roundPointsColumn: false,
 };
 const MATCHDAY_RANKING: RankingLayout = {
   byRound: true,
   ownBracket: false,
   openRow: '/jornadas',
-  worldCupInsights: false,
-  matchStats: true,
+  roundPointsColumn: true,
 };
 
 const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
@@ -59,8 +55,7 @@ const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
     byRound: false,
     ownBracket: false,
     openRow: 'viewer',
-    worldCupInsights: true,
-    matchStats: false,
+    roundPointsColumn: false,
   },
   customBracket: OWN_BRACKET_RANKING,
   ownBracket: OWN_BRACKET_RANKING,
@@ -70,7 +65,7 @@ const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
   tennisDraw: MATCHDAY_RANKING,
   // En la Fórmula 1 no hay una página con las predicciones de cada participante: se ven en cada Gran
   // Premio, en «Predicciones de la liga». Abrir una fila llevaría a las propias.
-  grandPrix: { ...MATCHDAY_RANKING, openRow: null, matchStats: false },
+  grandPrix: { ...MATCHDAY_RANKING, openRow: null, roundPointsColumn: false },
   loading: NO_RANKING,
   error: NO_RANKING,
   none: NO_RANKING,
@@ -147,6 +142,22 @@ function Leaderboard() {
   if (!activeGroupId) return <NoLeagueState title="Clasificación" what="la clasificación" />;
 
   const layout = RANKING_LAYOUT[state.leagueKind];
+  // Enlaces a Estadísticas y al Buscador: solo en las clases de liga que tienen esas pantallas.
+  const insights = LEAGUE_INSIGHTS[state.leagueKind];
+  const insightLinks = insights.stats && (
+    <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
+      <Link to="/stats" className="ranking-secondary-link">
+        <BarChart3 size={16} aria-hidden="true" />
+        {insights.stats}
+      </Link>
+      {insights.search && (
+        <Link to="/search" className="ranking-secondary-link">
+          <Search size={16} aria-hidden="true" />
+          Buscador
+        </Link>
+      )}
+    </nav>
+  );
   const isMatchday = layout.byRound;
   const columns = leaderboardColumns({
     isMatchday,
@@ -154,7 +165,7 @@ function Leaderboard() {
     pichichi: activeGroupPichichi,
     ownBracketHasGroupPoints: validResults.some((row) => (row.points.r1 ?? 0) !== 0),
     selectedMatchday,
-    roundPointsColumn: layout.matchStats,
+    roundPointsColumn: layout.roundPointsColumn,
   });
   const summaryMatchday = selectedMatchdayInfo || currentMatchday;
   // Clasificación de la jornada elegida en vez de la general (se activa al cambiar de jornada).
@@ -220,18 +231,7 @@ function Leaderboard() {
               </button>
             ))}
           </div>
-          {layout.worldCupInsights && (
-            <nav aria-label="Estadísticas de la liga" className="ranking-secondary-links">
-              <Link to="/stats" className="ranking-secondary-link">
-                <BarChart3 size={16} aria-hidden="true" />
-                Más elegidos
-              </Link>
-              <Link to="/search" className="ranking-secondary-link">
-                <Search size={16} aria-hidden="true" />
-                Buscador
-              </Link>
-            </nav>
-          )}
+          {insightLinks}
           <button
             className="ranking-share-button"
             id="btn-share-wa"
@@ -280,6 +280,7 @@ function Leaderboard() {
                 onSelect={handleSelectMatchday}
                 onStep={handleStepMatchday}
                 fightCard={state.leagueKind === 'fightCard'}
+                insights={insights}
               />
             )}
 
@@ -320,11 +321,7 @@ function Leaderboard() {
                           : 'Podio de la clasificación general'
                       }
                     />
-                    {!summaryMatchday && layout.matchStats && (
-                      <Link className="ranking-secondary-link" to="/stats">
-                        Estadísticas por partido
-                      </Link>
-                    )}
+                    {!summaryMatchday && insightLinks}
                   </>
                 )}
                 {!isMatchday && (

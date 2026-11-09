@@ -53,6 +53,10 @@ export function pickError(pick: GrandPrixPicks): string | null {
 export const samePick = (a: GrandPrixPicks | null, b: GrandPrixPicks | null) =>
   PICK_SLOTS.every(({ key }) => (a?.[key] ?? null) === (b?.[key] ?? null));
 
+/** «L. Norris»: el nombre corto, o el completo si no lo hay. */
+export const driverShortName = (driver: RaceDriver | undefined) =>
+  driver ? driver.shortName || driver.name : 'Piloto';
+
 /** «L. Norris · McLaren». */
 export function driverLabel(driver: RaceDriver | undefined): string {
   if (!driver) return 'Piloto';
