@@ -350,6 +350,14 @@ describe('borrador de liga', () => {
       lockDate: '2026-12-01T20:00',
     });
 
+    // El deporte elegido viaja con la competición personalizada; «Otro deporte» no manda ninguno.
+    expect(buildCreateRequest({ ...configured, sport: 'BASKETBALL' }, ctx)).toMatchObject({
+      customSport: 'BASKETBALL',
+    });
+    expect(buildCreateRequest({ ...configured, sport: 'OTHER' }, ctx)).not.toHaveProperty(
+      'customSport',
+    );
+
     // Personalizar sin cambiar ningún valor no manda puntuación.
     expect(buildCreateRequest({ ...plain, customScoring: true }, ctx)).not.toHaveProperty(
       'scoring',

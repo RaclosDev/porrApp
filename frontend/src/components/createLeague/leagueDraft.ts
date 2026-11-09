@@ -765,7 +765,11 @@ export function buildCreateRequest(draft: LeagueDraft, ctx: DraftContext): Creat
     poolFormat: draft.poolFormat ?? 'MATCH_DAY',
     pichichi: pichichiApplies(draft, ctx) && draft.pichichi,
   };
-  if (draft.custom) request.customCompetitionName = draft.customName.trim();
+  if (draft.custom) {
+    request.customCompetitionName = draft.customName.trim();
+    // El deporte decide si se puede predecir el empate; «Otro deporte» se juega con empate.
+    if (draft.sport && draft.sport !== 'OTHER') request.customSport = draft.sport;
+  }
   if (rules) request.rules = rules;
   if (draft.entryFee) request.entryFee = true;
   // UFC: sin las tres partes de la cartelera, las elegidas (en el orden de la velada).

@@ -14,6 +14,7 @@ import type {
   PaymentStatusResponse,
   PoolFormat,
   ScoringRules,
+  Sport,
   StatusResponse,
 } from '../../types/api';
 import { request, imageForm } from '../http';
@@ -39,6 +40,8 @@ export interface CreateGroupRequest {
   name: string;
   competitionId: number | null;
   customCompetitionName?: string;
+  /** Deporte de la competición personalizada; sin él se juega con empate. */
+  customSport?: Sport;
   poolFormat: PoolFormat;
   pichichi: boolean;
   rules?: string;
