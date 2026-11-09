@@ -10,9 +10,10 @@ import { appContext, matchdayFixture } from '../context/fixtures';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../context/leagueData', () => ({
-  useWorldCupData: () => ({ groupOdds: {}, groupStandings: {} }),
+  useTournamentData: () => ({ groupOdds: {}, groupStandings: {} }),
 }));
 vi.mock('../../services/api', () => ({
+  CURRENT_ROUND: 'current',
   fetchCompetitionStandings: vi.fn(),
   fetchCustomStandings: vi.fn(),
   fetchCustomTeams: vi.fn(),
@@ -86,7 +87,7 @@ describe('useLeagueHomeData', () => {
 
     await waitFor(() => expect(result.current.matches.items[0]?.id).toBe(1));
     expect(result.current.matches.items).toHaveLength(1);
-    expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith(5);
+    expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith(5, 'current');
     expect(result.current.matches.title).toBe('Semana del 9 nov');
     expect(result.current.matches.items[0].id).toBe(1);
     expect(result.current.matches.allTo).toBe('/jornadas');
@@ -265,7 +266,7 @@ describe('useLeagueHomeData', () => {
 
     const { result } = renderHook(() => useLeagueHomeData(), { wrapper });
 
-    await waitFor(() => expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith(15));
+    await waitFor(() => expect(api.fetchMatchdayFixtures).toHaveBeenCalledWith(15, 'current'));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.matches.items).toEqual([]);
     expect(result.current.matches.empty).toMatch(/torneos de la liga/);

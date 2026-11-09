@@ -19,13 +19,14 @@ for (const width of [390, 1440]) {
       localStorage.setItem('activeCompetitionId', '2');
       Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
     });
-    const league = withLeagueKind('worldCup', {
+    const league = withLeagueKind('groupStage', {
       id: 1,
       name: 'Liga de prueba',
       adminUserId: 7,
       competitionId: 2,
       competitionName: 'Mundial 2026',
       competitionExternalId: 'fifa.world',
+      groupTournament: true,
       formatType: 'TOURNAMENT',
       poolFormat: 'FULL_BRACKET',
       pichichi: false,
@@ -84,9 +85,9 @@ for (const width of [390, 1440]) {
             log: [],
           },
         ],
-        '/api/world-cup/standings': {},
-        '/api/world-cup/official-bracket': {},
-        '/api/world-cup/group-odds': {},
+        '/api/competitions/2/tournament/standings': {},
+        '/api/competitions/2/tournament/official-bracket': {},
+        '/api/competitions/2/tournament/group-odds': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

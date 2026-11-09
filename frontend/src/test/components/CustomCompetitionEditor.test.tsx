@@ -388,11 +388,9 @@ describe('CustomCompetitionEditor', () => {
     const confirm = vi.mocked(confirmAction).mockResolvedValue(true);
     const { invalidate } = setup('KNOCKOUTS_ONLY');
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Pasar a Worlds de League of Legends' }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Pasar a Copa del Rey' }));
 
-    await waitFor(() => expect(api.linkOfficialCompetition).toHaveBeenCalledWith(7, 19));
+    await waitFor(() => expect(api.linkOfficialCompetition).toHaveBeenCalledWith(7, 10));
     expect(confirm).toHaveBeenCalled();
     await waitFor(() => expect(invalidate).toHaveBeenCalledWith());
   });

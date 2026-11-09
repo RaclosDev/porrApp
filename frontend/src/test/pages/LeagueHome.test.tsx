@@ -86,9 +86,25 @@ describe('league home', () => {
     expect(ranking).not.toHaveTextContent(/🥇|🥈|🥉|º/);
   });
 
+  it('gives tied participants the same position, also before they have a prediction', () => {
+    renderHome({
+      leagueKind: 'matchday',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      leaderboardData: [
+        { id: 1, userId: 7, name: 'Ana', total: 0 },
+        { id: null, userId: 8, name: 'Bea', total: 0 },
+        { id: null, userId: 9, name: 'Carla', total: 0 },
+      ] as AppContextValue['leaderboardData'],
+    });
+    const rows = within(screen.getByRole('list', { name: 'Top del ranking' })).getAllByRole(
+      'listitem',
+    );
+    rows.forEach((row) => expect(row).toHaveTextContent(/^1/));
+  });
+
   it('gives a bracket league the same home, with upcoming matches instead of the bracket', () => {
     renderHome({
-      leagueKind: 'worldCup',
+      leagueKind: 'groupStage',
       activeCompetitionExternalId: 'fifa.world',
       allGames: [
         match({
@@ -151,5 +167,29 @@ describe('league home', () => {
     });
     const table = await screen.findByRole('list', { name: 'Tabla' });
     expect(within(table).getAllByRole('listitem')[1]).toHaveTextContent('2Sevilla3 PJ6 pts');
+  });
+
+  it('opens with the closing once the league is over, above the usual home', async () => {
+    vi.mocked(api.fetchMyLeagueSummaries).mockResolvedValue([
+      {
+        groupId: 10,
+        rank: 2,
+        points: 50,
+        participants: 6,
+        pendingPredictions: 0,
+        finished: true,
+      },
+    ]);
+    renderHome({
+      leagueKind: 'matchday',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      isAuthenticated: true,
+      userId: '2',
+    });
+
+    const closing = await screen.findByRole('region', { name: 'Ana gana Liga de amigos' });
+    expect(within(closing).getByText('Has quedado 2.º de 6 con 50 pts')).toBeInTheDocument();
+    const home = screen.getByRole('heading', { name: 'Liga de amigos' });
+    expect(closing.compareDocumentPosition(home) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

@@ -66,14 +66,39 @@ export async function createPasskey({ publicKey }: BrowserOptions): Promise<Json
   };
 }
 
+/**
+ * El navegador puede ofrecer las llaves en el autocompletado del campo de email (mediación
+ * condicional): quien tenga una la elige ahí sin buscar ningún botón.
+ */
+export async function conditionalPasskeysAvailable(): Promise<boolean> {
+  if (!passkeysSupported()) return false;
+  try {
+    return (await window.PublicKeyCredential.isConditionalMediationAvailable?.()) === true;
+  } catch {
+    return false;
+  }
+}
+
+export interface GetPasskeyOptions {
+  /** En el autocompletado del campo de email, sin abrir ningún diálogo. */
+  conditional?: boolean;
+  /** Para cancelar la petición (por ejemplo, antes de pedir la llave con el botón). */
+  signal?: AbortSignal;
+}
+
 /** Pide al dispositivo que firme con una de sus llaves y devuelve la respuesta en JSON. */
-export async function getPasskey({ publicKey }: BrowserOptions): Promise<Json> {
+export async function getPasskey(
+  { publicKey }: BrowserOptions,
+  { conditional = false, signal }: GetPasskeyOptions = {},
+): Promise<Json> {
   const credential = (await navigator.credentials.get({
     publicKey: {
       ...publicKey,
       challenge: base64UrlToBuffer(publicKey.challenge as string),
       allowCredentials: withBinaryIds(publicKey.allowCredentials),
     } as unknown as PublicKeyCredentialRequestOptions,
+    ...(conditional ? { mediation: 'conditional' as CredentialMediationRequirement } : {}),
+    signal,
   })) as PublicKeyCredential | null;
   if (!credential) throw new DOMException('Sin llave', 'NotAllowedError');
   const response = credential.response as AuthenticatorAssertionResponse;
@@ -93,7 +118,10 @@ export async function getPasskey({ publicKey }: BrowserOptions): Promise<Json> {
 
 /** La persona canceló el diálogo del sistema o se agotó el tiempo: no es un error que mostrar. */
 export function isPasskeyCancel(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'NotAllowedError';
+  return (
+    error instanceof DOMException &&
+    (error.name === 'NotAllowedError' || error.name === 'AbortError')
+  );
 }
 
 /** Nombre por defecto de una llave nueva, según el dispositivo. */

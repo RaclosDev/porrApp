@@ -2,6 +2,7 @@ import toast from 'react-hot-toast';
 import { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { MatchdayPoints, ParticipantScore } from '../types/api';
+import { rankingMatchday } from '../utils/matchday';
 
 /** Fila de la clasificación tal como la pinta la interfaz. */
 export interface LeaderboardRow {
@@ -85,6 +86,7 @@ export function useLeaderboard() {
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
+    activeGroupScorerPick,
     activeGroupPoolFormat,
     activeGroupAdminId,
     userId,
@@ -102,10 +104,8 @@ export function useLeaderboard() {
 
   const matchdays = Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_MATCHDAYS;
 
-  const currentMatchday = useMemo(
-    () => matchdays.find((matchday) => matchday.current) || matchdays[matchdays.length - 1] || null,
-    [matchdays],
-  );
+  // La jornada actual en cuanto alguien puntúa; hasta entonces, la anterior (no todos a cero).
+  const currentMatchday = useMemo(() => rankingMatchday(matchdays), [matchdays]);
 
   // Sin elección explícita se muestra la jornada actual.
   const selectedMatchdayInfo = useMemo(() => {
@@ -284,6 +284,7 @@ export function useLeaderboard() {
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
+    activeGroupScorerPick,
     activeGroupPoolFormat,
     userId,
     userName,

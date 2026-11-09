@@ -18,9 +18,12 @@ vi.mock('../../services/api', () => ({
   startPasskeyRegistration: vi.fn(),
   finishPasskeyRegistration: vi.fn(),
   deletePasskey: vi.fn(),
-  fetchPushConfig: vi
-    .fn()
-    .mockResolvedValue({ publicKey: null, remindersEnabled: true, memberJoinedEnabled: true }),
+  fetchPushConfig: vi.fn().mockResolvedValue({
+    publicKey: null,
+    remindersEnabled: true,
+    memberJoinedEnabled: true,
+    matchdayFinishedEnabled: true,
+  }),
   setPushPreferences: vi.fn(),
 }));
 
@@ -92,4 +95,35 @@ it('descarga una copia de los datos propios en JSON', async () => {
   expect(createObjectURL).toHaveBeenCalledOnce();
   expect(revokeObjectURL).toHaveBeenCalledWith('blob:datos');
   click.mockRestore();
+});
+
+it('abierto desde «Avisos», lleva el foco a la sección de avisos', async () => {
+  useAppStore.setState({ userName: 'Ana', userId: '1' });
+  const scrollIntoView = vi.fn();
+  Element.prototype.scrollIntoView = scrollIntoView;
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={new QueryClient()}>
+        <ProfileSettingsModal onClose={vi.fn()} section="reminders" />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  const reminders = screen.getByRole('region', { name: 'Avisos' });
+  expect(reminders).toHaveFocus();
+  expect(scrollIntoView).toHaveBeenCalled();
+  // Sin claves de push en el servidor la sección sigue ahí y lo dice.
+  expect(await screen.findByText('Los avisos no están disponibles ahora mismo.')).toBeVisible();
+});
+
+it('abierto desde «Ajustes de cuenta», el foco se queda en el diálogo', () => {
+  useAppStore.setState({ userName: 'Ana', userId: '1' });
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={new QueryClient()}>
+        <ProfileSettingsModal onClose={vi.fn()} />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('dialog', { name: 'Ajustes de cuenta' })).toHaveFocus();
+  expect(screen.getByRole('region', { name: 'Avisos' })).toBeInTheDocument();
 });

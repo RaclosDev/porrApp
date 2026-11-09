@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { resetAnalyticsConsent } from '../services/analytics';
 
 const CONTACT_EMAIL = 'raclosdev@gmail.com';
-const UPDATED_AT = '6 de noviembre de 2026';
+const UPDATED_AT = '8 de noviembre de 2026';
 
 interface LegalProps {
   kind: 'privacy' | 'legal';
@@ -45,16 +45,21 @@ function PrivacyContent() {
     <>
       <h2>Responsable</h2>
       <p>
-        El responsable del tratamiento es el titular de PorrApp. Puedes escribirle para cualquier
-        cuestión sobre tus datos a <ContactLink />.
+        El responsable del tratamiento es Carlos S., titular de PorrApp. Puedes escribirle para
+        cualquier cuestión sobre tus datos a <ContactLink />.
       </p>
 
       <h2>Qué datos tratamos</h2>
       <ul>
         <li>
-          De tu cuenta de Google: email e identificador de cuenta. Tu nombre de Google solo se usa
-          para proponerte el nombre público al registrarte y no se guarda. Nunca recibimos tu
-          contraseña.
+          Si entras con Google: email e identificador de tu cuenta de Google. Tu nombre de Google
+          solo se usa para proponerte el nombre público al registrarte y no se guarda. Nunca
+          recibimos tu contraseña de Google.
+        </li>
+        <li>
+          Si te registras con email: tu email y un resumen cifrado (hash) de tu contraseña, del que
+          no se puede sacar la contraseña. Si pides cambiarla, te mandamos a ese email un enlace que
+          caduca a los 30 minutos.
         </li>
         <li>El nombre público y la foto de perfil que elijas.</li>
         <li>
@@ -69,10 +74,11 @@ function PrivacyContent() {
           añadiste y la usaste por última vez. Tu Face ID, huella o PIN nunca salen del dispositivo.
         </li>
         <li>
-          Datos técnicos imprescindibles: la sesión (una cookie que caduca a los 30 días), el día de
-          tu última entrada (para el plazo de conservación) y la dirección IP, que se usa de forma
-          temporal para limitar abusos. Si la aplicación falla en tu navegador, se envía el error
-          técnico (mensaje, traza y página, sin datos de tu cuenta) para poder corregirlo.
+          Datos técnicos imprescindibles: la sesión (una cookie que caduca tras 90 días sin entrar
+          y, como máximo, al año), el día de tu última entrada (para el plazo de conservación) y la
+          dirección IP, que se usa de forma temporal para limitar abusos. Si la aplicación falla en
+          tu navegador, se envía el error técnico (mensaje, traza y página, sin datos de tu cuenta)
+          para poder corregirlo.
         </li>
         <li>
           Solo si aceptas la analítica: datos de uso que recoge Google Analytics (páginas que ves,
@@ -107,11 +113,14 @@ function PrivacyContent() {
           administrador de la liga.
         </li>
         <li>
-          Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos)
-          y Google (inicio de sesión; su código solo se carga cuando abres el botón de «Continuar
-          con Google») y, solo si aceptas la analítica, Google Analytics, sin compartir los datos
-          con otros servicios de Google ni usarlos para publicidad. Los servicios de avisos push del
-          navegador (Google, Apple o Mozilla) solo reciben el aviso cifrado.
+          Proveedores que tratan datos por cuenta de PorrApp: Railway (alojamiento y base de datos),
+          Google (inicio de sesión; su código solo se carga cuando abres el botón de «Continuar con
+          Google»), Resend (manda el código para crear la cuenta, el enlace para cambiar la
+          contraseña y avisos sobre tu cuenta), Sentry (recibe los errores técnicos de la app, sin
+          tu email, tu IP ni tu cuenta) y, solo si aceptas la analítica, Google Analytics, sin
+          compartir los datos con otros servicios de Google ni usarlos para publicidad. Los
+          servicios de avisos push del navegador (Google, Apple o Mozilla) solo reciben el aviso
+          cifrado.
         </li>
         <li>
           Algunos de estos proveedores están en EE. UU. Las transferencias se amparan en el Marco de
@@ -169,7 +178,7 @@ function LegalNoticeContent() {
     <>
       <h2>Titular</h2>
       <p>
-        PorrApp es un proyecto personal sin ánimo de lucro. Contacto: <ContactLink />.
+        PorrApp es un proyecto personal sin ánimo de lucro de Carlos S. Contacto: <ContactLink />.
       </p>
 
       <h2>Objeto</h2>

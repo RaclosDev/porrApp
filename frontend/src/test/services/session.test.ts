@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   endSession,
   fetchMe,
-  fetchWorldCupStandings,
+  fetchTournamentStandings,
   getAuthToken,
   initSession,
   isRedeemingHandoff,
@@ -77,7 +77,7 @@ describe('sesión con refresh token', () => {
       return authHeader(init) === 'Bearer nuevo' ? json(200, {}) : json(401);
     });
 
-    await Promise.all([fetchMe(), fetchWorldCupStandings(), fetchMe()]);
+    await Promise.all([fetchMe(), fetchTournamentStandings(2), fetchMe()]);
 
     expect(
       fetchMock.mock.calls.filter(([url]) => url === '/api/auth/session/refresh'),
@@ -229,7 +229,7 @@ describe('sesión con refresh token', () => {
       url === '/api/auth/session/refresh' ? json(200, { token: 'nuevo' }) : json(401),
     );
 
-    await expect(fetchMe()).rejects.toThrow('401');
+    await expect(fetchMe()).rejects.toThrow('Tu sesión ha caducado');
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(getAuthToken()).toBe('nuevo');
@@ -241,7 +241,7 @@ describe('sesión con refresh token', () => {
     window.addEventListener('auth-expired', expired);
     stubFetch(() => json(401));
 
-    await expect(fetchMe()).rejects.toThrow('401');
+    await expect(fetchMe()).rejects.toThrow('Tu sesión ha caducado');
 
     expect(getAuthToken()).toBeNull();
     expect(localStorage.getItem('has_session')).toBeNull();
@@ -261,7 +261,7 @@ describe('sesión con refresh token', () => {
       }),
     );
 
-    await expect(fetchMe()).rejects.toThrow('401');
+    await expect(fetchMe()).rejects.toThrow('Tu sesión ha caducado');
 
     expect(expired).not.toHaveBeenCalled();
     expect(localStorage.getItem('has_session')).toBe('1');
@@ -284,13 +284,13 @@ describe('sesión con refresh token', () => {
     });
 
     const restored = initSession();
-    const standings = fetchWorldCupStandings();
+    const standings = fetchTournamentStandings(2);
 
     await expect(restored).resolves.toBe('restored');
     await standings;
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       '/api/auth/session/refresh',
-      '/api/world-cup/standings',
+      '/api/competitions/2/tournament/standings',
     ]);
   });
 
@@ -319,14 +319,14 @@ describe('sesión con refresh token', () => {
       const restored = initSession();
       // Mientras se canjea no se sabe si hay cuenta: la app no enseña la portada de visitante.
       expect(isRedeemingHandoff()).toBe(true);
-      const standings = fetchWorldCupStandings();
+      const standings = fetchTournamentStandings(2);
 
       await expect(restored).resolves.toBe('restored');
       expect(isRedeemingHandoff()).toBe(false);
       await standings;
       expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
         '/api/auth/session/handoff',
-        '/api/world-cup/standings',
+        '/api/competitions/2/tournament/standings',
       ]);
       // El código va en su cookie: ni en la URL ni en una cabecera.
       expect(authHeader(fetchMock.mock.calls[0][1])).toBeUndefined();

@@ -2,6 +2,13 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { sortGroupsByRecent } from '../utils/groupOrder';
+import { confirmAction } from '../utils/confirmAction';
+import {
+  discardUnsavedChanges,
+  leaveDialog,
+  unsavedChangesMessage,
+  useUnsavedChangesStore,
+} from '../utils/unsavedChanges';
 import { LeagueAvatar } from './Avatar';
 import { competitionLabel, poolFormatShortLabel } from '../utils/poolFormat';
 
@@ -44,6 +51,28 @@ export default function ActiveLeagueDropdown() {
     () => sortGroupsByRecent(userGroups || [], activeGroupId),
     [userGroups, activeGroupId],
   );
+
+  /**
+   * Cambiar de liga no es una navegación que `LeaveGuard` pueda retener: con cambios de predicción
+   * sin guardar se pregunta antes de cambiar. En la misma liga solo se va al inicio, y ahí sí avisa.
+   */
+  const selectLeague = (groupId: string) => {
+    const goToLeague = () => {
+      changeGroup(groupId);
+      navigate('/');
+    };
+    const message = unsavedChangesMessage(useUnsavedChangesStore.getState());
+    if (message === null || groupId === String(activeGroupId)) {
+      goToLeague();
+      return;
+    }
+    void confirmAction(leaveDialog(message)).then((leave) => {
+      if (!leave) return;
+      // Ya confirmado: que la navegación al inicio no vuelva a preguntar.
+      discardUnsavedChanges();
+      goToLeague();
+    });
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -152,9 +181,8 @@ export default function ActiveLeagueDropdown() {
                     key={g.id}
                     type="button"
                     onClick={() => {
-                      changeGroup(g.id.toString());
                       setIsOpen(false);
-                      navigate('/');
+                      selectLeague(g.id.toString());
                     }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -166,7 +194,12 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {[competitionLabel(g), poolFormatShortLabel(g.poolFormat)]
+                          {[
+                            competitionLabel(g),
+                            // Terminada, la temporada la distingue de la liga que la repite.
+                            g.seasonEnded ? `${g.season ?? 'Temporada'} terminada` : null,
+                            poolFormatShortLabel(g.poolFormat),
+                          ]
                             .filter(Boolean)
                             .join(' · ')}
                         </span>

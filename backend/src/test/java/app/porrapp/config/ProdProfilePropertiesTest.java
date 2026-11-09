@@ -1,0 +1,57 @@
+package app.porrapp.config;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+/** Con el perfil prod no se publica Swagger y CORS solo admite el dominio oficial. */
+class ProdProfilePropertiesTest {
+
+    @Configuration
+    static class NoBeans {
+    }
+
+    @Nested
+    @SpringBootTest(classes = NoBeans.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+    @ActiveProfiles("prod")
+    class Prod {
+        @Autowired
+        Environment env;
+
+        @Test
+        void disablesApiDocsAndRestrictsCors() {
+            assertThat(env.getProperty("springdoc.api-docs.enabled")).isEqualTo("false");
+            assertThat(env.getProperty("springdoc.swagger-ui.enabled")).isEqualTo("false");
+            if (System.getenv("CORS_ALLOWED_ORIGINS") == null) {
+                assertThat(env.getProperty("app.cors.allowed-origins")).isEqualTo("https://porrapp.app");
+            }
+        }
+
+        @Test
+        void requiresTheDatabasePasswordInsteadOfTheDevelopmentOne() {
+            if (System.getenv("PGPASSWORD") == null && System.getenv("SPRING_DATASOURCE_PASSWORD") == null) {
+                assertThatThrownBy(() -> env.getProperty("spring.datasource.password"))
+                        .isInstanceOf(IllegalArgumentException.class);
+            }
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = NoBeans.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+    class Dev {
+        @Autowired
+        Environment env;
+
+        @Test
+        void keepsApiDocsOutsideProd() {
+            assertThat(env.getProperty("springdoc.api-docs.enabled")).isNull();
+        }
+    }
+}

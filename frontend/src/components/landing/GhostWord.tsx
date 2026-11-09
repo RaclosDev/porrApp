@@ -1,6 +1,6 @@
-import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'motion/react';
+import { useCallback, useRef } from 'react';
 import { useLandingMotion } from './motion';
+import { useScrollProgress } from './useScrollProgress';
 
 interface GhostWordProps {
   word: string;
@@ -14,15 +14,18 @@ interface GhostWordProps {
  */
 export default function GhostWord({ word, children, className = '' }: GhostWordProps) {
   const ref = useRef<HTMLElement>(null);
+  const wordRef = useRef<HTMLSpanElement>(null);
   const { reduced } = useLandingMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const y = useTransform(scrollYProgress, [0, 1], [60, -60]);
+  const move = useCallback((progress: number) => {
+    if (wordRef.current) wordRef.current.style.transform = `translateY(${60 - 120 * progress}px)`;
+  }, []);
+  useScrollProgress(ref, move, { start: 1, end: 0, enabled: !reduced });
 
   return (
     <section ref={ref} className={`relative overflow-hidden ${className}`}>
-      <motion.span aria-hidden="true" className="landing-ghost" style={reduced ? undefined : { y }}>
+      <span ref={wordRef} aria-hidden="true" className="landing-ghost">
         {word}
-      </motion.span>
+      </span>
       <div className="relative">{children}</div>
     </section>
   );

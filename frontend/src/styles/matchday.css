@@ -558,4 +558,65 @@
       justify-content: flex-end;
     }
   }
+
+  /* Pichichi de una liga de fútbol por jornadas. */
+  .md-scorer,
+  .md-scorer-review {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+  }
+
+  .md-scorer-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+  }
+
+  .md-scorer-head strong,
+  .md-scorer-review h4 {
+    font-weight: 800;
+  }
+
+  .md-scorer-review h4,
+  .md-scorer-review p {
+    margin: 0;
+  }
+
+  .md-scorer-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .md-scorer-note {
+    margin: 0;
+  }
+
+  .md-scorer-note.is-error {
+    color: var(--miss);
+  }
+
+  .md-scorer-all ul,
+  .md-scorer-review ul {
+    display: grid;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .md-scorer-all li,
+  .md-scorer-review li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+  }
 }

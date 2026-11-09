@@ -405,6 +405,98 @@
   }
 
   /*
+   * Capturas de la app en marcos de móvil (páginas de cada competición). En móvil, una fila que se
+   * desliza de lado y se detiene en cada teléfono; en escritorio, en abanico con el central delante.
+   */
+  .app-screens {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 24px 0 28px;
+  }
+
+  .app-screens::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-screens:focus-visible {
+    outline: 2px solid #f4efe3;
+    outline-offset: -4px;
+    border-radius: 12px;
+  }
+
+  .app-screens-list {
+    display: flex;
+    gap: 16px;
+    width: max-content;
+    list-style: none;
+    margin: 0;
+    /* El primero y el último pueden quedar centrados. */
+    padding: 0 calc(50vw - min(32vw, 150px));
+  }
+
+  .app-screens-item {
+    flex: 0 0 min(64vw, 300px);
+    scroll-snap-align: center;
+  }
+
+  .app-phone {
+    padding: 7px;
+    border-radius: 34px;
+    background: #050a16;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 28px 48px -18px rgba(0, 0, 0, 0.75);
+  }
+
+  .app-phone img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 27px;
+  }
+
+  @media (min-width: 1024px) {
+    .app-screens {
+      overflow: visible;
+      margin: 0;
+      padding: 40px 0 56px;
+    }
+
+    .app-screens-list {
+      width: auto;
+      justify-content: center;
+      gap: 0;
+      padding: 0;
+    }
+
+    .app-screens-item {
+      flex-basis: 260px;
+    }
+
+    .app-screens-item:first-child:not(:last-child) {
+      margin-right: -28px;
+      transform: translateY(40px) rotate(-6deg);
+    }
+
+    .app-screens-item:nth-child(2) {
+      position: relative;
+      z-index: 1;
+      transform: scale(1.06);
+    }
+
+    .app-screens-item:nth-child(2):last-child {
+      transform: translateY(40px) rotate(6deg);
+    }
+
+    .app-screens-item:nth-child(3) {
+      margin-left: -28px;
+      transform: translateY(40px) rotate(6deg);
+    }
+  }
+
+  /*
    * Los cromos van siempre en una sola fila, sin scroll: si no caben se encogen y se montan un
    * poco unos sobre otros, como en el podio.
    */
@@ -961,6 +1053,12 @@
     background: var(--ink) !important;
     border-color: var(--ink) !important;
     color: var(--paper) !important;
+  }
+
+  /* Mientras se envía: que se note que no se puede volver a pulsar. */
+  .paper-panel .primary-btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
   }
 
   .paper-panel .rules-tabs {

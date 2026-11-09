@@ -87,7 +87,8 @@ export default function NotificationBell({ onOpenSettings }: { onOpenSettings: (
 
   const publicKey = config?.publicKey;
   if (!config || !publicKey) return null;
-  const accountEnabled = config.remindersEnabled || config.memberJoinedEnabled;
+  const accountEnabled =
+    config.remindersEnabled || config.memberJoinedEnabled || config.matchdayFinishedEnabled;
   const action = bellAction(accountEnabled);
   if (!action) return null;
 
@@ -101,12 +102,13 @@ export default function NotificationBell({ onOpenSettings }: { onOpenSettings: (
         return;
       }
       if (!accountEnabled) {
-        await setPushPreferences({ remindersEnabled: true, memberJoinedEnabled: true });
-        queryClient.setQueryData<PushConfig>(PUSH_CONFIG_QUERY_KEY, {
-          ...config,
+        const all = {
           remindersEnabled: true,
           memberJoinedEnabled: true,
-        });
+          matchdayFinishedEnabled: true,
+        };
+        await setPushPreferences(all);
+        queryClient.setQueryData<PushConfig>(PUSH_CONFIG_QUERY_KEY, { ...config, ...all });
       }
       toast.success(
         'Avisos activados: te avisaremos una hora antes de que cierre cada partido sin tu predicción.',

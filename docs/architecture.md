@@ -1,6 +1,6 @@
 # Arquitectura del backend
 
-Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La base de datos es PostgreSQL y el esquema sale entero de las migraciones Flyway de `src/main/resources/db/migration/`.
+Spring Boot 4.1 sobre Java 21, organizado por capas bajo `app.porrapp`. La base de datos es PostgreSQL y el esquema sale entero de las migraciones Flyway de `src/main/resources/db/migration/`.
 
 ## Paquetes
 
@@ -23,12 +23,12 @@ Spring Boot 4.1 sobre Java 21, organizado por capas bajo `com.porra.mundial`. La
 
 1. Pide los partidos de cada competición a su proveedor a través de `SportsDataProviderRegistry` (hoy, `EspnSportsDataProvider`).
 2. `MatchEventProcessor` aplica los cambios de marcador y estado a cada `Match`.
-3. Al final de la pasada, y solo si cambió algún resultado del Mundial (o falló el recálculo anterior), se cargan una vez sus partidos y se recalcula todo lo que depende de ellos:
+3. Al final de la pasada, y solo si cambió algún resultado de un torneo con fase de grupos (hoy, el Mundial; o falló su recálculo anterior), se cargan una vez sus partidos y se recalcula todo lo que depende de ellos:
    - `KnockoutBracketService` coloca a los ganadores y perdedores de semifinales en la final y en el partido por el tercer puesto.
    - `StandingsService` recalcula la clasificación de grupos y `MathematicalStatusCalculator` marca a los equipos ya clasificados o eliminados.
 4. `WebSocketService` avisa a los clientes (`DATA_UPDATED`, `LEAGUE_UPDATED` o `MATCH_SCORE_UPDATED`) y el frontend invalida las consultas afectadas.
 
-`TopScorerService` refresca la tabla de goleadores cada 30 minutos de forma independiente y una vez por lote de resultados del Mundial. Las imágenes se buscan una vez por jugador; también se cachean temporalmente las búsquedas sin resultado.
+`TopScorerService` refresca la tabla de goleadores cada 30 minutos de forma independiente y una vez por lote de resultados de un torneo con fase de grupos. Las imágenes se buscan una vez por jugador; también se cachean temporalmente las búsquedas sin resultado.
 
 La sincronización inicial se lanza después de `ApplicationReadyEvent`, cuando los datos semilla ya están confirmados, mediante un ejecutor gestionado por Spring. Los fallos del proveedor se registran como sincronizaciones incompletas; una respuesta fallida no se interpreta como una jornada sin partidos.
 
@@ -36,19 +36,19 @@ Importar el catálogo y el calendario de una competición recién elegida es cos
 
 Los partidos históricos que conservan equipos provisionales de la primera importación se reparan mediante su identificador externo, no deduciendo qué equipo corresponde a un id local. `LegacyFixtureRepairService` consulta y valida el resumen de ESPN fuera de la transacción; después actualiza el mismo partido en una transacción breve, conservando los pronósticos que lo referencian. Cada pasada tiene límites de peticiones y tiempo, comparte el cerrojo de sincronización y retrasa los reintentos fallidos.
 
-La importación manual descarga primero el catálogo y los calendarios, con límites de tamaño y tiempo entre llamadas. Después aplica el lote en una única transacción: si falla un partido o su puntuación, se deshacen todos los cambios. La caché de equipos y los avisos de WebSocket se publican después de confirmar los datos.
+La importación manual descarga primero el catálogo y los calendarios, con límites de tamaño y tiempo entre llamadas. Una competición se importa por la temporada que el proveedor da por vigente; un torneo con grupos, entero y por la temporada de su formato (`seed/tournament-formats.json`), aunque el proveedor ya esté en otra edición. Después aplica el lote en una única transacción: si falla un partido o su puntuación, se deshacen todos los cambios. La caché de equipos y los avisos de WebSocket se publican después de confirmar los datos.
 
 En el cliente, los marcadores recibidos por WebSocket actualizan la caché de inmediato. Las consultas derivadas se agrupan durante 100 ms para evitar peticiones repetidas en una ráfaga; al reconectar se vuelven a validar los datos visibles que podrían haber cambiado durante el corte.
 
 ### Resultados oficiales y desempates
 
-`OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados. `GroupTiebreaker` ordena a los equipos empatados a puntos según el artículo 13 del reglamento del Mundial 2026: primero los partidos entre los empatados, luego la diferencia de goles y los goles de todo el grupo y después el fair play. La app no guarda el ranking FIFA, así que los empates que llegan a ese criterio se ordenan por nombre. Lo usan la clasificación de cada grupo y el orden de los mejores terceros. Mientras quedan partidos, el estado matemático enumera resultados por puntos y mantiene abiertos los desempates que dependen de goles o tarjetas futuros; no inventa marcadores para declarar un puesto asegurado.
+`OfficialResultsService` monta el cuadro real (grupos, mejores terceros, cruces, podio y pichichi) a partir de los partidos sincronizados. La forma de cada torneo (número de grupos, mejores terceros, primera ronda y cruces) sale de `TournamentFormat`, que se lee de `seed/tournament-formats.json`: un torneo es una entrada de ese fichero, y el cuadro empieza en la ronda que digan sus cruces (16 cruces, dieciseisavos; 8, octavos). Hoy están el Mundial 2026 y la Eurocopa 2024, esta solo como torneo de prueba. `GroupTiebreaker` ordena a los equipos empatados a puntos según el artículo 13 del reglamento del Mundial 2026: primero los partidos entre los empatados, luego la diferencia de goles y los goles de todo el grupo y después el fair play. La app no guarda el ranking FIFA, así que los empates que llegan a ese criterio se ordenan por nombre. Lo usan la clasificación de cada grupo y el orden de los mejores terceros. Mientras quedan partidos, el estado matemático enumera resultados por puntos y mantiene abiertos los desempates que dependen de goles o tarjetas futuros; no inventa marcadores para declarar un puesto asegurado.
 
 Los cuadros nuevos usan `topologyVersion: 2`, con las ramas del [apéndice A del procedimiento del sorteo de FIFA](https://digitalhub.fifa.com/m/2d1a1ac7bab78995/original/Draw-Procedures-for-the-FIFA-World-Cup-2026.pdf). Una versión ausente equivale a `1`: conserva las posiciones históricas durante la lectura, edición, reinicio y guardado. La versión de un pronóstico existente no se cambia al actualizarlo. En versión 2, el servidor comprueba también que cada clasificado procede de su partido anterior. Los partidos oficiales se colocan por sus antecedentes, nunca por su fecha de inicio; los huecos cuya rama no se puede determinar quedan vacíos.
 
 ### Puntuación
 
-`ScoringStrategy` define cómo se puntúa un pronóstico y `ScoringRuleSet` guarda los valores de cada regla. `WorldCup2026ScoringStrategy` puntúa los cuadros completos (grupos, cruces, campeón, pichichi) y `MatchScoringCalculator` los pronósticos jornada a jornada (signo 1X2, marcador exacto y bonus por diferencia de goles). `LeaderboardService` reúne esos resultados en la clasificación de cada liga.
+`ScoringStrategy` define cómo se puntúa un pronóstico y `ScoringRuleSet` guarda los valores de cada regla. `DefaultScoringStrategy` puntúa los cuadros completos (grupos, cruces, campeón, pichichi) y `MatchScoringCalculator` los pronósticos jornada a jornada (signo 1X2, marcador exacto y bonus por diferencia de goles). `LeaderboardService` reúne esos resultados en la clasificación de cada liga.
 
 Cada liga tiene sus propios valores, guardados en su edición activa. El administrador los cambia con `PUT /api/groups/{id}/scoring` (`LeagueScoringService`; la Porra Global no se puede cambiar); cada regla es un entero entre 0 y 1000. Si cambian, se vuelven a puntuar los partidos terminados y se invalidan las puntuaciones guardadas para que la clasificación se recalcule con `ScoringStrategy#withRules`.
 
@@ -61,7 +61,7 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 - `PredictionService` guarda los cuadros completos; `MatchPredictionService`, los pronósticos por partido, con cierre individual cuando empieza cada encuentro.
 - El formato de cada liga (`PoolFormat`) decide qué se pronostica: `FULL_BRACKET`, `KNOCKOUTS_ONLY`, `MATCH_DAY` o `SURVIVOR`.
 - `SURVIVOR` reutiliza el calendario y los cierres de las jornadas: cada jornada se elige un equipo que gane (una predicción de partido con signo 1 o 2), sin repetir equipo. Cada jornada superada suma 1 y el primer empate o derrota elimina (`SurvivorRules`). Elegir es obligatorio: una jornada sin elección elimina en cuanto han empezado todos sus partidos, salvo que empezara antes de que el participante entrase en la liga (`memberships.joined_at`). Como esa caída no toca ningún pronóstico, cualquier cambio de estado o resultado de un partido invalida las ediciones supervivientes de su competición. La clasificación guarda si la porra ha caído (`predictions.survivor_eliminated`) y `GET /api/predictions/matchday/survivor` devuelve al usuario sus elecciones y los equipos ya usados. Solo admite competiciones oficiales, que tienen resultados automáticos.
-- Las nuevas ligas de cuadro del Mundial heredan el cierre que ya usaba el proyecto: 11 de junio de 2026 a las 20:00, hora de Madrid, tanto para cuadro completo como para solo eliminatorias. V50 completa las fechas ausentes de esas ediciones y conserva las fechas explícitas. Las jornadas mantienen su cierre por partido. El instante exacto de cierre ya está bloqueado.
+- Las ligas de cuadro de un torneo con fase de grupos cierran en el instante que fija su `TournamentFormat` (en el Mundial 2026, el 11 de junio a las 20:00, hora de Madrid), tanto para cuadro completo como para solo eliminatorias. Las jornadas mantienen su cierre por partido. El instante exacto de cierre ya está bloqueado.
 - `MatchdayStatsService` (`GET /api/predictions/matchday/stats`) da, para cada partido ya empezado de una liga por jornadas, el reparto 1X2, los marcadores más repetidos y, al terminar, cuántos acertaron. Solo lo leen los miembros de la liga. Más elegidos y Buscador, en las ligas de cuadro, se calculan en el frontend (`utils/bracketStats.ts`) con los cuadros visibles de la liga.
 
 ## Seguridad
@@ -78,7 +78,7 @@ El pichichi elegido se resuelve a un único jugador entre todos los goleadores d
 
 ## Despliegue
 
-Flyway valida los checksums en cada arranque y no ejecuta `repair()` automáticamente. Las migraciones V1–V10 son la consolidación por dominio de las 72 originales (V1–V71 y V33.1, en git hasta `e619cc2`) y montan el esquema de producción; las nuevas se numeran desde V11. Una base creada con las migraciones antiguas, incluida una copia local, no valida contra las nuevas: recréala (`docker compose down -v`). Si aparece una discrepancia, compara el script aplicado y el esquema con las migraciones del repositorio y realiza una copia de seguridad antes de una reparación administrativa. No edites migraciones aplicadas ni desactives la validación para arrancar.
+Flyway valida los checksums en cada arranque y no ejecuta `repair()` automáticamente. Las migraciones V1–V10 son la consolidación por dominio de las 72 originales (V1–V71 y V33.1, en git hasta `e619cc2`) y montan el esquema de producción; después solo se añaden migraciones nuevas, con el número siguiente al último de `main` (la CI lo comprueba). Una base creada con las migraciones antiguas, incluida una copia local, no valida contra las nuevas: recréala (`docker compose down -v`). Si aparece una discrepancia, compara el script aplicado y el esquema con las migraciones del repositorio y realiza una copia de seguridad antes de una reparación administrativa. No edites migraciones aplicadas ni desactives la validación para arrancar.
 
 El `Dockerfile` compila el frontend con Vite y copia el resultado a los recursos estáticos de Spring Boot, de modo que la API y la aplicación se sirven desde el mismo servicio y puerto. En producción corre en Railway; el health check usa Spring Boot Actuator.
 

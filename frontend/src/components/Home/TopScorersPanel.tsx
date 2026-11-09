@@ -85,7 +85,10 @@ function TopScorersPanel({
     const medal = getMedal(s.goals, idx);
 
     return (
-      <div className="flex items-center gap-2.5 py-2.5 px-0 border-b-0" key={s.playerId || idx}>
+      <div
+        className="flex items-center gap-2.5 py-2.5 px-0 border-b-0"
+        key={s.playerId ?? `row-${idx}`}
+      >
         <span
           className={`w-5.5 text-center font-bold text-[1rem] shrink-0 ${isLeader ? 'text-gold' : 'text-muted'}`}
         >

@@ -88,11 +88,33 @@ describe('getPasskey', () => {
       signature: 'BQ',
       userHandle: 'Bg',
     });
+    expect(get.mock.calls[0][0].mediation).toBeUndefined();
+  });
+
+  it('can offer the passkeys in the email autofill and be cancelled', async () => {
+    const get = vi.fn().mockResolvedValue({
+      type: 'public-key',
+      id: 'AQI',
+      rawId: bytes(1),
+      response: { clientDataJSON: bytes(3), authenticatorData: bytes(4), signature: bytes(5) },
+      getClientExtensionResults: () => ({}),
+    });
+    vi.stubGlobal('navigator', { credentials: { get } });
+    const controller = new AbortController();
+
+    await getPasskey(
+      { publicKey: { challenge: 'CQ' } },
+      { conditional: true, signal: controller.signal },
+    );
+
+    expect(get.mock.calls[0][0].mediation).toBe('conditional');
+    expect(get.mock.calls[0][0].signal).toBe(controller.signal);
   });
 });
 
 it('treats a cancelled system dialog as a cancel, not as an error', () => {
   expect(isPasskeyCancel(new DOMException('cancelado', 'NotAllowedError'))).toBe(true);
+  expect(isPasskeyCancel(new DOMException('cancelada', 'AbortError'))).toBe(true);
   expect(isPasskeyCancel(new DOMException('otra', 'InvalidStateError'))).toBe(false);
   expect(isPasskeyCancel(new Error('red'))).toBe(false);
 });

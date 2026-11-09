@@ -299,6 +299,8 @@ export default function LeagueHomeDashboard() {
       (activeGroupName || '').trim().toLowerCase();
   const participantCount = leaderboardData?.length || 0;
   const topParticipants = (leaderboardData ?? []).slice(0, RANKING_SIZE);
+  // Mismo puesto para los empatados, como en la clasificación completa.
+  const topTotals = [...new Set(topParticipants.map((p) => p.total || 0))];
 
   return (
     <section className="view-section active max-w-270 my-0 mx-auto pt-1 pb-6 px-0">
@@ -429,8 +431,8 @@ export default function LeagueHomeDashboard() {
                         p.userId?.toString() === userId?.toString() || p.name === userName;
                       return (
                         <MiniRow
-                          key={p.id || index}
-                          rank={index + 1}
+                          key={p.id ?? `member-${p.userId ?? index}`}
+                          rank={topTotals.indexOf(p.total || 0) + 1}
                           name={`${p.name}${isMe ? ' (Tú)' : ''}`}
                           value={`${p.total || 0} pts`}
                           highlighted={isMe}

@@ -68,9 +68,9 @@ for (const width of [360, 390, 1440]) {
             pointsByPrediction: { 1: 5, 2: 4, 3: 3, 4: 3, 5: 3 },
           },
         ],
-        '/api/world-cup/standings': {},
-        '/api/world-cup/official-bracket': {},
-        '/api/world-cup/group-odds': {},
+        '/api/competitions/2/tournament/standings': {},
+        '/api/competitions/2/tournament/official-bracket': {},
+        '/api/competitions/2/tournament/group-odds': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

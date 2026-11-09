@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Group } from '../src/types/api';
 import { withLeagueKind } from './leagueKind';
 
-const demoLeague: Group = withLeagueKind('worldCup', {
+const demoLeague: Group = withLeagueKind('groupStage', {
   id: 1,
   name: 'Porra Global',
   joinCode: null,
@@ -12,6 +12,7 @@ const demoLeague: Group = withLeagueKind('worldCup', {
   competitionId: 2,
   competitionName: 'FIFA World Cup 2026',
   competitionExternalId: 'fifa.world',
+  groupTournament: true,
   formatType: 'TOURNAMENT',
   poolFormat: 'FULL_BRACKET',
   pichichi: true,
@@ -38,9 +39,9 @@ for (const viewport of [
         const responses: Record<string, unknown> = {
           '/api/groups/1': demoLeague,
           '/api/groups/featured': demoLeague,
-          '/api/world-cup/standings': {},
-          '/api/world-cup/official-bracket': {},
-          '/api/world-cup/group-odds': {},
+          '/api/competitions/2/tournament/standings': {},
+          '/api/competitions/2/tournament/official-bracket': {},
+          '/api/competitions/2/tournament/group-odds': {},
           '/api/matches/radar': { live: [], last: [], next: [] },
           '/api/auth/session/logout': { status: 'success' },
         };
@@ -57,7 +58,7 @@ for (const viewport of [
       );
 
       await page.getByRole('button', { name: 'Crear mi liga gratis', exact: true }).first().click();
-      const dialog = page.getByRole('dialog', { name: 'Iniciar sesión' });
+      const dialog = page.getByRole('dialog', { name: 'Crea tu cuenta' });
       await expect(dialog).toBeVisible();
       const panel = dialog.locator('.modal-content');
       expect(

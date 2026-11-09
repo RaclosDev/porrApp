@@ -14,6 +14,7 @@ import Leaderboard from '../../pages/Leaderboard';
 import PredictionViewer from '../../components/PredictionViewer';
 import { useAppContext } from '../../context/AppContext';
 import { LEAGUE_KINDS, type LeagueKind } from '../../context/leagueKind';
+import { LEAGUE_INSIGHTS } from '../../context/leagueInsights';
 import { appContext, participantScore } from '../context/fixtures';
 
 /** Lo que enseña una vista del Mundial: aquí ninguna llega a pintarse, solo se ve si se abre. */
@@ -26,7 +27,7 @@ vi.mock('../../context/AppContext', () => ({
 // Todas las vistas del Mundial piden sus datos: si alguna se abre, lo dice.
 vi.mock(import('../../context/leagueData'), async (original) => ({
   ...(await original()),
-  useWorldCupData: () => {
+  useTournamentData: () => {
     throw new Error(WORLD_CUP);
   },
 }));
@@ -71,6 +72,33 @@ vi.mock('../../components/insights/MatchdayStatsView', () => ({
   default: () => <p>Estadísticas por partido</p>,
 }));
 vi.mock('../../components/insights/InsightsHeader', () => ({ default: () => null }));
+vi.mock('../../hooks/useGrandPrixInsights', () => ({
+  useGrandPrixInsights: () => ({ races: [], drivers: new Map(), leagueName: 'Liga', groupId: '7' }),
+}));
+vi.mock('../../components/insights/GrandPrixInsightsGate', () => ({
+  default: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock('../../components/insights/GrandPrixStats', () => ({
+  default: () => <p>Más elegidos de la Fórmula 1</p>,
+}));
+vi.mock('../../components/insights/GrandPrixSearch', () => ({
+  default: () => <p>Buscador de pilotos</p>,
+}));
+vi.mock('../../hooks/useKnockoutInsights', () => ({
+  useKnockoutInsights: () => ({ entries: [], leagueName: 'Liga', groupId: '7' }),
+}));
+vi.mock('../../components/insights/KnockoutInsightsGate', () => ({
+  default: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock('../../components/insights/KnockoutStats', () => ({
+  default: () => <p>Más elegidos del cuadro</p>,
+}));
+vi.mock('../../components/insights/KnockoutSearch', () => ({
+  default: () => <p>Buscador de equipos del cuadro</p>,
+}));
+vi.mock('../../components/insights/TennisSearch', () => ({
+  default: () => <p>Buscador de jugadores</p>,
+}));
 vi.mock('../../components/CustomPredictionViewer', () => ({
   default: () => <p>Visor del cuadro propio</p>,
 }));
@@ -151,7 +179,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Mi porra',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
+      groupStage: WORLD_CUP,
       customBracket: 'Cuadro propio',
       ownBracket: 'Cuadro propio',
       knockoutDraw: 'Eliminatorias sorteadas',
@@ -170,14 +198,14 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Estadísticas',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
-      customBracket: ROUTES['/'],
-      ownBracket: ROUTES['/'],
-      knockoutDraw: ROUTES['/'],
+      groupStage: WORLD_CUP,
+      customBracket: 'Más elegidos del cuadro',
+      ownBracket: 'Más elegidos del cuadro',
+      knockoutDraw: 'Más elegidos del cuadro',
       matchday: 'Estadísticas por partido',
       fightCard: 'Estadísticas por partido',
       tennisDraw: 'Estadísticas por partido',
-      grandPrix: ROUTES['/'],
+      grandPrix: 'Más elegidos de la Fórmula 1',
     },
   },
   {
@@ -189,14 +217,14 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Buscar',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
-      customBracket: ROUTES['/'],
-      ownBracket: ROUTES['/'],
-      knockoutDraw: ROUTES['/'],
+      groupStage: WORLD_CUP,
+      customBracket: 'Buscador de equipos del cuadro',
+      ownBracket: 'Buscador de equipos del cuadro',
+      knockoutDraw: 'Buscador de equipos del cuadro',
       matchday: ROUTES['/stats'],
       fightCard: ROUTES['/stats'],
-      tennisDraw: ROUTES['/stats'],
-      grandPrix: ROUTES['/'],
+      tennisDraw: 'Buscador de jugadores',
+      grandPrix: 'Buscador de pilotos',
     },
   },
   {
@@ -208,7 +236,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Resultados',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
+      groupStage: WORLD_CUP,
       customBracket: 'Resultados de la competición personalizada',
       ownBracket: 'Resultados del torneo',
       knockoutDraw: 'Resultados de las eliminatorias',
@@ -227,7 +255,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Inicio',
       unknown: UNKNOWN,
-      worldCup: 'Portada de la liga',
+      groupStage: 'Portada de la liga',
       customBracket: 'Portada de la liga',
       ownBracket: 'Portada de la liga',
       knockoutDraw: 'Portada de la liga',
@@ -246,7 +274,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Inicio',
       unknown: UNKNOWN,
-      worldCup: WORLD_CUP,
+      groupStage: WORLD_CUP,
       customBracket: 'Resultados de la competición personalizada',
       ownBracket: 'Resultados del torneo',
       knockoutDraw: 'Resultados de las eliminatorias',
@@ -265,7 +293,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Tabla',
       unknown: UNKNOWN,
-      worldCup: ROUTES['/bracket'],
+      groupStage: ROUTES['/bracket'],
       customBracket: ROUTES['/bracket'],
       ownBracket: ROUTES['/bracket'],
       knockoutDraw: ROUTES['/bracket'],
@@ -284,7 +312,7 @@ const SCREENS: ScreenCase[] = [
       error: ERROR,
       none: 'Mi porra',
       unknown: UNKNOWN,
-      worldCup: ROUTES['/prediction'],
+      groupStage: ROUTES['/prediction'],
       customBracket: ROUTES['/prediction'],
       ownBracket: ROUTES['/prediction'],
       knockoutDraw: ROUTES['/prediction'],
@@ -303,13 +331,25 @@ describe.each(SCREENS)('$name para cada clase de liga', ({ path, element, expect
     renderScreen(kind, path, element);
     expect(await screen.findByText(expected[kind])).toBeInTheDocument();
     // Ninguna clase que no sea el Mundial abre una vista del Mundial.
-    if (kind !== 'worldCup') expect(screen.queryByText(WORLD_CUP)).not.toBeInTheDocument();
+    if (kind !== 'groupStage') expect(screen.queryByText(WORLD_CUP)).not.toBeInTheDocument();
+  });
+});
+
+describe('Enlaces a Estadísticas y al Buscador', () => {
+  const screenOf = (name: string) => SCREENS.find((screen) => screen.name === name)!.expected;
+  // Lo que se ve cuando la clase no tiene esa pantalla: un aviso o la ruta a la que manda.
+  const noScreen = [LOADING, ERROR, UNKNOWN, 'Estadísticas', 'Buscar', ...Object.values(ROUTES)];
+
+  it.each(LEAGUE_KINDS)('%s: solo salen donde la pantalla existe', (kind) => {
+    const { stats, search } = LEAGUE_INSIGHTS[kind];
+    expect(Boolean(stats)).toBe(!noScreen.includes(screenOf('Estadísticas')[kind]));
+    expect(search).toBe(!noScreen.includes(screenOf('Buscador')[kind]));
   });
 });
 
 describe('Visor de porras para cada clase de liga', () => {
   const expected: Record<LeagueKind, string | null> = {
-    worldCup: WORLD_CUP,
+    groupStage: WORLD_CUP,
     customBracket: 'Visor del cuadro propio',
     ownBracket: 'Visor del cuadro propio',
     knockoutDraw: 'Visor del cuadro propio',
@@ -333,7 +373,7 @@ describe('Visor de porras para cada clase de liga', () => {
 
 describe('Ranking para cada clase de liga', () => {
   const opens: Record<LeagueKind, 'viewer' | string | null> = {
-    worldCup: 'viewer',
+    groupStage: 'viewer',
     customBracket: 'viewer',
     ownBracket: 'viewer',
     knockoutDraw: 'viewer',
@@ -370,8 +410,13 @@ describe('Ranking para cada clase de liga', () => {
         </Routes>
       </MemoryRouter>,
     );
-    // Más elegidos y Buscador comparan con el cuadro oficial del Mundial: solo en sus ligas.
-    expect(Boolean(screen.queryByRole('link', { name: /Más elegidos/ }))).toBe(kind === 'worldCup');
+    // Cada enlace sale solo donde su pantalla existe.
+    const { stats, search } = LEAGUE_INSIGHTS[kind];
+    expect(
+      screen.queryAllByRole('link', { name: /Más elegidos|Estadísticas por partido/ }),
+    ).toHaveLength(stats ? 1 : 0);
+    if (stats) expect(screen.getByRole('link', { name: stats })).toHaveAttribute('href', '/stats');
+    expect(Boolean(screen.queryByRole('link', { name: 'Buscador' }))).toBe(search);
 
     fireEvent.click(screen.getByRole('row', { name: /Carlos/ }));
     const target = opens[kind];

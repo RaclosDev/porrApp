@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchCompetitions, fetchLeaderboard, fetchMatches } from '../services/api';
 import { featuredGroupQuery, leaguePredictionsQuery } from '../services/queries';
 import { queryKeys } from '../services/queryKeys';
-import { rankPicks, toBracketEntries } from '../utils/bracketStats';
+import { toGroupStageEntries } from '../utils/groupStageBracket';
 import type { Match } from '../types/api';
 import type { StickerLeader } from '../components/StickerCard';
 
@@ -57,9 +57,15 @@ export function useLandingData() {
   }, [leaderboard.data]);
 
   const champion = useMemo<ChampionPick | null>(() => {
-    const entries = toBracketEntries(predictions.data ?? []);
-    const [best] = rankPicks(entries, 'champion');
-    return best ? { team: best.team, count: best.count, total: entries.length } : null;
+    const entries = toGroupStageEntries(predictions.data ?? [], false);
+    const votes = new Map<string, number>();
+    for (const entry of entries) {
+      // La última ronda del cuadro es la final: quien la pasa es el campeón.
+      const champion = entry.picks[entry.picks.length - 1][0];
+      if (champion) votes.set(champion, (votes.get(champion) ?? 0) + 1);
+    }
+    const [best] = [...votes].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'es'));
+    return best ? { team: best[0], count: best[1], total: entries.length } : null;
   }, [predictions.data]);
 
   const nextFixtures = useMemo<Match[]>(() => nextRound(fixtures.data ?? []), [fixtures.data]);

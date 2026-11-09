@@ -17,6 +17,7 @@ beforeEach(() => {
     publicKey: 'KEY',
     remindersEnabled: true,
     memberJoinedEnabled: true,
+    matchdayFinishedEnabled: true,
   });
   vi.mocked(setPushPreferences).mockResolvedValue(undefined);
 });
@@ -39,4 +40,43 @@ it('turns off only the new member alert', async () => {
   await waitFor(() => expect(memberJoined).not.toBeChecked());
   expect(setPushPreferences).toHaveBeenCalledWith({ memberJoinedEnabled: false });
   expect(reminders).toBeChecked();
+});
+
+it('turns off only the matchday finished alert', async () => {
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ReminderSettings />
+    </QueryClientProvider>,
+  );
+  const matchdayFinished = await screen.findByRole('checkbox', {
+    name: 'Avisarme cuando termine una jornada, con el ranking',
+  });
+
+  fireEvent.click(matchdayFinished);
+
+  await waitFor(() => expect(matchdayFinished).not.toBeChecked());
+  expect(setPushPreferences).toHaveBeenCalledWith({ matchdayFinishedEnabled: false });
+  expect(
+    screen.getByRole('checkbox', { name: 'Recordarme las predicciones pendientes' }),
+  ).toBeChecked();
+});
+
+it('sin claves de push en el servidor, la sección dice que no hay avisos', async () => {
+  vi.mocked(fetchPushConfig).mockResolvedValue({
+    publicKey: null,
+    remindersEnabled: true,
+    memberJoinedEnabled: true,
+    matchdayFinishedEnabled: true,
+  });
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ReminderSettings />
+    </QueryClientProvider>,
+  );
+
+  expect(screen.getByRole('region', { name: 'Avisos' })).toBeInTheDocument();
+  expect(
+    await screen.findByText('Los avisos no están disponibles ahora mismo.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });

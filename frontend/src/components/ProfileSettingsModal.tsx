@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import DialogBackdrop from './DialogBackdrop';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,16 +19,21 @@ import { UserAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 
+/** Sección en la que se abren los ajustes: arriba, en la cuenta, o directamente en los avisos. */
+export type SettingsSection = 'account' | 'reminders';
+
 /**
- * Ajustes de cuenta: nombre público y foto de perfil.
- * No cambia el correo ni el nombre de Google ni la vinculación de la cuenta.
+ * Ajustes de cuenta: nombre público, foto de perfil y avisos.
+ * No cambia el correo ni la forma de entrar (Google o contraseña).
  */
 export default function ProfileSettingsModal({
   onClose,
   onboarding = false,
+  section = 'account',
 }: {
   onClose: () => void;
   onboarding?: boolean;
+  section?: SettingsSection;
 }) {
   const queryClient = useQueryClient();
   const userName = useAppStore((s) => s.userName);
@@ -89,6 +94,14 @@ export default function ProfileSettingsModal({
       void dismiss();
     },
   });
+
+  // «Avisos» del menú de cuenta y de la campana: se abre ya en esa sección, con el foco en ella.
+  const remindersRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (section !== 'reminders') return;
+    remindersRef.current?.scrollIntoView?.({ block: 'start' });
+    remindersRef.current?.focus({ preventScroll: true });
+  }, [section]);
 
   const refreshEverywhere = () => {
     queryClient.invalidateQueries({ queryKey: ['myGroups'] });
@@ -228,11 +241,11 @@ export default function ProfileSettingsModal({
               </span>
             )}
             <span className="text-[0.74rem] text-muted">
-              Es el nombre que ven tus amigos en clasificaciones y ligas. Tu cuenta de Google y su
-              vinculación no cambian.
+              Es el nombre que ven tus amigos en clasificaciones y ligas. Tu email y tu forma de
+              entrar no cambian.
             </span>
           </section>
-          {!onboarding && <ReminderSettings />}
+          {!onboarding && <ReminderSettings sectionRef={remindersRef} />}
           {!onboarding && <PasskeySettings />}
           {!onboarding && (
             <section className="flex flex-col gap-2 pt-4 border-t border-line">

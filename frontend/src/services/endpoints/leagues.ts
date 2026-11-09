@@ -14,6 +14,7 @@ import type {
   PaymentStatusResponse,
   PoolFormat,
   ScoringRules,
+  Sport,
   StatusResponse,
 } from '../../types/api';
 import { request, imageForm } from '../http';
@@ -39,6 +40,8 @@ export interface CreateGroupRequest {
   name: string;
   competitionId: number | null;
   customCompetitionName?: string;
+  /** Deporte de la competición personalizada; sin él se juega con empate. */
+  customSport?: Sport;
   poolFormat: PoolFormat;
   pichichi: boolean;
   rules?: string;
@@ -224,6 +227,16 @@ export const deleteGroup = (id: number | string) =>
   request<StatusResponse>(`/groups/${id}`, {
     method: 'DELETE',
     fallbackError: 'Error al borrar la liga',
+  });
+
+/**
+ * Repite una liga terminada para la temporada nueva: otra liga con los mismos miembros y ajustes.
+ * Solo el administrador; repetir la petición devuelve la misma liga.
+ */
+export const repeatGroup = (id: number | string) =>
+  request<Group>(`/groups/${id}/repeat`, {
+    method: 'POST',
+    fallbackError: 'No se pudo repetir la liga',
   });
 
 export const joinGroup = (joinCode: string) =>

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
+import AppScreens from '../components/landing/AppScreens';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import NetLine from '../components/landing/NetLine';
 import SiteFooter from '../components/landing/SiteFooter';
 import type { ContentPage as ContentPageData } from '../seo/pages';
+import { openSignupToCreateLeague } from '../utils/loginModal';
 
 interface ContentPageProps {
   page: ContentPageData;
@@ -12,10 +14,11 @@ interface ContentPageProps {
  * Página pública de contenido (cómo funciona, porra de LaLiga...). Mismo lenguaje de carteles de
  * papel que la portada, pero sin datos en vivo: su texto sale de seo/pages.ts, el mismo que lleva
  * su HTML prerenderizado. La primera sección va en cartel, como el titular de la portada, y el
- * resto en texto sobre la pared para que la página no sea una fila de tarjetas iguales.
+ * resto en texto sobre la pared para que la página no sea una fila de tarjetas iguales. Las páginas de
+ * cada competición enseñan debajo del titular capturas de la app con partidos reales.
  */
 export default function ContentPage({ page }: ContentPageProps) {
-  const openLogin = () => window.dispatchEvent(new CustomEvent('open-login-modal'));
+  const openLogin = openSignupToCreateLeague;
   const [first, ...rest] = page.sections;
 
   return (
@@ -31,13 +34,21 @@ export default function ContentPage({ page }: ContentPageProps) {
         <p className="text-[#1f2937] text-lg max-w-160 leading-snug">{page.lede}</p>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
-            Crear mi liga con Google
+            Crear mi liga
           </button>
-          <Link to="/demo" className="landing-btn">
-            Ver una porra de ejemplo
-          </Link>
+          {page.download ? (
+            <a href={page.download.href} download className="landing-btn">
+              {page.download.label}
+            </a>
+          ) : (
+            <Link to="/demo" className="landing-btn">
+              Ver una porra de ejemplo
+            </Link>
+          )}
         </div>
       </section>
+
+      {page.screens ? <AppScreens screens={page.screens} /> : null}
 
       {first ? (
         <article className="landing-poster landing-tape -rotate-1 mt-12 p-6 sm:p-8 max-w-200 mx-auto flex flex-col gap-3">

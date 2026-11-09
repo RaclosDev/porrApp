@@ -1,4 +1,4 @@
-import { appContext, participantScore } from '../context/fixtures';
+import { appContext, group, participantScore } from '../context/fixtures';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -242,6 +242,54 @@ describe('Leaderboard Component', () => {
     expect(screen.getByRole('button', { name: 'Jornada anterior' })).toBeDisabled();
   });
 
+  it('el aviso de fin de jornada abre su liga y esa jornada', () => {
+    const changeGroup = vi.fn();
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: sampleLeaderboard.map(participantScore),
+        leaderboardMatchdays: [
+          {
+            date: null,
+            label: 'Jornada 1',
+            current: false,
+            finished: true,
+            matchCount: 2,
+            pointsByPrediction: { 1: 3 },
+          },
+          {
+            date: null,
+            label: 'Jornada 2',
+            current: true,
+            finished: false,
+            matchCount: 2,
+            pointsByPrediction: { 1: 4 },
+          },
+        ],
+        loading: false,
+        activeGroupName: 'Liga Santander',
+        activeGroupId: '1',
+        userGroups: [
+          group({ id: 1, name: 'Liga Santander' }),
+          group({ id: 7, name: 'Los del barrio' }),
+        ],
+        userGroupsLoaded: true,
+        changeGroup,
+        leagueKind: 'matchday',
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/ranking?group=7&jornada=Jornada%201']}>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    expect(changeGroup).toHaveBeenCalledWith(7);
+    expect(screen.getByLabelText('Seleccionar jornada')).toHaveValue('Jornada 1');
+  });
+
   it('ordena por la jornada seleccionada al pulsar su columna', () => {
     const twoParticipants = [
       ...sampleLeaderboard,
@@ -395,6 +443,36 @@ describe('Leaderboard Component', () => {
     const row = screen.getByRole('row', { name: /Carlos/ });
     const cells = row.querySelectorAll('td');
     expect(cells.length).toBe(headers.length);
+  });
+
+  it('de un torneo que empieza en octavos no enseña la columna de dieciseisavos', () => {
+    vi.mocked(useAppContext).mockReturnValue(
+      appContext({
+        leaderboardData: sampleLeaderboard.map(participantScore),
+        loading: false,
+        activeGroupName: 'Eurocopa 2024',
+        activeGroupId: '2',
+        activeGroupPoolFormat: 'FULL_BRACKET',
+        activeTournamentRounds: { firstRound: 'r16', thirdPlaceMatch: false },
+        leagueKind: 'groupStage',
+        userId: '10',
+        userName: 'Carlos',
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <Leaderboard />
+      </MemoryRouter>,
+    );
+
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent?.replace(/[▼▲\s]/g, ''));
+    expect(headers).not.toContain('Dieciseisavos');
+    expect(headers).toEqual(expect.arrayContaining(['F.Grupos', 'Octavos', 'Cuartos', 'Semis']));
+    const row = screen.getByRole('row', { name: /Carlos/ });
+    expect(row.querySelectorAll('td').length).toBe(headers.length);
   });
 
   it('sin liga ni sesión invita a iniciar sesión en vez de mostrar una tabla vacía', () => {

@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MobileBottomNav from '../../components/MobileBottomNav';
 import MainNav from '../../components/layout/MainNav';
 import { leagueNavItems, showsFillBracketButton } from '../../components/layout/leagueNav';
@@ -24,7 +24,7 @@ const EXPECTED: Record<LeagueKind, string[] | null> = {
   error: ['Inicio', 'Mis Ligas'],
   none: ['Inicio', 'Mis Ligas'],
   unknown: ['Inicio', 'Ranking', 'Mis Ligas'],
-  worldCup: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
+  groupStage: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
   customBracket: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
   ownBracket: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
   knockoutDraw: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
@@ -84,7 +84,7 @@ describe('Navegación por clase de liga', () => {
     expect(items.some((item) => item.to === '/mis-ligas')).toBe(false);
     expect(items.some((item) => item.to === '/')).toBe(false);
     // Grupos es la fase de grupos del Mundial: solo en sus ligas.
-    expect(items.some((item) => item.to === '/grupos')).toBe(kind === 'worldCup');
+    expect(items.some((item) => item.to === '/grupos')).toBe(kind === 'groupStage');
   });
 
   it('en la demo también espera a saber la liga', () => {
@@ -94,7 +94,72 @@ describe('Navegación por clase de liga', () => {
   });
 
   it.each(LEAGUE_KINDS)('«Rellenar mi porra» en una liga %s', (kind) => {
-    const bracket = ['worldCup', 'customBracket', 'ownBracket', 'knockoutDraw'].includes(kind);
+    const bracket = ['groupStage', 'customBracket', 'ownBracket', 'knockoutDraw'].includes(kind);
     expect(showsFillBracketButton(kind)).toBe(bracket);
+  });
+});
+
+function CurrentPath() {
+  return <output data-testid="path">{useLocation().pathname}</output>;
+}
+
+describe('Pulsar la pestaña activa', () => {
+  const scrollTo = vi.fn();
+
+  const renderAt = (path: string) =>
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <MobileBottomNav />
+        <CurrentPath />
+      </MemoryRouter>,
+    );
+
+  const reduceMotion = (reduce: boolean) =>
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          matches: reduce && query === '(prefers-reduced-motion: reduce)',
+          media: query,
+        }) as MediaQueryList,
+    );
+
+  beforeEach(() => {
+    Object.assign(mockContext, { leagueKind: 'matchday', isDemoMode: false });
+    vi.stubGlobal('scrollTo', scrollTo);
+    scrollTo.mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('sube al principio con scroll suave y no navega', () => {
+    reduceMotion(false);
+    renderAt('/ranking');
+    fireEvent.click(screen.getByRole('link', { name: 'Ranking' }));
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    expect(screen.getByTestId('path')).toHaveTextContent('/ranking');
+  });
+
+  it('con movimiento reducido el salto es instantáneo', () => {
+    reduceMotion(true);
+    renderAt('/');
+    fireEvent.click(screen.getByRole('link', { name: 'Inicio' }));
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+  });
+
+  it('otra pestaña navega como siempre', () => {
+    renderAt('/');
+    fireEvent.click(screen.getByRole('link', { name: 'Ranking' }));
+    expect(screen.getByTestId('path')).toHaveTextContent('/ranking');
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('desde una subpágina la pestaña vuelve a su raíz', () => {
+    renderAt('/mis-ligas/5');
+    fireEvent.click(screen.getByRole('link', { name: 'Mis Ligas' }));
+    expect(screen.getByTestId('path')).toHaveTextContent(/^\/mis-ligas$/);
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });

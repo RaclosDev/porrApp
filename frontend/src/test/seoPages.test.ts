@@ -1,4 +1,4 @@
-import spaPageController from '../../../backend/src/main/java/com/porra/mundial/controller/SpaPageController.java?raw';
+import spaPageController from '../../../backend/src/main/java/app/porrapp/controller/SpaPageController.java?raw';
 import appSource from '../App.tsx?raw';
 import indexHtml from '../../index.html?raw';
 import { describe, expect, it } from 'vitest';

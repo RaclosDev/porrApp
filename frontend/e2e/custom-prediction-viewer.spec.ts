@@ -16,6 +16,8 @@ for (const viewport of [
       localStorage.setItem('userId', '7');
       localStorage.setItem('activeGroupId', '1');
       localStorage.setItem('activeCompetitionId', '2');
+      // La oferta de llave de acceso ya contestada: sale por encima de todo y taparía el botón.
+      localStorage.setItem('passkey_prompt_answered:7', '1');
     });
     const league = withLeagueKind('customBracket', {
       id: 1,
@@ -60,9 +62,9 @@ for (const viewport of [
           customRounds: [['Rayo', 'Club', 'Sur', 'Peña'], ['Rayo', null], ['Rayo']],
           champion: 'Rayo',
         },
-        '/api/world-cup/standings': {},
-        '/api/world-cup/official-bracket': {},
-        '/api/world-cup/group-odds': {},
+        '/api/competitions/2/tournament/standings': {},
+        '/api/competitions/2/tournament/official-bracket': {},
+        '/api/competitions/2/tournament/group-odds': {},
         '/api/matches/radar': { live: [], last: [], next: [] },
       };
       return route.fulfill({ json: responses[url.pathname] ?? [] });

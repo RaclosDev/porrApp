@@ -1,7 +1,7 @@
 import PaperLoading from '../PaperLoading';
 import { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { useWorldCupData } from '../../context/leagueData';
+import { useTournamentData } from '../../context/leagueData';
 import GroupStandingsCard from './GroupStandingsCard';
 import GroupMatchesModal from '../GroupMatchesModal';
 import BestThirdsPanel from './BestThirdsPanel';
@@ -22,14 +22,15 @@ export default function OfficialGroupsView() {
   const {
     groupOdds,
     groupStandings: officialPoints,
-    loading: loadingWorldCup,
+    format,
+    loading: loadingTournament,
     pichichi: activeGroupPichichi,
     topScorers,
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
-  } = useWorldCupData();
-  const loading = loadingOfficial || loadingWorldCup;
+  } = useTournamentData();
+  const loading = loadingOfficial || loadingTournament;
 
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
 
@@ -84,7 +85,7 @@ export default function OfficialGroupsView() {
       {/* Paneles superiores: Mejores Terceros, Partidos en Directo, Pichichi */}
       <div className="flex gap-5 justify-center items-stretch flex-wrap mb-7.5 w-full">
         <div className="flex-1 min-w-[min(100%,_380px)] flex justify-center items-start">
-          <BestThirdsPanel officialPoints={officialPoints} />
+          <BestThirdsPanel officialPoints={officialPoints} qualifying={format.bestThirds} />
         </div>
         <div className="flex-1 min-w-[min(100%,_350px)] max-w-150 flex flex-col items-center">
           <LiveMatchesPanel

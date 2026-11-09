@@ -21,10 +21,11 @@ const EXAMPLES: Record<LeagueKind, LeagueKindInput> = {
   loading: { hasLeague: true, loading: true, error: false, league: undefined },
   error: { hasLeague: true, loading: false, error: true, league: undefined },
   none: { hasLeague: false, loading: false, error: false, league: undefined },
-  worldCup: ready({
+  groupStage: ready({
     poolFormat: 'FULL_BRACKET',
     formatType: 'TOURNAMENT',
     competitionExternalId: 'fifa.world',
+    groupTournament: true,
   }),
   customBracket: ready({ poolFormat: 'FULL_BRACKET', customCompetition: true, formatType: null }),
   ownBracket: ready({
@@ -103,8 +104,9 @@ describe('leagueKindOf', () => {
         poolFormat: 'KNOCKOUTS_ONLY',
         formatType: 'TOURNAMENT',
         competitionExternalId: 'fifa.world',
+        groupTournament: true,
       },
-      'worldCup',
+      'groupStage',
     ],
     [
       'una personalizada por jornadas',
@@ -137,11 +139,11 @@ describe('leagueKindOf', () => {
   });
 
   it('sin liga no hay clase, aunque queden datos de la anterior', () => {
-    expect(leagueKindOf({ ...EXAMPLES.worldCup, hasLeague: false })).toBe('none');
+    expect(leagueKindOf({ ...EXAMPLES.groupStage, hasLeague: false })).toBe('none');
   });
 
   it('un error manda sobre lo que quedara en caché', () => {
-    expect(leagueKindOf({ ...EXAMPLES.worldCup, error: true })).toBe('error');
+    expect(leagueKindOf({ ...EXAMPLES.groupStage, error: true })).toBe('error');
   });
 
   it('ninguna clase es a la vez de cuadro y de partidos', () => {

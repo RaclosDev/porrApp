@@ -98,8 +98,8 @@ describe('cuadro de competición personalizada', () => {
     expect(rounds[1].matches[0]).toMatchObject({
       home: null,
       away: null,
-      homePlaceholder: 'Ganador C1',
-      awayPlaceholder: 'Ganador C2',
+      homePlaceholder: 'Ganador cuartos 1',
+      awayPlaceholder: 'Ganador cuartos 2',
     });
 
     // Ronda 2: Final con placeholders
@@ -108,8 +108,8 @@ describe('cuadro de competición personalizada', () => {
     expect(rounds[2].matches[0]).toMatchObject({
       home: null,
       away: null,
-      homePlaceholder: 'Ganador C1',
-      awayPlaceholder: 'Ganador C2',
+      homePlaceholder: 'Ganador semifinal 1',
+      awayPlaceholder: 'Ganador semifinal 2',
     });
   });
 
@@ -165,7 +165,7 @@ describe('cuadro de competición personalizada', () => {
       home: 'E',
       away: null,
       isBye: true,
-      awayPlaceholder: 'Descanso',
+      awayPlaceholder: 'Pasa directo',
     });
     expect(rounds[2].matches[0]).toMatchObject({ home: null, away: 'E' });
   });
@@ -225,11 +225,11 @@ describe('resultados de una competición personalizada', () => {
       'Semifinales',
       'Final',
     ]);
-    expect(rounds[0].slots[2]).toMatchObject({ isBye: true, awayPlaceholder: 'Descanso' });
+    expect(rounds[0].slots[2]).toMatchObject({ isBye: true, awayPlaceholder: 'Pasa directo' });
     expect(rounds[1].slots[0]).toMatchObject({
       match: null,
       home: 'A',
-      awayPlaceholder: 'Ganador C2',
+      awayPlaceholder: 'Ganador cuartos 2',
     });
     expect(rounds[1].slots[1]).toMatchObject({ home: 'E', isBye: true });
     expect(rounds[2].slots[0]).toMatchObject({ home: null, away: 'E' });

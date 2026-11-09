@@ -1,6 +1,6 @@
 /**
  * Contrato JSON de la API. Cada tipo refleja un DTO del backend
- * (paquete com.porra.mundial.dto); los nombres de campo coinciden con el JSON.
+ * (paquete app.porrapp.dto); los nombres de campo coinciden con el JSON.
  */
 
 export type PoolFormat =
@@ -84,6 +84,10 @@ export interface Competition {
   groupStage?: boolean | null;
   /** Sus eliminatorias se sortean ronda a ronda (Champions, Copa del Rey…): se pronostican ronda a ronda. */
   knockoutDraw?: boolean;
+  /** Torneo con fase de grupos que se predice entero antes de empezar (grupos, terceros y cuadro). */
+  groupTournament?: boolean;
+  /** Rondas eliminatorias de ese torneo con grupos; null si la competición no lo es. */
+  tournamentRounds?: TournamentRounds | null;
   /** Torneo y cuadro de un torneo de tenis; null en otros deportes. */
   tennis?: TennisInfo | null;
   /**
@@ -135,6 +139,8 @@ export interface TeamStanding {
   pos: number;
   /** 0 en juego, 1-4 puesto asegurado, 5 entre los dos primeros, -1 eliminado. */
   status: number;
+  /** Solo en el tercero de cada grupo: su puesto entre los terceros, con el reglamento del torneo. */
+  third?: number;
 }
 
 /** Clasificación de grupos: grupo -> equipo -> estadísticas. */
@@ -182,6 +188,57 @@ export interface TopScorer {
   playerId: string;
   team: string;
   imageUrl: string;
+}
+
+/** Jugador de la competición entre los que se elige el pichichi. */
+export interface ScorerCandidate {
+  /** Id del jugador en el proveedor; vacío si solo se le conoce por sus goles. */
+  playerId: string;
+  name: string;
+  shortName: string;
+  team: string;
+  position: string;
+  goals: number;
+}
+
+/**
+ * Qué se sabe del pichichi de una porra: `PLAYER` (elegido de la lista o asignado), `MATCHED` (lo escrito
+ * encaja con un solo jugador), `DOUBTFUL` (no se sabe a quién se refiere) o `UNMATCHED` (aún no hay lista
+ * con la que compararlo).
+ */
+type ScorerPickStatus = 'PLAYER' | 'MATCHED' | 'DOUBTFUL' | 'UNMATCHED';
+
+/** Pichichi de una porra con el jugador real al que se refiere. */
+export interface ScorerPickView {
+  predictionId: number;
+  userId: number | null;
+  participantName: string | null;
+  /** Lo que escribió o eligió el participante. */
+  writtenName: string;
+  status: ScorerPickStatus;
+  playerId: string | null;
+  playerName: string | null;
+  team: string;
+  /** El jugador lo asignó el administrador de la liga. */
+  byAdmin: boolean;
+  /** Quien consulta puede asignarle un jugador ahora. */
+  canAssign: boolean;
+  /** Si es dudoso, los jugadores con los que encaja lo escrito. */
+  candidates: ScorerCandidate[];
+}
+
+/** Pichichi de la liga para quien consulta. */
+export interface ScorerPickState {
+  /** La liga juega el pichichi. */
+  enabled: boolean;
+  /** Se elige dentro del cuadro (torneo con grupos), no aparte. */
+  inBracket: boolean;
+  locked: boolean;
+  /** Cuándo se cierra (ISO); null si aún no se sabe. */
+  lockAt: string | null;
+  mine: ScorerPickView | null;
+  /** Quien consulta es el administrador y puede asignar los dudosos. */
+  canResolve: boolean;
 }
 
 // --- Pronósticos de cuadro completo ---
@@ -284,6 +341,8 @@ export interface LeagueSummary {
   points: number | null;
   participants: number;
   pendingPredictions: number;
+  /** La liga ha terminado: se ha jugado todo lo que cuenta para ella. */
+  finished?: boolean;
 }
 
 /** Una de las competiciones de una liga que junta varias. */
@@ -313,6 +372,10 @@ export interface Group {
   formatType: CompetitionFormat | null;
   /** Eliminatorias sorteadas ronda a ronda: en cada ronda se elige quién pasa cada cruce. */
   knockoutDraw?: boolean;
+  /** Su competición es un torneo con fase de grupos que se predice entero antes de empezar. */
+  groupTournament?: boolean;
+  /** Rondas eliminatorias de ese torneo con grupos, para nombrarlas; null si la competición no lo es. */
+  tournamentRounds?: TournamentRounds | null;
   poolFormat: PoolFormat | null;
   pichichi: boolean | null;
   lockDate: string | null;
@@ -329,6 +392,16 @@ export interface Group {
   tennisScope?: TennisScope | null;
   /** Tenis de varios torneos: cuadros que sigue. */
   tennisTour?: TennisTour | null;
+  /** Temporada de la competición que juega la liga («2025/26», «2026»). */
+  season?: string | null;
+  /** Esa temporada ya ha terminado: la liga se queda con su clasificación final. */
+  seasonEnded?: boolean;
+  /** Ha terminado, la competición ya tiene temporada nueva y nadie la ha repetido aún. */
+  canRepeat?: boolean;
+  /** Temporada nueva para la que se puede repetir. */
+  nextSeason?: string | null;
+  /** La liga que la repite en la temporada nueva; solo si el usuario también está en ella. */
+  nextLeagueId?: number | null;
 }
 
 type MatchSelectionMode = 'ALL' | 'CUSTOM';
@@ -579,6 +652,12 @@ export interface GrandPrixMemberPick {
   details: string | null;
 }
 
+/** Predicciones de la liga en un Gran Premio ya cerrado (GET /grand-prix/picks). */
+export interface GrandPrixRacePicks {
+  matchId: number;
+  picks: GrandPrixMemberPick[];
+}
+
 export type ScoringRuleKey = keyof ScoringRules;
 
 /** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */
@@ -595,6 +674,8 @@ export interface LeagueScoring {
   fights?: boolean;
   /** Playoffs de la NBA: puntos por serie acertada y extra por acertar en cuántos partidos. */
   nbaSeries?: boolean;
+  /** Rondas eliminatorias de su torneo con grupos: solo se enseñan sus reglas. */
+  tournamentRounds?: TournamentRounds | null;
   poolFormat: PoolFormat | null;
   pichichi: boolean;
   editable: boolean;
@@ -830,3 +911,23 @@ export interface MatchdayStats {
   members: number;
   matches: MatchStats[];
 }
+
+/** Forma de un torneo con fase de grupos, para pintar y rellenar su cuadro. */
+export interface TournamentFormat {
+  /** Letras de sus grupos, en orden. */
+  groups: string[];
+  /** Terceros de grupo que pasan a las eliminatorias. */
+  bestThirds: number;
+  /** Se juega el partido por el tercer puesto. */
+  thirdPlaceMatch: boolean;
+  /** Ronda en la que empieza el cuadro, con el nombre con el que se guarda. */
+  firstRound: 'r32' | 'r16' | 'qf' | 'sf';
+  /** Cruces de esa ronda en el orden del cuadro: un puesto de grupo («1E») o un tercero («3ABCDF»). */
+  firstKnockoutRound: string[][];
+}
+
+/**
+ * Rondas eliminatorias que juega un torneo con grupos. Llega con la liga, para nombrarlas sin pedir
+ * la forma entera de su cuadro.
+ */
+export type TournamentRounds = Pick<TournamentFormat, 'firstRound' | 'thirdPlaceMatch'>;

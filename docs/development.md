@@ -65,6 +65,7 @@ El backend escucha en el puerto 8080. Mantén estable `JWT_SECRET` entre arranqu
 | `GOOGLE_CLIENT_ID` | Google OAuth; Compose lo usa también en la build del frontend |
 | `VITE_GOOGLE_CLIENT_ID` | Google OAuth en `frontend/.env.local` al ejecutar Vite por separado |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos |
+| `APP_SEED_PAST_TOURNAMENTS` | `true` da de alta torneos ya jugados (Eurocopa 2024) e importa sus partidos al arrancar, para probar en local un torneo con grupos de otra forma con su cuadro y sus grupos completos. Nunca en producción |
 
 La plantilla completa está en [`.env.example`](../.env.example).
 
@@ -88,7 +89,7 @@ El workflow de [GitHub Actions](../.github/workflows/ci.yml) ejecuta lo mismo en
 ## Estructura
 
 ```text
-backend/src/main/java/com/porra/mundial/
+backend/src/main/java/app/porrapp/
   config/       seguridad y configuración
   controller/   endpoints REST y WebSocket
   dto/          contratos de la API

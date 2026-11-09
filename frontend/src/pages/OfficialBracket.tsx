@@ -4,13 +4,13 @@ import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import BracketCanvas, { TeamSlot, WORLD_CUP_ROUND_LABELS } from '../components/BracketCanvas';
+import BracketCanvas, { TeamSlot, KNOCKOUT_ROUND_LABELS } from '../components/BracketCanvas';
 import BracketTeamStatus from '../components/BracketTeamStatus';
 import {
   buildBracketData,
   isMatchInRound,
   matchTeamNames,
-  nextWorldCupKnockoutMatch,
+  nextKnockoutMatch,
   slotName,
   type BracketSlot,
 } from '../utils/bracketBuilder';
@@ -25,8 +25,9 @@ import CustomTournamentHome from './CustomTournamentHome';
 import OfficialTournamentHome from './OfficialTournamentHome';
 import KnockoutDrawResults from './KnockoutDrawResults';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
-import { useWorldCupData } from '../context/leagueData';
+import { useTournamentData } from '../context/leagueData';
 import type { LeagueKind } from '../context/leagueKind';
+import { WORLD_CUP_2026_FORMAT } from '../utils/firstKnockoutRound';
 
 /** «Resultados»: el cuadro o los cruces reales de cada clase de liga. */
 function OfficialBracket() {
@@ -36,7 +37,7 @@ function OfficialBracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Resultados" what="los resultados" />,
     unknown: <UnsupportedLeagueState />,
-    worldCup: <WorldCupOfficialBracket />,
+    groupStage: <GroupStageOfficialBracket />,
     customBracket: <CustomTournamentHome />,
     ownBracket: <OfficialTournamentHome />,
     knockoutDraw: <KnockoutDrawResults />,
@@ -50,7 +51,7 @@ function OfficialBracket() {
 }
 
 /** Cuadro oficial del Mundial: los cruces reales, con los terceros resueltos en vivo. */
-function WorldCupOfficialBracket() {
+function GroupStageOfficialBracket() {
   const { allGames, matchRadar } = useAppContext();
   const {
     groupStandings,
@@ -60,22 +61,24 @@ function WorldCupOfficialBracket() {
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
-  } = useWorldCupData();
+    format = WORLD_CUP_2026_FORMAT,
+  } = useTournamentData();
 
   const [activePanel, setActivePanel] = useState<'live' | 'scorers' | null>(null);
   const [activeTab, setActiveTab] = useState<'cuadro' | 'grupos'>('cuadro');
 
   const part = useMemo(
-    () => buildBracketData(groupStandings, groupOdds, allGames),
-    [groupStandings, groupOdds, allGames],
+    () => buildBracketData(groupStandings, groupOdds, allGames, format),
+    [groupStandings, groupOdds, allGames, format],
   );
 
-  const featuredMatch = useMemo(() => nextWorldCupKnockoutMatch(allGames), [allGames]);
+  const featuredMatch = useMemo(() => nextKnockoutMatch(allGames), [allGames]);
 
   const { leftRounds, rightRounds } = useMemo(() => {
     const toMatches = (arr: BracketSlot[][] | undefined): CanvasMatch<BracketSlot>[] =>
       (arr || []).map((m) => ({ home: m?.[0] || null, away: m?.[1] || null }));
 
+    // La ronda que el torneo no juega llega vacía y el lienzo la omite.
     return {
       leftRounds: [
         toMatches(part.r32?.slice(0, 8)),
@@ -232,7 +235,7 @@ function WorldCupOfficialBracket() {
 
           <div>
             <BracketCanvas
-              roundLabels={WORLD_CUP_ROUND_LABELS}
+              roundLabels={KNOCKOUT_ROUND_LABELS}
               leftRounds={leftRounds}
               rightRounds={rightRounds}
               renderSlot={renderSlot}

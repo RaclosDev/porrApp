@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   getAuthToken,
   setAuthToken,
-  fetchWorldCupStandings,
+  fetchTournamentStandings,
   fetchMatches,
   PREDICTION_SAVED_EVENT,
   submitMatchdayPredictions,
@@ -44,11 +44,11 @@ describe('api.ts service', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    const standings = await fetchWorldCupStandings();
+    const standings = await fetchTournamentStandings(2);
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [calledUrl, calledOptions] = mockFetch.mock.calls[0];
-    expect(calledUrl).toBe('/api/world-cup/standings');
+    expect(calledUrl).toBe('/api/competitions/2/tournament/standings');
     expect(calledOptions.headers).toHaveProperty('Authorization', 'Bearer valid-jwt-token-xyz');
     expect(standings).toEqual([{ group: 'A', teams: [] }]);
   });
@@ -91,7 +91,15 @@ describe('api.ts service', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(fetchWorldCupStandings()).rejects.toThrow('Error del servidor (404)');
+    await expect(fetchTournamentStandings(2)).rejects.toThrow('Error del servidor (404)');
+  });
+
+  it('explica un fallo del servidor sin cuerpo con palabras, no con el código', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    await expect(fetchMatches(7)).rejects.toThrow('El servidor no responde ahora mismo');
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+    await expect(fetchMatches(7)).rejects.toThrow('No tienes permiso para hacer esto.');
   });
 
   it('mantiene la sesión ante un 403 de una liga y muestra el motivo', async () => {
@@ -104,7 +112,7 @@ describe('api.ts service', () => {
         json: async () => ({ error: 'No perteneces a esta liga' }),
       }),
     );
-    await expect(fetchWorldCupStandings()).rejects.toThrow('No perteneces a esta liga');
+    await expect(fetchTournamentStandings(2)).rejects.toThrow('No perteneces a esta liga');
     expect(getAuthToken()).toBe('test-token');
   });
 
@@ -117,14 +125,14 @@ describe('api.ts service', () => {
         return { ok: false, status: 401, json: async () => ({}) };
       }),
     );
-    await expect(fetchWorldCupStandings()).rejects.toThrow('La sesión ha cambiado');
+    await expect(fetchTournamentStandings(2)).rejects.toThrow('La sesión ha cambiado');
     expect(getAuthToken()).toBe('new-test-token');
   });
 
   it('caduca la sesión cuando el token actual recibe un 401', async () => {
     setAuthToken('expired-test-token');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }));
-    await expect(fetchWorldCupStandings()).rejects.toThrow('401');
+    await expect(fetchTournamentStandings(2)).rejects.toThrow('Tu sesión ha caducado');
     expect(getAuthToken()).toBeNull();
   });
 
@@ -137,7 +145,7 @@ describe('api.ts service', () => {
         json: async () => ({ error: 'No perteneces a esta liga' }),
       }),
     );
-    const err = await fetchWorldCupStandings().catch((e) => e);
+    const err = await fetchTournamentStandings(2).catch((e) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(403);
     expect(isApiError(err, 403)).toBe(true);
@@ -146,7 +154,7 @@ describe('api.ts service', () => {
 
   it('traduce un fallo de red a un mensaje en español', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
-    const err = await fetchWorldCupStandings().catch((e) => e);
+    const err = await fetchTournamentStandings(2).catch((e) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(0);
     expect(err.message).toBe(NETWORK_ERROR_MESSAGE);
@@ -157,13 +165,13 @@ describe('api.ts service', () => {
       'fetch',
       vi.fn().mockRejectedValue(new DOMException('timed out', 'TimeoutError')),
     );
-    await expect(fetchWorldCupStandings()).rejects.toThrow(TIMEOUT_ERROR_MESSAGE);
+    await expect(fetchTournamentStandings(2)).rejects.toThrow(TIMEOUT_ERROR_MESSAGE);
   });
 
   it('pasa siempre una señal con tiempo de espera', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
     vi.stubGlobal('fetch', mockFetch);
-    await fetchWorldCupStandings();
+    await fetchTournamentStandings(2);
     expect(mockFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
   });
 });

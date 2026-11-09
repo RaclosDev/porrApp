@@ -40,14 +40,16 @@ export const queryKeys = {
   /** Cuelga de grandPrix: al guardar se refrescan también las de la liga. */
   grandPrixPicks: (groupId: Id, matchId: number) =>
     key('grandPrix', asText(groupId), 'picks', matchId),
+  /** Las de todos los Grandes Premios cerrados; también cuelga de grandPrix. */
+  grandPrixSeasonPicks: (groupId: Id) => key('grandPrix', asText(groupId), 'picks'),
   grandPrixClassification: (groupId: Id, matchId: number) =>
     key('grandPrixClassification', asText(groupId), matchId),
   /** Mundial de F1: es el mismo para todas las ligas, la liga solo comprueba el acceso. */
   formulaOneStandings: (groupId: Id) => key('formulaOneStandings', asText(groupId)),
   matchdayFixtures: (groupId?: Id, user?: Id, round?: string) =>
     key('matchdayFixtures', asText(groupId), user, round),
-  /** Todos los partidos de una liga que elige los suyos, para su portada; cuelga de matchdayFixtures. */
-  leagueMatches: (groupId?: Id) => key('matchdayFixtures', asText(groupId), 'league'),
+  /** La jornada en curso de una liga que elige sus partidos, para su portada; cuelga de matchdayFixtures. */
+  leagueCurrentRound: (groupId?: Id) => key('matchdayFixtures', asText(groupId), 'current'),
   /** Cuelga de matchdayFixtures: lo que refresca los partidos de la liga refresca también esto. */
   survivorStatus: (groupId: Id, user?: Id) =>
     key('matchdayFixtures', asText(groupId), 'survivor', user),
@@ -60,10 +62,19 @@ export const queryKeys = {
   /** También cuelga de matchdayStats, para refrescarse con cada predicción nueva de la liga. */
   roundParticipants: (groupId: Id, matchIds: string) =>
     key('matchdayStats', asText(groupId), 'participants', matchIds),
-  worldCupStandings: () => key('worldCupStandings'),
-  worldCupGroupOdds: () => key('worldCupGroupOdds'),
-  worldCupTopScorers: () => key('worldCupTopScorers'),
-  worldCupOfficialBracket: () => key('worldCupOfficialBracket'),
+  /** Datos oficiales de un torneo con fase de grupos, por competición. */
+  tournamentStandings: (competitionId?: Id) => key('tournamentStandings', competitionId),
+  tournamentGroupOdds: (competitionId?: Id) => key('tournamentGroupOdds', competitionId),
+  tournamentFormat: (competitionId?: Id) => key('tournamentFormat', competitionId),
+  tournamentTopScorers: (competitionId?: Id) => key('tournamentTopScorers', competitionId),
+  tournamentOfficialBracket: (competitionId?: Id) =>
+    key('tournamentOfficialBracket', competitionId),
+  /** Jugadores de una competición entre los que se elige el pichichi. */
+  competitionPlayers: (competitionId?: Id) => key('competitionPlayers', competitionId),
+  /** Pichichi de la liga para quien consulta. */
+  scorerPick: (groupId?: Id) => key('scorerPick', asText(groupId)),
+  /** Cuelga de `scorerPick`: al cambiar el propio se refrescan también los de la liga. */
+  scorerPicks: (groupId: Id) => key('scorerPick', asText(groupId), 'all'),
   predictionScore: (predictionId?: Id) => key('predictionScore', asText(predictionId)),
   matches: (competitionId?: Id) => key('matches', competitionId),
   radar: (competitionId?: Id) => key('radar', competitionId),

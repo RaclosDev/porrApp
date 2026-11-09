@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import {
+  CURRENT_ROUND,
   fetchCompetitionStandings,
   fetchCustomStandings,
   fetchCustomTeams,
@@ -29,14 +30,14 @@ import type { LeagueKind } from '../context/leagueKind';
 const MINI_TABLE_SIZE = 5;
 
 /** De dónde salen los partidos y la tabla de la portada; `null`: la clase no tiene esta portada. */
-type LeagueHomeSource = 'matchday' | 'custom' | 'worldCup' | 'official' | null;
+type LeagueHomeSource = 'matchday' | 'custom' | 'groupStage' | 'official' | null;
 
 const HOME_SOURCE: Record<LeagueKind, LeagueHomeSource> = {
   matchday: 'matchday',
   fightCard: 'matchday',
   tennisDraw: 'matchday',
   customBracket: 'custom',
-  worldCup: 'worldCup',
+  groupStage: 'groupStage',
   ownBracket: 'official',
   knockoutDraw: 'official',
   grandPrix: null,
@@ -142,8 +143,9 @@ export function useLeagueHomeData(): LeagueHomeData {
     (activeGroupPicksMatches || activeGroupMultiCompetition) &&
     groupId != null;
   const { data: leagueFixtures, isLoading: loadingLeagueFixtures } = useQuery({
-    queryKey: queryKeys.leagueMatches(groupId),
-    queryFn: () => fetchMatchdayFixtures(groupId!),
+    // Solo la jornada en curso, que es lo que enseña la portada: la temporada entera está en Jornadas.
+    queryKey: queryKeys.leagueCurrentRound(groupId),
+    queryFn: () => fetchMatchdayFixtures(groupId!, CURRENT_ROUND),
     enabled: ownMatches,
     staleTime: 60_000,
   });
@@ -245,7 +247,7 @@ export function useLeagueHomeData(): LeagueHomeData {
     const groupName = nextGroupName(allGames);
     let standings: LeagueHomeData['standings'] = null;
 
-    if (format === 'worldCup' && groupName && sortedGroups[groupName]) {
+    if (format === 'groupStage' && groupName && sortedGroups[groupName]) {
       standings = {
         title: `Grupo ${groupName}`,
         to: '/grupos',

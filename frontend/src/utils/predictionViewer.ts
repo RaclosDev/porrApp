@@ -4,7 +4,17 @@
  */
 import { matchWinner } from './bracketBuilder';
 import { teamKey } from './teamKey';
-import { buildR32FromGroups, hasValidGroupSelections, extractGroupsFromR32 } from './bracketDraft';
+import {
+  WORLD_CUP_2026_FIRST_ROUND,
+  WORLD_CUP_2026_FORMAT,
+  firstRoundLabels,
+} from './firstKnockoutRound';
+import {
+  buildR32FromGroups,
+  hasValidGroupSelections,
+  extractGroupsFromR32,
+  storedFirstRound,
+} from './bracketDraft';
 import type { ViewerPrediction } from './predictionData';
 import type { CanvasMatch } from '../components/BracketCanvas';
 import { getTeamVal } from '../components/prediction/viewerTypes';
@@ -15,30 +25,14 @@ import type {
   ParticipantScore,
   PredictionData,
   TeamPair,
+  TournamentFormat,
 } from '../types/api';
 import { isMathematicallyEliminated } from './groupStatus';
 
 /** Cuadro vacío que se muestra si no se puede obtener el oficial. */
 export const EMPTY_OFFICIAL_BRACKET: PredictionData = {
   topologyVersion: 2,
-  r32: [
-    ['1º Grupo E', '3º A/B/C/D/F'],
-    ['1º Grupo I', '3º C/D/F/G/H'],
-    ['2º Grupo A', '2º Grupo B'],
-    ['1º Grupo F', '2º Grupo C'],
-    ['2º Grupo K', '2º Grupo L'],
-    ['1º Grupo H', '2º Grupo J'],
-    ['1º Grupo D', '3º B/E/F/I/J'],
-    ['1º Grupo G', '3º A/E/H/I/J'],
-    ['1º Grupo C', '2º Grupo F'],
-    ['2º Grupo E', '2º Grupo I'],
-    ['1º Grupo A', '3º C/E/F/H/I'],
-    ['1º Grupo L', '3º E/H/I/J/K'],
-    ['1º Grupo J', '2º Grupo H'],
-    ['2º Grupo D', '2º Grupo G'],
-    ['1º Grupo B', '3º E/F/G/I/J'],
-    ['1º Grupo K', '3º D/E/I/J/L'],
-  ],
+  r32: firstRoundLabels(WORLD_CUP_2026_FIRST_ROUND),
   r16: Array(8).fill([null, null]),
   qf: Array(4).fill([null, null]),
   sf: Array(2).fill([null, null]),
@@ -117,12 +111,19 @@ export function selectViewerPoints(
   return named.length === 1 ? named[0] : EMPTY_POINTS;
 }
 
-/** Dieciseisavos del pronóstico: los guardados o, si no hay, los que salen de los grupos. */
-export function r32Source(part: ViewerPrediction | null): TeamPair[] | null {
+/**
+ * Dieciseisavos del pronóstico: los guardados o, si no hay, los que salen de los grupos. Un torneo
+ * que empieza más tarde no los tiene.
+ */
+export function r32Source(
+  part: ViewerPrediction | null,
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
+): TeamPair[] | null {
+  if (format.firstRound !== 'r32') return [];
   if (Array.isArray(part?.r32) && part.r32.length >= 16) return part.r32;
   if (Array.isArray(part?.r1) && part.r1.length >= 16) return part.r1;
   if (part?.groups && hasValidGroupSelections(part.groups)) {
-    return buildR32FromGroups(part.groups, part.thirds, part.topologyVersion);
+    return buildR32FromGroups(part.groups, part.thirds, part.topologyVersion, format);
   }
   return [];
 }
@@ -135,6 +136,7 @@ export function bracketSides(
   r32: TeamPair[] | null,
   part: ViewerPrediction | null,
 ): { leftRounds: ViewerRound[]; rightRounds: ViewerRound[] } {
+  // La ronda que el torneo no juega llega vacía y el lienzo la omite.
   return {
     leftRounds: [
       toMatches(r32?.slice(0, 8)),
@@ -218,10 +220,15 @@ export function isTeamImpossibleForRound(
 }
 
 /** Mejores terceros elegidos: los guardados o los que se deducen de los dieciseisavos. */
-export function advancingThirds(part: ViewerPrediction | null, groupOdds: GroupOdds): string[] {
+export function advancingThirds(
+  part: ViewerPrediction | null,
+  groupOdds: GroupOdds,
+  format: TournamentFormat = WORLD_CUP_2026_FORMAT,
+): string[] {
   if (Array.isArray(part?.thirds) && part.thirds.length > 0) return part.thirds;
-  if (part?.r32 || part?.r1) {
-    return extractGroupsFromR32(part.r32 || part.r1, groupOdds, part.topologyVersion).thirds || [];
+  const firstRound = part ? storedFirstRound(part, format) : undefined;
+  if (part && firstRound) {
+    return extractGroupsFromR32(firstRound, groupOdds, part.topologyVersion, format).thirds || [];
   }
   return [];
 }

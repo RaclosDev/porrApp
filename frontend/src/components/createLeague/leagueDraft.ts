@@ -19,7 +19,8 @@ import {
   type ScoringDraft,
 } from '../../utils/scoringRules';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
-import { isWorldCupCompetition } from '../../context/leagueKind';
+import { allowsDraw } from '../../utils/matchday';
+import { isGroupTournament } from '../../context/leagueKind';
 import { isNbaCompetition, isNbaRegularSeason } from '../../utils/nbaPlayoffs';
 import {
   BRACKET_LOCK_MODES,
@@ -389,8 +390,31 @@ const LOL_FORMAT_COPY: Partial<Record<PoolFormat, { title: string; text: string 
   },
 };
 
+/**
+ * Deporte cuyas reglas sigue la liga (`Competition.rulesSport` en el servidor). Una competición
+ * personalizada no sabe de series, sets ni veladas: de su deporte solo cuenta si un partido puede acabar
+ * en empate, así que se juega como el fútbol (1X2) o como el baloncesto (quién gana).
+ */
+export const rulesSport = (draft: LeagueDraft): Sport | null => {
+  if (draft.sport == null || draft.sport === 'OTHER') return null;
+  if (!draft.custom) return draft.sport;
+  return allowsDraw(draft.sport) ? 'FOOTBALL' : 'BASKETBALL';
+};
+
+/** Por jornadas en una competición propia sin empate: se elige quién gana, sin series ni semanas. */
+const CUSTOM_WINNER_COPY = {
+  title: 'Por jornadas',
+  text: 'Predices quién gana cada partido, jornada a jornada.',
+};
+
 /** Cómo se juega un formato con la competición elegida. */
 export function formatCopy(format: PoolFormat, draft: LeagueDraft, ctx: DraftContext) {
+  // Una competición propia se explica igual en cualquier deporte: solo cambia si hay empate.
+  if (draft.custom) {
+    return format === 'MATCH_DAY' && !allowsDraw(rulesSport(draft))
+      ? CUSTOM_WINNER_COPY
+      : FORMAT_COPY[format];
+  }
   if (format === 'MATCH_DAY' && isFightNights(draft, ctx)) return FIGHT_NIGHTS_COPY;
   if (draft.sport === 'TENNIS' && format === 'MATCH_DAY') return TENNIS_COPY;
   if (format === 'KNOCKOUTS_ONLY' && isNbaDraft(draft, ctx)) return NBA_PLAYOFFS_COPY;
@@ -491,7 +515,9 @@ export const formatsOffered = (draft: LeagueDraft, ctx: DraftContext): PoolForma
 const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
   if (draft.custom) return true;
   const competition = selectedCompetition(draft, ctx);
-  return competition?.formatType === 'TOURNAMENT' && !isWorldCupCompetition(competition.externalId);
+  return (
+    competition?.formatType === 'TOURNAMENT' && !isGroupTournament(competition.groupTournament)
+  );
 };
 
 /** Cierres que admite el formato elegido. Superviviente se pronostica partido a partido: como jornadas. */
@@ -521,15 +547,25 @@ function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode 
   return modes.some((item) => item.value === 'PER_ROUND') ? 'PER_ROUND' : 'FIRST_MATCH';
 }
 
+const isSelectedGroupTournament = (draft: LeagueDraft, ctx: DraftContext) => {
+  const competition = selectedCompetition(draft, ctx);
+  return Boolean(competition && isGroupTournament(competition.groupTournament));
+};
+
 /**
- * El pichichi se puntúa con los goleadores oficiales del Mundial: solo en su cuadro (ni en sus
- * jornadas ni en otros torneos).
+ * El pichichi se puntúa con los goleadores oficiales de la competición: en cualquiera de fútbol que
+ * se juegue por jornadas (se elige aparte, antes de que empiece) o en el cuadro de un torneo con
+ * grupos. Ni en un superviviente, ni en unas eliminatorias sorteadas ronda a ronda, ni en una liga
+ * que junta partidos de varias competiciones.
  */
 export const pichichiApplies = (draft: LeagueDraft, ctx: DraftContext) =>
   !draft.custom &&
-  isWorldCupCompetition(selectedCompetition(draft, ctx)?.externalId) &&
+  draft.sport === 'FOOTBALL' &&
+  selectedCompetition(draft, ctx) != null &&
   draft.poolFormat != null &&
-  !isMatchBasedFormat(draft.poolFormat);
+  (draft.poolFormat === 'MATCH_DAY'
+    ? !isMultiCompetition(draft.matches)
+    : isSelectedGroupTournament(draft, ctx) && !isMatchBasedFormat(draft.poolFormat));
 
 /** Elegir partidos: solo en una liga por jornadas sobre una competición oficial. */
 export const matchSelectionApplies = (draft: LeagueDraft, ctx: DraftContext) =>
@@ -765,7 +801,11 @@ export function buildCreateRequest(draft: LeagueDraft, ctx: DraftContext): Creat
     poolFormat: draft.poolFormat ?? 'MATCH_DAY',
     pichichi: pichichiApplies(draft, ctx) && draft.pichichi,
   };
-  if (draft.custom) request.customCompetitionName = draft.customName.trim();
+  if (draft.custom) {
+    request.customCompetitionName = draft.customName.trim();
+    // El deporte decide si se puede predecir el empate; «Otro deporte» se juega con empate.
+    if (draft.sport && draft.sport !== 'OTHER') request.customSport = draft.sport;
+  }
   if (rules) request.rules = rules;
   if (draft.entryFee) request.entryFee = true;
   // UFC: sin las tres partes de la cartelera, las elegidas (en el orden de la velada).

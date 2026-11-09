@@ -3,14 +3,14 @@ import { useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import GroupStage from '../components/GroupStage';
 import { BracketFinalMatch } from '../components/BracketFinale';
-import BracketCanvas, {
-  TeamSlot,
-  WORLD_CUP_ROUND_LABELS,
-  type SlotContext,
-} from '../components/BracketCanvas';
+import BracketCanvas, { TeamSlot, type SlotContext } from '../components/BracketCanvas';
+import { firstRoundIndex } from '../utils/bracketTransitions';
+import { roundLabelsOf, roundsOf } from '../utils/firstKnockoutRound';
 import type { BracketTeam } from '../store/useAppStore';
 import PredictionViewer from '../components/PredictionViewer';
 import { useBracket } from '../hooks/useBracket';
+import { useCompetitionPlayers } from '../hooks/useScorerPick';
+import ScorerInput from '../components/matchday/ScorerInput';
 import { useAppContext } from '../context/AppContext';
 import { useMyLeaguePrediction } from '../hooks/useLeaguePredictions';
 import { isMathematicallyQualified } from '../utils/groupStatus';
@@ -19,6 +19,7 @@ import CustomBracket from './CustomBracket';
 import KnockoutDrawPredictor from './KnockoutDrawPredictor';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
+import { useUnsavedChanges } from '../utils/unsavedChanges';
 
 /** «Mi porra»: dónde se rellena la predicción de cada clase de liga. */
 function Bracket() {
@@ -28,7 +29,7 @@ function Bracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Mi porra" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
-    worldCup: <WorldCupBracket />,
+    groupStage: <GroupStageBracket />,
     // Los cuadros propios (personalizadas, Worlds de LoL…) se pronostican sobre sus cruces.
     customBracket: <CustomBracket />,
     ownBracket: <CustomBracket />,
@@ -47,11 +48,13 @@ function Bracket() {
  * Porra del Mundial de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
  * si no, o al editar, el asistente de grupos y cruces.
  */
-function WorldCupBracket() {
-  const { userId } = useAppContext();
+function GroupStageBracket() {
+  const { userId, activeCompetitionId } = useAppContext();
   const myPred = useMyLeaguePrediction();
   const {
     bracketState,
+    format,
+    shapePending,
     userName,
     setUserName,
     topScorer,
@@ -75,7 +78,16 @@ function WorldCupBracket() {
     savedGroupsDraft,
     savedThirdsDraft,
     savedPredictionId,
+    hasUnsavedChanges,
   } = useBracket();
+  const { players: scorerPlayers } = useCompetitionPlayers(
+    activeCompetitionId,
+    activeGroupPichichi && !activeGroupIsLocked,
+  );
+  useUnsavedChanges(
+    hasUnsavedChanges && !activeGroupIsLocked,
+    'Tu porra tiene cambios sin guardar. El borrador se queda en este dispositivo hasta que la guardes.',
+  );
 
   const [mobileStep, setMobileStep] = useState('bracket'); // 'bracket' | 'save'
   const [isEditing, setIsEditing] = useState(false);
@@ -92,14 +104,26 @@ function WorldCupBracket() {
     );
   }
 
+  if (shapePending) return <LeagueLoadState />;
+
+  // El lienzo numera las rondas desde la primera del torneo; el cuadro guardado, desde dieciseisavos.
+  const firstRound = firstRoundIndex(bracketState);
+  const advance = (
+    team: BracketTeam | null | undefined,
+    side: SlotContext['side'],
+    canvasRound: number,
+    matchIndex: number,
+  ) => advanceTeam(team, side, canvasRound + firstRound, matchIndex);
+
   /** Si el equipo ya está elegido para pasar de ronda desde esa casilla. */
   const isPicked = (
     team: BracketTeam | null | undefined,
     side: SlotContext['side'] | 'center',
-    roundIndex: number,
+    canvasRound: number,
     matchIndex: number,
   ) => {
     if (!team?.name) return false;
+    const roundIndex = side === 'center' ? canvasRound : canvasRound + firstRound;
     let picked: BracketTeam | null | undefined;
     if (side === 'center') {
       picked = roundIndex === 4 ? bracketState.champion : bracketState.thirdPlaceWinner;
@@ -145,7 +169,12 @@ function WorldCupBracket() {
         const teamStatus = getTeamStatus(name);
         if (isMathematicallyQualified(teamStatus)) {
           statusIndicator = (
-            <InkStamp tone="ink" size="sm" label="Clasificado matemáticamente" className="ml-1">
+            <InkStamp
+              tone="ink"
+              size="sm"
+              label="Clasificado matemáticamente"
+              className="team-slot-sticker ml-1"
+            >
               Clas.
             </InkStamp>
           );
@@ -156,7 +185,7 @@ function WorldCupBracket() {
           name={name}
           rightContent={statusIndicator}
           pressed={isPicked(team, side, roundIndex, matchIndex)}
-          onClick={() => advanceTeam(team, side, roundIndex, matchIndex)}
+          onClick={() => advance(team, side, roundIndex, matchIndex)}
         />
       );
     }
@@ -164,7 +193,7 @@ function WorldCupBracket() {
       <TeamSlot
         name={team?.name}
         pressed={isPicked(team, side, roundIndex, matchIndex)}
-        onClick={() => advanceTeam(team, side, roundIndex, matchIndex)}
+        onClick={() => advance(team, side, roundIndex, matchIndex)}
       />
     );
   };
@@ -190,6 +219,7 @@ function WorldCupBracket() {
           userId={userId}
           initialSelections={savedGroupsDraft}
           initialThirds={savedThirdsDraft}
+          bestThirds={format.bestThirds}
         />
       ) : (
         <>
@@ -232,19 +262,9 @@ function WorldCupBracket() {
 
           <div className={mobileStep === 'bracket' ? '' : 'mobile-step-hidden'}>
             <BracketCanvas
-              roundLabels={WORLD_CUP_ROUND_LABELS}
-              leftRounds={[
-                bracketState.r32.left,
-                bracketState.r16.left,
-                bracketState.qf.left,
-                bracketState.sf.left,
-              ]}
-              rightRounds={[
-                bracketState.r32.right,
-                bracketState.r16.right,
-                bracketState.qf.right,
-                bracketState.sf.right,
-              ]}
+              roundLabels={roundLabelsOf(format)}
+              leftRounds={roundsOf(format).map((round) => bracketState[round].left)}
+              rightRounds={roundsOf(format).map((round) => bracketState[round].right)}
               renderSlot={renderSlot}
               renderFinal={(expandedThirdPlace) => (
                 <BracketFinalMatch
@@ -273,24 +293,26 @@ function WorldCupBracket() {
                   champion={<TeamSlot name={bracketState.champion?.name} />}
                   thirdWinner={bracketState.thirdPlaceWinner?.name}
                   thirdPlace={
-                    <>
-                      <TeamSlot
-                        name={bracketState.thirdPlaceMatch?.home?.name}
-                        pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
-                        onClick={() =>
-                          bracketState.thirdPlaceMatch?.home &&
-                          advanceTeam(bracketState.thirdPlaceMatch.home, 'center', 5, 0)
-                        }
-                      />
-                      <TeamSlot
-                        name={bracketState.thirdPlaceMatch?.away?.name}
-                        pressed={isPicked(bracketState.thirdPlaceMatch?.away, 'center', 5, 0)}
-                        onClick={() =>
-                          bracketState.thirdPlaceMatch?.away &&
-                          advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
-                        }
-                      />
-                    </>
+                    format.thirdPlaceMatch ? (
+                      <>
+                        <TeamSlot
+                          name={bracketState.thirdPlaceMatch?.home?.name}
+                          pressed={isPicked(bracketState.thirdPlaceMatch?.home, 'center', 5, 0)}
+                          onClick={() =>
+                            bracketState.thirdPlaceMatch?.home &&
+                            advanceTeam(bracketState.thirdPlaceMatch.home, 'center', 5, 0)
+                          }
+                        />
+                        <TeamSlot
+                          name={bracketState.thirdPlaceMatch?.away?.name}
+                          pressed={isPicked(bracketState.thirdPlaceMatch?.away, 'center', 5, 0)}
+                          onClick={() =>
+                            bracketState.thirdPlaceMatch?.away &&
+                            advanceTeam(bracketState.thirdPlaceMatch.away, 'center', 5, 0)
+                          }
+                        />
+                      </>
+                    ) : undefined
                   }
                 />
               )}
@@ -336,14 +358,7 @@ function WorldCupBracket() {
                 className="glass-input flex-1 min-w-50"
               />
               {activeGroupPichichi && (
-                <input
-                  type="text"
-                  placeholder="Pichichi"
-                  aria-label="Pichichi"
-                  value={topScorer}
-                  onChange={(e) => setTopScorer(e.target.value)}
-                  className="glass-input flex-1 min-w-50"
-                />
+                <ScorerInput value={topScorer} onChange={setTopScorer} players={scorerPlayers} />
               )}
             </div>
             {!isAuthenticated && (

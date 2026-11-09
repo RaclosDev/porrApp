@@ -1,0 +1,580 @@
+package app.porrapp.service.prediction;
+
+import app.porrapp.exception.BusinessException;
+import app.porrapp.dto.MatchPredictionItemDTO;
+import app.porrapp.dto.MatchdayFixturePredictionDTO;
+import app.porrapp.model.*;
+import app.porrapp.repository.*;
+import app.porrapp.scoring.MatchScoreResult;
+import app.porrapp.scoring.MatchScoringCalculator;
+import app.porrapp.scoring.ScoringRuleSet;
+import app.porrapp.util.AppTime;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class MatchPredictionServiceTest {
+
+    @Mock
+    private MatchRepository matchRepository;
+
+    @Mock
+    private MatchPredictionRepository matchPredictionRepository;
+
+    @Mock
+    private PredictionRepository predictionRepository;
+
+    @Mock
+    private UserAccountRepository userAccountRepository;
+
+    @Mock
+    private EditionRepository editionRepository;
+
+    @Mock
+    private MembershipRepository membershipRepository;
+
+    @Mock
+    private MatchScoringCalculator matchScoringCalculator;
+
+    @Mock
+    private ScoreInvalidationService scoreInvalidationService;
+
+    @Mock
+    private app.porrapp.repository.FightRepository fightRepository;
+
+    @InjectMocks
+    private MatchPredictionService matchPredictionService;
+
+    private UserAccount user;
+    private League league;
+    private Edition edition;
+    private Match futureMatch;
+    private Match pastMatch;
+    private Match finishedMatch;
+
+    @BeforeEach
+    void setUp() {
+        user = UserAccount.builder()
+                .id(1L)
+                .googleEmail("player@test.com")
+                .participantName("Player 1")
+                .build();
+
+        league = League.builder()
+                .id(10L)
+                .name("Liga Fantástica")
+                .build();
+
+        edition = Edition.builder()
+                .id(100L)
+                .league(league)
+                .competition(Competition.builder().id(2L).build())
+                .status("ACTIVE")
+                .poolFormat(PoolFormat.MATCH_DAY)
+                .scoringRulesJson(ScoringRuleSet.defaults().toJson())
+                .build();
+
+        Team home = Team.builder().id(1L).name("España").build();
+        Team away = Team.builder().id(2L).name("Alemania").build();
+
+        futureMatch = Match.builder()
+                .id(101L)
+                .competition(edition.getCompetition())
+                .homeTeam(home)
+                .awayTeam(away)
+                .matchDate(Instant.now().plus(2, ChronoUnit.DAYS))
+                .finished(false)
+                .round("Jornada 1")
+                .build();
+
+        pastMatch = Match.builder()
+                .id(102L)
+                .competition(edition.getCompetition())
+                .homeTeam(home)
+                .awayTeam(away)
+                .matchDate(Instant.now().minus(1, ChronoUnit.HOURS))
+                .finished(false)
+                .round("Jornada 1")
+                .build();
+
+        finishedMatch = Match.builder()
+                .id(103L)
+                .competition(edition.getCompetition())
+                .homeTeam(home)
+                .awayTeam(away)
+                .matchDate(Instant.now().minus(1, ChronoUnit.DAYS))
+                .finished(true)
+                .homeScore(2)
+                .awayScore(1)
+                .round("Jornada 1")
+                .build();
+
+        lenient().when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        lenient().when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(true);
+    }
+
+    @Test
+    @DisplayName("getMatchdayFixtures marca como bloqueados los partidos pasados o finalizados y abiertos los futuros")
+    void getMatchdayFixtures_MarksLockStatusesCorrectly() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch, pastMatch, finishedMatch));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.empty());
+
+        List<MatchdayFixturePredictionDTO> fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null);
+
+        assertEquals(3, fixtures.size());
+
+        MatchdayFixturePredictionDTO futDto = fixtures.stream().filter(f -> f.getMatchId().equals(101L)).findFirst().orElseThrow();
+        assertFalse(futDto.isLocked(), "El partido futuro debe estar abierto para pronósticos");
+
+        MatchdayFixturePredictionDTO pastDto = fixtures.stream().filter(f -> f.getMatchId().equals(102L)).findFirst().orElseThrow();
+        assertTrue(pastDto.isLocked(), "El partido cuya hora ya pasó debe estar bloqueado");
+
+        MatchdayFixturePredictionDTO finDto = fixtures.stream().filter(f -> f.getMatchId().equals(103L)).findFirst().orElseThrow();
+        assertTrue(finDto.isLocked(), "El partido finalizado debe estar bloqueado");
+    }
+
+    @Test
+    @DisplayName("saveMatchdayPredictions guarda pronósticos válidos para partidos futuros")
+    void saveMatchdayPredictions_SuccessForFutureMatches() {
+        when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+
+        Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
+
+        MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
+                .matchId(101L)
+                .homeScore(2)
+                .awayScore(1)
+                .sign("1")
+                .build();
+
+        int saved = matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item));
+
+        assertEquals(1, saved);
+        verify(matchPredictionRepository, times(1)).save(any(MatchPrediction.class));
+    }
+
+    @Test
+    @DisplayName("saveMatchdayPredictions rechaza modificar un partido que ya ha comenzado")
+    void saveMatchdayPredictions_ThrowsExceptionIfMatchAlreadyStarted() {
+        when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+
+        Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
+        when(matchRepository.findAllById(List.of(102L))).thenReturn(List.of(pastMatch));
+
+        MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
+                .matchId(102L)
+                .homeScore(1)
+                .awayScore(1)
+                .build();
+
+        BusinessException ex = assertThrows(BusinessException.class, () ->
+                matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
+
+        assertTrue(ex.getMessage().contains("ya ha comenzado"));
+        verify(matchPredictionRepository, never()).save(any(MatchPrediction.class));
+    }
+
+    @Test
+    @DisplayName("saveMatchdayPredictions rechaza modificar un partido finalizado")
+    void saveMatchdayPredictions_ThrowsExceptionIfMatchFinished() {
+        when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+
+        Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
+        when(matchRepository.findAllById(List.of(103L))).thenReturn(List.of(finishedMatch));
+
+        MatchPredictionItemDTO item = MatchPredictionItemDTO.builder()
+                .matchId(103L)
+                .homeScore(2)
+                .awayScore(1)
+                .build();
+
+        BusinessException ex = assertThrows(BusinessException.class, () ->
+                matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
+
+        assertTrue(ex.getMessage().contains("ya ha finalizado"));
+        verify(matchPredictionRepository, never()).save(any(MatchPrediction.class));
+    }
+
+    @Test
+    @DisplayName("saveMatchdayPredictions rechaza si el usuario no es miembro de la liga privada")
+    void saveMatchdayPredictions_ThrowsSecurityExceptionWhenNotMember() {
+        when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
+
+        MatchPredictionItemDTO item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
+
+        BusinessException ex = assertThrows(BusinessException.class, () ->
+                matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
+
+        assertTrue(ex.getMessage().contains("No perteneces a esta liga privada"));
+        verify(matchPredictionRepository, never()).save(any(MatchPrediction.class));
+    }
+
+    @Test
+    @DisplayName("evaluatePredictionsForMatch actualiza puntos correctamente con MatchScoringCalculator")
+    void evaluatePredictionsForMatch_CalculatesAndSavesPoints() {
+        MatchPrediction mp = MatchPrediction.builder()
+                .id(1L)
+                .match(finishedMatch)
+                .prediction(Prediction.builder().id(50L).edition(edition).build())
+                .homeScore(2)
+                .awayScore(1)
+                .build();
+
+        when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(mp));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(1), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(3, true, true, true, "Resultado exacto 2-1 (3 pts)"));
+
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+
+        assertEquals(3, mp.getPointsAwarded());
+        assertTrue(mp.getIsExactScore());
+        assertTrue(mp.getIsCorrectSign());
+        assertEquals("Resultado exacto 2-1 (3 pts)", mp.getScoringDetails());
+        verify(matchPredictionRepository).save(mp);
+    }
+
+    @Test
+    void evaluatesProvisionalPointsFromALiveScore() {
+        finishedMatch.setFinished(false);
+        finishedMatch.setStatus(app.porrapp.model.MatchStatusNormalized.LIVE);
+        MatchPrediction mp = MatchPrediction.builder().id(1L).match(finishedMatch)
+                .prediction(Prediction.builder().id(50L).edition(edition).build())
+                .homeScore(2).awayScore(1).build();
+        when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(mp));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(1), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(3, true, true, true, "Acierto de signo 1X2"));
+
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+
+        assertEquals(3, mp.getPointsAwarded());
+        verify(matchPredictionRepository).save(mp);
+    }
+
+    @Test
+    @DisplayName("Si se corrige el marcador final, los puntos del pronóstico se recalculan")
+    void evaluatePredictionsForMatch_ReplacesPointsAfterACorrection() {
+        Prediction prediction = Prediction.builder().id(50L).edition(edition).scoreCalculatedAt(Instant.now()).build();
+        MatchPrediction mp = MatchPrediction.builder().id(1L).match(finishedMatch).prediction(prediction)
+                .homeScore(2).awayScore(1).build();
+        when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(mp));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(1), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(3, true, true, true, "Resultado exacto 2-1 (3 pts)"));
+        when(matchScoringCalculator.calculate(eq(2), eq(1), eq(2), eq(2), any(ScoringRuleSet.class)))
+                .thenReturn(new MatchScoreResult(0, false, false, false, "Fallo (0 pts)"));
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+        prediction.setScoreCalculatedAt(Instant.now());
+
+        finishedMatch.setAwayScore(2);
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+
+        assertEquals(0, mp.getPointsAwarded());
+        assertFalse(mp.getIsExactScore());
+        assertNull(prediction.getScoreCalculatedAt(), "la porra tiene que recalcular su total");
+    }
+
+    @Test
+    void hasUnscoredPredictionsAsksForPredictionsWithoutPoints() {
+        when(matchPredictionRepository.existsByMatchIdAndPointsAwardedIsNull(103L)).thenReturn(true);
+
+        assertTrue(matchPredictionService.hasUnscoredPredictions(103L));
+        assertFalse(matchPredictionService.hasUnscoredPredictions(null));
+    }
+
+    @Test
+    @DisplayName("getMatchdayFixtures filtra correctamente por 'Grupo A' cuando el partido tiene groupName 'A'")
+    void getMatchdayFixtures_FiltersByRoundGroup() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        Match groupAMatch = Match.builder().id(201L).groupName("A").finished(false).matchDate(Instant.now().plus(1, ChronoUnit.DAYS)).build();
+        Match groupBMatch = Match.builder().id(202L).groupName("B").finished(false).matchDate(Instant.now().plus(1, ChronoUnit.DAYS)).build();
+        when(matchRepository.findRoundCandidates(eq(2L), eq(List.of("grupo a", "a")), any(), any(), eq(false)))
+                .thenReturn(List.of(groupAMatch, groupBMatch));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.empty());
+
+        List<MatchdayFixturePredictionDTO> fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, "Grupo A");
+
+        assertEquals(1, fixtures.size());
+        assertEquals(201L, fixtures.get(0).getMatchId());
+        verify(matchRepository, never()).findByCompetitionIdOrderByMatchDateAsc(any());
+    }
+
+    @Test
+    void rejectsMatchesFromAnotherCompetition() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L))
+                .thenReturn(Optional.of(Prediction.builder().id(50L).edition(edition).build()));
+        futureMatch.setCompetition(Competition.builder().id(999L).build());
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
+
+        var item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(2).awayScore(1).build();
+        var error = assertThrows(BusinessException.class, () ->
+                matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item)));
+        assertTrue(error.getMessage().contains("no pertenece"));
+        verify(matchPredictionRepository, never()).save(any());
+    }
+
+    @Test
+    void groupsUnknownRoundsByDateAndAllowsFilteringThatDate() {
+        futureMatch.setRound("group");
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        String dateRound = "Fecha " + AppTime.day(futureMatch.getMatchDate());
+        Instant day = AppTime.startOfDay(AppTime.day(futureMatch.getMatchDate()));
+        when(matchRepository.findRoundCandidates(2L, List.of(dateRound.toLowerCase()), day,
+                AppTime.startOfDay(AppTime.day(futureMatch.getMatchDate()).plusDays(1)), false))
+                .thenReturn(List.of(futureMatch, pastMatch));
+
+        var fixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, dateRound);
+        assertEquals(1, fixtures.size());
+        assertEquals(dateRound, fixtures.getFirst().getRound());
+    }
+
+    @Test
+    void cancelledAndLiveMatchesCannotBeEditedEvenWithFutureKickoff() {
+        futureMatch.setStatus(MatchStatusNormalized.CANCELLED);
+        pastMatch.setMatchDate(Instant.now().plus(1, ChronoUnit.HOURS));
+        pastMatch.setStatus(MatchStatusNormalized.LIVE);
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch, pastMatch));
+        assertTrue(matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null).stream()
+                .allMatch(MatchdayFixturePredictionDTO::isLocked));
+    }
+
+    @Test
+    void doesNotAwardPointsForScheduledZeroZeroAndDerivesSignFromScore() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L))
+                .thenReturn(Optional.of(Prediction.builder().id(50L).edition(edition).build()));
+        futureMatch.setHomeScore(0);
+        futureMatch.setAwayScore(0);
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
+        var item = MatchPredictionItemDTO.builder().matchId(101L).homeScore(0).awayScore(0).sign("1").build();
+        matchPredictionService.saveMatchdayPredictions("player@test.com", 10L, List.of(item));
+
+        var saved = org.mockito.ArgumentCaptor.forClass(MatchPrediction.class);
+        verify(matchPredictionRepository).save(saved.capture());
+        assertEquals("X", saved.getValue().getPredictionSign());
+        assertNull(saved.getValue().getPointsAwarded());
+        verifyNoInteractions(matchScoringCalculator);
+    }
+
+    @Test
+    void evaluatesSignOnlyPredictionsWhenMatchFinishes() {
+        var prediction = MatchPrediction.builder().match(finishedMatch).predictionSign("1")
+                .prediction(Prediction.builder().edition(edition).build()).build();
+        when(matchPredictionRepository.findByMatchId(103L)).thenReturn(List.of(prediction));
+        when(matchScoringCalculator.calculateSign(eq("1"), eq(2), eq(1), any()))
+                .thenReturn(new MatchScoreResult(1, false, true, false, "Signo correcto"));
+        matchPredictionService.evaluatePredictionsForMatch(finishedMatch);
+        assertEquals(1, prediction.getPointsAwarded());
+        assertFalse(prediction.getIsExactScore());
+    }
+
+    @Test
+    @DisplayName("rescoreEdition vuelve a puntuar los partidos terminados con las reglas nuevas de la edición")
+    void rescoreEdition_AppliesTheNewRulesToFinishedMatches() {
+        // Calculador real: lo que se comprueba son los puntos que salen de las reglas de la liga.
+        MatchPredictionService service = new MatchPredictionService(matchRepository, matchPredictionRepository,
+                predictionRepository, userAccountRepository, editionRepository, membershipRepository,
+                new MatchScoringCalculator(), scoreInvalidationService, null, null);
+        edition.setScoringRulesJson(ScoringRuleSet.builder()
+                .exactScorePoints(10).correctSignPoints(2).goalDiffBonusPoints(0).build().toJson());
+        Prediction prediction = Prediction.builder().id(50L).edition(edition).build();
+        MatchPrediction exact = MatchPrediction.builder().id(1L).prediction(prediction).match(finishedMatch)
+                .homeScore(2).awayScore(1).pointsAwarded(5).build();
+        MatchPrediction sameGoalDiff = MatchPrediction.builder().id(2L).prediction(prediction).match(finishedMatch)
+                .homeScore(3).awayScore(2).pointsAwarded(4).build();
+        MatchPrediction signOnly = MatchPrediction.builder().id(3L).prediction(prediction).match(finishedMatch)
+                .predictionSign("1").pointsAwarded(3).build();
+        MatchPrediction notPlayed = MatchPrediction.builder().id(4L).prediction(prediction).match(futureMatch)
+                .homeScore(1).awayScore(0).build();
+        when(matchPredictionRepository.findWithMatchByPredictionEditionId(100L))
+                .thenReturn(List.of(exact, sameGoalDiff, signOnly, notPlayed));
+
+        int rescored = service.rescoreEdition(edition);
+
+        assertEquals(3, rescored);
+        assertEquals(2, exact.getPointsAwarded(), "el marcador exacto solo suma el signo durante la pausa");
+        assertTrue(exact.getIsExactScore());
+        assertEquals(2, sameGoalDiff.getPointsAwarded(), "sin bonus por diferencia de goles en esta liga");
+        assertEquals(2, signOnly.getPointsAwarded());
+        assertNull(notPlayed.getPointsAwarded(), "un partido por jugar sigue sin puntos");
+        verify(matchPredictionRepository).saveAll(List.of(exact, sameGoalDiff, signOnly));
+    }
+
+    @Test
+    void rescoreEditionIgnoresAnUnsavedEdition() {
+        assertEquals(0, matchPredictionService.rescoreEdition(null));
+        assertEquals(0, matchPredictionService.rescoreEdition(Edition.builder().build()));
+        verifyNoInteractions(matchPredictionRepository);
+    }
+
+    @Test
+    @DisplayName("getMatchdayFixtures enseña los partidos de una liga pública a quien no es miembro, como al guardar")
+    void getMatchdayFixtures_PublicLeagueIsOpenToNonMembers() {
+        league.setPublicLeague(true);
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("visita@test.com", 10L)).thenReturn(Optional.empty());
+
+        assertEquals(1, matchPredictionService.getMatchdayFixtures("visita@test.com", 10L, null).size());
+        verify(membershipRepository, never()).existsById(any());
+    }
+
+    @Test
+    @DisplayName("getMatchdayFixtures rechaza a quien no es miembro de una liga privada")
+    void getMatchdayFixtures_PrivateLeagueRejectsNonMembers() {
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(membershipRepository.existsById(any(Membership.MembershipId.class))).thenReturn(false);
+
+        assertThrows(BusinessException.class,
+                () -> matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null));
+    }
+
+    @Test
+    @DisplayName("getMatchdayFixtures retorna lista vacía cuando la liga no es modalidad MATCH_DAY")
+    void getMatchdayFixtures_ReturnsEmptyList_WhenNotMatchDay() {
+        Edition bracketEdition = Edition.builder()
+                .id(101L)
+                .league(league)
+                .status("ACTIVE")
+                .poolFormat(PoolFormat.FULL_BRACKET)
+                .build();
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(bracketEdition));
+        List<MatchdayFixturePredictionDTO> bracketFixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null);
+        assertTrue(bracketFixtures.isEmpty(), "Un torneo FULL_BRACKET no debe devolver partidos de jornada");
+
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.empty());
+        List<MatchdayFixturePredictionDTO> noEditionFixtures = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null);
+        assertTrue(noEditionFixtures.isEmpty(), "Una liga sin edición activa no debe devolver partidos de jornada");
+    }
+
+    @Test
+    void friendPredictionsQueryIsScopedToTheLeagueAndKeepsUnpredictedMembers() {
+        when(matchRepository.findById(101L)).thenReturn(Optional.of(futureMatch));
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        when(userAccountRepository.findByGoogleEmail("player@test.com")).thenReturn(Optional.of(user));
+        when(membershipRepository.existsById(new Membership.MembershipId(1L, 10L))).thenReturn(true);
+        var friend = UserAccount.builder().id(2L).participantName("Friend").build();
+        when(membershipRepository.findByLeagueId(10L)).thenReturn(List.of(
+                Membership.builder().user(user).build(), Membership.builder().user(friend).build()));
+        var prediction = MatchPrediction.builder().match(futureMatch).homeScore(2).awayScore(1)
+                .prediction(Prediction.builder().user(user).edition(edition).build()).build();
+        when(matchPredictionRepository.findFriendsByMatchAndLeague(101L, 10L)).thenReturn(List.of(prediction));
+        var result = matchPredictionService.getFriendPredictionsForMatch("player@test.com", 10L, 101L);
+        assertEquals(2, result.size());
+        assertEquals(2, result.get(0).getHomeScore());
+        assertFalse(result.get(1).isHasPredicted());
+        verify(matchPredictionRepository, never()).findByMatchId(any());
+    }
+
+    @Test
+    @DisplayName("En la NFL se predice el ganador: la X (o un marcador empatado) se rechaza y el partido lleva su deporte")
+    void nflMatchesDoNotAcceptADraw() {
+        Competition nfl = Competition.builder().id(2L).externalId("nfl").build();
+        edition.setCompetition(nfl);
+        futureMatch.setCompetition(nfl);
+        futureMatch.setRound("Semana 10");
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
+        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch));
+
+        BusinessException draw = assertThrows(BusinessException.class, () -> matchPredictionService.saveMatchdayPredictions(
+                "player@test.com", 10L, List.of(MatchPredictionItemDTO.builder().matchId(101L).sign("X").build())));
+        assertTrue(draw.getMessage().contains("no hay empate"));
+        assertThrows(BusinessException.class, () -> matchPredictionService.saveMatchdayPredictions("player@test.com", 10L,
+                List.of(MatchPredictionItemDTO.builder().matchId(101L).homeScore(20).awayScore(20).build())));
+
+        assertEquals(1, matchPredictionService.saveMatchdayPredictions("player@test.com", 10L,
+                List.of(MatchPredictionItemDTO.builder().matchId(101L).sign("2").build())));
+        assertEquals("AMERICAN_FOOTBALL",
+                matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null).get(0).getSport());
+    }
+    @Test
+    @DisplayName("Un partido con un rival por definir está cerrado hasta conocer los dos equipos y se abre al rellenarlos")
+    void matchesAwaitingATeamStayLockedUntilBothAreKnown() {
+        Competition lol = Competition.builder().id(2L).externalId("lol.worlds").build();
+        edition.setCompetition(lol);
+        futureMatch.setCompetition(lol);
+        futureMatch.setRound("final");
+        futureMatch.setAwayTeam(Team.builder().id(9L).name(Team.PLACEHOLDER_NAME).build());
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE")).thenReturn(Optional.of(edition));
+        Prediction userPred = Prediction.builder().id(50L).user(user).edition(edition).name("Porra").build();
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("player@test.com", 10L)).thenReturn(Optional.of(userPred));
+        when(matchRepository.findAllById(List.of(101L))).thenReturn(List.of(futureMatch));
+        when(matchRepository.findByCompetitionIdOrderByMatchDateAsc(2L)).thenReturn(List.of(futureMatch));
+
+        MatchdayFixturePredictionDTO tbd = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null).get(0);
+        assertTrue(tbd.isLocked());
+        assertTrue(tbd.isAwaitingTeams());
+        assertEquals("Se abre cuando se conozcan los dos equipos", tbd.getLockReason());
+        BusinessException rejected = assertThrows(BusinessException.class, () -> matchPredictionService.saveMatchdayPredictions(
+                "player@test.com", 10L, List.of(MatchPredictionItemDTO.builder().matchId(101L).sign("1").build())));
+        assertTrue(rejected.getMessage().contains("Se abre cuando se conozcan los dos equipos"));
+        verify(matchPredictionRepository, never()).save(any(MatchPrediction.class));
+
+        // La sincronización rellena el rival: el partido se abre sin hacer nada más.
+        futureMatch.setAwayTeam(Team.builder().id(2L).name("T1").build());
+        MatchdayFixturePredictionDTO known = matchPredictionService.getMatchdayFixtures("player@test.com", 10L, null).get(0);
+        assertFalse(known.isLocked());
+        assertFalse(known.isAwaitingTeams());
+        assertEquals(1, matchPredictionService.saveMatchdayPredictions("player@test.com", 10L,
+                List.of(MatchPredictionItemDTO.builder().matchId(101L).sign("1").build())));
+    }
+
+    @Test
+    @DisplayName("En tenis y UFC el motivo habla de jugadores y luchadores")
+    void awaitingReasonNamesPlayersOrFighters() {
+        Match tennis = Match.builder().competition(Competition.builder().externalId("tennis.atp.australian-open").build()).build();
+        Match ufc = Match.builder().competition(Competition.builder().externalId("mma.ufc").build()).build();
+        assertTrue(MatchdayLock.awaitingTeams(tennis), "Sin jugadores todavía");
+        assertEquals("Se abre cuando se conozcan los dos jugadores", MatchdayLock.awaitingTeamsReason(tennis));
+        assertEquals("Se abre cuando se conozcan los dos luchadores", MatchdayLock.awaitingTeamsReason(ufc));
+    }
+
+    @Test
+    @DisplayName("La jornada en curso es la primera con algo por jugar; un aplazado no cuenta y, jugado todo, es la última")
+    void currentRoundIsTheFirstWithSomethingLeftToPlay() {
+        Instant now = Instant.now();
+        Match played = roundMatch(1L, "Jornada 1", now.minusSeconds(7 * 86_400), true, MatchStatusNormalized.FINISHED);
+        Match postponed = roundMatch(2L, "Jornada 1", now.plusSeconds(30 * 86_400), false, MatchStatusNormalized.POSTPONED);
+        Match alreadyPlayed = roundMatch(3L, "Jornada 2", now.minusSeconds(3_600), true, MatchStatusNormalized.FINISHED);
+        Match next = roundMatch(4L, "Jornada 2", now.plusSeconds(86_400), false, MatchStatusNormalized.SCHEDULED);
+        Match later = roundMatch(5L, "Jornada 3", now.plusSeconds(8 * 86_400), false, MatchStatusNormalized.SCHEDULED);
+
+        // La jornada llega entera, también con su partido ya jugado.
+        assertEquals(List.of(alreadyPlayed, next),
+                MatchPredictionService.currentRound(null, List.of(later, next, postponed, played, alreadyPlayed)));
+        assertEquals(List.of(alreadyPlayed), MatchPredictionService.currentRound(null, List.of(played, alreadyPlayed)));
+        assertEquals(List.of(), MatchPredictionService.currentRound(null, List.of()));
+    }
+
+    private static Match roundMatch(Long id, String round, Instant date, boolean finished, MatchStatusNormalized status) {
+        return Match.builder().id(id).round(round).matchDate(date).finished(finished).status(status).build();
+    }
+}

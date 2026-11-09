@@ -1,0 +1,84 @@
+package app.porrapp.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.Instant;
+
+/** Partido real; se sincroniza con el proveedor deportivo para tener los resultados en directo. */
+@Entity
+@Table(name = "matches")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Match {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /** Equipo que juega como local (Conectado a la tabla de Equipos). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "home_team_id")
+    private Team homeTeam;
+
+    /** Equipo que juega como visitante (Conectado a la tabla de Equipos). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "away_team_id")
+    private Team awayTeam;
+
+    /** Ganador oficial del partido (útil para desempatar penaltis en eliminatorias). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "winner_team_id")
+    private Team winnerTeam;
+
+    /** Competición a la que pertenece este partido (ej. Mundial 2026, Euro 2024). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "competition_id")
+    private Competition competition;
+
+    /** Goles que ha marcado el local. Si es 'null', el partido aún no se ha jugado. */
+    private Integer homeScore;
+    
+    private Integer awayScore;
+
+    /** Serie al mejor de N partidas (LoL: 1, 3 o 5); null si el deporte no se juega por series. */
+    @Column(name = "best_of")
+    private Integer bestOf;
+
+    /** Fecha y hora del partido ajustada al horario configurado en el servidor. */
+    private Instant matchDate; 
+
+    /** ¿Ya ha pitado el árbitro el final del partido (Full Time / FT)? */
+    @Builder.Default
+    private Boolean finished = false;
+
+    /** La letra del grupo (Ej: "A", "B"). Si es una final o eliminatoria, esto estará vacío. */
+    @Column(name = "group_name", length = 50)
+    private String groupName;
+
+    /** En qué fase del torneo estamos: "group" (grupos), "r16" (octavos), "final", etc. */
+    @Builder.Default
+    private String round = "group"; 
+
+    /** El ID que usa la API externa oficial para no crear duplicados al sincronizar (único desde V44). */
+    @Column(unique = true)
+    private String externalId;
+
+    /** El minuto actual del partido si está en directo (ej. "45'", "HT", "FT"). */
+    private String displayClock;
+
+    /** Estado canónico normalizado del partido (ej. SCHEDULED, LIVE, FINISHED, POSTPONED). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 30)
+    @Builder.Default
+    private MatchStatusNormalized status = MatchStatusNormalized.SCHEDULED;
+
+    /** Puntos Fair Play del equipo local en este partido (tarjetas). */
+    @Column(name = "home_fair_play")
+    @Builder.Default
+    private Integer homeFairPlay = 0;
+
+    /** Puntos Fair Play del equipo visitante en este partido (tarjetas). */
+    @Column(name = "away_fair_play")
+    @Builder.Default
+    private Integer awayFairPlay = 0;
+}

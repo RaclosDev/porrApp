@@ -171,6 +171,7 @@ describe('NotificationBell', () => {
       publicKey: 'KEY',
       remindersEnabled: true,
       memberJoinedEnabled: true,
+      matchdayFinishedEnabled: true,
     });
   });
 
@@ -190,6 +191,7 @@ describe('NotificationBell', () => {
       publicKey: 'KEY',
       remindersEnabled: false,
       memberJoinedEnabled: false,
+      matchdayFinishedEnabled: false,
     });
     vi.mocked(push.bellAction).mockReturnValue('enable');
     vi.mocked(push.enablePush).mockResolvedValue(true);
@@ -201,6 +203,7 @@ describe('NotificationBell', () => {
       expect(setPushPreferences).toHaveBeenCalledWith({
         remindersEnabled: true,
         memberJoinedEnabled: true,
+        matchdayFinishedEnabled: true,
       }),
     );
   });
@@ -278,6 +281,7 @@ describe('NotificationBell', () => {
       publicKey: null,
       remindersEnabled: true,
       memberJoinedEnabled: true,
+      matchdayFinishedEnabled: true,
     });
     wrap(<NotificationBell onOpenSettings={onOpenSettings} />);
     await waitFor(() => expect(fetchPushConfig).toHaveBeenCalledTimes(2));
