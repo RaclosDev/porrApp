@@ -185,6 +185,43 @@ class WebSocketServiceTest {
     }
 
     @Test
+    @DisplayName("Un cambio de resultados de una competición borra solo sus entradas y avisa con su id")
+    void scopedResultsChangeOnlyTouchesThatCompetition() throws Exception {
+        org.springframework.cache.concurrent.ConcurrentMapCacheManager scoped =
+                new org.springframework.cache.concurrent.ConcurrentMapCacheManager();
+        WebSocketService scopedService = new WebSocketService(scoped, new ObjectMapper(),
+                id -> WebSocketService.Audience.EVERYONE);
+        for (String cache : java.util.List.of("matchRadar", "competitionStandings", "leaderboard")) {
+            scoped.getCache(cache).put(5L, "cambia");
+            scoped.getCache(cache).put(8L, "no cambia");
+        }
+        WebSocketSession session = org.mockito.Mockito.mock(WebSocketSession.class);
+        org.mockito.Mockito.when(session.getId()).thenReturn("scoped");
+        org.mockito.Mockito.when(session.isOpen()).thenReturn(true);
+        scopedService.addSession(session);
+
+        scopedService.notifyResultsChanged(java.util.List.of(5L));
+        scopedService.notifyClockChanged(java.util.List.of(8L));
+        scopedService.notifyResultsChanged(java.util.List.of());
+
+        org.junit.jupiter.api.Assertions.assertNull(scoped.getCache("matchRadar").get(5L));
+        org.junit.jupiter.api.Assertions.assertNull(scoped.getCache("competitionStandings").get(5L));
+        org.junit.jupiter.api.Assertions.assertNull(scoped.getCache("matchRadar").get(8L));
+        org.junit.jupiter.api.Assertions.assertNotNull(scoped.getCache("competitionStandings").get(8L));
+        // Las clasificaciones de liga las vacía quien llama, por liga.
+        org.junit.jupiter.api.Assertions.assertNotNull(scoped.getCache("leaderboard").get(5L));
+        org.mockito.ArgumentCaptor<org.springframework.web.socket.TextMessage> sent =
+                org.mockito.ArgumentCaptor.forClass(org.springframework.web.socket.TextMessage.class);
+        org.mockito.Mockito.verify(session, org.mockito.Mockito.times(2)).sendMessage(sent.capture());
+        java.util.List<String> payloads = sent.getAllValues().stream()
+                .map(org.springframework.web.socket.TextMessage::getPayload).toList();
+        org.junit.jupiter.api.Assertions.assertTrue(payloads.get(0).contains("\"DATA_UPDATED\"")
+                && payloads.get(0).contains("\"competitionIds\":[5]"), payloads.get(0));
+        org.junit.jupiter.api.Assertions.assertTrue(payloads.get(1).contains("\"CLOCK_UPDATED\"")
+                && payloads.get(1).contains("\"competitionIds\":[8]"), payloads.get(1));
+    }
+
+    @Test
     @DisplayName("Un cambio de perfil borra las clasificaciones y las ligas de todos")
     void profileChangeClearsEveryLeague() {
         var caches = new ConcurrentMapCacheManager();

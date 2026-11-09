@@ -79,6 +79,35 @@ const isMyLeague = (queryClient: QueryClient, leagueId: string | number) =>
         Array.isArray(groups) && groups.some((group) => String(group?.id) === String(leagueId)),
     );
 
+/** Competiciones de las ligas que este cliente tiene cargadas: las suyas y la que esté viendo. */
+const followedCompetitionIds = (queryClient: QueryClient) => {
+  const ids = new Set<number>();
+  const add = (group: Group | null | undefined) => {
+    if (!group || typeof group !== 'object') return;
+    if (group.competitionId != null) ids.add(Number(group.competitionId));
+    group.competitions?.forEach((competition) => ids.add(Number(competition.id)));
+  };
+  queryClient.getQueriesData<Group[]>({ queryKey: queryKeys.myGroups() }).forEach(([, groups]) => {
+    if (Array.isArray(groups)) groups.forEach(add);
+  });
+  queryClient.getQueriesData<Group>({ queryKey: queryKeys.group() }).forEach(([, group]) => {
+    if (!Array.isArray(group)) add(group);
+  });
+  return ids;
+};
+
+/**
+ * Competiciones de un aviso que este cliente no sigue en ninguna liga, o `null` si el aviso le toca.
+ * Un aviso sin competiciones es general, y sin ligas cargadas no se puede saber: los dos se dan por propios.
+ */
+const foreignCompetitions = (queryClient: QueryClient, competitionIds: unknown) => {
+  if (!Array.isArray(competitionIds) || competitionIds.length === 0) return null;
+  const ids = competitionIds.map(Number);
+  const followed = followedCompetitionIds(queryClient);
+  if (followed.size === 0 || ids.some((id) => followed.has(id))) return null;
+  return ids;
+};
+
 const invalidateAll = (queryClient: QueryClient, keys: readonly (readonly unknown[])[]) => {
   keys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
 };
@@ -143,9 +172,25 @@ export function useWebSocket(queryClient: QueryClient) {
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === 'DATA_UPDATED') {
-            queueInvalidations(DATA_DEPENDENT_KEYS);
+            // El resultado de una competición que no juega ninguna de mis ligas no cambia nada de
+            // lo mío: solo se refrescan las vistas de esa competición, si alguna está en pantalla.
+            const foreign = foreignCompetitions(queryClient, msg.competitionIds);
+            queueInvalidations(
+              foreign
+                ? foreign.flatMap((id) => [
+                    queryKeys.matches(id),
+                    queryKeys.radar(id),
+                    queryKeys.competitionStandings(id),
+                  ])
+                : DATA_DEPENDENT_KEYS,
+            );
           } else if (msg.type === 'CLOCK_UPDATED') {
-            queueInvalidations(CLOCK_KEYS);
+            const foreign = foreignCompetitions(queryClient, msg.competitionIds);
+            queueInvalidations(
+              foreign
+                ? foreign.flatMap((id) => [queryKeys.matches(id), queryKeys.radar(id)])
+                : CLOCK_KEYS,
+            );
           } else if (msg.type === 'LEAGUE_UPDATED') {
             if (msg.leagueId != null) {
               queueInvalidations(leagueKeys(msg.leagueId, isMyLeague(queryClient, msg.leagueId)));

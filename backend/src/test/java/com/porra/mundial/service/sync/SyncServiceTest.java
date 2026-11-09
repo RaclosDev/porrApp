@@ -55,6 +55,7 @@ class SyncServiceTest {
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Mock private CompetitionRepository competitionRepository;
+    @Mock private com.porra.mundial.repository.EditionRepository editionRepository;
     @Mock private SportsDataProviderRegistry sportsDataProviderRegistry;
     @Mock private MatchEventProcessor matchEventProcessor;
     @Mock private KnockoutBracketService knockoutBracketService;
@@ -90,6 +91,8 @@ class SyncServiceTest {
                 scoreInvalidationService, transactionManager, topScorerService, customLockService, syncLock,
                 officialMatchdayService, formulaOneSyncService);
         when(competitionRepository.findAll()).thenReturn(List.of(worldCup));
+        // Las competiciones de estos tests tienen todas alguna liga activa, salvo que el test diga otra cosa.
+        when(editionRepository.findCompetitionIdsInUse()).thenReturn(List.of(2L, 5L, 19L));
         when(competitionRepository.findById(5L)).thenReturn(Optional.of(laLiga));
         when(sportsDataProviderRegistry.findProviderForCompetition(anyString())).thenReturn(java.util.Optional.of(provider));
         when(provider.getProviderName()).thenReturn("ESPN");
@@ -130,6 +133,32 @@ class SyncServiceTest {
         verify(provider, never()).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
         verify(knockoutBracketService, never()).worldCupMatches();
         assertEquals(SyncService.STATUS_SUCCESS, syncService.getLastSyncStatus());
+    }
+
+    @Test
+    @DisplayName("La pasada completa solo pide las competiciones que juega alguna liga activa")
+    void fullSyncSkipsCompetitionsNobodyPlays() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(worldCup, laLiga));
+        when(editionRepository.findCompetitionIdsInUse()).thenReturn(List.of(5L));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
+
+        syncService.syncAll();
+
+        verify(provider, never()).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
+        verify(provider, org.mockito.Mockito.atLeastOnce()).fetchScoreboardEvents(eq("esp.1"), anyString());
+        assertEquals(SyncService.STATUS_SUCCESS, syncService.getLastSyncStatus());
+    }
+
+    @Test
+    @DisplayName("La pasada en directo no pide los partidos en juego de una competición sin ligas")
+    void liveSyncSkipsCompetitionsNobodyPlays() {
+        when(matchRepository.findCompetitionIdsWithOpenMatchesBetween(any(), any())).thenReturn(List.of(5L));
+        when(editionRepository.findCompetitionIdsInUse()).thenReturn(List.of(2L));
+
+        syncService.syncLive();
+
+        verifyNoInteractions(provider);
+        verify(competitionRepository, never()).findAllById(any());
     }
 
     @Test
@@ -304,6 +333,25 @@ class SyncServiceTest {
         verify(topScorerService, times(1)).refresh();
         assertEquals(2, syncService.getLastMatchesUpdated());
         assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
+    @DisplayName("El cambio de una liga avisa solo de su competición y vacía solo las clasificaciones de sus ligas")
+    void aLeagueChangeIsAnnouncedWithItsCompetitionOnly() throws Exception {
+        when(competitionRepository.findAll()).thenReturn(List.of(worldCup, laLiga));
+        when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.readTree("[{\"id\": \"liga\"}]"));
+        when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026")).thenReturn(JSON.createArrayNode());
+        doAnswer(inv -> {
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    inv.<MatchEventProcessor.Batch>getArgument(2), "matchesUpdated", 1);
+            return null;
+        }).when(matchEventProcessor).process(argThat(e -> isEvent(e, "liga")), any(), any());
+
+        syncService.syncAll();
+
+        verify(scoreInvalidationService).evictLeaderboardsAfterCommit(java.util.Set.of(laLiga.getId()));
+        verify(webSocketService).notifyResultsChanged(java.util.Set.of(laLiga.getId()));
+        verify(webSocketService, never()).notifyResultsChanged();
     }
 
     @Test

@@ -60,6 +60,64 @@ describe('useWebSocket', () => {
     },
   );
 
+  it('DATA_UPDATED de una competición que no sigo solo refresca las vistas de esa competición', () => {
+    client.setQueryData(['myGroups', true], [{ id: 10, competitionId: 5 }]);
+    renderHook(() => useWebSocket(client));
+    send({ type: 'DATA_UPDATED', competitionIds: [8] });
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
+
+    expect(invalidated).toContainEqual(['radar', 8]);
+    expect(invalidated).toContainEqual(['matches', 8]);
+    expect(invalidated).toContainEqual(['competitionStandings', 8]);
+    expect(invalidated).not.toContainEqual(['leaderboard']);
+    expect(invalidated).not.toContainEqual(['predictions']);
+    expect(invalidated).not.toContainEqual(['radar']);
+  });
+
+  it('DATA_UPDATED de una competición de mis ligas, también de las añadidas, lo refresca todo', () => {
+    client.setQueryData(
+      ['myGroups', true],
+      [{ id: 10, competitionId: 5, competitions: [{ id: 5 }, { id: 8 }] }],
+    );
+    renderHook(() => useWebSocket(client));
+    send({ type: 'DATA_UPDATED', competitionIds: [8, 9] });
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
+
+    expect(invalidated).toContainEqual(['leaderboard']);
+    expect(invalidated).toContainEqual(['radar']);
+  });
+
+  it('DATA_UPDATED con competiciones lo refresca todo si aún no hay ligas cargadas o la liga abierta la juega', () => {
+    const { unmount } = renderHook(() => useWebSocket(client));
+    send({ type: 'DATA_UPDATED', competitionIds: [8] });
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
+    expect(invalidated).toContainEqual(['leaderboard']);
+    unmount();
+
+    invalidated.length = 0;
+    client.setQueryData(['myGroups', true], [{ id: 10, competitionId: 5 }]);
+    client.setQueryData(['group', '77'], { id: 77, competitionId: 8 });
+    renderHook(() => useWebSocket(client));
+    send({ type: 'DATA_UPDATED', competitionIds: [8] });
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
+    expect(invalidated).toContainEqual(['leaderboard']);
+  });
+
+  it('CLOCK_UPDATED de una competición que no sigo solo refresca sus partidos y su radar', () => {
+    client.setQueryData(['myGroups', true], [{ id: 10, competitionId: 5 }]);
+    renderHook(() => useWebSocket(client));
+    send({ type: 'CLOCK_UPDATED', competitionIds: [8] });
+    act(() => vi.advanceTimersByTime(FLUSH_MS));
+
+    expect(invalidated).toEqual(
+      expect.arrayContaining([
+        ['matches', 8],
+        ['radar', 8],
+      ]),
+    );
+    expect(invalidated).toHaveLength(2);
+  });
+
   it('LEAGUE_UPDATED invalida solo las consultas de esa liga', () => {
     client.setQueryData(['myGroups', true], [{ id: 10 }]);
     renderHook(() => useWebSocket(client));
