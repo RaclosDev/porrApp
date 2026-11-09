@@ -1,4 +1,5 @@
-import React, { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { lazyPage } from '../services/chunkReload';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { NoLeagueState } from '../components/NoLeagueState';
 import { BarChart3, Search, Share2 } from 'lucide-react';
@@ -15,7 +16,7 @@ import { displayRoundLabel } from '../utils/matchday';
 import type { LeagueKind } from '../context/leagueKind';
 import { LEAGUE_INSIGHTS } from '../context/leagueInsights';
 
-const EvolutionChart = React.lazy(() => import('../components/EvolutionChart'));
+const EvolutionChart = lazyPage(() => import('../components/EvolutionChart'));
 
 type RankingTab = 'table' | 'evolution';
 
@@ -51,7 +52,7 @@ const MATCHDAY_RANKING: RankingLayout = {
 };
 
 const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
-  worldCup: {
+  groupStage: {
     byRound: false,
     ownBracket: false,
     openRow: 'viewer',
@@ -108,6 +109,7 @@ function Leaderboard() {
     activeGroupName,
     activeGroupId,
     activeGroupPichichi,
+    activeGroupScorerPick,
     userId,
     userName,
     lowestPaidRank,
@@ -162,10 +164,11 @@ function Leaderboard() {
   const columns = leaderboardColumns({
     isMatchday,
     ownBracket: layout.ownBracket,
-    pichichi: activeGroupPichichi,
+    pichichi: activeGroupPichichi || activeGroupScorerPick,
     ownBracketHasGroupPoints: validResults.some((row) => (row.points.r1 ?? 0) !== 0),
     selectedMatchday,
     roundPointsColumn: layout.roundPointsColumn,
+    tournament: state.activeTournamentRounds,
   });
   const summaryMatchday = selectedMatchdayInfo || currentMatchday;
   // Clasificación de la jornada elegida en vez de la general (se activa al cambiar de jornada).
@@ -262,6 +265,7 @@ function Leaderboard() {
                 validResults={validResults}
                 userName={userName}
                 allGames={state.allGames}
+                tournament={state.activeTournamentRounds}
               />
             </Suspense>
           </div>

@@ -11,7 +11,9 @@ import {
   isNbaDraft,
   lockModesFor,
   pichichiApplies,
+  rulesSport,
   scoringEditable,
+  selectedCompetition,
 } from './leagueDraft';
 import { FieldError, OptionCard, StepSection } from './parts';
 import type { StepProps } from './useLeagueDraft';
@@ -123,7 +125,9 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
     knockoutDraw: isKnockoutDraw(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
     fights: isFightNights(draft, ctx),
     nbaSeries: isNbaDraft(draft, ctx) && draft.poolFormat === 'KNOCKOUTS_ONLY',
-    sport: draft.sport === 'OTHER' ? null : draft.sport,
+    // En una competición propia, las reglas genéricas: no las de las series del LoL o la NFL.
+    sport: rulesSport(draft),
+    tournamentRounds: selectedCompetition(draft, ctx)?.tournamentRounds,
     editable: draft.customScoring,
     maxPoints: SCORING_MAX_POINTS,
     rules: defaults,
@@ -141,7 +145,12 @@ function ScoringSection({ draft, update, errors, ctx }: StepProps) {
             checked={draft.pichichi}
             onChange={(event) => update({ pichichi: event.target.checked })}
           />
-          <span>Predecir también el pichichi</span>
+          <span>
+            Predecir también el pichichi
+            {draft.poolFormat === 'MATCH_DAY'
+              ? ' (se elige antes del primer partido y puntúa al terminar la liga)'
+              : ''}
+          </span>
         </label>
       )}
       <fieldset className="create-league-fieldset">

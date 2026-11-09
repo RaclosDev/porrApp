@@ -1,0 +1,372 @@
+package app.porrapp.sports;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.ByteArrayOutputStream;
+import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.GZIPOutputStream;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class EspnSportsDataProviderTest {
+
+    @Mock
+    private HttpClient httpClient;
+
+    @Mock
+    private HttpResponse<byte[]> httpResponse;
+
+    private ObjectMapper objectMapper;
+    private EspnSportsDataProvider provider;
+
+    @BeforeEach
+    void setUp() {
+        objectMapper = new ObjectMapper();
+        provider = new EspnSportsDataProvider(httpClient, objectMapper, CircuitBreakerRegistry.ofDefaults());
+    }
+
+    @Test
+    void fetchesAHistoricalEventByIdAndAdaptsItsVerifiedHeader() throws Exception {
+        byte[] fixture;
+        try (var input = getClass().getResourceAsStream("/espn/summary-401882926.json")) {
+            fixture = java.util.Objects.requireNonNull(input).readAllBytes();
+        }
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(fixture);
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (key, value) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode event = provider.fetchEvent("esp.1", "401882926");
+
+        assertEquals("401882926", event.path("id").asText());
+        assertEquals("2026-08-15T17:30Z", event.path("date").asText());
+        assertEquals("96", event.path("competitions").get(0).path("competitors").get(0).path("team").path("id").asText());
+        var request = org.mockito.ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/summary?event=401882926",
+                request.getValue().uri().toString());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"esp.1,other,401882926", "eng.1,401882926,401882926", "esp.1,401882926,other"})
+    void rejectsSummaryFromAnotherEventOrCompetition(String slug, String headerId, String competitionId) throws Exception {
+        String body = "{\"header\":{\"id\":\"%s\",\"league\":{\"slug\":\"%s\"},\"competitions\":[{\"id\":\"%s\"}]}}"
+                .formatted(headerId, slug, competitionId);
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(body.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (key, value) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> provider.fetchEvent("esp.1", "401882926"));
+    }
+
+    @Test
+    void providerFailurePropagatesBeforeTheBreakerOpens() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(503);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> provider.fetchScoreboardEvents("esp.1", "20261025"));
+        assertTrue(provider.isAvailable());
+    }
+
+    @Test
+    @DisplayName("Debe reportar ESPN como nombre del proveedor")
+    void getProviderName_returnsEspn() {
+        assertEquals("ESPN", provider.getProviderName());
+    }
+
+    @Test
+    @DisplayName("Reconoce las competiciones por su id de ESPN, no por su nombre ni sin id")
+    void supports_onlyKnownEspnIds() {
+        assertTrue(provider.supports("esp.1"));
+        assertTrue(provider.supports("uefa.champions"));
+        assertTrue(provider.supports("eng.1"));
+        assertTrue(provider.supports("fifa.world"));
+        assertTrue(provider.supports(" ESP.1 "));
+        assertFalse(provider.supports(null));
+        assertFalse(provider.supports(" "));
+        assertFalse(provider.supports("LaLiga EA Sports"));
+        assertFalse(provider.supports("FIFA World Cup 2026"));
+        assertFalse(provider.supports("Mundial"));
+    }
+
+    @Test
+    @DisplayName("Sin id de competición no pide a ESPN ninguna liga por defecto")
+    void fetch_withoutCompetitionFails() {
+        assertThrows(IllegalArgumentException.class, () -> provider.fetchScoreboardEvents(null, "20261024"));
+        assertThrows(IllegalArgumentException.class, () -> provider.fetchTeams(" "));
+    }
+
+    @Test
+    @DisplayName("Debe parsear correctamente el arreglo de eventos de ESPN en texto plano")
+    void fetchScoreboardEvents_parsesJsonSuccessfully() throws Exception {
+        String json = "{\"events\": [{\"id\": \"1\", \"name\": \"TeamA vs TeamB\"}]}";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode events = provider.fetchScoreboardEvents("esp.1", "20261024");
+
+        assertNotNull(events);
+        assertTrue(events.isArray());
+        assertEquals(1, events.size());
+        assertEquals("1", events.get(0).get("id").asText());
+    }
+
+    @Test
+    @DisplayName("Debe descomprimir y parsear respuesta GZIP de ESPN")
+    void fetchScoreboardEvents_decompressesGzip() throws Exception {
+        String json = "{\"events\": [{\"id\": \"99\", \"name\": \"Final Match\"}]}";
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (GZIPOutputStream gzos = new GZIPOutputStream(baos)) {
+            gzos.write(json.getBytes(StandardCharsets.UTF_8));
+        }
+        byte[] gzippedBytes = baos.toByteArray();
+
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(gzippedBytes);
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of("Content-Encoding", List.of("gzip")), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode events = provider.fetchScoreboardEvents("uefa.champions", "20261025");
+
+        assertNotNull(events);
+        assertTrue(events.isArray());
+        assertEquals(1, events.size());
+        assertEquals("99", events.get(0).get("id").asText());
+    }
+
+    @Test
+    @DisplayName("Una respuesta no JSON se comunica como fallo")
+    void fetchScoreboardEvents_handlesNonJsonResponseGracefully() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn("<html><body>Error</body></html>".getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> provider.fetchScoreboardEvents("esp.1", "20261024"));
+    }
+
+    @Test
+    @DisplayName("El catálogo de equipos trae el nombre en inglés de los partidos y el español de ESPN")
+    void fetchTeams_parsesTeamsCorrectly() throws Exception {
+        String english = """
+                {"sports": [{"leagues": [{"teams": [
+                  {"team": {"id": "660", "displayName": "United States"}},
+                  {"team": {"id": "478", "displayName": "France"}},
+                  {"team": {"id": "9999", "displayName": "Newcomers"}}]}]}]}""";
+        String spanish = """
+                {"sports": [{"leagues": [{"teams": [
+                  {"team": {"id": "478", "displayName": "Francia"}},
+                  {"team": {"id": "660", "displayName": "Estados Unidos"}}]}]}]}""";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(english.getBytes(StandardCharsets.UTF_8), spanish.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode teams = provider.fetchTeams("fifa.world");
+
+        assertEquals(3, teams.size());
+        assertEquals("United States", teams.get(0).path("team").path("displayName").asText());
+        assertEquals("Estados Unidos", teams.get(0).path("team").path(SportsDataProvider.LOCAL_NAME_FIELD).asText());
+        assertEquals("Francia", teams.get(1).path("team").path(SportsDataProvider.LOCAL_NAME_FIELD).asText());
+        assertTrue(teams.get(2).path("team").path(SportsDataProvider.LOCAL_NAME_FIELD).isMissingNode(),
+                "un equipo que ESPN no da en español se queda sin nombre local");
+        var request = org.mockito.ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient, times(2)).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/teams",
+                request.getAllValues().get(0).uri().toString());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/teams?lang=es",
+                request.getAllValues().get(1).uri().toString());
+    }
+
+    @Test
+    @DisplayName("La NFL no tiene nombres en español: su catálogo se pide una sola vez")
+    void fetchTeams_asksTheNflCatalogOnlyOnce() throws Exception {
+        String json = "{\"sports\": [{\"leagues\": [{\"teams\": [{\"team\": {\"id\": \"33\", \"displayName\": \"Baltimore Ravens\"}}]}]}]}";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode teams = provider.fetchTeams("nfl");
+
+        assertEquals("nfl:33", teams.get(0).path("team").path("id").asText());
+        assertTrue(teams.get(0).path("team").path(SportsDataProvider.LOCAL_NAME_FIELD).isMissingNode());
+        verify(httpClient, times(1)).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("Un timeout se propaga al sincronizador")
+    void fetchScoreboardEvents_handlesTimeoutGracefully() throws Exception {
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any()))
+                .thenThrow(new java.net.http.HttpConnectTimeoutException("ESPN connection timed out"));
+
+        assertThrows(java.io.IOException.class, () -> provider.fetchScoreboardEvents("esp.1", "20261025"));
+    }
+
+    @Test
+    @DisplayName("Un error HTTP 500 o 503 se comunica al sincronizador")
+    void fetchScoreboardEvents_handlesHttp500() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(503);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> provider.fetchScoreboardEvents("esp.1", "20261025"));
+    }
+
+    /** Breaker que se abre con dos fallos de dos llamadas. */
+    private EspnSportsDataProvider providerWithSensitiveBreaker() {
+        CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+                .slidingWindowSize(2)
+                .minimumNumberOfCalls(2)
+                .failureRateThreshold(50)
+                .build();
+        return new EspnSportsDataProvider(httpClient, objectMapper, CircuitBreakerRegistry.of(config));
+    }
+
+    @Test
+    @DisplayName("Tras fallos repetidos de ESPN el circuit breaker se abre y deja de llamarle")
+    void opensTheCircuitBreakerAfterRepeatedFailures() throws Exception {
+        EspnSportsDataProvider sensitive = providerWithSensitiveBreaker();
+        when(httpResponse.statusCode()).thenReturn(503);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261025"));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261026"));
+        assertThrows(io.github.resilience4j.circuitbreaker.CallNotPermittedException.class,
+                () -> sensitive.fetchScoreboardEvents("esp.1", "20261027"));
+
+        assertFalse(sensitive.isAvailable());
+        verify(httpClient, times(2)).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("Un 404 de ESPN no cuenta como caída del proveedor")
+    void clientErrorsDoNotOpenTheCircuitBreaker() throws Exception {
+        EspnSportsDataProvider sensitive = providerWithSensitiveBreaker();
+        when(httpResponse.statusCode()).thenReturn(404);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261025"));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261026"));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261027"));
+
+        assertTrue(sensitive.isAvailable());
+        verify(httpClient, times(3)).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("La NFL se pide a la ruta de fútbol americano y sus ids de equipo llevan el prefijo nfl:")
+    void nflUsesItsOwnSportPathAndNamespacesTeamIds() throws Exception {
+        byte[] fixture;
+        try (var input = getClass().getResourceAsStream("/espn/nfl-scoreboard.json")) {
+            fixture = java.util.Objects.requireNonNull(input).readAllBytes();
+        }
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(fixture);
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertTrue(provider.supports("nfl"));
+        JsonNode events = provider.fetchScoreboardEvents("nfl", "2026");
+        SportsDataProvider.SeasonWindow window = provider.fetchSeasonWindow("nfl");
+
+        assertEquals("nfl:33", events.get(0).path("competitions").get(0).path("competitors").get(0)
+                .path("team").path("id").asText());
+        assertEquals("2026-08-06T07:00Z", window.start());
+        var request = org.mockito.ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient, times(2)).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&limit=1000",
+                request.getAllValues().get(0).uri().toString());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+                request.getAllValues().get(1).uri().toString());
+    }
+
+    @Test
+    @DisplayName("La tabla de goleadores llega con la temporada a la que pertenece")
+    void fetchScoringLeaders_returnsTheGoalLeadersOfTheSeason() throws Exception {
+        String json = """
+                {"season": {"year": 2026},
+                 "stats": [
+                   {"name": "assistsLeaders", "leaders": [{"value": 9, "athlete": {"displayName": "Lamine Yamal"}}]},
+                   {"name": "goalsLeaders", "leaders": [
+                     {"value": 12, "athlete": {"id": "231388", "displayName": "Kylian Mbappé"}},
+                     {"value": 9, "athlete": {"id": "45843", "displayName": "Robert Lewandowski"}}]}]}""";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        SportsDataProvider.ScoringLeaders leaders = provider.fetchScoringLeaders("esp.1");
+
+        assertEquals(2026, leaders.seasonYear());
+        assertEquals(2, leaders.leaders().size());
+        assertEquals("Kylian Mbappé", leaders.leaders().get(0).path("athlete").path("displayName").asText());
+        ArgumentCaptor<HttpRequest> request = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/statistics",
+                request.getValue().uri().toString());
+    }
+
+    @Test
+    @DisplayName("Sin goleadores publicados la tabla llega vacía, y de una competición que no se sigue no se pide")
+    void fetchScoringLeaders_withoutGoalLeaders() throws Exception {
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn("{\"stats\": []}".getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        SportsDataProvider.ScoringLeaders leaders = provider.fetchScoringLeaders("esp.1");
+
+        assertNull(leaders.seasonYear());
+        assertEquals(0, leaders.leaders().size());
+        assertNull(provider.fetchScoringLeaders("xxx.1"));
+        verify(httpClient, times(1)).send(any(HttpRequest.class), any());
+    }
+
+    @Test
+    @DisplayName("La plantilla de un equipo se pide por su id numérico")
+    void fetchTeamRoster_returnsTheAthletes() throws Exception {
+        String json = "{\"athletes\": [{\"id\": \"231388\", \"displayName\": \"Kylian Mbappé\"}]}";
+        when(httpResponse.statusCode()).thenReturn(200);
+        when(httpResponse.body()).thenReturn(json.getBytes(StandardCharsets.UTF_8));
+        when(httpResponse.headers()).thenReturn(HttpHeaders.of(Map.of(), (k, v) -> true));
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        JsonNode roster = provider.fetchTeamRoster("esp.1", "86");
+
+        assertEquals(1, roster.size());
+        assertEquals("Kylian Mbappé", roster.get(0).path("displayName").asText());
+        ArgumentCaptor<HttpRequest> request = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(request.capture(), any());
+        assertEquals("https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/teams/86/roster",
+                request.getValue().uri().toString());
+        // Un id que no es un número no llega a la URL.
+        assertNull(provider.fetchTeamRoster("esp.1", "86/../../x"));
+        assertNull(provider.fetchTeamRoster("esp.1", null));
+        assertNull(provider.fetchTeamRoster("xxx.1", "86"));
+        verify(httpClient, times(1)).send(any(HttpRequest.class), any());
+    }
+}
