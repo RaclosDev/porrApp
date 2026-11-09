@@ -1,0 +1,46 @@
+/** Pichichi más elegido de la liga, en las competiciones en las que se predice. */
+import type { PredictionData } from '../types/api';
+import { percent } from './pickStats';
+
+/** Nombre de jugador comparable: sin tildes, en minúsculas y con espacios simples. */
+const normalizePlayer = (name: string) =>
+  name
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+interface ScorerPick {
+  /** La forma de escribirlo que más se repite. */
+  name: string;
+  count: number;
+  percent: number;
+}
+
+/** Pichichis más elegidos; agrupa los que solo se diferencian en tildes o mayúsculas. */
+export function rankScorers(entries: { data: PredictionData }[]): ScorerPick[] {
+  const groups = new Map<string, { count: number; spellings: Map<string, number> }>();
+  for (const entry of entries) {
+    const raw = entry.data.scorer?.trim();
+    if (!raw) continue;
+    const key = normalizePlayer(raw);
+    const group = groups.get(key) ?? { count: 0, spellings: new Map<string, number>() };
+    group.count++;
+    group.spellings.set(raw, (group.spellings.get(raw) ?? 0) + 1);
+    groups.set(key, group);
+  }
+  return [...groups.values()]
+    .map((g) => ({
+      name: [...g.spellings].sort((a, b) => b[1] - a[1])[0][0],
+      count: g.count,
+      percent: percent(g.count, entries.length),
+    }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'));
+}
+
+/** Si el pichichi elegido coincide con alguno de los reales (sin tildes ni mayúsculas). */
+export const isRealScorer = (name: string, realScorers: string[]) => {
+  const key = normalizePlayer(name);
+  return realScorers.some((s) => normalizePlayer(s) === key);
+};

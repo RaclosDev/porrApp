@@ -53,7 +53,7 @@ describe('Más elegidos de un cuadro', () => {
     expect(rows[0]).toHaveTextContent('Pasó');
     expect(rows[0]).toHaveAttribute('href', '/search?team=Inter&round=0');
     expect(within(rounds).getByRole('link', { name: /Bayern/ })).toHaveTextContent('No pasó');
-    expect(rounds).toHaveTextContent('cada predicción acertó 1,3 de 2 cruces decididos');
+    expect(rounds).toHaveTextContent('cada predicción acertó 1,3 de 2 equipos que ya han pasado');
 
     const champion = screen.getByRole('region', { name: 'Campeón más elegido' });
     expect(champion).toHaveTextContent('Campeón: Inter. Lo acertó el 33 % de la liga.');
@@ -62,6 +62,13 @@ describe('Más elegidos de un cuadro', () => {
     expect(picks[0]).toHaveTextContent('No fue campeón');
     expect(picks[0]).toHaveTextContent('Subcampeón');
     expect(picks[1]).toHaveAttribute('href', '/search?team=Inter&round=1');
+
+    const finals = screen.getByRole('region', { name: 'Finales más repetidas' });
+    expect(finals).toHaveTextContent('Final real: Madrid - Inter.');
+    const repeated = within(finals).getAllByRole('listitem');
+    expect(repeated).toHaveLength(3);
+    expect(repeated[0]).toHaveTextContent('1 de 3');
+    expect(within(finals).getByText('Fue la final')).toBeInTheDocument();
   });
 
   it('con la final aún abierta solo sale la ronda cerrada', () => {
