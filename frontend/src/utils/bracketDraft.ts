@@ -11,21 +11,6 @@ import { orderR32, legacyR32Order, topologyVersion, type TopologyVersion } from 
 /** Hueco de un cruce: nombre o equipo del cuadro, según de dónde venga. */
 type SlotLike = string | { name?: string } | null | undefined;
 
-const WORLD_CUP_2026_GROUPS = {
-  A: ['México', 'Sudáfrica', 'Corea del Sur', 'Chequia'],
-  B: ['Canadá', 'Bosnia y Her.', 'Catar', 'Suiza'],
-  C: ['Brasil', 'Marruecos', 'Haití', 'Escocia'],
-  D: ['EEUU', 'Paraguay', 'Australia', 'Turquía'],
-  E: ['Alemania', 'Curaçao', 'Costa de Marfil', 'Ecuador'],
-  F: ['Países Bajos', 'Japón', 'Suecia', 'Túnez'],
-  G: ['Bélgica', 'Egipto', 'Irán', 'Nueva Zelanda'],
-  H: ['España', 'Cabo Verde', 'Arabia Saudí', 'Uruguay'],
-  I: ['Francia', 'Senegal', 'Irak', 'Noruega'],
-  J: ['Argentina', 'Argelia', 'Austria', 'Jordania'],
-  K: ['Portugal', 'RD Congo', 'Uzbekistán', 'Colombia'],
-  L: ['Inglaterra', 'Croacia', 'Ghana', 'Panamá'],
-};
-
 /** Nombre de un equipo del cuadro; los borradores antiguos guardan el nombre como texto. */
 export const teamName = (team: BracketTeam | string | null | undefined): string | null =>
   (typeof team === 'string' ? team : team?.name) || null;
@@ -203,11 +188,6 @@ export function extractGroupsFromR32(
         }
       }
     }
-    for (const [g, teamList] of Object.entries(WORLD_CUP_2026_GROUPS)) {
-      if (teamList.some((t) => t.toLowerCase().trim() === lower)) {
-        return g;
-      }
-    }
     return null;
   };
 
@@ -260,21 +240,9 @@ export function buildR32FromGroups(
     if (groups[g]?.second) teamToGroup[groups[g].second] = g;
   });
 
-  const findGroupByTeam = (teamName: string) => {
-    if (!teamName) return null;
-    if (teamToGroup[teamName]) return teamToGroup[teamName];
-    const lower = teamName.toLowerCase().trim();
-    for (const [g, teamList] of Object.entries(WORLD_CUP_2026_GROUPS)) {
-      if (teamList.some((t) => t.toLowerCase().trim() === lower)) {
-        return g;
-      }
-    }
-    return null;
-  };
-
   const thirdObjects = advancingThirds.slice(0, 8).map((t) => ({
     team: t,
-    group: findGroupByTeam(t) || 'A',
+    group: teamToGroup[t] || 'A',
   }));
 
   const solvedMatrix = solveThirdPlaceMatrix(thirdObjects);
