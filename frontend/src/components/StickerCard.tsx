@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { animate, motion, useInView, useMotionValue, useSpring, useTransform } from 'motion/react';
 import { UserAvatar } from './Avatar';
 import { useLandingMotion } from './landing/motion';
 
@@ -25,23 +24,47 @@ interface StickerCardProps {
 }
 
 /** Los puntos suben de 0 al total la primera vez que el cromo se ve. */
+const COUNT_UP_MS = 1100;
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 4);
+
 function useCountUp(target: number, enabled: boolean) {
   const [value, setValue] = useState(enabled ? 0 : target);
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.6 });
   useEffect(() => {
     if (!enabled) {
       setValue(target);
       return;
     }
-    if (!inView) return;
-    const controls = animate(0, target, {
-      duration: 1.1,
-      ease: [0.2, 0.8, 0.2, 1],
-      onUpdate: (v) => setValue(Math.round(v)),
-    });
-    return () => controls.stop();
-  }, [enabled, inView, target]);
+    const element = ref.current;
+    if (!element) return;
+    let frame = 0;
+    const run = () => {
+      const startedAt = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / COUNT_UP_MS);
+        setValue(Math.round(target * easeOut(progress)));
+        if (progress < 1) frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    };
+    if (typeof IntersectionObserver === 'undefined') {
+      run();
+      return () => cancelAnimationFrame(frame);
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        observer.disconnect();
+        run();
+      },
+      { threshold: 0.6 },
+    );
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [enabled, target]);
   return [ref, value] as const;
 }
 
@@ -60,37 +83,33 @@ export default function StickerCard({
   children,
 }: StickerCardProps) {
   const { reduced } = useLandingMotion();
-  const pointerX = useMotionValue(0.5);
-  const pointerY = useMotionValue(0.5);
-  const rotateX = useSpring(useTransform(pointerY, [0, 1], [8, -8]), {
-    stiffness: 220,
-    damping: 20,
-  });
-  const rotateY = useSpring(useTransform(pointerX, [0, 1], [-8, 8]), {
-    stiffness: 220,
-    damping: 20,
-  });
-  const glareX = useTransform(pointerX, [0, 1], ['0%', '100%']);
   const animateCard = !reduced && !staticCard;
   const [pointsRef, shownPoints] = useCountUp(leader.total, animateCard);
 
-  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (reduced) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    pointerX.set((event.clientX - rect.left) / rect.width);
-    pointerY.set((event.clientY - rect.top) / rect.height);
+  /** El puntero (0–1 en cada eje) inclina el cromo y mueve el reflejo; el CSS suaviza el giro. */
+  const tilt = (element: HTMLElement, x: number, y: number) => {
+    element.style.setProperty('--rx', `${8 - 16 * y}deg`);
+    element.style.setProperty('--ry', `${16 * x - 8}deg`);
+    element.style.setProperty('--gx', `${x * 100}%`);
   };
-  const onPointerLeave = () => {
-    pointerX.set(0.5);
-    pointerY.set(0.5);
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!animateCard) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    tilt(
+      event.currentTarget,
+      (event.clientX - rect.left) / rect.width,
+      (event.clientY - rect.top) / rect.height,
+    );
+  };
+  const onPointerLeave = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (animateCard) tilt(event.currentTarget, 0.5, 0.5);
   };
 
   const size = compact ? (featured ? 64 : 44) : featured ? 96 : 56;
 
   return (
-    <motion.div
-      className={`sticker ${featured ? 'sticker-featured' : ''} ${className}`}
-      style={animateCard ? { rotateX, rotateY, transformPerspective: 900 } : undefined}
+    <div
+      className={`sticker ${featured ? 'sticker-featured' : ''} ${animateCard ? 'sticker-tilt' : ''} ${className}`}
       onPointerMove={staticCard ? undefined : onPointerMove}
       onPointerLeave={staticCard ? undefined : onPointerLeave}
     >
@@ -115,9 +134,7 @@ export default function StickerCard({
       </span>
       {caption ? <span className="text-sm text-[#4b5563] text-center">{caption}</span> : null}
       {children}
-      {animateCard ? (
-        <motion.span aria-hidden="true" className="sticker-glare" style={{ left: glareX }} />
-      ) : null}
-    </motion.div>
+      {animateCard ? <span aria-hidden="true" className="sticker-glare" /> : null}
+    </div>
   );
 }

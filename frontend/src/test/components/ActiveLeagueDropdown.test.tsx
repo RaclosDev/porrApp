@@ -1,6 +1,8 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import ActiveLeagueDropdown from '../../components/ActiveLeagueDropdown';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { useUnsavedChangesStore } from '../../utils/unsavedChanges';
 import { MemoryRouter } from 'react-router-dom';
 
 const mockChangeGroup = vi.fn();
@@ -42,6 +44,12 @@ vi.mock('../../context/AppContext', () => ({
 }));
 
 describe('ActiveLeagueDropdown Component', () => {
+  beforeEach(() => {
+    mockChangeGroup.mockClear();
+    mockNavigate.mockClear();
+    useUnsavedChangesStore.setState({ pending: new Map() });
+  });
+
   it('reserva el hueco mientras llegan las ligas en vez de enseñar «Crear o unirse»', () => {
     mockState.userGroupsLoaded = false;
     const { container } = render(
@@ -98,5 +106,46 @@ describe('ActiveLeagueDropdown Component', () => {
     fireEvent.click(toggle);
     fireEvent.click(screen.getByRole('button', { name: 'Unirse con código' }));
     expect(mockNavigate).toHaveBeenCalledWith('/mis-ligas?unirse');
+  });
+
+  describe('con cambios de predicción sin guardar', () => {
+    const openMenuAndPickOtherLeague = () => {
+      render(
+        <MemoryRouter>
+          <ConfirmDialog />
+          <ActiveLeagueDropdown />
+        </MemoryRouter>,
+      );
+      useUnsavedChangesStore.setState({
+        pending: new Map([[Symbol('unsaved'), 'Tu predicción tiene cambios sin guardar.']]),
+      });
+      fireEvent.click(screen.getByRole('button', { name: /Peña Madridista/i }));
+      fireEvent.click(screen.getByText('Amigos Mundial 2026'));
+    };
+
+    it('pregunta antes de cambiar de liga y «Seguir aquí» se queda en la actual', async () => {
+      openMenuAndPickOtherLeague();
+
+      const dialog = await screen.findByRole('alertdialog', { name: '¿Salir sin guardar?' });
+      expect(dialog).toHaveAccessibleDescription('Tu predicción tiene cambios sin guardar.');
+      expect(mockChangeGroup).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Seguir aquí' }));
+
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+      expect(mockChangeGroup).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(useUnsavedChangesStore.getState().pending.size).toBe(1);
+    });
+
+    it('«Salir» cambia de liga y no vuelve a preguntar al ir al inicio', async () => {
+      openMenuAndPickOtherLeague();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Salir' }));
+
+      await waitFor(() => expect(mockChangeGroup).toHaveBeenCalledWith('2'));
+      expect(mockNavigate).toHaveBeenCalledWith('/');
+      expect(useUnsavedChangesStore.getState().pending.size).toBe(0);
+    });
   });
 });
