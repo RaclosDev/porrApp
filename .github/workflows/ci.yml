@@ -42,6 +42,12 @@ jobs:
         # shell: bash activa pipefail; sin él un fallo del script quedaría oculto tras el tee.
         shell: bash
         run: bash .github/scripts/detect-changes.sh | tee -a "$GITHUB_OUTPUT"
+      - name: Check Flyway migration numbering
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash .github/scripts/check-migrations.sh
 
   frontend-check:
     needs: changes
