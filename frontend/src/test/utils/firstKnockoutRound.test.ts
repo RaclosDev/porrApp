@@ -7,6 +7,7 @@ import {
   isThirdSlot,
   slotLabel,
 } from '../../utils/firstKnockoutRound';
+import { THIRD_PLACE_RULES } from '../../utils/matrix';
 
 describe('cruces de la primera ronda eliminatoria', () => {
   it('escribe cada hueco como lo ve el usuario', () => {
@@ -15,6 +16,27 @@ describe('cruces de la primera ronda eliminatoria', () => {
     expect(slotLabel('3ABCDF')).toBe('3º A/B/C/D/F');
     expect(isThirdSlot('3ABCDF')).toBe(true);
     expect(groupSpot('2L')).toEqual({ position: 'second', group: 'L' });
+  });
+
+  it('los huecos de los terceros salen de los cruces, en el orden de siempre', () => {
+    expect(THIRD_PLACE_RULES).toHaveLength(8);
+    expect(THIRD_PLACE_RULES[0]).toEqual({
+      side: 'left',
+      matchIndex: 0,
+      isHome: false,
+      allowed: ['A', 'B', 'C', 'D', 'F'],
+    });
+    expect(THIRD_PLACE_RULES.map((rule) => `${rule.side}${rule.matchIndex}`)).toEqual([
+      'left0',
+      'left1',
+      'left6',
+      'left7',
+      'right2',
+      'right3',
+      'right6',
+      'right7',
+    ]);
+    expect(THIRD_PLACE_RULES[7].allowed).toEqual(['D', 'E', 'I', 'J', 'L']);
   });
 
   it('el Mundial 2026 conserva sus dieciseisavos en el orden del cuadro y en el antiguo', () => {
