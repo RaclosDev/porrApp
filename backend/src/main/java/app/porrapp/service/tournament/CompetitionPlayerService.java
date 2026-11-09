@@ -122,6 +122,18 @@ public class CompetitionPlayerService {
         }
     }
 
+    /**
+     * Al crear una liga con pichichi sobre una competición sin plantillas, las pide enseguida en vez de esperar
+     * al ciclo programado. No hace nada si la competición no juega el pichichi o ya las tiene al día.
+     */
+    public void refreshForNewLeague(Long competitionId) {
+        if (!refreshEnabled || competitionId == null) return;
+        editionRepository.findCompetitionsWithPichichi().stream()
+                .filter(competition -> competitionId.equals(competition.getId()))
+                .findFirst()
+                .ifPresent(this::refreshIfStale);
+    }
+
     /** Pide las plantillas si no se tienen o son de hace más de un día, sin insistir tras un intento reciente. */
     public void refreshIfStale(Competition competition) {
         if (!hasSquads(competition)) return;
