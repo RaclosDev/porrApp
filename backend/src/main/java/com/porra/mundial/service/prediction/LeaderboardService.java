@@ -76,7 +76,7 @@ public class LeaderboardService {
         }
 
         if (!stale.isEmpty()) {
-            OfficialResultsService.OfficialResults official = officialResultsService.current();
+            OfficialResultsService.OfficialResults official = officialResultsFor(stale);
             boolean pichichiActive = stale.stream()
                     .anyMatch(p -> p.getEdition() != null && p.getEdition().scoresPichichi());
             List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
@@ -400,7 +400,7 @@ public class LeaderboardService {
         boolean pichichiActive = pred.getEdition() != null && pred.getEdition().scoresPichichi();
         List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
-                officialResultsService.current(), scorers,
+                officialResultsFor(List.of(pred)), scorers,
                 scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())), new SurvivorContext());
         boolean entryFee = pred.getEdition() != null && pred.getEdition().getLeague() != null
                 && pred.getEdition().getLeague().isEntryFee();
@@ -409,16 +409,31 @@ public class LeaderboardService {
     }
 
     /** Puntos del cuadro (si lo tiene, con las reglas de su edición) más los de los pronósticos por partido. */
+    /**
+     * Solo los cuadros del torneo con fase de grupos se puntúan contra su clasificación y su cuadro
+     * oficiales; las ligas por jornadas, los cuadros propios y el resto de deportes no los necesitan.
+     */
+    private static boolean scoresAgainstOfficialBracket(Prediction pred) {
+        Edition edition = pred.getEdition();
+        return pred.getBracketData() != null && edition != null && edition.isWorldCupBracket()
+                && !PredictableBracket.applies(edition);
+    }
+
+    /** Resultados oficiales del torneo, o {@code null} si ninguna de esas porras se puntúa contra ellos. */
+    private OfficialResultsService.OfficialResults officialResultsFor(List<Prediction> predictions) {
+        return predictions.stream().anyMatch(LeaderboardService::scoresAgainstOfficialBracket)
+                ? officialResultsService.current() : null;
+    }
+
     private ParticipantScoreDTO scorePrediction(Prediction pred, List<MatchPrediction> matchPreds,
                                                 OfficialResultsService.OfficialResults official, List<TopScorerDTO> scorers,
                                                 ScoringStrategy strategy, SurvivorContext survivors) {
         PredictionDataDTO participant = pred.getBracketData();
         ParticipantScoreDTO score;
         Edition edition = pred.getEdition();
-        boolean bracketEdition = edition != null && edition.isWorldCupBracket();
         if (participant != null && PredictableBracket.applies(edition)) {
             score = customBracketScoringService.score(pred);
-        } else if (participant != null && bracketEdition) {
+        } else if (scoresAgainstOfficialBracket(pred)) {
             score = calculatePoints(strategy, new CalculationContext(participant, official.bracket(), official.groupPoints(),
                     official.orderedTeamsPerGroup(), official.bestThirds(), scorers, official.roundOf16(),
                     official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion()));
