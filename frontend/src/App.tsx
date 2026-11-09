@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+import { lazyPage } from './services/chunkReload';
 import {
   createBrowserRouter,
   Navigate,
@@ -28,24 +29,24 @@ import { useSessionHandoffPending } from './hooks/useSessionHandoffPending';
 import { useRequestedGroup } from './hooks/useRequestedGroup';
 import { hideSplash, isSplashVisible } from './services/splash';
 
-const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
-const Home = React.lazy(() => import('./pages/Home'));
-const PredictionViewer = React.lazy(() => import('./components/PredictionViewer'));
-const Landing = React.lazy(() => import('./pages/Landing'));
-const Radar = React.lazy(() => import('./pages/Radar'));
-const Bracket = React.lazy(() => import('./pages/Bracket'));
-const Stats = React.lazy(() => import('./pages/Stats'));
-const Search = React.lazy(() => import('./pages/Search'));
-const GroupsDashboard = React.lazy(() => import('./pages/GroupsDashboard'));
-const CreateLeague = React.lazy(() => import('./pages/CreateLeague'));
-const JoinRedirect = React.lazy(() => import('./components/JoinRedirect'));
-const OfficialBracket = React.lazy(() => import('./pages/OfficialBracket'));
-const LinkedInEntry = React.lazy(() => import('./pages/LinkedInEntry'));
-const MatchdayPredictor = React.lazy(() => import('./pages/MatchdayPredictor'));
-const LeagueStandings = React.lazy(() => import('./pages/LeagueStandings'));
-const Legal = React.lazy(() => import('./pages/Legal'));
-const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
-const ContentPage = React.lazy(() => import('./pages/ContentPage'));
+const Leaderboard = lazyPage(() => import('./pages/Leaderboard'));
+const Home = lazyPage(() => import('./pages/Home'));
+const PredictionViewer = lazyPage(() => import('./components/PredictionViewer'));
+const Landing = lazyPage(() => import('./pages/Landing'));
+const Radar = lazyPage(() => import('./pages/Radar'));
+const Bracket = lazyPage(() => import('./pages/Bracket'));
+const Stats = lazyPage(() => import('./pages/Stats'));
+const Search = lazyPage(() => import('./pages/Search'));
+const GroupsDashboard = lazyPage(() => import('./pages/GroupsDashboard'));
+const CreateLeague = lazyPage(() => import('./pages/CreateLeague'));
+const JoinRedirect = lazyPage(() => import('./components/JoinRedirect'));
+const OfficialBracket = lazyPage(() => import('./pages/OfficialBracket'));
+const LinkedInEntry = lazyPage(() => import('./pages/LinkedInEntry'));
+const MatchdayPredictor = lazyPage(() => import('./pages/MatchdayPredictor'));
+const LeagueStandings = lazyPage(() => import('./pages/LeagueStandings'));
+const Legal = lazyPage(() => import('./pages/Legal'));
+const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
+const ContentPage = lazyPage(() => import('./pages/ContentPage'));
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
 const GUEST_ALLOWED_PATHS = [
