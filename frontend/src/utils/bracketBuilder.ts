@@ -1,6 +1,7 @@
 /** Cuadro oficial del Mundial (grupos, mejores terceros y cruces) a partir de su clasificación y sus partidos. */
 import type { GroupOdds, GroupStandings, Match } from '../types/api';
 import { teamKey } from './teamKey';
+import { WORLD_CUP_2026_FIRST_ROUND, firstRoundLabels } from './firstKnockoutRound';
 import { alignOfficialRound, nextPools } from './officialBracketLayout';
 
 /** Equipo clasificado según el marcador; provisional si el partido no ha terminado. */
@@ -84,24 +85,7 @@ export function buildBracketData(
 ) {
   const points = officialPoints || {};
 
-  const fallbackR32 = [
-    ['1º Grupo E', '3º A/B/C/D/F'],
-    ['1º Grupo I', '3º C/D/F/G/H'],
-    ['2º Grupo A', '2º Grupo B'],
-    ['1º Grupo F', '2º Grupo C'],
-    ['2º Grupo K', '2º Grupo L'],
-    ['1º Grupo H', '2º Grupo J'],
-    ['1º Grupo D', '3º B/E/F/I/J'],
-    ['1º Grupo G', '3º A/E/H/I/J'],
-    ['1º Grupo C', '2º Grupo F'],
-    ['2º Grupo E', '2º Grupo I'],
-    ['1º Grupo A', '3º C/E/F/H/I'],
-    ['1º Grupo L', '3º E/H/I/J/K'],
-    ['1º Grupo J', '2º Grupo H'],
-    ['2º Grupo D', '2º Grupo G'],
-    ['1º Grupo B', '3º E/F/G/I/J'],
-    ['1º Grupo K', '3º D/E/I/J/L'],
-  ];
+  const fallbackR32 = firstRoundLabels(WORLD_CUP_2026_FIRST_ROUND);
 
   const sanitizedToReal: Record<string, string> = {};
   if (groupOdds) {

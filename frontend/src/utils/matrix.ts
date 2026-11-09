@@ -1,3 +1,9 @@
+import {
+  WORLD_CUP_2026_FIRST_ROUND,
+  firstRoundInLegacyOrder,
+  isThirdSlot,
+} from './firstKnockoutRound';
+
 interface ThirdPlaceRule {
   side: 'left' | 'right';
   matchIndex: number;
@@ -10,16 +16,26 @@ interface ThirdPlaceTeam {
   group: string;
 }
 
-export const THIRD_PLACE_RULES: ThirdPlaceRule[] = [
-  { side: 'left', matchIndex: 0, isHome: false, allowed: ['A', 'B', 'C', 'D', 'F'] }, // M74: 1E vs 3º
-  { side: 'left', matchIndex: 1, isHome: false, allowed: ['C', 'D', 'F', 'G', 'H'] }, // M77: 1I vs 3º
-  { side: 'left', matchIndex: 6, isHome: false, allowed: ['C', 'E', 'F', 'H', 'I'] }, // M79: 1A vs 3º
-  { side: 'left', matchIndex: 7, isHome: false, allowed: ['E', 'H', 'I', 'J', 'K'] }, // M80: 1L vs 3º
-  { side: 'right', matchIndex: 2, isHome: false, allowed: ['B', 'E', 'F', 'I', 'J'] }, // M81: 1D vs 3º
-  { side: 'right', matchIndex: 3, isHome: false, allowed: ['A', 'E', 'H', 'I', 'J'] }, // M82: 1G vs 3º
-  { side: 'right', matchIndex: 6, isHome: false, allowed: ['E', 'F', 'G', 'I', 'J'] }, // M85: 1B vs 3º
-  { side: 'right', matchIndex: 7, isHome: false, allowed: ['D', 'E', 'I', 'J', 'L'] }, // M87: 1K vs 3º
-];
+/**
+ * Huecos de los terceros en el orden antiguo del cuadro, con los grupos de los que puede venir cada
+ * uno: salen de los cruces de la primera ronda («3ABCDF» admite a los terceros de A, B, C, D y F).
+ */
+export const THIRD_PLACE_RULES: ThirdPlaceRule[] = firstRoundInLegacyOrder(
+  WORLD_CUP_2026_FIRST_ROUND,
+).flatMap((slots, index) =>
+  slots.flatMap((slot, position): ThirdPlaceRule[] =>
+    isThirdSlot(slot)
+      ? [
+          {
+            side: index < 8 ? 'left' : 'right',
+            matchIndex: index % 8,
+            isHome: position === 0,
+            allowed: slot.slice(1).split(''),
+          },
+        ]
+      : [],
+  ),
+);
 
 /** Asigna los 8 mejores terceros a sus huecos (backtracking); null si no hay combinación válida. */
 export function solveThirdPlaceMatrix(

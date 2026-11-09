@@ -6,6 +6,11 @@ import { unsubscribeThisDevice } from '../services/push';
 import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
 import { isBracketState } from '../utils/bracketValidation';
 import { orderR32, topologyVersion, type TopologyVersion } from '../utils/bracketTopology';
+import {
+  WORLD_CUP_2026_FIRST_ROUND,
+  firstRoundInLegacyOrder,
+  firstRoundLabels,
+} from '../utils/firstKnockoutRound';
 
 /** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
 export interface BracketTeam {
@@ -83,30 +88,21 @@ interface AppState {
   changeGroup: (groupId: string | number | null) => void;
 }
 
+/** Identificadores de los cruces de dieciseisavos en el orden antiguo del cuadro. */
+const LEGACY_R32_IDS = [
+  ['L1', 'L2', 'L4', 'R1', 'L3', 'R2', 'R3', 'R4'],
+  ['L5', 'L6', 'L7', 'L8', 'R5', 'R6', 'R7', 'R8'],
+];
+const legacyR32Labels = firstRoundLabels(firstRoundInLegacyOrder(WORLD_CUP_2026_FIRST_ROUND));
+const legacyR32Side = (side: number): BracketMatch[] =>
+  LEGACY_R32_IDS[side].map((id, index) => {
+    const [home, away] = legacyR32Labels[side * 8 + index];
+    return { home: { name: home }, away: { name: away }, id };
+  });
+
 const legacyBracketState: BracketState = {
   topologyVersion: 1,
-  r32: {
-    left: [
-      { home: { name: '1º Grupo E' }, away: { name: '3º A/B/C/D/F' }, id: 'L1' },
-      { home: { name: '1º Grupo I' }, away: { name: '3º C/D/F/G/H' }, id: 'L2' },
-      { home: { name: '1º Grupo F' }, away: { name: '2º Grupo C' }, id: 'L4' },
-      { home: { name: '1º Grupo C' }, away: { name: '2º Grupo F' }, id: 'R1' },
-      { home: { name: '2º Grupo A' }, away: { name: '2º Grupo B' }, id: 'L3' },
-      { home: { name: '2º Grupo E' }, away: { name: '2º Grupo I' }, id: 'R2' },
-      { home: { name: '1º Grupo A' }, away: { name: '3º C/E/F/H/I' }, id: 'R3' },
-      { home: { name: '1º Grupo L' }, away: { name: '3º E/H/I/J/K' }, id: 'R4' },
-    ],
-    right: [
-      { home: { name: '2º Grupo K' }, away: { name: '2º Grupo L' }, id: 'L5' },
-      { home: { name: '1º Grupo H' }, away: { name: '2º Grupo J' }, id: 'L6' },
-      { home: { name: '1º Grupo D' }, away: { name: '3º B/E/F/I/J' }, id: 'L7' },
-      { home: { name: '1º Grupo G' }, away: { name: '3º A/E/H/I/J' }, id: 'L8' },
-      { home: { name: '1º Grupo J' }, away: { name: '2º Grupo H' }, id: 'R5' },
-      { home: { name: '2º Grupo D' }, away: { name: '2º Grupo G' }, id: 'R6' },
-      { home: { name: '1º Grupo B' }, away: { name: '3º E/F/G/I/J' }, id: 'R7' },
-      { home: { name: '1º Grupo K' }, away: { name: '3º D/E/I/J/L' }, id: 'R8' },
-    ],
-  },
+  r32: { left: legacyR32Side(0), right: legacyR32Side(1) },
   r16: {
     left: Array(4)
       .fill(null)
