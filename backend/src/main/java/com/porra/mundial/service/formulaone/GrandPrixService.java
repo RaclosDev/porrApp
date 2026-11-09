@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -178,17 +179,52 @@ public class GrandPrixService {
             Prediction prediction = pick.getPrediction();
             if (prediction == null || prediction.getEdition() == null
                     || !Objects.equals(prediction.getEdition().getId(), edition.getId())) continue;
-            UserAccount owner = prediction.getUser();
-            boolean mine = owner != null && email != null && email.equalsIgnoreCase(owner.getGoogleEmail());
-            if (!revealed && !mine) continue;
-            picks.add(new GrandPrixBoardDTO.MemberPick(owner == null ? null : owner.getId(),
-                    TextSanitizer.fixParticipantName(prediction.getParticipantName()),
-                    owner == null ? null : owner.getAvatarUrl(), mine, picks(pick), pick.getPointsAwarded(),
-                    pick.getScoringDetails()));
+            GrandPrixBoardDTO.MemberPick member = memberPick(pick, email);
+            if (!revealed && !member.mine()) continue;
+            picks.add(member);
         }
-        picks.sort(Comparator.comparing((GrandPrixBoardDTO.MemberPick p) -> p.points() == null ? 0 : p.points()).reversed()
-                .thenComparing(p -> p.name() == null ? "" : p.name(), String.CASE_INSENSITIVE_ORDER));
+        picks.sort(MEMBER_ORDER);
         return picks;
+    }
+
+    /**
+     * Predicciones de la liga en los Grandes Premios de la temporada que ya han cerrado, por fecha. Los que
+     * siguen abiertos no aparecen, ni siquiera con la predicción propia: nada se agrega antes del cierre.
+     */
+    @Transactional(readOnly = true)
+    public List<GrandPrixBoardDTO.RacePicks> seasonPicks(String email, Long groupId) {
+        Edition edition = grandPrixEdition(groupId);
+        leagueService.assertCanView(groupId, email);
+        Instant now = clock.instant();
+        List<Match> all = matchRepository.findByCompetitionIdOrderByMatchDateAsc(edition.getCompetition().getId());
+        Map<Long, List<GrandPrixBoardDTO.MemberPick>> closed = new LinkedHashMap<>();
+        for (Match match : currentSeason(all, now)) {
+            if (isLocked(edition, match, now)) closed.put(match.getId(), new ArrayList<>());
+        }
+        if (closed.isEmpty()) return List.of();
+        for (MatchPrediction pick : matchPredictionRepository.findWithMatchAndUserByEditionId(edition.getId())) {
+            List<GrandPrixBoardDTO.MemberPick> picks = closed.get(pick.getMatch().getId());
+            if (picks != null) picks.add(memberPick(pick, email));
+        }
+        return closed.entrySet().stream()
+                .map(entry -> new GrandPrixBoardDTO.RacePicks(entry.getKey(),
+                        entry.getValue().stream().sorted(MEMBER_ORDER).toList()))
+                .toList();
+    }
+
+    /** Más puntos primero y, a igualdad, por nombre. */
+    private static final Comparator<GrandPrixBoardDTO.MemberPick> MEMBER_ORDER = Comparator
+            .comparing((GrandPrixBoardDTO.MemberPick p) -> p.points() == null ? 0 : p.points()).reversed()
+            .thenComparing(p -> p.name() == null ? "" : p.name(), String.CASE_INSENSITIVE_ORDER);
+
+    private static GrandPrixBoardDTO.MemberPick memberPick(MatchPrediction pick, String email) {
+        Prediction prediction = pick.getPrediction();
+        UserAccount owner = prediction.getUser();
+        boolean mine = owner != null && email != null && email.equalsIgnoreCase(owner.getGoogleEmail());
+        return new GrandPrixBoardDTO.MemberPick(owner == null ? null : owner.getId(),
+                TextSanitizer.fixParticipantName(prediction.getParticipantName()),
+                owner == null ? null : owner.getAvatarUrl(), mine, picks(pick), pick.getPointsAwarded(),
+                pick.getScoringDetails());
     }
 
     /** Clasificación completa de un Gran Premio de la liga; vacía hasta que acaba la carrera. */

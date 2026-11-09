@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import MatchdaySummary from '../../../components/leaderboard/MatchdaySummary';
 import type { MatchdayPoints } from '../../../types/api';
+import { LEAGUE_INSIGHTS } from '../../../context/leagueInsights';
+import type { LeagueKind } from '../../../context/leagueKind';
 
 const matchday = {
   label: 'Jornada 12',
@@ -12,7 +14,7 @@ const matchday = {
   pointsByPrediction: {},
 } as unknown as MatchdayPoints;
 
-function renderSummary(myRank: number | null, fightCard = false) {
+function renderSummary(myRank: number | null, fightCard = false, kind: LeagueKind = 'matchday') {
   render(
     <MemoryRouter>
       <MatchdaySummary
@@ -27,6 +29,7 @@ function renderSummary(myRank: number | null, fightCard = false) {
         onSelect={vi.fn()}
         onStep={vi.fn()}
         fightCard={fightCard}
+        insights={LEAGUE_INSIGHTS[kind]}
       />
     </MemoryRouter>,
   );
@@ -43,7 +46,21 @@ describe('MatchdaySummary', () => {
       'href',
       '/stats',
     );
+    expect(screen.queryByRole('link', { name: 'Buscador' })).toBeNull();
     expect(screen.queryByText(/Tus puntos en esta jornada/)).toBeNull();
+  });
+
+  it('en la Fórmula 1 enlaza con Más elegidos y con el Buscador', () => {
+    renderSummary(3, false, 'grandPrix');
+
+    expect(screen.getByRole('link', { name: 'Más elegidos' })).toHaveAttribute('href', '/stats');
+    expect(screen.getByRole('link', { name: 'Buscador' })).toHaveAttribute('href', '/search');
+  });
+
+  it('sin pantallas de estadísticas no hay enlaces', () => {
+    renderSummary(3, false, 'unknown');
+
+    expect(screen.queryByRole('link')).toBeNull();
   });
 
   it('no muestra puesto mientras nadie ha puntuado', () => {

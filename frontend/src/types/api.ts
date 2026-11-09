@@ -579,6 +579,12 @@ export interface GrandPrixMemberPick {
   details: string | null;
 }
 
+/** Predicciones de la liga en un Gran Premio ya cerrado (GET /grand-prix/picks). */
+export interface GrandPrixRacePicks {
+  matchId: number;
+  picks: GrandPrixMemberPick[];
+}
+
 export type ScoringRuleKey = keyof ScoringRules;
 
 /** Puntuación de una liga: sus reglas, las de por defecto y si quien la ve puede cambiarlas. */

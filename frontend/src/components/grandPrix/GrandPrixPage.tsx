@@ -19,6 +19,7 @@ import {
   EMPTY_PICK,
   PICK_SLOTS,
   driverLabel,
+  driverShortName as shortName,
   formatWhen,
   gridDrivers,
   pickError,
@@ -448,9 +449,6 @@ function LockedView({
     </>
   );
 }
-
-const shortName = (driver: RaceDriver | undefined) =>
-  driver ? driver.shortName || driver.name : 'Piloto';
 
 function MemberPicksSheet({
   gp,
