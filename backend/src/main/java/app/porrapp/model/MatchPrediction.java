@@ -30,7 +30,7 @@ public class MatchPrediction {
     @JoinColumn(name = "prediction_id", nullable = false)
     private Prediction prediction;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "match_id", nullable = false)
     private Match match;
 

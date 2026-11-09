@@ -556,4 +556,25 @@ class MatchPredictionServiceTest {
         assertEquals("Se abre cuando se conozcan los dos jugadores", MatchdayLock.awaitingTeamsReason(tennis));
         assertEquals("Se abre cuando se conozcan los dos luchadores", MatchdayLock.awaitingTeamsReason(ufc));
     }
+
+    @Test
+    @DisplayName("La jornada en curso es la primera con algo por jugar; un aplazado no cuenta y, jugado todo, es la última")
+    void currentRoundIsTheFirstWithSomethingLeftToPlay() {
+        Instant now = Instant.now();
+        Match played = roundMatch(1L, "Jornada 1", now.minusSeconds(7 * 86_400), true, MatchStatusNormalized.FINISHED);
+        Match postponed = roundMatch(2L, "Jornada 1", now.plusSeconds(30 * 86_400), false, MatchStatusNormalized.POSTPONED);
+        Match alreadyPlayed = roundMatch(3L, "Jornada 2", now.minusSeconds(3_600), true, MatchStatusNormalized.FINISHED);
+        Match next = roundMatch(4L, "Jornada 2", now.plusSeconds(86_400), false, MatchStatusNormalized.SCHEDULED);
+        Match later = roundMatch(5L, "Jornada 3", now.plusSeconds(8 * 86_400), false, MatchStatusNormalized.SCHEDULED);
+
+        // La jornada llega entera, también con su partido ya jugado.
+        assertEquals(List.of(alreadyPlayed, next),
+                MatchPredictionService.currentRound(null, List.of(later, next, postponed, played, alreadyPlayed)));
+        assertEquals(List.of(alreadyPlayed), MatchPredictionService.currentRound(null, List.of(played, alreadyPlayed)));
+        assertEquals(List.of(), MatchPredictionService.currentRound(null, List.of()));
+    }
+
+    private static Match roundMatch(Long id, String round, Instant date, boolean finished, MatchStatusNormalized status) {
+        return Match.builder().id(id).round(round).matchDate(date).finished(finished).status(status).build();
+    }
 }

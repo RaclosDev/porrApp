@@ -13,8 +13,24 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Los equipos de un partido son perezosos: cada lectura que devuelve partidos los trae en la misma
+ * consulta (los controladores los leen ya fuera de la transacción), salvo las que solo miran fechas.
+ */
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
+
+    @Override
+    @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
+    Optional<Match> findById(Long id);
+
+    @Override
+    @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
+    List<Match> findAllById(Iterable<Long> ids);
+
+    @Override
+    @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
+    List<Match> findAll();
 
     // Missing teams remain visible; only two explicit placeholders hide a match.
     String RADAR_MATCHES = """
@@ -45,6 +61,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                              @Param("statuses") Collection<MatchStatusNormalized> statuses);
 
     /** Partidos de una competición con una ronda numerada ("Jornada 12"). */
+    @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
     List<Match> findByCompetitionIdAndRoundStartingWith(Long competitionId, String roundPrefix);
 
     @Query(RADAR_MATCHES + " AND m.finished = TRUE ORDER BY m.matchDate DESC")
@@ -62,8 +79,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
     Optional<Match> findByExternalId(String externalId);
 
+    @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
     List<Match> findByCompetitionId(Long competitionId);
 
+    @EntityGraph(attributePaths = {"homeTeam", "awayTeam"})
     List<Match> findByCompetitionIdOrderByMatchDateAsc(Long competitionId);
 
     long countByCompetitionId(Long competitionId);
@@ -87,6 +106,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             + "app.porrapp.model.MatchStatusNormalized.ABANDONED))")
     long countPendingBefore(@Param("competitionId") Long competitionId, @Param("date") Instant date);
 
+    // Estas dos solo sirven para leer la fecha: no traen los equipos.
     Optional<Match> findFirstByCompetitionIdAndMatchDateBeforeOrderByMatchDateAsc(Long competitionId, Instant date);
 
     Optional<Match> findFirstByCompetitionIdAndMatchDateBeforeOrderByMatchDateDesc(Long competitionId, Instant date);

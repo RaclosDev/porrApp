@@ -398,7 +398,7 @@ public class LeaderboardService {
         Prediction pred = predictionRepository.findById(predictionId).orElse(null);
         if (pred == null) return null;
 
-        ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
+        ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(pred.getId())),
                 new TournamentResults(),
                 scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())), new SurvivorContext());
         boolean entryFee = pred.getEdition() != null && pred.getEdition().getLeague() != null

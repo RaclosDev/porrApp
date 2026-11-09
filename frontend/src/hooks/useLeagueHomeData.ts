@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import {
+  CURRENT_ROUND,
   fetchCompetitionStandings,
   fetchCustomStandings,
   fetchCustomTeams,
@@ -142,8 +143,9 @@ export function useLeagueHomeData(): LeagueHomeData {
     (activeGroupPicksMatches || activeGroupMultiCompetition) &&
     groupId != null;
   const { data: leagueFixtures, isLoading: loadingLeagueFixtures } = useQuery({
-    queryKey: queryKeys.leagueMatches(groupId),
-    queryFn: () => fetchMatchdayFixtures(groupId!),
+    // Solo la jornada en curso, que es lo que enseña la portada: la temporada entera está en Jornadas.
+    queryKey: queryKeys.leagueCurrentRound(groupId),
+    queryFn: () => fetchMatchdayFixtures(groupId!, CURRENT_ROUND),
     enabled: ownMatches,
     staleTime: 60_000,
   });
