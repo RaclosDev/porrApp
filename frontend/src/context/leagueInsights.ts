@@ -23,7 +23,7 @@ const BY_MATCH_AND_PLAYER: LeagueInsights = { ...BY_MATCH, tab: 'Por partido', s
  * `pages/Search`) deciden qué pintan; esto solo dice dónde hay algo que enlazar.
  */
 export const LEAGUE_INSIGHTS: Record<LeagueKind, LeagueInsights> = {
-  worldCup: MOST_PICKED,
+  groupStage: MOST_PICKED,
   grandPrix: MOST_PICKED,
   matchday: BY_MATCH,
   fightCard: BY_MATCH,

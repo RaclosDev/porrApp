@@ -37,6 +37,18 @@ describe('rankBestThirds', () => {
     expect(thirds.map((t) => t.name)).toEqual(['Beta', 'Gamma', 'Delta', 'Épsilon', 'Alfa']);
   });
 
+  it('follows the order among thirds the backend worked out with the tournament rules', () => {
+    // Eurocopa: con los mismos puntos y goles, la UEFA mira las victorias antes que las tarjetas,
+    // y eso no se deduce de estas columnas. Manda el puesto que llega en `third`.
+    const thirds = rankBestThirds({
+      A: { 'Tres empates': { ...row(3, 3, 0, 2, -1), third: 2 } },
+      B: { 'Una victoria': { ...row(3, 3, 0, 2, -5), third: 1 } },
+      C: { 'Menos puntos': { ...row(3, 2, 0, 2), third: 3 } },
+    });
+
+    expect(thirds.map((t) => t.name)).toEqual(['Una victoria', 'Tres empates', 'Menos puntos']);
+  });
+
   it('skips groups without a materialized third place', () => {
     expect(rankBestThirds({ A: { España: row(0, 0), Japón: row(0, 0) } })).toEqual([]);
     expect(rankBestThirds(null)).toEqual([]);

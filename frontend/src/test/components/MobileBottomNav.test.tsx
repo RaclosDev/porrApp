@@ -24,7 +24,7 @@ const EXPECTED: Record<LeagueKind, string[] | null> = {
   error: ['Inicio', 'Mis Ligas'],
   none: ['Inicio', 'Mis Ligas'],
   unknown: ['Inicio', 'Ranking', 'Mis Ligas'],
-  worldCup: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
+  groupStage: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
   customBracket: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
   ownBracket: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
   knockoutDraw: ['Inicio', 'Mi Porra', 'Resultados', 'Ranking', 'Mis Ligas'],
@@ -84,7 +84,7 @@ describe('Navegación por clase de liga', () => {
     expect(items.some((item) => item.to === '/mis-ligas')).toBe(false);
     expect(items.some((item) => item.to === '/')).toBe(false);
     // Grupos es la fase de grupos del Mundial: solo en sus ligas.
-    expect(items.some((item) => item.to === '/grupos')).toBe(kind === 'worldCup');
+    expect(items.some((item) => item.to === '/grupos')).toBe(kind === 'groupStage');
   });
 
   it('en la demo también espera a saber la liga', () => {
@@ -94,7 +94,7 @@ describe('Navegación por clase de liga', () => {
   });
 
   it.each(LEAGUE_KINDS)('«Rellenar mi porra» en una liga %s', (kind) => {
-    const bracket = ['worldCup', 'customBracket', 'ownBracket', 'knockoutDraw'].includes(kind);
+    const bracket = ['groupStage', 'customBracket', 'ownBracket', 'knockoutDraw'].includes(kind);
     expect(showsFillBracketButton(kind)).toBe(bracket);
   });
 });

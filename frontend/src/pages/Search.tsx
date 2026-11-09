@@ -69,7 +69,7 @@ function Search() {
     none: <NoLeagueState title="Buscar" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
     // El Mundial es un cuadro más, con los puestos de la fase de grupos aparte.
-    worldCup: <GroupStageSearchPage />,
+    groupStage: <GroupStageSearchPage />,
     matchday: <Navigate to="/stats" replace />,
     fightCard: <Navigate to="/stats" replace />,
     // En el tenis se busca un jugador en los partidos del cuadro que ya han empezado.

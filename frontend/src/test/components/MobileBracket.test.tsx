@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import MobileBracket from '../../components/MobileBracket';
-import { WORLD_CUP_ROUND_LABELS } from '../../components/BracketCanvas';
+import { KNOCKOUT_ROUND_LABELS } from '../../components/BracketCanvas';
 import { TeamSlot, type CanvasMatch } from '../../components/BracketCanvas';
 
 const match = (home: string, away: string): CanvasMatch<string> => ({ home, away });
@@ -25,7 +25,7 @@ const renderBracket = (defaultTab: number, onPick = vi.fn()) => {
     <MobileBracket
       leftRounds={leftRounds}
       rightRounds={rightRounds}
-      roundLabels={WORLD_CUP_ROUND_LABELS}
+      roundLabels={KNOCKOUT_ROUND_LABELS}
       defaultTab={defaultTab}
       renderSlot={(team) => <TeamSlot name={team as string} onClick={() => onPick(team)} />}
       renderFinal={() => <p>Contenido de la final</p>}

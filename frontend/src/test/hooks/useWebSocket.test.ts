@@ -49,7 +49,7 @@ describe('useWebSocket', () => {
       act(() => vi.advanceTimersByTime(FLUSH_MS));
 
       expect(invalidated).toContainEqual(['radar']);
-      expect(invalidated).toContainEqual(['worldCupOfficialBracket']);
+      expect(invalidated).toContainEqual(['tournamentOfficialBracket']);
       expect(invalidated).toContainEqual(['matchFriendPredictions']);
       expect(invalidated).toContainEqual(['leaderboard']);
       // Los Grandes Premios de la Fórmula 1 llegan en segundo plano tras crear la liga.
@@ -132,8 +132,8 @@ describe('useWebSocket', () => {
     // Nada global: ni otras ligas ni partidos, clasificaciones o cuadro oficial.
     expect(invalidated).not.toContainEqual(['leaderboard']);
     expect(invalidated).not.toContainEqual(['matches']);
-    expect(invalidated).not.toContainEqual(['worldCupStandings']);
-    expect(invalidated).not.toContainEqual(['worldCupOfficialBracket']);
+    expect(invalidated).not.toContainEqual(['tournamentStandings']);
+    expect(invalidated).not.toContainEqual(['tournamentOfficialBracket']);
   });
 
   it('LEAGUE_UPDATED de una liga ajena no recarga Mis ligas ni mis predicciones', () => {

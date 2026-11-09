@@ -31,18 +31,20 @@ export default function OfficialMobileCenter({
       }
       thirdWinner={getName(part.thirdPlaceWinner)}
       thirdPlace={
-        <>
-          {renderSlot(part.thirdPlaceMatch?.[0], {
-            side: 'center',
-            roundIndex: 'thirdPlaceMatch',
-            isHome: true,
-          })}
-          {renderSlot(part.thirdPlaceMatch?.[1], {
-            side: 'center',
-            roundIndex: 'thirdPlaceMatch',
-            isHome: false,
-          })}
-        </>
+        part.thirdPlaceMatch ? (
+          <>
+            {renderSlot(part.thirdPlaceMatch?.[0], {
+              side: 'center',
+              roundIndex: 'thirdPlaceMatch',
+              isHome: true,
+            })}
+            {renderSlot(part.thirdPlaceMatch?.[1], {
+              side: 'center',
+              roundIndex: 'thirdPlaceMatch',
+              isHome: false,
+            })}
+          </>
+        ) : undefined
       }
     />
   );

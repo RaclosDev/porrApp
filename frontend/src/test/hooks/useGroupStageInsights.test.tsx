@@ -4,18 +4,18 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppContext } from '../../context/AppContext';
 import { useGroupStageInsights } from '../../hooks/useGroupStageInsights';
-import { fetchPredictions, fetchWorldCupOfficialBracket } from '../../services/api';
+import { fetchPredictions, fetchTournamentOfficialBracket } from '../../services/api';
 import type { PredictionData, PredictionSummary } from '../../types/api';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock(import('../../context/leagueData'), async (original) => ({
   ...(await original()),
-  useWorldCupData: () => ({ groupStandings: {} }) as never,
+  useTournamentData: () => ({ groupStandings: {}, tournamentId: 2 }) as never,
 }));
 vi.mock(import('../../services/api'), async (original) => ({
   ...(await original()),
   fetchPredictions: vi.fn(),
-  fetchWorldCupOfficialBracket: vi.fn(),
+  fetchTournamentOfficialBracket: vi.fn(),
 }));
 
 const bracket: PredictionData = {
@@ -66,7 +66,7 @@ const insights = async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   league();
-  vi.mocked(fetchWorldCupOfficialBracket).mockResolvedValue({
+  vi.mocked(fetchTournamentOfficialBracket).mockResolvedValue({
     final: ['España', 'Italia'],
     champion: 'España',
   });

@@ -1,6 +1,7 @@
 package com.porra.mundial.service.tournament;
 
 import com.porra.mundial.model.Competition;
+import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.service.prediction.ScoreInvalidationService;
 import com.porra.mundial.service.notification.WebSocketService;
 import tools.jackson.databind.JsonNode;
@@ -48,6 +49,12 @@ class TopScorerServiceTest {
     @Mock
     private TopScorerStore topScorerStore;
 
+    @Mock
+    private CompetitionRepository competitionRepository;
+
+    private final Competition worldCup = Competition.builder().id(2L).name("Mundial")
+            .externalId(Competition.WORLD_CUP_EXTERNAL_ID).build();
+
     private ObjectMapper objectMapper;
     private TopScorerService topScorerService;
 
@@ -55,7 +62,8 @@ class TopScorerServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         topScorerService = new TopScorerService(objectMapper, webSocketService, httpClient, sportsDataProvider,
-                scoreInvalidationService, knockoutBracketService, topScorerStore);
+                scoreInvalidationService, knockoutBracketService, topScorerStore, competitionRepository);
+        lenient().when(competitionRepository.findByExternalIdIn(any())).thenReturn(List.of(worldCup));
     }
 
     @Test
@@ -63,12 +71,12 @@ class TopScorerServiceTest {
     void storedScorersAreUsedAfterARestartWithoutAskingTheProvider() {
         List<TopScorerDTO> stored = List.of(new TopScorerDTO("Kylian Mbappé", "K. Mbappé", 8, "F", "1", "Francia", ""));
         when(topScorerStore.load(Competition.WORLD_CUP_EXTERNAL_ID)).thenReturn(stored);
-        when(knockoutBracketService.worldCupIsOver()).thenReturn(true);
+        when(knockoutBracketService.isOver(worldCup)).thenReturn(true);
 
         topScorerService.scheduledRefresh();
         topScorerService.scheduledRefresh();
 
-        assertEquals(stored, topScorerService.getTopScorers());
+        assertEquals(stored, topScorerService.getTopScorers(worldCup));
         verifyNoInteractions(sportsDataProvider, scoreInvalidationService, webSocketService);
         verify(topScorerStore, times(1)).load(Competition.WORLD_CUP_EXTERNAL_ID);
         verify(topScorerStore, never()).replace(anyString(), any());
@@ -81,11 +89,11 @@ class TopScorerServiceTest {
                 .thenReturn(goalBy("Kylian Mbappé"));
         doThrow(new IllegalStateException("base de datos caída")).when(topScorerStore).replace(anyString(), any());
 
-        topScorerService.refresh();
-        topScorerService.refresh();
+        topScorerService.refresh(worldCup);
+        topScorerService.refresh(worldCup);
 
-        verify(topScorerStore, times(1)).replace(eq(Competition.WORLD_CUP_EXTERNAL_ID), eq(topScorerService.getTopScorers()));
-        assertEquals(1, topScorerService.getTopScorers().size());
+        verify(topScorerStore, times(1)).replace(eq(Competition.WORLD_CUP_EXTERNAL_ID), eq(topScorerService.getTopScorers(worldCup)));
+        assertEquals(1, topScorerService.getTopScorers(worldCup).size());
     }
 
     @Test
@@ -96,8 +104,8 @@ class TopScorerServiceTest {
                 .thenThrow(new IllegalStateException("base de datos caída"))
                 .thenReturn(stored);
 
-        assertTrue(topScorerService.getTopScorers().isEmpty());
-        assertEquals(stored, topScorerService.getTopScorers());
+        assertTrue(topScorerService.getTopScorers(worldCup).isEmpty());
+        assertEquals(stored, topScorerService.getTopScorers(worldCup));
     }
 
     @Test
@@ -109,10 +117,10 @@ class TopScorerServiceTest {
             if (!release.await(2, java.util.concurrent.TimeUnit.SECONDS)) throw new IllegalStateException("timeout");
             return objectMapper.createArrayNode();
         });
-        var running = java.util.concurrent.CompletableFuture.runAsync(topScorerService::refresh);
+        var running = java.util.concurrent.CompletableFuture.runAsync(() -> topScorerService.refresh(worldCup));
         assertTrue(started.await(2, java.util.concurrent.TimeUnit.SECONDS));
         try {
-            assertTimeoutPreemptively(java.time.Duration.ofMillis(500), topScorerService::refresh);
+            assertTimeoutPreemptively(java.time.Duration.ofMillis(500), () -> topScorerService.refresh(worldCup));
         } finally {
             release.countDown();
             running.get(2, java.util.concurrent.TimeUnit.SECONDS);
@@ -131,10 +139,10 @@ class TopScorerServiceTest {
         when(response.body()).thenReturn("{}");
         when(httpClient.<String>send(any(java.net.http.HttpRequest.class), any())).thenReturn(response);
 
-        topScorerService.refresh();
-        topScorerService.refresh();
+        topScorerService.refresh(worldCup);
+        topScorerService.refresh(worldCup);
 
-        assertEquals(2, topScorerService.getTopScorers().getFirst().goals());
+        assertEquals(2, topScorerService.getTopScorers(worldCup).getFirst().goals());
         verify(httpClient, times(2)).send(any(java.net.http.HttpRequest.class), any());
     }
 
@@ -142,14 +150,14 @@ class TopScorerServiceTest {
     void scheduledRefreshStopsAskingOnceTheWorldCupIsOverAndScorersAreLoaded() throws Exception {
         when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString()))
                 .thenReturn(goalBy("Kylian Mbappé"));
-        when(knockoutBracketService.worldCupIsOver()).thenReturn(true);
+        when(knockoutBracketService.isOver(worldCup)).thenReturn(true);
 
         // Tras arrancar no hay goleadores en memoria: la primera pasada los carga aunque el torneo haya acabado.
         topScorerService.scheduledRefresh();
         topScorerService.scheduledRefresh();
         topScorerService.scheduledRefresh();
 
-        assertEquals(1, topScorerService.getTopScorers().size());
+        assertEquals(1, topScorerService.getTopScorers(worldCup).size());
         verify(sportsDataProvider, times(1)).fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString());
     }
 
@@ -157,7 +165,7 @@ class TopScorerServiceTest {
     void scheduledRefreshKeepsAskingWhileTheWorldCupIsBeingPlayed() throws Exception {
         when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString()))
                 .thenReturn(goalBy("Kylian Mbappé"));
-        when(knockoutBracketService.worldCupIsOver()).thenReturn(false);
+        when(knockoutBracketService.isOver(worldCup)).thenReturn(false);
 
         topScorerService.scheduledRefresh();
         topScorerService.scheduledRefresh();
@@ -246,9 +254,9 @@ class TopScorerServiceTest {
         JsonNode events = objectMapper.readTree(json);
         when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(events);
 
-        topScorerService.refresh();
+        topScorerService.refresh(worldCup);
 
-        List<TopScorerDTO> scorers = topScorerService.getTopScorers();
+        List<TopScorerDTO> scorers = topScorerService.getTopScorers(worldCup);
         assertNotNull(scorers);
         assertEquals(2, scorers.size());
 
@@ -279,10 +287,10 @@ class TopScorerServiceTest {
         JsonNode events = goalBy("Kylian Mbappé");
         when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(events);
 
-        topScorerService.refresh();
-        topScorerService.refresh();
+        topScorerService.refresh(worldCup);
+        topScorerService.refresh(worldCup);
 
-        verify(scoreInvalidationService, times(1)).invalidateWorldCup();
+        verify(scoreInvalidationService, times(1)).invalidateCompetition(2L);
     }
 
     @Test
@@ -293,11 +301,11 @@ class TopScorerServiceTest {
                 .thenReturn(events)
                 .thenReturn(objectMapper.createArrayNode());
 
-        topScorerService.refresh();
-        topScorerService.refresh();
+        topScorerService.refresh(worldCup);
+        topScorerService.refresh(worldCup);
 
-        assertEquals(1, topScorerService.getTopScorers().size());
-        verify(scoreInvalidationService, times(1)).invalidateWorldCup();
+        assertEquals(1, topScorerService.getTopScorers(worldCup).size());
+        verify(scoreInvalidationService, times(1)).invalidateCompetition(2L);
     }
 
     @Test
@@ -305,8 +313,8 @@ class TopScorerServiceTest {
     void refresh_handlesExceptionGracefully() throws Exception {
         when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenThrow(new RuntimeException("API error"));
 
-        assertDoesNotThrow(() -> topScorerService.refresh());
-        assertTrue(topScorerService.getTopScorers().isEmpty());
+        assertDoesNotThrow(() -> topScorerService.refresh(worldCup));
+        assertTrue(topScorerService.getTopScorers(worldCup).isEmpty());
         verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
@@ -315,8 +323,8 @@ class TopScorerServiceTest {
     void refresh_ignoresNullEvents() throws Exception {
         when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(null);
 
-        assertDoesNotThrow(() -> topScorerService.refresh());
-        assertTrue(topScorerService.getTopScorers().isEmpty());
+        assertDoesNotThrow(() -> topScorerService.refresh(worldCup));
+        assertTrue(topScorerService.getTopScorers(worldCup).isEmpty());
         verify(webSocketService, never()).broadcastUpdate(anyString());
     }
 
@@ -367,6 +375,11 @@ class TopScorerServiceTest {
         @Bean
         public TopScorerStore topScorerStore() {
             return mock(TopScorerStore.class);
+        }
+
+        @Bean
+        public CompetitionRepository competitionRepository() {
+            return mock(CompetitionRepository.class);
         }
     }
 }

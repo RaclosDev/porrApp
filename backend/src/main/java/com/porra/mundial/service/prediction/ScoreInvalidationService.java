@@ -1,7 +1,6 @@
 package com.porra.mundial.service.prediction;
 
 import com.porra.mundial.model.Competition;
-import com.porra.mundial.repository.CompetitionRepository;
 import com.porra.mundial.repository.EditionRepository;
 import com.porra.mundial.repository.PredictionRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,6 @@ public class ScoreInvalidationService {
     public static final String LEADERBOARD_CACHE = "leaderboard";
 
     private final PredictionRepository predictionRepository;
-    private final CompetitionRepository competitionRepository;
     private final EditionRepository editionRepository;
     private final CacheManager cacheManager;
 
@@ -63,18 +61,6 @@ public class ScoreInvalidationService {
         }
         evictLeaderboardAfterCommit();
         return cleared;
-    }
-
-    /**
-     * Invalida las porras del Mundial, que es el torneo contra el que se puntúan los cuadros.
-     *
-     * @return número de porras invalidadas
-     */
-    @Transactional
-    public int invalidateWorldCup() {
-        return competitionRepository.findIdByExternalId(Competition.WORLD_CUP_EXTERNAL_ID)
-                .map(this::invalidateCompetition)
-                .orElse(0);
     }
 
     /** Vacía la caché de clasificaciones cuando se confirma la transacción, para no servir puntos viejos. */

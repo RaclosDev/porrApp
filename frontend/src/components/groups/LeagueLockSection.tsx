@@ -13,7 +13,7 @@ import type { SaveAction } from './custom/customCompetition';
 const PROGRESSIVE_LOCK: Record<LeagueKind, boolean> = {
   customBracket: true,
   ownBracket: true,
-  worldCup: false,
+  groupStage: false,
   knockoutDraw: false,
   matchday: false,
   fightCard: false,

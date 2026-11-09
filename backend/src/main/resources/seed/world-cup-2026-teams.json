@@ -1,6 +1,7 @@
 [
   {
     "name": "México",
+    "externalId": "soccer-203",
     "group": "A",
     "winOdds": 1.72,
     "qualifyOdds": 1.1,
@@ -8,6 +9,7 @@
   },
   {
     "name": "Sudáfrica",
+    "externalId": "soccer-467",
     "group": "A",
     "winOdds": 13.0,
     "qualifyOdds": 2.25,
@@ -15,6 +17,7 @@
   },
   {
     "name": "Corea del Sur",
+    "externalId": "soccer-451",
     "group": "A",
     "winOdds": 4.33,
     "qualifyOdds": 1.36,
@@ -22,6 +25,7 @@
   },
   {
     "name": "Chequia",
+    "externalId": "soccer-450",
     "group": "A",
     "winOdds": 4.33,
     "qualifyOdds": 1.36,
@@ -29,6 +33,7 @@
   },
   {
     "name": "Canadá",
+    "externalId": "soccer-206",
     "group": "B",
     "winOdds": 3.0,
     "qualifyOdds": 1.14,
@@ -36,6 +41,7 @@
   },
   {
     "name": "Bosnia y Her.",
+    "externalId": "soccer-452",
     "group": "B",
     "winOdds": 6.0,
     "qualifyOdds": 1.44,
@@ -43,6 +49,7 @@
   },
   {
     "name": "Catar",
+    "externalId": "soccer-4398",
     "group": "B",
     "winOdds": 34.0,
     "qualifyOdds": 4.0,
@@ -50,6 +57,7 @@
   },
   {
     "name": "Suiza",
+    "externalId": "soccer-475",
     "group": "B",
     "winOdds": 1.72,
     "qualifyOdds": 1.083,
@@ -57,6 +65,7 @@
   },
   {
     "name": "Brasil",
+    "externalId": "soccer-205",
     "group": "C",
     "winOdds": 1.25,
     "qualifyOdds": 1.01,
@@ -64,6 +73,7 @@
   },
   {
     "name": "Marruecos",
+    "externalId": "soccer-2869",
     "group": "C",
     "winOdds": 4.5,
     "qualifyOdds": 1.12,
@@ -71,6 +81,7 @@
   },
   {
     "name": "Escocia",
+    "externalId": "soccer-580",
     "group": "C",
     "winOdds": 13.0,
     "qualifyOdds": 2.05,
@@ -78,6 +89,7 @@
   },
   {
     "name": "Haití",
+    "externalId": "soccer-2654",
     "group": "C",
     "winOdds": 41.0,
     "qualifyOdds": 5.0,
@@ -85,6 +97,7 @@
   },
   {
     "name": "EEUU",
+    "externalId": "soccer-660",
     "group": "D",
     "winOdds": 1.75,
     "qualifyOdds": 1.1,
@@ -92,6 +105,7 @@
   },
   {
     "name": "Turquía",
+    "externalId": "soccer-465",
     "group": "D",
     "winOdds": 3.75,
     "qualifyOdds": 1.3,
@@ -99,6 +113,7 @@
   },
   {
     "name": "Paraguay",
+    "externalId": "soccer-210",
     "group": "D",
     "winOdds": 4.5,
     "qualifyOdds": 1.4,
@@ -106,6 +121,7 @@
   },
   {
     "name": "Australia",
+    "externalId": "soccer-628",
     "group": "D",
     "winOdds": 81.0,
     "qualifyOdds": 9.0,
@@ -113,6 +129,7 @@
   },
   {
     "name": "Alemania",
+    "externalId": "soccer-481",
     "group": "E",
     "winOdds": 1.3,
     "qualifyOdds": 1.02,
@@ -120,6 +137,7 @@
   },
   {
     "name": "Ecuador",
+    "externalId": "soccer-209",
     "group": "E",
     "winOdds": 4.5,
     "qualifyOdds": 1.25,
@@ -127,6 +145,7 @@
   },
   {
     "name": "Costa de Marfil",
+    "externalId": "soccer-4789",
     "group": "E",
     "winOdds": 8.0,
     "qualifyOdds": 1.55,
@@ -134,6 +153,7 @@
   },
   {
     "name": "Curaçao",
+    "externalId": "soccer-11678",
     "group": "E",
     "winOdds": 51.0,
     "qualifyOdds": 7.0,
@@ -141,6 +161,7 @@
   },
   {
     "name": "Países Bajos",
+    "externalId": "soccer-449",
     "group": "F",
     "winOdds": 1.4,
     "qualifyOdds": 1.03,
@@ -148,6 +169,7 @@
   },
   {
     "name": "Japón",
+    "externalId": "soccer-627",
     "group": "F",
     "winOdds": 4.0,
     "qualifyOdds": 1.28,
@@ -155,6 +177,7 @@
   },
   {
     "name": "Suecia",
+    "externalId": "soccer-466",
     "group": "F",
     "winOdds": 6.5,
     "qualifyOdds": 1.44,
@@ -162,6 +185,7 @@
   },
   {
     "name": "Túnez",
+    "externalId": "soccer-659",
     "group": "F",
     "winOdds": 15.0,
     "qualifyOdds": 2.5,
@@ -169,6 +193,7 @@
   },
   {
     "name": "Bélgica",
+    "externalId": "soccer-459",
     "group": "G",
     "winOdds": 1.45,
     "qualifyOdds": 1.04,
@@ -176,6 +201,7 @@
   },
   {
     "name": "Egipto",
+    "externalId": "soccer-2620",
     "group": "G",
     "winOdds": 5.0,
     "qualifyOdds": 1.36,
@@ -183,6 +209,7 @@
   },
   {
     "name": "Irán",
+    "externalId": "soccer-469",
     "group": "G",
     "winOdds": 7.0,
     "qualifyOdds": 1.5,
@@ -190,6 +217,7 @@
   },
   {
     "name": "Nueva Zelanda",
+    "externalId": "soccer-2666",
     "group": "G",
     "winOdds": 19.0,
     "qualifyOdds": 2.8,
@@ -197,6 +225,7 @@
   },
   {
     "name": "España",
+    "externalId": "soccer-164",
     "group": "H",
     "winOdds": 1.25,
     "qualifyOdds": 1.01,
@@ -204,6 +233,7 @@
   },
   {
     "name": "Uruguay",
+    "externalId": "soccer-212",
     "group": "H",
     "winOdds": 4.33,
     "qualifyOdds": 1.15,
@@ -211,6 +241,7 @@
   },
   {
     "name": "Arabia Saudí",
+    "externalId": "soccer-655",
     "group": "H",
     "winOdds": 13.0,
     "qualifyOdds": 2.1,
@@ -218,6 +249,7 @@
   },
   {
     "name": "Cabo Verde",
+    "externalId": "soccer-2597",
     "group": "H",
     "winOdds": 34.0,
     "qualifyOdds": 4.5,
@@ -225,6 +257,7 @@
   },
   {
     "name": "Francia",
+    "externalId": "soccer-478",
     "group": "I",
     "winOdds": 1.22,
     "qualifyOdds": 1.005,
@@ -232,6 +265,7 @@
   },
   {
     "name": "Noruega",
+    "externalId": "soccer-464",
     "group": "I",
     "winOdds": 5.0,
     "qualifyOdds": 1.2,
@@ -239,6 +273,7 @@
   },
   {
     "name": "Senegal",
+    "externalId": "soccer-654",
     "group": "I",
     "winOdds": 9.0,
     "qualifyOdds": 1.6,
@@ -246,6 +281,7 @@
   },
   {
     "name": "Irak",
+    "externalId": "soccer-4375",
     "group": "I",
     "winOdds": 41.0,
     "qualifyOdds": 5.5,
@@ -253,6 +289,7 @@
   },
   {
     "name": "Argentina",
+    "externalId": "soccer-202",
     "group": "J",
     "winOdds": 1.2,
     "qualifyOdds": 1.005,
@@ -260,6 +297,7 @@
   },
   {
     "name": "Austria",
+    "externalId": "soccer-474",
     "group": "J",
     "winOdds": 5.5,
     "qualifyOdds": 1.25,
@@ -267,6 +305,7 @@
   },
   {
     "name": "Argelia",
+    "externalId": "soccer-624",
     "group": "J",
     "winOdds": 11.0,
     "qualifyOdds": 1.8,
@@ -274,6 +313,7 @@
   },
   {
     "name": "Jordania",
+    "externalId": "soccer-2917",
     "group": "J",
     "winOdds": 41.0,
     "qualifyOdds": 6.0,
@@ -281,6 +321,7 @@
   },
   {
     "name": "Portugal",
+    "externalId": "soccer-482",
     "group": "K",
     "winOdds": 1.36,
     "qualifyOdds": 1.025,
@@ -288,6 +329,7 @@
   },
   {
     "name": "RD Congo",
+    "externalId": "soccer-2850",
     "group": "K",
     "winOdds": 15.0,
     "qualifyOdds": 2.4,
@@ -295,6 +337,7 @@
   },
   {
     "name": "Uzbekistán",
+    "externalId": "soccer-2570",
     "group": "K",
     "winOdds": 15.0,
     "qualifyOdds": 2.4,
@@ -302,6 +345,7 @@
   },
   {
     "name": "Colombia",
+    "externalId": "soccer-208",
     "group": "K",
     "winOdds": 3.0,
     "qualifyOdds": 1.12,
@@ -309,6 +353,7 @@
   },
   {
     "name": "Inglaterra",
+    "externalId": "soccer-448",
     "group": "L",
     "winOdds": 1.28,
     "qualifyOdds": 1.015,
@@ -316,6 +361,7 @@
   },
   {
     "name": "Croacia",
+    "externalId": "soccer-477",
     "group": "L",
     "winOdds": 4.5,
     "qualifyOdds": 1.22,
@@ -323,6 +369,7 @@
   },
   {
     "name": "Ghana",
+    "externalId": "soccer-4469",
     "group": "L",
     "winOdds": 11.0,
     "qualifyOdds": 1.72,
@@ -330,6 +377,7 @@
   },
   {
     "name": "Panamá",
+    "externalId": "soccer-2659",
     "group": "L",
     "winOdds": 51.0,
     "qualifyOdds": 2.75,

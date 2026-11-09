@@ -29,7 +29,7 @@ function Bracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Mi porra" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
-    groupStage: <WorldCupBracket />,
+    groupStage: <GroupStageBracket />,
     // Los cuadros propios (personalizadas, Worlds de LoL…) se pronostican sobre sus cruces.
     customBracket: <CustomBracket />,
     ownBracket: <CustomBracket />,
@@ -48,7 +48,7 @@ function Bracket() {
  * Porra del Mundial de la liga activa: si ya hay una guardada muestra el visor (con opción de editar);
  * si no, o al editar, el asistente de grupos y cruces.
  */
-function WorldCupBracket() {
+function GroupStageBracket() {
   const { userId, activeCompetitionId } = useAppContext();
   const myPred = useMyLeaguePrediction();
   const {

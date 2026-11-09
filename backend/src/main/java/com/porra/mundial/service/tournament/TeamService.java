@@ -1,6 +1,10 @@
 package com.porra.mundial.service.tournament;
 
+import com.porra.mundial.model.Competition;
+import com.porra.mundial.model.CompetitionTeam;
 import com.porra.mundial.model.Team;
+import com.porra.mundial.model.TournamentFormat;
+import com.porra.mundial.repository.CompetitionTeamRepository;
 import com.porra.mundial.repository.TeamRepository;
 import com.porra.mundial.dto.TeamOddsDTO;
 import lombok.RequiredArgsConstructor;
@@ -16,15 +20,15 @@ import java.util.stream.Collectors;
 public class TeamService {
 
     private final TeamRepository teamRepository;
+    private final CompetitionTeamRepository competitionTeamRepository;
 
-    /** Selecciones de cada grupo del Mundial ("A" → equipos); el resto de equipos no tiene grupo. */
-    private Map<String, List<Team>> worldCupGroups() {
-        return teamRepository.findByCompetitionIsNullOrderByGroupNameAscNameAsc().stream()
-                .filter(Team::isWorldCupGroupTeam)
+    /** Equipos sorteados en cada grupo de un torneo ("A" → equipos). */
+    private Map<String, List<Team>> drawnGroups(Competition tournament) {
+        return competitionTeamRepository.findGroupTeams(tournament.getId()).stream()
                 .collect(Collectors.groupingBy(
-                        t -> t.getGroupName().toUpperCase().trim(),
+                        drawn -> drawn.getGroupName().toUpperCase().trim(),
                         TreeMap::new,
-                        Collectors.toList()
+                        Collectors.mapping(CompetitionTeam::getTeam, Collectors.toList())
                 ));
     }
 
@@ -51,20 +55,20 @@ public class TeamService {
         return teamRepository.save(team);
     }
 
-    /** Probabilidades de cada grupo del Mundial, para ordenar su cuadro antes del torneo. */
-    @org.springframework.cache.annotation.Cacheable("groupOdds")
-    public Map<String, List<TeamOddsDTO>> getWorldCupGroupOdds() {
+    /**
+     * Probabilidades de cada grupo de un torneo, para ordenar su cuadro antes de empezar. Solo las tiene un
+     * torneo con los grupos ya sorteados; el resto no ofrece ninguna.
+     */
+    @org.springframework.cache.annotation.Cacheable(value = "groupOdds", key = "#tournament.id")
+    public Map<String, List<TeamOddsDTO>> getGroupOdds(Competition tournament) {
         Map<String, List<TeamOddsDTO>> result = new TreeMap<>();
-        Map<String, List<Team>> groups = worldCupGroups();
-
-        groups.forEach((groupName, teams) -> {
+        if (!TournamentFormat.of(tournament).seededGroups()) return result;
+        drawnGroups(tournament).forEach((groupName, teams) -> {
             List<TeamOddsDTO> teamList = teams.stream()
                     .map(t -> new TeamOddsDTO(t.getName(), t.getWinOdds(), t.getQualifyOdds(), t.getOutrightOdds()))
                     .collect(Collectors.toList());
             result.put(groupName, teamList);
         });
-
         return result;
     }
 }
-

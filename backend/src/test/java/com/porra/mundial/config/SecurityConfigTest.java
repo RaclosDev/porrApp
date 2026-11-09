@@ -1,10 +1,7 @@
 package com.porra.mundial.config;
 
 import com.porra.mundial.controller.WorldCupController;
-import com.porra.mundial.service.tournament.OfficialResultsService;
-import com.porra.mundial.service.tournament.StandingsService;
-import com.porra.mundial.service.tournament.TeamService;
-import com.porra.mundial.service.tournament.TopScorerService;
+import com.porra.mundial.service.tournament.GroupTournamentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -12,9 +9,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
 
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,16 +27,7 @@ class SecurityConfigTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private TopScorerService topScorerService;
-
-    @MockitoBean
-    private StandingsService standingsService;
-
-    @MockitoBean
-    private OfficialResultsService officialResultsService;
-
-    @MockitoBean
-    private TeamService teamService;
+    private GroupTournamentService tournaments;
 
     @MockitoBean
     private JwtUtil jwtUtil;
@@ -51,7 +37,6 @@ class SecurityConfigTest {
 
     @Test
     void publicReadsAreAllowedWithoutLogin() throws Exception {
-        when(topScorerService.getTopScorers()).thenReturn(List.of());
         mockMvc.perform(get("/api/world-cup/scorers")).andExpect(status().isOk());
         mockMvc.perform(get("/api/world-cup/standings")).andExpect(status().isOk());
         mockMvc.perform(get("/api/world-cup/group-odds")).andExpect(status().isOk());
@@ -62,7 +47,6 @@ class SecurityConfigTest {
 
     @Test
     void contentSecurityPolicyAllowsLocalImagePreviews() throws Exception {
-        when(topScorerService.getTopScorers()).thenReturn(List.of());
         // La vista previa de una foto elegida es una URL blob: hasta que se sube.
         mockMvc.perform(get("/api/world-cup/scorers"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()

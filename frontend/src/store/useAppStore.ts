@@ -6,6 +6,13 @@ import { unsubscribeThisDevice } from '../services/push';
 import { clearAllDrafts, readJsonDraft, writeDraft } from '../utils/drafts';
 import { isBracketState } from '../utils/bracketValidation';
 import { orderR32, topologyVersion, type TopologyVersion } from '../utils/bracketTopology';
+import {
+  BRACKET_ROUNDS,
+  WORLD_CUP_2026_FIRST_ROUND,
+  firstRoundInLegacyOrder,
+  firstRoundLabels,
+} from '../utils/firstKnockoutRound';
+import type { TournamentFormat } from '../types/api';
 
 /** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
 export interface BracketTeam {
@@ -24,7 +31,10 @@ interface BracketSide {
   right: BracketMatch[];
 }
 
-/** Cuadro de eliminatorias que rellena el usuario. */
+/**
+ * Cuadro de eliminatorias que rellena el usuario. Las rondas que el torneo no juega (los
+ * dieciseisavos de uno que empieza en octavos) quedan sin cruces.
+ */
 export interface BracketState {
   topologyVersion?: TopologyVersion;
   r32: BracketSide;
@@ -42,6 +52,9 @@ interface AppState {
   setProfileSetupCompleted: (completed: boolean) => void;
   userName: string;
   setUserName: (userName: string) => void;
+  /** El servidor ya ha contestado (o fallado) al pedir el perfil de la sesión abierta. */
+  profileChecked: boolean;
+  setProfileChecked: (profileChecked: boolean) => void;
   userAvatarUrl: string;
   setUserAvatarUrl: (url: string | null) => void;
   userId: string;
@@ -80,30 +93,21 @@ interface AppState {
   changeGroup: (groupId: string | number | null) => void;
 }
 
+/** Identificadores de los cruces de dieciseisavos en el orden antiguo del cuadro. */
+const LEGACY_R32_IDS = [
+  ['L1', 'L2', 'L4', 'R1', 'L3', 'R2', 'R3', 'R4'],
+  ['L5', 'L6', 'L7', 'L8', 'R5', 'R6', 'R7', 'R8'],
+];
+const legacyR32Labels = firstRoundLabels(firstRoundInLegacyOrder(WORLD_CUP_2026_FIRST_ROUND));
+const legacyR32Side = (side: number): BracketMatch[] =>
+  LEGACY_R32_IDS[side].map((id, index) => {
+    const [home, away] = legacyR32Labels[side * 8 + index];
+    return { home: { name: home }, away: { name: away }, id };
+  });
+
 const legacyBracketState: BracketState = {
   topologyVersion: 1,
-  r32: {
-    left: [
-      { home: { name: '1º Grupo E' }, away: { name: '3º A/B/C/D/F' }, id: 'L1' },
-      { home: { name: '1º Grupo I' }, away: { name: '3º C/D/F/G/H' }, id: 'L2' },
-      { home: { name: '1º Grupo F' }, away: { name: '2º Grupo C' }, id: 'L4' },
-      { home: { name: '1º Grupo C' }, away: { name: '2º Grupo F' }, id: 'R1' },
-      { home: { name: '2º Grupo A' }, away: { name: '2º Grupo B' }, id: 'L3' },
-      { home: { name: '2º Grupo E' }, away: { name: '2º Grupo I' }, id: 'R2' },
-      { home: { name: '1º Grupo A' }, away: { name: '3º C/E/F/H/I' }, id: 'R3' },
-      { home: { name: '1º Grupo L' }, away: { name: '3º E/H/I/J/K' }, id: 'R4' },
-    ],
-    right: [
-      { home: { name: '2º Grupo K' }, away: { name: '2º Grupo L' }, id: 'L5' },
-      { home: { name: '1º Grupo H' }, away: { name: '2º Grupo J' }, id: 'L6' },
-      { home: { name: '1º Grupo D' }, away: { name: '3º B/E/F/I/J' }, id: 'L7' },
-      { home: { name: '1º Grupo G' }, away: { name: '3º A/E/H/I/J' }, id: 'L8' },
-      { home: { name: '1º Grupo J' }, away: { name: '2º Grupo H' }, id: 'R5' },
-      { home: { name: '2º Grupo D' }, away: { name: '2º Grupo G' }, id: 'R6' },
-      { home: { name: '1º Grupo B' }, away: { name: '3º E/F/G/I/J' }, id: 'R7' },
-      { home: { name: '1º Grupo K' }, away: { name: '3º D/E/I/J/L' }, id: 'R8' },
-    ],
-  },
+  r32: { left: legacyR32Side(0), right: legacyR32Side(1) },
   r16: {
     left: Array(4)
       .fill(null)
@@ -137,8 +141,75 @@ export const defaultBracketState: BracketState = {
   r32: { left: canonicalR32.slice(0, 8), right: canonicalR32.slice(8) },
 };
 
-export const getDefaultBracketState = (version?: TopologyVersion): BracketState =>
-  topologyVersion(version) === 2 ? defaultBracketState : legacyBracketState;
+/** Cruces por lado de cada ronda de un cuadro completo, y cómo empiezan sus identificadores. */
+const SIDE_SIZES = [8, 4, 2, 1];
+const ID_PREFIXES = ['', '8', '4', '2'];
+
+/** Cuadro vacío de un torneo: su primera ronda con los huecos de grupo y el resto por rellenar. */
+function emptyBracketOf(format: TournamentFormat): BracketState {
+  const start = Math.max(0, BRACKET_ROUNDS.indexOf(format.firstRound));
+  const labels = firstRoundLabels(format.firstKnockoutRound);
+  const half = labels.length / 2;
+  const side = (round: number, right: boolean): BracketMatch[] => {
+    if (round < start) return [];
+    const letter = right ? 'R' : 'L';
+    if (round > start) {
+      return Array.from({ length: SIDE_SIZES[round] }, (_, index) => ({
+        home: null,
+        away: null,
+        id: `${letter}${ID_PREFIXES[round]}_${index}`,
+      }));
+    }
+    return labels
+      .slice(right ? half : 0, right ? labels.length : half)
+      .map(([home, away], index) => ({
+        home: { name: home },
+        away: { name: away },
+        id: `${letter}${ID_PREFIXES[round]}_${index}`,
+      }));
+  };
+  const round = (index: number): BracketSide => ({
+    left: side(index, false),
+    right: side(index, true),
+  });
+  return {
+    topologyVersion: 2,
+    r32: round(0),
+    r16: round(1),
+    qf: round(2),
+    sf: round(3),
+    final: null,
+    champion: null,
+    thirdPlaceMatch: null,
+    thirdPlaceWinner: null,
+  };
+}
+
+const usesDefaultFirstRound = (format: TournamentFormat | undefined) =>
+  !format ||
+  JSON.stringify(format.firstKnockoutRound) === JSON.stringify(WORLD_CUP_2026_FIRST_ROUND);
+
+const emptyBrackets = new Map<string, BracketState>();
+
+/**
+ * Cuadro vacío del torneo (sin forma, el del Mundial). Los cuadros del Mundial anteriores a la
+ * versión 2 conservan su orden antiguo.
+ */
+export const getDefaultBracketState = (
+  version?: TopologyVersion,
+  format?: TournamentFormat,
+): BracketState => {
+  if (usesDefaultFirstRound(format)) {
+    return topologyVersion(version) === 2 ? defaultBracketState : legacyBracketState;
+  }
+  const key = JSON.stringify(format);
+  let empty = emptyBrackets.get(key);
+  if (!empty) {
+    empty = emptyBracketOf(format as TournamentFormat);
+    emptyBrackets.set(key, empty);
+  }
+  return empty;
+};
 
 /** Borrador del cuadro de este usuario en esta liga, o el cuadro vacío. */
 export const getInitialBracketState = (groupId: string, userId: string): BracketState => {
@@ -194,6 +265,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   profileSetupCompleted: null,
   setProfileSetupCompleted: (completed) =>
     set((state) => ({ profileSetupCompleted: state.profileSetupCompleted === true || completed })),
+  profileChecked: false,
+  setProfileChecked: (profileChecked) => set({ profileChecked }),
   userName: localStorage.getItem('my_prediction_name') || '',
   setUserName: (userName) => {
     if (userName) {

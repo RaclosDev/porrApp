@@ -6,6 +6,7 @@ import com.porra.mundial.dto.PredictionDataDTO;
 import com.porra.mundial.dto.MatchdayPointsDTO;
 import com.porra.mundial.dto.ParticipantScoreDTO;
 import com.porra.mundial.dto.TopScorerDTO;
+import com.porra.mundial.model.Competition;
 import com.porra.mundial.model.Edition;
 import com.porra.mundial.model.Prediction;
 import com.porra.mundial.model.Match;
@@ -76,10 +77,7 @@ public class LeaderboardService {
         }
 
         if (!stale.isEmpty()) {
-            OfficialResultsService.OfficialResults official = officialResultsService.current();
-            boolean pichichiActive = stale.stream()
-                    .anyMatch(p -> p.getEdition() != null && p.getEdition().scoresPichichi());
-            List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
+            TournamentResults tournaments = new TournamentResults();
 
             Map<Long, List<MatchPrediction>> matchPredsByPrediction = matchPredictionsByPrediction(stale);
             SurvivorContext survivors = new SurvivorContext();
@@ -96,7 +94,7 @@ public class LeaderboardService {
                 ScoringRuleSet effectiveRules = ScoringRuleSet.effectiveForEdition(pred.getEdition());
                 ScoringStrategy strategy = strategiesByRules.computeIfAbsent(effectiveRules.toJson(),
                         json -> scoringStrategy.withRules(effectiveRules));
-                ParticipantScoreDTO score = scorePrediction(pred, matchPreds, official, scorers, strategy, survivors);
+                ParticipantScoreDTO score = scorePrediction(pred, matchPreds, tournaments, strategy, survivors);
                 score.setPending(isPaymentPending(pred, membershipPayment));
                 leaderboard.add(score);
                 if (pred.getId() != null) {
@@ -397,10 +395,8 @@ public class LeaderboardService {
         Prediction pred = predictionRepository.findById(predictionId).orElse(null);
         if (pred == null) return null;
 
-        boolean pichichiActive = pred.getEdition() != null && pred.getEdition().scoresPichichi();
-        List<TopScorerDTO> scorers = pichichiActive ? topScorerService.getTopScorers() : Collections.emptyList();
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findByPredictionId(pred.getId()),
-                officialResultsService.current(), scorers,
+                new TournamentResults(),
                 scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())), new SurvivorContext());
         boolean entryFee = pred.getEdition() != null && pred.getEdition().getLeague() != null
                 && pred.getEdition().getLeague().isEntryFee();
@@ -408,19 +404,49 @@ public class LeaderboardService {
         return score;
     }
 
+    /**
+     * Solo los cuadros del torneo con fase de grupos se puntúan contra su clasificación y su cuadro
+     * oficiales; las ligas por jornadas, los cuadros propios y el resto de deportes no los necesitan.
+     */
+    private static boolean scoresAgainstOfficialBracket(Prediction pred) {
+        Edition edition = pred.getEdition();
+        return pred.getBracketData() != null && edition != null && edition.isGroupTournamentBracket()
+                && !PredictableBracket.applies(edition);
+    }
+
+    /**
+     * Resultados y goleadores oficiales de los torneos con grupos, leídos una vez por torneo en cada
+     * cálculo y solo cuando alguna porra se puntúa contra ellos.
+     */
+    private final class TournamentResults {
+        private final Map<Long, OfficialResultsService.OfficialResults> official = new HashMap<>();
+        private final Map<Long, List<TopScorerDTO>> scorers = new HashMap<>();
+
+        OfficialResultsService.OfficialResults officialFor(Prediction pred) {
+            Competition tournament = pred.getEdition().getCompetition();
+            return official.computeIfAbsent(tournament.getId(), id -> officialResultsService.current(tournament));
+        }
+
+        List<TopScorerDTO> scorersFor(Prediction pred) {
+            if (!pred.getEdition().scoresPichichi()) return Collections.emptyList();
+            Competition tournament = pred.getEdition().getCompetition();
+            return scorers.computeIfAbsent(tournament.getId(), id -> topScorerService.getTopScorers(tournament));
+        }
+    }
+
     /** Puntos del cuadro (si lo tiene, con las reglas de su edición) más los de los pronósticos por partido. */
     private ParticipantScoreDTO scorePrediction(Prediction pred, List<MatchPrediction> matchPreds,
-                                                OfficialResultsService.OfficialResults official, List<TopScorerDTO> scorers,
+                                                TournamentResults tournaments,
                                                 ScoringStrategy strategy, SurvivorContext survivors) {
         PredictionDataDTO participant = pred.getBracketData();
         ParticipantScoreDTO score;
         Edition edition = pred.getEdition();
-        boolean bracketEdition = edition != null && edition.isWorldCupBracket();
         if (participant != null && PredictableBracket.applies(edition)) {
             score = customBracketScoringService.score(pred);
-        } else if (participant != null && bracketEdition) {
+        } else if (scoresAgainstOfficialBracket(pred)) {
+            OfficialResultsService.OfficialResults official = tournaments.officialFor(pred);
             score = calculatePoints(strategy, new CalculationContext(participant, official.bracket(), official.groupPoints(),
-                    official.orderedTeamsPerGroup(), official.bestThirds(), scorers, official.roundOf16(),
+                    official.orderedTeamsPerGroup(), official.bestThirds(), tournaments.scorersFor(pred), official.roundOf16(),
                     official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion()));
             score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
             score.setThirdPlaceWinner(participant.getThirdPlaceWinner());
