@@ -516,8 +516,7 @@ const allowsProgressiveLock = (draft: LeagueDraft, ctx: DraftContext) => {
   if (draft.custom) return true;
   const competition = selectedCompetition(draft, ctx);
   return (
-    competition?.formatType === 'TOURNAMENT' &&
-    !isGroupTournament(competition.groupTournament, competition.externalId)
+    competition?.formatType === 'TOURNAMENT' && !isGroupTournament(competition.groupTournament)
   );
 };
 
@@ -550,9 +549,7 @@ function defaultLockMode(draft: LeagueDraft, ctx: DraftContext): CustomLockMode 
 
 const isSelectedGroupTournament = (draft: LeagueDraft, ctx: DraftContext) => {
   const competition = selectedCompetition(draft, ctx);
-  return Boolean(
-    competition && isGroupTournament(competition.groupTournament, competition.externalId),
-  );
+  return Boolean(competition && isGroupTournament(competition.groupTournament));
 };
 
 /**

@@ -12,6 +12,7 @@ const league: Group = withLeagueKind('groupStage', {
   competitionId: 2,
   competitionName: 'Competición de prueba',
   competitionExternalId: 'fifa.world',
+  groupTournament: true,
   formatType: 'TOURNAMENT',
   poolFormat: 'FULL_BRACKET',
   pichichi: false,

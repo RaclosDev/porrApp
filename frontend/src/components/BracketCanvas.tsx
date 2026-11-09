@@ -21,8 +21,8 @@ function matchTop(r: number, i: number): number {
 }
 
 const GAP = 20; // px between adjacent columns (fixed)
-/** Rondas del cuadro del Mundial: 16avos, octavos y cuartos en los laterales; semis en la hoja central. */
-export const WORLD_CUP_ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
+/** Nombre de cada columna del cuadro: las tres primeras en los laterales y las semis en la hoja central. Un torneo que empieza más tarde deja vacías las primeras y no se dibujan. */
+export const KNOCKOUT_ROUND_LABELS = ['16avos', 'Octavos', 'Cuartos', 'Semis'];
 /** Rondas laterales que caben sin ensanchar la hoja. */
 const FITTING_SIDE_ROUNDS = 3;
 

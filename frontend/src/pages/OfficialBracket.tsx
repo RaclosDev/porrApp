@@ -4,13 +4,13 @@ import LeagueLoadState from '../components/LeagueLoadState';
 import { useState, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import BracketCanvas, { TeamSlot, WORLD_CUP_ROUND_LABELS } from '../components/BracketCanvas';
+import BracketCanvas, { TeamSlot, KNOCKOUT_ROUND_LABELS } from '../components/BracketCanvas';
 import BracketTeamStatus from '../components/BracketTeamStatus';
 import {
   buildBracketData,
   isMatchInRound,
   matchTeamNames,
-  nextWorldCupKnockoutMatch,
+  nextKnockoutMatch,
   slotName,
   type BracketSlot,
 } from '../utils/bracketBuilder';
@@ -37,7 +37,7 @@ function OfficialBracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Resultados" what="los resultados" />,
     unknown: <UnsupportedLeagueState />,
-    groupStage: <WorldCupOfficialBracket />,
+    groupStage: <GroupStageOfficialBracket />,
     customBracket: <CustomTournamentHome />,
     ownBracket: <OfficialTournamentHome />,
     knockoutDraw: <KnockoutDrawResults />,
@@ -51,7 +51,7 @@ function OfficialBracket() {
 }
 
 /** Cuadro oficial del Mundial: los cruces reales, con los terceros resueltos en vivo. */
-function WorldCupOfficialBracket() {
+function GroupStageOfficialBracket() {
   const { allGames, matchRadar } = useAppContext();
   const {
     groupStandings,
@@ -72,7 +72,7 @@ function WorldCupOfficialBracket() {
     [groupStandings, groupOdds, allGames, format],
   );
 
-  const featuredMatch = useMemo(() => nextWorldCupKnockoutMatch(allGames), [allGames]);
+  const featuredMatch = useMemo(() => nextKnockoutMatch(allGames), [allGames]);
 
   const { leftRounds, rightRounds } = useMemo(() => {
     const toMatches = (arr: BracketSlot[][] | undefined): CanvasMatch<BracketSlot>[] =>
@@ -235,7 +235,7 @@ function WorldCupOfficialBracket() {
 
           <div>
             <BracketCanvas
-              roundLabels={WORLD_CUP_ROUND_LABELS}
+              roundLabels={KNOCKOUT_ROUND_LABELS}
               leftRounds={leftRounds}
               rightRounds={rightRounds}
               renderSlot={renderSlot}

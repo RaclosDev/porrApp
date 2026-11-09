@@ -40,7 +40,13 @@ const ctx = {
       externalId: 'uefa.champions',
       formatType: 'TOURNAMENT',
     }),
-    competition({ id: 3, name: 'Mundial', externalId: 'fifa.world', formatType: 'TOURNAMENT' }),
+    competition({
+      id: 3,
+      name: 'Mundial',
+      externalId: 'fifa.world',
+      formatType: 'TOURNAMENT',
+      groupTournament: true,
+    }),
     competition({
       id: 4,
       name: 'Worlds',
@@ -287,6 +293,7 @@ describe('borrador de liga', () => {
           name: 'Mundial',
           externalId: 'fifa.world',
           formatType: 'TOURNAMENT',
+          groupTournament: true,
           finished: true,
           groupStage: true,
         }),

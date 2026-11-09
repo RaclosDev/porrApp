@@ -34,9 +34,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Sincroniza partidos y resultados con el proveedor deportivo de cada competición.
  * <ul>
- *   <li>El Mundial se sincroniza entero en cada pasada mientras se juega y deja de pedirse una semana
+ *   <li>Un torneo con grupos (el Mundial, la Eurocopa) se sincroniza entero en cada pasada mientras se juega y deja de pedirse una semana
  *       después de su último partido; las ligas, solo de ayer a mañana.</li>
- *   <li>Si una pasada cambia algún resultado del Mundial, al final se actualizan una vez su cuadro de
+ *   <li>Si una pasada cambia algún resultado de un torneo con grupos, al final se actualizan una vez su cuadro de
  *       eliminatorias y su clasificación de grupos. Si cambia algo, se avisa a los clientes.</li>
  *   <li>El estado de la última pasada, con todas sus competiciones, se expone para el health check
  *       ({@code SyncHealthIndicator}).</li>
@@ -150,8 +150,8 @@ public class SyncService {
      * Sincroniza las competiciones con proveedor externo que juega alguna liga activa. Las demás no
      * tienen a nadie mirando: las pone al día la barrida diaria ({@link SeasonCalendarRefresher}) y entran
      * aquí en cuanto se crea una liga sobre ellas. Si ya hay una pasada en curso, no hace nada.
-     * La clasificación de grupos y el cuadro del Mundial se recalculan una vez al final, y solo si la pasada
-     * ha cambiado algún resultado del Mundial (o si el recálculo anterior falló).
+     * La clasificación de grupos y el cuadro de cada torneo con grupos se recalculan una vez al final, y solo si la pasada
+     * ha cambiado algún resultado de un torneo con grupos (o si el recálculo anterior falló).
      * El estado de salud resume la pasada entera: basta con que falle una competición para que no sea "success".
      */
     public void syncAll() {

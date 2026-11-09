@@ -20,7 +20,7 @@ import java.security.Principal;
 import java.util.List;
 
 /**
- * Pronósticos de cuadro completo (Mundial). Las lecturas de una liga pública son públicas;
+ * Pronósticos de cuadro completo (torneos con grupos). Las lecturas de una liga pública son públicas;
  * las de ligas privadas exigen pertenecer a la liga.
  */
 @RestController

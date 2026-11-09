@@ -5,7 +5,7 @@ import {
   isMatchInRound,
   matchTeamNames,
   matchWinner,
-  nextWorldCupKnockoutMatch,
+  nextKnockoutMatch,
   slotName,
 } from '../../utils/bracketBuilder';
 import { game, standing } from '../fixtures';
@@ -107,14 +107,14 @@ describe('isMatchInRound', () => {
   });
 });
 
-describe('nextWorldCupKnockoutMatch', () => {
+describe('nextKnockoutMatch', () => {
   it('picks the earliest knockout match still to be played', () => {
     const games = [
       game({ id: 1, round: 'qf', date: '2026-07-10T18:00:00Z' }),
       game({ id: 2, round: 'r16', date: '2026-07-04T18:00:00Z' }),
       game({ id: 3, round: 'sf' }),
     ];
-    expect(nextWorldCupKnockoutMatch(games)?.id).toBe(2);
+    expect(nextKnockoutMatch(games)?.id).toBe(2);
   });
 
   it('skips group matches and knockout matches already started or decided', () => {
@@ -125,13 +125,13 @@ describe('nextWorldCupKnockoutMatch', () => {
       game({ id: 4, round: 'r32', date: '2026-06-30T18:00:00Z', home_score: 0, away_score: 0 }),
       game({ id: 5, round: 'r32', date: '2026-07-01T18:00:00Z' }),
     ];
-    expect(nextWorldCupKnockoutMatch(games)?.id).toBe(5);
+    expect(nextKnockoutMatch(games)?.id).toBe(5);
   });
 
   it('has nothing to highlight without matches or once all are played', () => {
-    expect(nextWorldCupKnockoutMatch(null)).toBeNull();
-    expect(nextWorldCupKnockoutMatch([])).toBeNull();
-    expect(nextWorldCupKnockoutMatch([game({ round: 'final', finished: true })])).toBeNull();
+    expect(nextKnockoutMatch(null)).toBeNull();
+    expect(nextKnockoutMatch([])).toBeNull();
+    expect(nextKnockoutMatch([game({ round: 'final', finished: true })])).toBeNull();
   });
 });
 

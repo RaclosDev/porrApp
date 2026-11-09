@@ -184,11 +184,11 @@ describe('cuadro de un torneo que no es el Mundial', () => {
 });
 
 describe('qué liga es de torneo con grupos', () => {
-  it('lo dice el servidor; si aún no lo dice, solo lo es el Mundial', () => {
-    expect(isGroupTournament(true, 'uefa.euro')).toBe(true);
-    expect(isGroupTournament(false, 'fifa.world')).toBe(false);
-    expect(isGroupTournament(undefined, 'fifa.world')).toBe(true);
-    expect(isGroupTournament(undefined, 'uefa.euro')).toBe(false);
+  it('lo dice el servidor; sin ese dato no se supone nada por el nombre de la competición', () => {
+    expect(isGroupTournament(true)).toBe(true);
+    expect(isGroupTournament(false)).toBe(false);
+    expect(isGroupTournament(undefined)).toBe(false);
+    expect(isGroupTournament(null)).toBe(false);
   });
 
   it('una liga de otro torneo con grupos tiene las pantallas del torneo con grupos', () => {

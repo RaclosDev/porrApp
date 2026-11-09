@@ -20,11 +20,10 @@ export default function LinkOfficialCard({ group, save }: { group: Group; save: 
     staleTime: 5 * 60_000,
   });
   const options = (competitions.data ?? []).filter(
-    (item) =>
-      item.formatType === 'TOURNAMENT' && !isGroupTournament(item.groupTournament, item.externalId),
+    (item) => item.formatType === 'TOURNAMENT' && !isGroupTournament(item.groupTournament),
   );
   const [selected, setSelected] = useState('');
-  const fallback = options.find((item) => item.externalId === 'lol.worlds') ?? options[0];
+  const fallback = options[0];
   const competitionId = Number(selected || fallback?.id);
   if (!options.length) return null;
   const name = options.find((item) => item.id === competitionId)?.name ?? '';
