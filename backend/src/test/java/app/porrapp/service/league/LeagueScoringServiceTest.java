@@ -163,12 +163,35 @@ class LeagueScoringServiceTest {
     }
 
     @Test
-    @DisplayName("Una edición sin reglas guardadas que recibe las de por defecto no se recalcula")
-    void editionWithoutStoredRulesAndDefaultsIsUnchanged() {
+    @DisplayName("Una edición anterior sin reglas guardadas que recibe las que ya tenía no se recalcula")
+    void editionWithoutStoredRulesAndItsOwnRulesIsUnchanged() {
         edition.setScoringRulesJson(null);
 
-        leagueScoringService.updateScoring(10L, ScoringRuleSet.defaults(), ADMIN);
+        leagueScoringService.updateScoring(10L, ScoringRuleSet.forEdition(edition), ADMIN);
 
+        verify(editionRepository, never()).save(any());
         verifyNoInteractions(matchPredictionService, scoreInvalidationService);
+    }
+
+    @Test
+    @DisplayName("Una liga creada con los valores del Mundial los conserva: los generales solo se le ofrecen")
+    void existingLeagueKeepsItsStoredRules() {
+        String stored = "{\"groupQualifierPoints\":10,\"groupExactPositionPoints\":10,\"roundOf32Points\":25,"
+                + "\"roundOf16Points\":30,\"quarterFinalPoints\":40,\"semiFinalPoints\":60,\"championPoints\":200,"
+                + "\"runnerUpPoints\":150,\"thirdPlacePoints\":100,\"fourthPlacePoints\":75,\"topScorerPoints\":200}";
+        edition.setScoringRulesJson(stored);
+
+        LeagueScoringDTO scoring = leagueScoringService.getScoring(10L, MEMBER);
+
+        assertEquals(200, scoring.rules().getChampionPoints());
+        assertEquals(150, scoring.rules().getRunnerUpPoints());
+        assertEquals(25, scoring.rules().getRoundOf32Points());
+        assertEquals(10, scoring.rules().getGroupQualifierPoints());
+        assertEquals(200, scoring.rules().getTopScorerPoints());
+        assertEquals(ScoringRuleSet.defaults(), scoring.defaults());
+        assertEquals(50, scoring.defaults().getChampionPoints());
+        // Consultarla no reescribe lo guardado.
+        assertEquals(stored, edition.getScoringRulesJson());
+        verify(editionRepository, never()).save(any());
     }
 }

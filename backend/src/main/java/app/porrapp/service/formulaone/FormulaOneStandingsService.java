@@ -30,11 +30,14 @@ public class FormulaOneStandingsService {
     private final EspnFormulaOneClient espn;
     private final RaceDriverRepository raceDriverRepository;
 
-    @Cacheable(value = "f1Standings", key = "'current'", sync = true)
-    public FormulaOneStandingsDTO standings() {
+    /**
+     * @param season año de una temporada ya archivada (su Mundial ya no cambia), o null para la que está en curso
+     */
+    @Cacheable(value = "f1Standings", key = "#season == null ? 'current' : #season", sync = true)
+    public FormulaOneStandingsDTO standings(Integer season) {
         JsonNode children;
         try {
-            children = espn.standings();
+            children = espn.standings(season);
         } catch (Exception error) {
             log.info("Fórmula 1: sin Mundial de ESPN ({})", error.getMessage());
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,

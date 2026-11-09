@@ -540,7 +540,13 @@ public class MatchSelectionService {
         }
         Map<String, Long> byExternalId = competitionRepository.findByExternalIdIn(externalIds).stream()
                 .filter(item -> item.getOwnerLeague() == null)
+                // Los torneos de otra temporada no entran: la liga termina con la suya.
+                .filter(item -> sameSeason(edition.getCompetition(), item))
                 .collect(Collectors.toMap(Competition::getExternalId, Competition::getId, (left, right) -> left));
+        // Los que la liga ya sigue se quedan aunque su temporada se haya archivado.
+        competitionRepository.findAllById(competitionIds(edition)).stream()
+                .filter(item -> item.getExternalId() != null && externalIds.contains(item.getExternalId()))
+                .forEach(item -> byExternalId.put(item.getExternalId(), item.getId()));
         List<Long> ids = new ArrayList<>(List.of(primary));
         externalIds.stream()
                 .map(byExternalId::get)
@@ -550,8 +556,19 @@ public class MatchSelectionService {
     }
 
     /**
-     * Barrida diaria: añade a cada liga de tenis de varios torneos los cuadros de su alcance que aún no
-     * tiene (un torneo nuevo en el catálogo). Nunca quita ninguno.
+     * Si un torneo vigente es de la temporada del torneo de la liga. Mientras alguno de los dos esté sin
+     * anotar se da por bueno, como antes de que hubiera temporadas; con el de la liga ya archivado solo
+     * vale el que lleva su mismo año.
+     */
+    private static boolean sameSeason(Competition primary, Competition item) {
+        Integer season = primary.seasonStartYear();
+        if (primary.isArchived()) return season != null && season.equals(item.seasonStartYear());
+        return season == null || item.getSeason() == null || season.equals(item.seasonStartYear());
+    }
+
+    /**
+     * Barrida diaria: añade a cada liga de tenis de varios torneos los cuadros de su alcance y de su
+     * temporada que aún no tiene (un torneo nuevo en el catálogo). Nunca quita ninguno.
      *
      * @return cuadros añadidos entre todas las ligas
      */

@@ -40,9 +40,9 @@ class ScoringControllerTest {
     void getActiveRules() throws Exception {
         mockMvc.perform(get("/api/rules"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.championPoints").value(200))
+                .andExpect(jsonPath("$.championPoints").value(50))
                 .andExpect(jsonPath("$.exactScorePoints").value(5))
-                .andExpect(jsonPath("$.groupQualifierPoints").value(10));
+                .andExpect(jsonPath("$.groupQualifierPoints").value(5));
     }
 
     @Test

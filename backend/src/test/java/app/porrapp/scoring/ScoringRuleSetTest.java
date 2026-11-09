@@ -14,25 +14,127 @@ class ScoringRuleSetTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** Reglas guardadas de una liga creada con los valores del Mundial 2026, antes de los generales. */
+    private static final String WORLD_CUP_RULES_JSON = """
+            {"groupQualifierPoints":10,"groupExactPositionPoints":10,"roundOf32Points":25,"roundOf16Points":30,
+            "quarterFinalPoints":40,"semiFinalPoints":60,"championPoints":200,"runnerUpPoints":150,
+            "thirdPlacePoints":100,"fourthPlacePoints":75,"topScorerPoints":200,"exactScorePoints":5,
+            "correctSignPoints":3,"goalDiffBonusPoints":1}""";
+
     @Test
-    @DisplayName("Los valores por defecto corresponden al reglamento oficial del Mundial 2026")
+    @DisplayName("Una liga nueva nace con valores generales, no con los del Mundial 2026")
     void testDefaultValues() {
+        Map<String, Integer> expected = new java.util.LinkedHashMap<>();
+        expected.put("groupQualifierPoints", 5);
+        expected.put("groupExactPositionPoints", 5);
+        expected.put("roundOf32Points", 10);
+        expected.put("roundOf16Points", 15);
+        expected.put("quarterFinalPoints", 20);
+        expected.put("semiFinalPoints", 30);
+        expected.put("championPoints", 50);
+        expected.put("runnerUpPoints", 30);
+        expected.put("thirdPlacePoints", 20);
+        expected.put("fourthPlacePoints", 10);
+        expected.put("topScorerPoints", 30);
+        expected.put("exactScorePoints", 5);
+        expected.put("correctSignPoints", 3);
+        expected.put("goalDiffBonusPoints", 1);
+        expected.put("survivorRoundPoints", 1);
+        expected.put("survivorLives", 1);
+        expected.put("survivorDrawSurvives", 0);
+        expected.put("f1ExactPositionPoints", 10);
+        expected.put("f1PodiumPoints", 4);
+        expected.put("f1PolePoints", 5);
+        expected.put("f1FastestLapPoints", 3);
+        expected.put("nbaPlayInPoints", 5);
+        expected.put("nbaFirstRoundPoints", 10);
+        expected.put("nbaConferenceSemifinalPoints", 20);
+        expected.put("nbaConferenceFinalPoints", 30);
+        expected.put("nbaFinalsPoints", 50);
+        expected.put("nbaFirstRoundExactPoints", 5);
+        expected.put("nbaConferenceSemifinalExactPoints", 10);
+        expected.put("nbaConferenceFinalExactPoints", 15);
+        expected.put("nbaFinalsExactPoints", 25);
+        expected.put("fightWinnerPoints", 3);
+        expected.put("fightMethodPoints", 2);
+        expected.put("fightRoundPoints", 2);
+
+        assertEquals(expected, ScoringRuleSet.defaults().asMap());
+    }
+
+    @Test
+    @DisplayName("En el cuadro cada ronda vale más que la anterior y el campeón es el acierto que más vale")
+    void bracketDefaultsGrowRoundByRound() {
         ScoringRuleSet rules = ScoringRuleSet.defaults();
 
-        assertEquals(10, rules.getGroupQualifierPoints());
-        assertEquals(10, rules.getGroupExactPositionPoints());
-        assertEquals(25, rules.getRoundOf32Points());
-        assertEquals(30, rules.getRoundOf16Points());
-        assertEquals(40, rules.getQuarterFinalPoints());
-        assertEquals(60, rules.getSemiFinalPoints());
-        assertEquals(200, rules.getChampionPoints());
-        assertEquals(150, rules.getRunnerUpPoints());
-        assertEquals(100, rules.getThirdPlacePoints());
-        assertEquals(75, rules.getFourthPlacePoints());
-        assertEquals(200, rules.getTopScorerPoints());
-        assertEquals(5, rules.getExactScorePoints());
-        assertEquals(3, rules.getCorrectSignPoints());
-        assertEquals(1, rules.getGoalDiffBonusPoints());
+        int[] ladder = {rules.getGroupQualifierPoints(), rules.getRoundOf32Points(), rules.getRoundOf16Points(),
+                rules.getQuarterFinalPoints(), rules.getSemiFinalPoints(), rules.getChampionPoints()};
+        for (int i = 1; i < ladder.length; i++) {
+            assertTrue(ladder[i] > ladder[i - 1], "ronda " + i);
+        }
+        assertTrue(rules.getChampionPoints() > rules.getRunnerUpPoints());
+        assertTrue(rules.getRunnerUpPoints() > rules.getThirdPlacePoints());
+        assertTrue(rules.getThirdPlacePoints() > rules.getFourthPlacePoints());
+        assertTrue(rules.getTopScorerPoints() <= rules.getChampionPoints());
+    }
+
+    @Test
+    @DisplayName("El tenis conserva su puntuación propia")
+    void tennisDefaultsAreUnchanged() {
+        ScoringRuleSet tennis = ScoringRuleSet.defaultTennis();
+
+        assertEquals(10, tennis.getRoundOf16Points());
+        assertEquals(15, tennis.getQuarterFinalPoints());
+        assertEquals(20, tennis.getSemiFinalPoints());
+        assertEquals(30, tennis.getChampionPoints());
+        assertEquals(5, tennis.getExactScorePoints());
+    }
+
+    @Test
+    @DisplayName("Una liga existente conserva las reglas que tiene guardadas")
+    void storedRulesAreKeptAsTheyAre() {
+        ScoringRuleSet stored = ScoringRuleSet.fromJson(WORLD_CUP_RULES_JSON);
+
+        assertEquals(10, stored.getGroupQualifierPoints());
+        assertEquals(10, stored.getGroupExactPositionPoints());
+        assertEquals(25, stored.getRoundOf32Points());
+        assertEquals(30, stored.getRoundOf16Points());
+        assertEquals(40, stored.getQuarterFinalPoints());
+        assertEquals(60, stored.getSemiFinalPoints());
+        assertEquals(200, stored.getChampionPoints());
+        assertEquals(150, stored.getRunnerUpPoints());
+        assertEquals(100, stored.getThirdPlacePoints());
+        assertEquals(75, stored.getFourthPlacePoints());
+        assertEquals(200, stored.getTopScorerPoints());
+        assertEquals(stored, ScoringRuleSet.forEdition(
+                Edition.builder().scoringRulesJson(WORLD_CUP_RULES_JSON).build()));
+        // Leerlas y volver a guardarlas no las cambia.
+        assertEquals(stored, ScoringRuleSet.fromJson(stored.toJson()));
+    }
+
+    @Test
+    @DisplayName("Una liga anterior sin reglas guardadas sigue puntuando con las que tenía")
+    void editionWithoutStoredRulesKeepsItsOldValues() {
+        ScoringRuleSet stored = ScoringRuleSet.fromJson(WORLD_CUP_RULES_JSON);
+
+        assertEquals(stored, ScoringRuleSet.forEdition(Edition.builder().build()));
+        assertEquals(stored, ScoringRuleSet.fromJson(" "));
+        assertEquals(stored, ScoringRuleSet.fromJson("{}"));
+        // Solo guardó lo que cambió: el resto son sus valores de entonces, no los generales.
+        ScoringRuleSet partial = ScoringRuleSet.fromJson("{\"championPoints\":300}");
+        assertEquals(300, partial.getChampionPoints());
+        assertEquals(150, partial.getRunnerUpPoints());
+        assertEquals(25, partial.getRoundOf32Points());
+    }
+
+    @Test
+    @DisplayName("Una liga nueva guarda todas sus reglas, así que se leen tal cual")
+    void newLeagueRulesRoundTrip() {
+        ScoringRuleSet defaults = ScoringRuleSet.defaults();
+
+        assertEquals(defaults, ScoringRuleSet.fromJson(defaults.toJson()));
+        assertEquals(ScoringRuleSet.defaultTennis(),
+                ScoringRuleSet.fromJson(ScoringRuleSet.defaultTennis().toJson()));
     }
 
     @Test
@@ -53,12 +155,11 @@ class ScoringRuleSetTest {
         assertEquals(15, restored.getGroupQualifierPoints());
         assertEquals(250, restored.getChampionPoints());
         assertEquals(5, restored.getExactScorePoints());
-        // Defaults preservados
-        assertEquals(30, restored.getRoundOf16Points());
+        assertEquals(original, restored);
     }
 
     @Test
-    @DisplayName("JSON nulo o invalido devuelve los valores por defecto sin excepcion")
+    @DisplayName("JSON nulo o invalido devuelve los valores de las ligas anteriores sin excepcion")
     void testInvalidJsonFallback() {
         ScoringRuleSet fromNull = ScoringRuleSet.fromJson(null);
         assertNotNull(fromNull);
@@ -70,21 +171,18 @@ class ScoringRuleSetTest {
     }
 
     @Test
-    @DisplayName("Las reglas que faltan en el JSON guardado toman su valor por defecto")
-    void partialJsonKeepsTheDefaults() {
+    @DisplayName("Una regla desconocida en el JSON guardado se ignora")
+    void unknownStoredRuleIsIgnored() {
         ScoringRuleSet rules = ScoringRuleSet.fromJson("{\"championPoints\":300,\"unknownRule\":7}");
 
         assertEquals(300, rules.getChampionPoints());
-        assertEquals(ScoringRuleSet.builder().championPoints(300).build(), rules);
+        assertEquals(3, rules.getCorrectSignPoints());
     }
 
     @Test
-    @DisplayName("Una edición sin reglas guardadas puntúa con las de por defecto")
-    void editionWithoutRulesUsesTheDefaults() {
-        ScoringRuleSet defaults = ScoringRuleSet.defaults();
-
-        assertEquals(defaults, ScoringRuleSet.forEdition(null));
-        assertEquals(defaults, ScoringRuleSet.forEdition(Edition.builder().build()));
+    @DisplayName("Sin edición se puntúa con las de por defecto, y con ella, con las suyas")
+    void editionRulesAreItsStoredOnes() {
+        assertEquals(ScoringRuleSet.defaults(), ScoringRuleSet.forEdition(null));
         assertEquals(40, ScoringRuleSet.forEdition(Edition.builder()
                 .scoringRulesJson(ScoringRuleSet.builder().roundOf32Points(40).build().toJson()).build()).getRoundOf32Points());
     }
@@ -97,7 +195,7 @@ class ScoringRuleSetTest {
         assertEquals(33, rules.size());
         assertEquals(3, rules.get("fightWinnerPoints"));
         assertEquals(10, rules.get("f1ExactPositionPoints"));
-        assertEquals(200, rules.get("championPoints"));
+        assertEquals(50, rules.get("championPoints"));
         assertEquals(1, rules.get("goalDiffBonusPoints"));
         assertEquals(1, rules.get("survivorLives"));
         assertEquals(25, rules.get("nbaFinalsExactPoints"));

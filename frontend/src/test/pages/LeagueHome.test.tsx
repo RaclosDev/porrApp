@@ -168,4 +168,28 @@ describe('league home', () => {
     const table = await screen.findByRole('list', { name: 'Tabla' });
     expect(within(table).getAllByRole('listitem')[1]).toHaveTextContent('2Sevilla3 PJ6 pts');
   });
+
+  it('opens with the closing once the league is over, above the usual home', async () => {
+    vi.mocked(api.fetchMyLeagueSummaries).mockResolvedValue([
+      {
+        groupId: 10,
+        rank: 2,
+        points: 50,
+        participants: 6,
+        pendingPredictions: 0,
+        finished: true,
+      },
+    ]);
+    renderHome({
+      leagueKind: 'matchday',
+      activeGroupPoolFormat: 'MATCH_DAY',
+      isAuthenticated: true,
+      userId: '2',
+    });
+
+    const closing = await screen.findByRole('region', { name: 'Ana gana Liga de amigos' });
+    expect(within(closing).getByText('Has quedado 2.º de 6 con 50 pts')).toBeInTheDocument();
+    const home = screen.getByRole('heading', { name: 'Liga de amigos' });
+    expect(closing.compareDocumentPosition(home) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

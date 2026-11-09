@@ -78,7 +78,47 @@ public class MemberJoinedNotifier {
                 .collect(Collectors.toSet());
         if (recipients.isEmpty()) return 0;
 
-        PushMessage message = message(league, joined, memberships.size());
+        return deliver(recipients, message(league, joined, memberships.size()));
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onLeagueRepeated(LeagueRepeatedEvent event) {
+        try {
+            int sent = notifyRepeated(event);
+            if (sent > 0) log.info("Aviso de la liga repetida {} enviado a {} usuarios", event.leagueId(), sent);
+        } catch (RuntimeException e) {
+            log.warn("No se pudo avisar de la liga repetida {}: {}", event.leagueId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Avisa a quienes han entrado en la liga de la temporada nueva sin pedirlo: su administrador la ha
+     * repetido y ya la tienen entre sus ligas.
+     *
+     * @return usuarios a los que ha llegado el aviso en al menos un dispositivo
+     */
+    int notifyRepeated(LeagueRepeatedEvent event) {
+        if (!sender.isEnabled()) return 0;
+        League league = leagueRepository.findById(event.leagueId()).orElse(null);
+        if (league == null) return 0;
+        Set<Long> recipients = membershipRepository.findByLeagueId(league.getId()).stream()
+                .map(Membership::getUser)
+                .filter(user -> user != null && !user.getId().equals(event.userId())
+                        && user.isMemberJoinedAlertsEnabled())
+                .map(UserAccount::getId)
+                .collect(Collectors.toSet());
+        if (recipients.isEmpty()) return 0;
+
+        String season = event.season() == null || event.season().isBlank() ? "nueva" : event.season().trim();
+        return deliver(recipients, new PushMessage("Nueva temporada de tu liga",
+                league.getName() + " sigue en la temporada " + season + ". Ya puedes hacer tus predicciones.",
+                "/?group=" + league.getId(), "league-repeated-" + league.getId()));
+    }
+
+    /** @return usuarios a los que ha llegado el aviso en al menos un dispositivo */
+    private int deliver(Set<Long> recipients, PushMessage message) {
         String payload = message.toJson(objectMapper);
         Map<Long, Boolean> delivered = new LinkedHashMap<>();
         for (PushSubscription device : subscriptionRepository.findByUserIdIn(recipients)) {

@@ -41,11 +41,14 @@ public class EspnFormulaOneClient {
     }
 
     /**
-     * Mundial de pilotos y de constructores de la temporada en curso: {@code children[]} con
-     * «Driver Standings» y «Constructor Standings», cada uno con {@code standings.entries[]}.
+     * Mundial de pilotos y de constructores: {@code children[]} con «Driver Standings» y «Constructor
+     * Standings», cada uno con {@code standings.entries[]}.
+     *
+     * @param season año de la temporada, o null para la que está en curso
      */
-    public JsonNode standings() throws Exception {
-        JsonNode children = espn.fetchEspnJson(STANDINGS).path("children");
+    public JsonNode standings(Integer season) throws Exception {
+        JsonNode children = espn.fetchEspnJson(season == null ? STANDINGS : STANDINGS + "?season=" + season)
+                .path("children");
         if (!children.isArray()) throw new IOException("ESPN devolvió un Mundial de F1 sin clasificaciones");
         return children;
     }

@@ -20,17 +20,26 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
      */
     @Query("SELECT c.id FROM Competition c WHERE c.ownerLeague IS NOT NULL OR c.externalId IS NULL OR c.externalId = ''")
     List<Long> findHiddenCompetitionIds();
-    Optional<Competition> findByName(String name);
+    /** Competición vigente con ese nombre; las temporadas archivadas lo comparten y no cuentan. */
+    @Query("SELECT c FROM Competition c WHERE c.name = :name AND c.archivedAt IS NULL")
+    Optional<Competition> findByName(@Param("name") String name);
 
-    Optional<Competition> findByExternalId(String externalId);
+    /**
+     * Temporada vigente de una competición del proveedor. Las archivadas comparten id externo y solo se
+     * llega a ellas por su id.
+     */
+    @Query("SELECT c FROM Competition c WHERE c.externalId = :externalId AND c.archivedAt IS NULL")
+    Optional<Competition> findByExternalId(@Param("externalId") String externalId);
 
-    List<Competition> findByExternalIdIn(java.util.Collection<String> externalIds);
+    /** Temporadas vigentes de esas competiciones del proveedor. */
+    @Query("SELECT c FROM Competition c WHERE c.externalId IN :externalIds AND c.archivedAt IS NULL")
+    List<Competition> findByExternalIdIn(@Param("externalIds") java.util.Collection<String> externalIds);
 
     /**
      * @param externalId Código slug de la competición en ESPN.
-     * @return El id de la competición asociada, sin cargar la entidad.
+     * @return El id de su temporada vigente, sin cargar la entidad.
      */
-    @Query("SELECT c.id FROM Competition c WHERE c.externalId = :externalId")
+    @Query("SELECT c.id FROM Competition c WHERE c.externalId = :externalId AND c.archivedAt IS NULL")
     Optional<Long> findIdByExternalId(@Param("externalId") String externalId);
 
     /** Competiciones enlazadas a una edición que junta varias. */

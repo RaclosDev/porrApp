@@ -47,7 +47,8 @@ public class CompetitionService {
 
     /**
      * Competiciones con proveedor externo, ordenadas por nombre, con lo que se sabe de su calendario. Las
-     * que no tienen id externo no se pueden sincronizar y dejarían a la liga sin equipos ni partidos.
+     * que no tienen id externo no se pueden sincronizar y dejarían a la liga sin equipos ni partidos. Las
+     * temporadas archivadas no se ofrecen: de cada competición solo sale la vigente.
      */
     @Cacheable("competitions")
     public List<CompetitionDTO> findSyncableCompetitions() {
@@ -57,7 +58,7 @@ public class CompetitionService {
         }
         Instant now = Instant.now();
         List<Competition> syncable = competitionRepository.findAll().stream()
-                .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank())
+                .filter(c -> c.getExternalId() != null && !c.getExternalId().isBlank() && !c.isArchived())
                 .sorted(Comparator.comparing(Competition::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
         // Las fechas de cada torneo de tenis son una consulta a ESPN (en caché): se piden a la vez.
@@ -103,6 +104,9 @@ public class CompetitionService {
     /**
      * Clasificación oficial de una liga (LaLiga, Premier, Champions...). Se pide a ESPN y, si no
      * responde, se calcula con los partidos terminados guardados.
+     * <p>
+     * La de una temporada archivada sale siempre de sus partidos guardados: ESPN ya daría la tabla de la
+     * temporada siguiente, que no es la que jugó la liga.
      */
     @Cacheable(value = "competitionStandings", key = "#competitionId")
     public List<LeagueStandingDTO> getStandings(Long competitionId) {
@@ -115,11 +119,12 @@ public class CompetitionService {
         if (LolEsportsDataProvider.isLolCompetition(competition.getExternalId())) {
             return lolStandings(matchRepository.findByCompetitionId(competitionId));
         }
+        boolean live = !competition.isArchived();
         if (EspnNbaDataProvider.isRegularSeason(competition.getExternalId())) {
-            return nbaStandings(competitionId);
+            return nbaStandings(competitionId, live);
         }
         List<LeagueStandingDTO> standings = new ArrayList<>();
-        if (competition.getExternalId() != null && !competition.getExternalId().isBlank()
+        if (live && competition.getExternalId() != null && !competition.getExternalId().isBlank()
                 && !tennisDataProvider.supports(competition.getExternalId())
                 && !app.porrapp.sports.UfcDataProvider.isUfcCompetition(competition.getExternalId())) {
             try {
@@ -301,11 +306,13 @@ public class CompetitionService {
 
     /**
      * Tabla de la temporada regular de la NBA: la de ESPN por conferencias (con la división de cada equipo)
-     * y, si ESPN no responde, la de los partidos terminados ordenada por porcentaje de victorias.
+     * y, si ESPN no responde o la temporada ya está archivada, la de los partidos terminados ordenada por
+     * porcentaje de victorias.
      */
-    private List<LeagueStandingDTO> nbaStandings(Long competitionId) {
+    private List<LeagueStandingDTO> nbaStandings(Long competitionId, boolean live) {
         try {
-            List<LeagueStandingDTO> standings = parseNbaStandings(espnNbaDataProvider.fetchStandings());
+            List<LeagueStandingDTO> standings = live
+                    ? parseNbaStandings(espnNbaDataProvider.fetchStandings()) : List.of();
             if (!standings.isEmpty()) return standings;
         } catch (Exception e) {
             log.warn("No se pudo obtener la clasificación de la NBA de ESPN: {}", e.getMessage());

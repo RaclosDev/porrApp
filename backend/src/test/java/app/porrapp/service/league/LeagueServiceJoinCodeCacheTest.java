@@ -46,7 +46,8 @@ class LeagueServiceJoinCodeCacheTest {
                                         MatchRepository matches,
                                         ApplicationEventPublisher events) {
             return new LeagueService(leagues, predictions, users, competitions, editions, memberships,
-                    matches, mock(app.porrapp.repository.TeamRepository.class), events);
+                    matches, mock(app.porrapp.repository.TeamRepository.class), events,
+                    new LeagueSeasons(competitions, leagues));
         }
     }
 

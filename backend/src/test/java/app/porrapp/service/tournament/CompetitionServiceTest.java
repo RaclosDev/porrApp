@@ -48,6 +48,16 @@ class CompetitionServiceTest {
     }
 
     @Test
+    void archivedSeasonsAreNotOffered() {
+        when(competitions.findAll()).thenReturn(List.of(
+                Competition.builder().id(1L).name("LaLiga").externalId("esp.1").season("2025/26")
+                        .archivedAt(java.time.Instant.now()).build(),
+                Competition.builder().id(2L).name("LaLiga").externalId("esp.1").season("2026/27").build()));
+
+        assertThat(service.findSyncableCompetitions()).extracting(CompetitionDTO::id).containsExactly(2L);
+    }
+
+    @Test
     void syncableCompetitionsCarryTheirSport() {
         when(competitions.findAll()).thenReturn(List.of(
                 Competition.builder().id(1L).name("LaLiga").externalId("esp.1").build(),
@@ -154,6 +164,24 @@ class CompetitionServiceTest {
         assertThat(table).extracting(LeagueStandingDTO::getRank).containsExactly(1, 2, 3);
         assertThat(table.get(0).getPoints()).isEqualTo(4);
         assertThat(table.get(0).getGoalDiff()).isEqualTo(2);
+    }
+
+    @Test
+    void anArchivedSeasonKeepsItsOwnTableInsteadOfTheLiveOne() {
+        when(competitions.findById(5L)).thenReturn(Optional.of(Competition.builder().id(5L).externalId("esp.1")
+                .season("2025/26").archivedAt(java.time.Instant.now()).build()));
+        when(competitions.findById(9L)).thenReturn(Optional.of(Competition.builder().id(9L).externalId("nba.regular")
+                .formatType("LEAGUE").season("2025/26").archivedAt(java.time.Instant.now()).build()));
+        when(matches.findByCompetitionId(5L)).thenReturn(List.of(result("Betis", "Sevilla", 2, 0)));
+        when(matches.findByCompetitionId(9L)).thenReturn(List.of(result("Knicks", "Nets", 110, 98)));
+
+        assertThat(service.getStandings(5L)).extracting(LeagueStandingDTO::getTeamName)
+                .containsExactly("Betis", "Sevilla");
+        assertThat(service.getStandings(9L)).extracting(LeagueStandingDTO::getTeamName)
+                .containsExactly("Knicks", "Nets");
+
+        // La tabla en vivo del proveedor ya es la de la temporada siguiente.
+        verifyNoInteractions(espn, nba);
     }
 
     @Test

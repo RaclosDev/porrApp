@@ -47,7 +47,7 @@ class LeagueServiceNbaTest {
     void setUp() {
         service = new LeagueService(leagues, mock(PredictionRepository.class), users, competitions, editions,
                 mock(MembershipRepository.class), mock(MatchRepository.class), mock(TeamRepository.class),
-                mock(ApplicationEventPublisher.class));
+                mock(ApplicationEventPublisher.class), new LeagueSeasons(competitions, leagues));
         when(users.findByGoogleEmail(EMAIL)).thenReturn(Optional.of(UserAccount.builder().id(1L).googleEmail(EMAIL).build()));
         when(leagues.findByJoinCode(any())).thenReturn(Optional.empty());
         when(leagues.save(any(League.class))).thenAnswer(call -> {

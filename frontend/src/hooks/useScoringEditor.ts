@@ -3,7 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchLeagueScoring, updateLeagueScoring } from '../services/api';
 import { queryKeys } from '../services/queryKeys';
 import type { ScoringRuleKey, ScoringRules } from '../types/api';
-import { draftToRules, sameRules, toDraft, type ScoringDraft } from '../utils/scoringRules';
+import {
+  applicableRuleKeys,
+  draftToRules,
+  sameRules,
+  toDraft,
+  type ScoringDraft,
+} from '../utils/scoringRules';
 
 /**
  * Puntuación de una liga lista para editar: el borrador del administrador, su validación y el
@@ -24,7 +30,11 @@ export function useScoringEditor(groupId: number | string, enabled: boolean) {
   const rules = draft && scoring ? draftToRules(draft, scoring.maxPoints) : null;
   const isValid = !edited || rules !== null;
   const isDirty = Boolean(edited && scoring && (!rules || !sameRules(rules, scoring.rules)));
-  const isDefault = Boolean(rules && scoring && sameRules(rules, scoring.defaults));
+  // Solo cuentan las reglas de esta liga: las de otros deportes no la hacen «personalizada».
+  const ruleKeys = scoring ? applicableRuleKeys(scoring) : [];
+  const isDefault = Boolean(
+    rules && scoring && ruleKeys.every((key) => rules[key] === scoring.defaults[key]),
+  );
 
   const mutation = useMutation({
     mutationFn: ({ rules }: { rules: ScoringRules | null; draft: ScoringDraft | null }) => {
@@ -58,7 +68,13 @@ export function useScoringEditor(groupId: number | string, enabled: boolean) {
       setEdited({ ...draft, [key]: value });
     },
     restoreDefaults: () => {
-      if (scoring) setEdited(toDraft(scoring.defaults));
+      if (!scoring || !draft) return;
+      // Las reglas que esta liga no usa se quedan como están guardadas.
+      const defaults = toDraft(scoring.defaults);
+      setEdited({
+        ...draft,
+        ...Object.fromEntries(ruleKeys.map((key) => [key, defaults[key]])),
+      });
     },
     reset: () => setEdited(null),
     save: () => mutation.mutateAsync({ rules, draft: edited }),
