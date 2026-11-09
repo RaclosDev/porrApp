@@ -185,7 +185,7 @@ function emptyBracketOf(format: TournamentFormat): BracketState {
   };
 }
 
-const isWorldCupFormat = (format: TournamentFormat | undefined) =>
+const usesDefaultFirstRound = (format: TournamentFormat | undefined) =>
   !format ||
   JSON.stringify(format.firstKnockoutRound) === JSON.stringify(WORLD_CUP_2026_FIRST_ROUND);
 
@@ -199,7 +199,7 @@ export const getDefaultBracketState = (
   version?: TopologyVersion,
   format?: TournamentFormat,
 ): BracketState => {
-  if (isWorldCupFormat(format)) {
+  if (usesDefaultFirstRound(format)) {
     return topologyVersion(version) === 2 ? defaultBracketState : legacyBracketState;
   }
   const key = JSON.stringify(format);

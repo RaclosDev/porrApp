@@ -42,7 +42,7 @@ it('keeps a newer scoring draft when an older request resolves', async () => {
 });
 
 /** Reglas de una liga creada con los valores del Mundial 2026, antes de los generales. */
-const WORLD_CUP_RULES = {
+const DEFAULT_THIRD_PLACE_RULES = {
   ...DEFAULT_SCORING,
   groupQualifierPoints: 10,
   groupExactPositionPoints: 10,
@@ -70,7 +70,7 @@ async function editorFor(scoring: LeagueScoring) {
 
 it('una liga por jornadas anterior no cuenta como personalizada por reglas que no usa', async () => {
   const result = await editorFor(
-    leagueScoring({ poolFormat: 'MATCH_DAY', pichichi: false, rules: WORLD_CUP_RULES }),
+    leagueScoring({ poolFormat: 'MATCH_DAY', pichichi: false, rules: DEFAULT_THIRD_PLACE_RULES }),
   );
 
   // Sus tres reglas (resultado, signo y diferencia) son las de por defecto: no hay nada que restaurar.
@@ -82,7 +82,7 @@ it('una liga por jornadas anterior no cuenta como personalizada por reglas que n
 
 it('un cuadro anterior conserva sus valores hasta que su administrador restaura los de por defecto', async () => {
   const result = await editorFor(
-    leagueScoring({ rules: { ...WORLD_CUP_RULES, nbaFinalsPoints: 77 } }),
+    leagueScoring({ rules: { ...DEFAULT_THIRD_PLACE_RULES, nbaFinalsPoints: 77 } }),
   );
   expect(result.current.draft?.championPoints).toBe('200');
   expect(result.current.isDefault).toBe(false);

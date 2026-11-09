@@ -51,17 +51,9 @@ const KINDS: Record<LeagueKind, true> = {
 /** Todas las clases de liga, para recorrerlas (tests y tablas). */
 export const LEAGUE_KINDS = Object.keys(KINDS) as LeagueKind[];
 
-/** Competición del Mundial en el proveedor de datos. */
-const WORLD_CUP_EXTERNAL_ID = 'fifa.world';
-
-/**
- * Torneo con fase de grupos que se predice entero antes de empezar. Lo dice el servidor; uno que
- * aún no lo diga solo conoce el Mundial.
- */
-export const isGroupTournament = (
-  groupTournament: boolean | null | undefined,
-  externalId: string | null | undefined,
-) => groupTournament ?? externalId === WORLD_CUP_EXTERNAL_ID;
+/** Torneo con fase de grupos que se predice entero antes de empezar. Lo dice el servidor, no el nombre de la competición. */
+export const isGroupTournament = (groupTournament: boolean | null | undefined) =>
+  groupTournament === true;
 
 /** Lo que hace falta saber de la liga para clasificarla. */
 export type LeagueFacts = Pick<
@@ -90,7 +82,7 @@ function bracketKind(league: LeagueFacts): LeagueKind {
   if (league.customCompetition) return 'customBracket';
   // Un cuadro junta los cruces de una sola competición.
   if (league.multiCompetition) return 'unknown';
-  if (isGroupTournament(league.groupTournament, league.competitionExternalId)) return 'groupStage';
+  if (isGroupTournament(league.groupTournament)) return 'groupStage';
   if (league.formatType === 'TOURNAMENT' && league.competitionExternalId) return 'ownBracket';
   return 'unknown';
 }

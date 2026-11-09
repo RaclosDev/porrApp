@@ -34,7 +34,7 @@ const TABLE: LeagueNavItem = { to: '/tabla', label: 'Tabla', icon: ListOrdered }
 const FIGHT_CARD: LeagueNavItem = { to: '/tabla', label: 'Cartelera', icon: ListOrdered };
 const TENNIS_DRAW: LeagueNavItem = { to: '/tabla', label: 'Cuadro', icon: ListOrdered };
 const F1_STANDINGS: LeagueNavItem = { to: '/tabla', label: 'Mundial', icon: ListOrdered };
-const WORLD_CUP_GROUPS: LeagueNavItem = {
+const GROUP_STAGE_GROUPS: LeagueNavItem = {
   to: '/grupos',
   label: 'Grupos',
   icon: LayoutGrid,
@@ -60,7 +60,7 @@ const LEAGUE_NAV: Record<LeagueKind, readonly LeagueNavItem[] | null> = {
   error: [HOME, MY_LEAGUES],
   none: [HOME, MY_LEAGUES],
   unknown: [HOME, RANKING, MY_LEAGUES],
-  groupStage: [HOME, MY_BRACKET, RESULTS, WORLD_CUP_GROUPS, RANKING, MY_LEAGUES],
+  groupStage: [HOME, MY_BRACKET, RESULTS, GROUP_STAGE_GROUPS, RANKING, MY_LEAGUES],
   customBracket: BRACKET_NAV,
   ownBracket: BRACKET_NAV,
   knockoutDraw: BRACKET_NAV,

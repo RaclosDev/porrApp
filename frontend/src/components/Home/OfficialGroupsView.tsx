@@ -23,14 +23,14 @@ export default function OfficialGroupsView() {
     groupOdds,
     groupStandings: officialPoints,
     format,
-    loading: loadingWorldCup,
+    loading: loadingTournament,
     pichichi: activeGroupPichichi,
     topScorers,
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
   } = useTournamentData();
-  const loading = loadingOfficial || loadingWorldCup;
+  const loading = loadingOfficial || loadingTournament;
 
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
 

@@ -39,7 +39,7 @@ export const thirdPlaceRules = (firstRound: GroupSlot[][]): ThirdPlaceRule[] => 
   );
 };
 
-const WORLD_CUP_RULES = thirdPlaceRules(WORLD_CUP_2026_FIRST_ROUND);
+const DEFAULT_THIRD_PLACE_RULES = thirdPlaceRules(WORLD_CUP_2026_FIRST_ROUND);
 
 /**
  * Asigna los mejores terceros a sus huecos (backtracking); null si no hay combinación válida o no
@@ -47,7 +47,7 @@ const WORLD_CUP_RULES = thirdPlaceRules(WORLD_CUP_2026_FIRST_ROUND);
  */
 export function solveThirdPlaceMatrix(
   thirdTeams: ThirdPlaceTeam[] | null | undefined,
-  rules: ThirdPlaceRule[] = WORLD_CUP_RULES,
+  rules: ThirdPlaceRule[] = DEFAULT_THIRD_PLACE_RULES,
 ): ThirdPlaceTeam[] | null {
   const size = rules.length;
   if (!thirdTeams || thirdTeams.length !== size) return null;

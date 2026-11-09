@@ -12,6 +12,7 @@ const demoLeague: Group = withLeagueKind('groupStage', {
   competitionId: 2,
   competitionName: 'FIFA World Cup 2026',
   competitionExternalId: 'fifa.world',
+  groupTournament: true,
   formatType: 'TOURNAMENT',
   poolFormat: 'FULL_BRACKET',
   pichichi: true,

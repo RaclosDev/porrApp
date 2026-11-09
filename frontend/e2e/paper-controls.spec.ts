@@ -18,6 +18,7 @@ for (const width of [390, 1440]) {
       adminUserId: 7,
       competitionId: 2,
       competitionExternalId: 'fifa.world',
+      groupTournament: true,
       competitionName: 'Mundial',
       formatType: 'TOURNAMENT',
       poolFormat: 'FULL_BRACKET',

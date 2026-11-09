@@ -16,7 +16,7 @@ import RoundFooter from './prediction/RoundFooter';
 import ViewerSlot from './prediction/ViewerSlot';
 import { ViewerMessage, ViewerModal } from './prediction/ViewerFrame';
 import type { ViewerTab } from './prediction/viewerTypes';
-import { nextWorldCupKnockoutMatch } from '../utils/bracketBuilder';
+import { nextKnockoutMatch } from '../utils/bracketBuilder';
 import { advancingThirds, thirdPlacedTeams } from '../utils/predictionViewer';
 import { featuredSlot, groupTeamPoints } from '../utils/viewerScoring';
 import { isMathematicallyQualified } from '../utils/groupStatus';
@@ -48,7 +48,7 @@ function PredictionViewer(props: PredictionViewerProps) {
   ) : null;
   // Solo las ligas de cuadro tienen visor; las demás no enseñan ninguno.
   const viewers: Record<LeagueKind, ReactNode> = {
-    groupStage: <WorldCupPredictionViewer {...props} />,
+    groupStage: <GroupStagePredictionViewer {...props} />,
     customBracket: ownBracket,
     ownBracket,
     knockoutDraw: ownBracket,
@@ -64,7 +64,7 @@ function PredictionViewer(props: PredictionViewerProps) {
   return viewers[leagueKind];
 }
 
-function WorldCupPredictionViewer({
+function GroupStagePredictionViewer({
   inline = false,
   predictionId = null,
   onEdit = null,
@@ -121,7 +121,7 @@ function WorldCupPredictionViewer({
     initialSection === 'knockout' ? 'bracket' : 'groups',
   );
 
-  const featuredMatch = useMemo(() => nextWorldCupKnockoutMatch(allGames), [allGames]);
+  const featuredMatch = useMemo(() => nextKnockoutMatch(allGames), [allGames]);
 
   // Las cuatro variantes del modal comparten el mismo contenedor raíz, así que el ref no cambia.
   const dialogRef = useRef<HTMLDivElement>(null);

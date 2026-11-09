@@ -117,7 +117,7 @@ public class Competition {
     }
 
     /**
-     * Torneo con fase de grupos y eliminatorias que se predice entero antes de empezar (el Mundial):
+     * Torneo con fase de grupos y eliminatorias que se predice entero antes de empezar (el Mundial, la Eurocopa):
      * grupos, terceros, cuadro y máximo goleador oficiales, con la forma que dice su {@link TournamentFormat}.
      */
     public boolean isGroupTournament() {
@@ -127,10 +127,6 @@ public class Competition {
     /** Formato del torneo con grupos, o {@code null} si la competición no lo es. */
     public TournamentFormat tournamentFormat() {
         return TournamentFormat.registered(this);
-    }
-
-    public static boolean isWorldCup(String externalId) {
-        return WORLD_CUP_EXTERNAL_ID.equalsIgnoreCase(externalId);
     }
 
     /** Fórmula 1: se sincroniza y se predice Gran Premio a Gran Premio, no partido a partido. */

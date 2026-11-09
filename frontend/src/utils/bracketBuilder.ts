@@ -67,8 +67,8 @@ export const isMatchInRound = (match: Match, roundIndex: number | string | undef
   return true;
 };
 
-/** Próximo partido de eliminatorias del Mundial sin jugar (el que se destaca en su cuadro). */
-export const nextWorldCupKnockoutMatch = (games: Match[] | null | undefined): Match | null => {
+/** Próximo partido de eliminatorias sin jugar de un torneo con grupos (el que se destaca en su cuadro). */
+export const nextKnockoutMatch = (games: Match[] | null | undefined): Match | null => {
   if (!games || games.length === 0) return null;
   const pending = games
     .filter((g) => g && isKnockoutMatch(g) && !g.finished && !g.winner && g.home_score == null)

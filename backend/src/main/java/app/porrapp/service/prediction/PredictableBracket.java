@@ -26,7 +26,7 @@ public final class PredictableBracket {
     private PredictableBracket() {
     }
 
-    /** La edición se pronostica sobre un cuadro propio (personalizado u oficial que no es el Mundial). */
+    /** La edición se pronostica sobre un cuadro propio (personalizado u oficial que no es un torneo con grupos). */
     public static boolean applies(Edition edition) {
         if (edition == null || PoolFormat.isMatchBased(edition.getPoolFormat())) return false;
         Competition competition = edition.getCompetition();

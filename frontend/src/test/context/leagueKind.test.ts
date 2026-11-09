@@ -25,6 +25,7 @@ const EXAMPLES: Record<LeagueKind, LeagueKindInput> = {
     poolFormat: 'FULL_BRACKET',
     formatType: 'TOURNAMENT',
     competitionExternalId: 'fifa.world',
+    groupTournament: true,
   }),
   customBracket: ready({ poolFormat: 'FULL_BRACKET', customCompetition: true, formatType: null }),
   ownBracket: ready({
@@ -103,6 +104,7 @@ describe('leagueKindOf', () => {
         poolFormat: 'KNOCKOUTS_ONLY',
         formatType: 'TOURNAMENT',
         competitionExternalId: 'fifa.world',
+        groupTournament: true,
       },
       'groupStage',
     ],

@@ -26,6 +26,7 @@ for (const width of [390, 1440]) {
       competitionId: 2,
       competitionName: 'Mundial 2026',
       competitionExternalId: 'fifa.world',
+      groupTournament: true,
       formatType: 'TOURNAMENT',
       poolFormat: 'FULL_BRACKET',
       pichichi: false,

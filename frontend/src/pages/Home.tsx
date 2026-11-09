@@ -40,7 +40,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Inicio" what="los partidos y el ranking" />,
     unknown: <UnsupportedLeagueState />,
-    groupStage: home ? <LeagueHomeDashboard /> : <WorldCupGroups />,
+    groupStage: home ? <LeagueHomeDashboard /> : <GroupStageGroups />,
     customBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
     ownBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
     knockoutDraw: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
@@ -60,20 +60,20 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
 }
 
 /** Fase de grupos del Mundial: clasificación de cada grupo, mejores terceros, partidos y pichichi. */
-function WorldCupGroups() {
+function GroupStageGroups() {
   const { allGames, loading: loadingOfficial, matchRadar } = useAppContext();
   const {
     groupOdds,
     groupStandings,
     format,
-    loading: loadingWorldCup,
+    loading: loadingTournament,
     pichichi,
     topScorers,
     topScorersLoading,
     topScorersError,
     refreshTopScorers,
   } = useTournamentData();
-  const loading = loadingOfficial || loadingWorldCup;
+  const loading = loadingOfficial || loadingTournament;
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
   const [activeMobilePanel, setActiveMobilePanel] = useState<'thirds' | 'live' | 'scorers' | null>(
     null,
