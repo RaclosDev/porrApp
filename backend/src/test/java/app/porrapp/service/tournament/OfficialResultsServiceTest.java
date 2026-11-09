@@ -211,14 +211,6 @@ class OfficialResultsServiceTest {
     }
 
     @Test
-    void finalistsFromTheSameOriginalGroupStillCountAsKnockout() {
-        Match finalMatch = knockout("final", "A1", "A2", "A1");
-        finalMatch.getHomeTeam().setGroupName("A");
-        finalMatch.getAwayTeam().setGroupName("A");
-        assertThat(service.current(worldCup).champion()).isEqualTo("A1");
-    }
-
-    @Test
     void aTournamentThatStartsInTheRoundOfSixteenHasNoEarlierRoundNorThirdPlace() {
         Competition euro = Competition.builder().id(9L).name("Eurocopa").externalId("uefa.euro").build();
         when(knockoutBracketService.matchesOf(euro)).thenReturn(matches);

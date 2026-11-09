@@ -82,8 +82,8 @@ class MatchRepositoryTest {
     @Test
     void findsGroupAndDateMatchdays() {
         Competition worldCup = competitionRepository.findByExternalId(Competition.WORLD_CUP_EXTERNAL_ID).orElseThrow();
-        Team home = em.persist(Team.builder().name("Local A").groupName("A").build());
-        Team away = em.persist(Team.builder().name("Visitante A").groupName("A").build());
+        Team home = em.persist(Team.builder().name("Local A").build());
+        Team away = em.persist(Team.builder().name("Visitante A").build());
         Instant day = AppTime.fromLocal(LocalDateTime.of(2026, 6, 20, 21, 0));
         Match groupA = em.persist(Match.builder().competition(worldCup).homeTeam(home).awayTeam(away)
                 .groupName("A").externalId("t-group-a").matchDate(day).build());

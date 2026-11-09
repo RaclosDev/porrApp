@@ -109,7 +109,7 @@ public class LegacyFixtureRepairService {
             String externalId = official.path("id").asText();
             String name = official.path("displayName").asText();
             Team team = teams.findByExternalId(externalId).orElseGet(() -> teams.findByName(name)
-                    .orElseGet(() -> Team.builder().name(name).groupName("-").build()));
+                    .orElseGet(() -> Team.builder().name(name).build()));
             if (legacy(team) || (team.getExternalId() != null && !externalId.equals(team.getExternalId()))) {
                 throw new IllegalStateException("Identidad de equipo incompatible con el evento oficial");
             }

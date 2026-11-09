@@ -7,6 +7,7 @@ import app.porrapp.model.Edition;
 import app.porrapp.model.Match;
 import app.porrapp.model.PredictionLockMode;
 import app.porrapp.model.PoolFormat;
+import app.porrapp.repository.CompetitionTeamRepository;
 import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.TeamRepository;
@@ -40,6 +41,7 @@ public class CustomLockService {
 
     private final MatchRepository matches;
     private final TeamRepository teams;
+    private final CompetitionTeamRepository competitionTeams;
     private final EditionRepository editions;
     private Clock clock = Clock.system(ZONE);
 
@@ -104,8 +106,9 @@ public class CustomLockService {
         for (int count = firstRound.size(); count > 0; count = count == 1 ? 0 : (count + 1) / 2) totalRounds++;
         TreeSet<String> groupNames = new TreeSet<>();
         if (edition.getPoolFormat() == PoolFormat.FULL_BRACKET && competition != null) {
+            Map<Long, String> groupOf = competitionTeams.groupByTeamId(competition.getId());
             teams.findByCompetitionIdOrderByNameAsc(competition.getId()).stream()
-                    .map(team -> team.getGroupName())
+                    .map(team -> groupOf.get(team.getId()))
                     .filter(name -> name != null && !name.isBlank())
                     .forEach(groupNames::add);
         }

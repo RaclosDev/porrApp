@@ -92,7 +92,8 @@ class NbaPlayoffsTest {
     }
 
     private CustomLockService lockService(Instant now) {
-        CustomLockService service = new CustomLockService(matches, mock(TeamRepository.class), mock(EditionRepository.class));
+        CustomLockService service = new CustomLockService(matches, mock(TeamRepository.class),
+                mock(app.porrapp.repository.CompetitionTeamRepository.class), mock(EditionRepository.class));
         service.setClock(Clock.fixed(now, CustomLockService.ZONE));
         return service;
     }
@@ -173,7 +174,8 @@ class NbaPlayoffsTest {
     void validatesSeriesGames() {
         game("playin", "Magic", "Hawks", PLAY_IN, null, null, null);
         series("r16", "Cavaliers", "Heat", FIRST_ROUND);
-        CustomBracketPredictionValidator validator = new CustomBracketPredictionValidator(mock(TeamRepository.class), matches);
+        CustomBracketPredictionValidator validator = new CustomBracketPredictionValidator(mock(TeamRepository.class),
+                mock(app.porrapp.repository.CompetitionTeamRepository.class), matches);
         Edition edition = edition(PredictionLockMode.PER_MATCH);
 
         assertDoesNotThrow(() -> validator.validate(edition,
@@ -219,7 +221,8 @@ class NbaPlayoffsTest {
                 List.of(row("Magic"), row("Thunder", "Nuggets", "Magic")),
                 List.of(row((Integer) null), row(4, 6, 7)), null)).build();
 
-        var score = new CustomBracketScoringService(matches, mock(TeamRepository.class)).score(prediction);
+        var score = new CustomBracketScoringService(matches, mock(TeamRepository.class),
+                mock(app.porrapp.repository.CompetitionTeamRepository.class)).score(prediction);
 
         // Play-in 5 + Thunder 10 + 5 (4-0 exacto) + Nuggets 10 (dijo 6, fueron 7); Magic pierde.
         assertEquals(30, score.getTotal());
@@ -232,13 +235,15 @@ class NbaPlayoffsTest {
     void finalsCrownTheChampion() {
         Instant finals = AppTime.fromLocal(LocalDateTime.of(2027, 6, 4, 2, 30));
         series("final", "Knicks", "Spurs", finals, "Knicks", "Knicks", "Spurs", "Knicks", "Knicks");
-        CustomBracketPredictionValidator validator = new CustomBracketPredictionValidator(mock(TeamRepository.class), matches);
+        CustomBracketPredictionValidator validator = new CustomBracketPredictionValidator(mock(TeamRepository.class),
+                mock(app.porrapp.repository.CompetitionTeamRepository.class), matches);
         PredictionDataDTO data = picks(List.of(row("Knicks")), List.of(row(5)), "Knicks");
 
         assertDoesNotThrow(() -> validator.validate(Edition.builder().id(2L).competition(nba)
                 .poolFormat(PoolFormat.KNOCKOUTS_ONLY).lockMode(PredictionLockMode.PER_MATCH)
                 .createdAt(finals.minus(5, ChronoUnit.DAYS)).build(), data));
-        var score = new CustomBracketScoringService(matches, mock(TeamRepository.class))
+        var score = new CustomBracketScoringService(matches, mock(TeamRepository.class),
+                mock(app.porrapp.repository.CompetitionTeamRepository.class))
                 .score(Prediction.builder().edition(Edition.builder().id(2L).competition(nba)
                         .poolFormat(PoolFormat.KNOCKOUTS_ONLY).createdAt(finals.minus(5, ChronoUnit.DAYS)).build())
                         .bracketData(data).build());

@@ -193,8 +193,7 @@ class SyncQueryCountTest {
         for (char group = 'A'; group <= 'L'; group++) {
             for (int i = 1; i <= 4; i++) {
                 String name = "Selección " + group + i;
-                Team team = teamRepository.save(Team.builder().name(name).nameEn(name).externalId("wc-" + group + i)
-                        .groupName(String.valueOf(group)).build());
+                Team team = teamRepository.save(Team.builder().name(name).nameEn(name).externalId("wc-" + group + i).build());
                 competitionTeamRepository.save(app.porrapp.model.CompetitionTeam.builder()
                         .competition(worldCup).team(team).groupName(String.valueOf(group)).build());
                 teams.add(team);

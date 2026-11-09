@@ -7,6 +7,7 @@ import app.porrapp.model.Edition;
 import app.porrapp.model.Match;
 import app.porrapp.model.PoolFormat;
 import app.porrapp.model.Team;
+import app.porrapp.repository.CompetitionTeamRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CustomBracketPredictionValidator {
     private final TeamRepository teams;
+    private final CompetitionTeamRepository competitionTeams;
     private final MatchRepository matches;
 
     public void validate(Edition edition, PredictionDataDTO data) {
@@ -36,9 +38,11 @@ public class CustomBracketPredictionValidator {
         }
         List<Team> catalog = teams.findByCompetitionIdOrderByNameAsc(competition.getId());
         Map<String, Set<String>> byGroup = new HashMap<>();
+        Map<Long, String> groupOf = competitionTeams.groupByTeamId(competition.getId());
         for (Team team : catalog) {
-            if (team.getGroupName() != null) {
-                byGroup.computeIfAbsent(team.getGroupName(), key -> new HashSet<>()).add(team.getName());
+            String group = groupOf.get(team.getId());
+            if (group != null) {
+                byGroup.computeIfAbsent(group, key -> new HashSet<>()).add(team.getName());
             }
         }
         Map<String, List<String>> selections = data.getGroups() == null ? Map.of() : data.getGroups();
