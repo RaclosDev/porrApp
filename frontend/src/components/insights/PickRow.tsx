@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
-import type { RealStatus } from '../../utils/bracketStats';
+import type { RealStatus } from '../../utils/pickStats';
 
 /** Marca de lo que ya ha pasado de verdad: acertado, fallado o nada si aún no se sabe. */
 export function RealMark({ status, yes, no }: { status: RealStatus; yes: string; no: string }) {

@@ -35,4 +35,7 @@ public record GrandPrixBoardDTO(List<GrandPrix> grandsPrix, List<Driver> drivers
     /** Predicción de un participante, visible para el resto al cerrar el Gran Premio. */
     public record MemberPick(Long userId, String name, String avatarUrl, boolean mine, Picks pick, Integer points,
                              String details) {}
+
+    /** Predicciones de la liga en un Gran Premio ya cerrado, para las estadísticas y el buscador. */
+    public record RacePicks(Long matchId, List<MemberPick> picks) {}
 }

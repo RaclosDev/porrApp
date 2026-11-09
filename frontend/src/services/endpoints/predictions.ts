@@ -5,6 +5,7 @@ import type {
   GrandPrixBoard,
   GrandPrixMemberPick,
   GrandPrixPicks,
+  GrandPrixRacePicks,
   RaceClassification,
   MatchdayFixture,
   MatchdayPredictionInput,
@@ -109,6 +110,10 @@ export const saveGrandPrixPick = (
 /** Predicciones de la liga para un Gran Premio; antes del cierre, solo la propia. */
 export const fetchGrandPrixMemberPicks = (groupId: number | string, matchId: number) =>
   request<GrandPrixMemberPick[]>(`/grand-prix/${matchId}/picks${query({ groupId })}`);
+
+/** Predicciones de la liga en los Grandes Premios ya cerrados de la temporada. */
+export const fetchGrandPrixSeasonPicks = (groupId: number | string) =>
+  request<GrandPrixRacePicks[]>(`/grand-prix/picks${query({ groupId })}`);
 
 /** Clasificación completa de un Gran Premio ya disputado. */
 export const fetchGrandPrixClassification = (groupId: number | string, matchId: number) =>
