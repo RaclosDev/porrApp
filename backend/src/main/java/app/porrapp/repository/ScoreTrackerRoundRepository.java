@@ -8,9 +8,9 @@ import java.util.List;
 
 public interface ScoreTrackerRoundRepository extends JpaRepository<ScoreTrackerRound, Long> {
 
-    List<ScoreTrackerRound> findByTrackerIdOrderByIdAsc(Long trackerId);
+    List<ScoreTrackerRound> findByLeagueIdOrderByIdAsc(Long leagueId);
 
-    List<ScoreTrackerRound> findByTrackerIdIn(Collection<Long> trackerIds);
+    List<ScoreTrackerRound> findByLeagueIdIn(Collection<Long> leagueIds);
 
-    long countByTrackerId(Long trackerId);
+    long countByLeagueId(Long leagueId);
 }

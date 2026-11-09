@@ -15,8 +15,12 @@ public class ScoreTrackerSession {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "tracker_id", nullable = false)
-    private Long trackerId;
+    @Column(name = "league_id", nullable = false)
+    private Long leagueId;
+
+    /** Juego al que se juega en esta sesión: cambiar de juego abre otra sesión. */
+    @Column(name = "game_id", nullable = false)
+    private Long gameId;
 
     @Builder.Default
     @Column(name = "started_at", nullable = false)

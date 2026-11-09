@@ -1,11 +1,14 @@
 package app.porrapp.controller;
 
+import app.porrapp.dto.ScoreGameNameRequest;
+import app.porrapp.dto.ScoreGameRequest;
 import app.porrapp.dto.ScoreTrackerClaimRequest;
 import app.porrapp.dto.ScoreTrackerDTO;
 import app.porrapp.dto.ScoreTrackerJoinRequest;
 import app.porrapp.dto.ScoreTrackerPlayerRequest;
 import app.porrapp.dto.ScoreTrackerRequest;
 import app.porrapp.dto.ScoreTrackerRoundRequest;
+import app.porrapp.dto.ScoreTrackerSessionRequest;
 import app.porrapp.dto.ScoreTrackerSummaryDTO;
 import app.porrapp.dto.StatusResponse;
 import app.porrapp.service.league.ScoreTrackerService;
@@ -63,8 +66,29 @@ public class ScoreTrackerController {
 
     @PostMapping("/{id}/sessions")
     @ResponseStatus(HttpStatus.CREATED)
-    public ScoreTrackerDTO newSession(@PathVariable Long id, Principal principal) {
-        return service.newSession(principal.getName(), id);
+    public ScoreTrackerDTO newSession(@PathVariable Long id,
+                                      @Valid @RequestBody(required = false) ScoreTrackerSessionRequest request,
+                                      Principal principal) {
+        return service.newSession(principal.getName(), id, request == null ? null : request.gameId());
+    }
+
+    /** Añade otro juego a la liga (el que se juega algún día). */
+    @PostMapping("/{id}/games")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ScoreTrackerDTO addGame(@PathVariable Long id, @Valid @RequestBody ScoreGameRequest request,
+                                   Principal principal) {
+        return service.addGame(principal.getName(), id, request);
+    }
+
+    @PutMapping("/{id}/games/{gameId}")
+    public ScoreTrackerDTO renameGame(@PathVariable Long id, @PathVariable Long gameId,
+                                      @Valid @RequestBody ScoreGameNameRequest request, Principal principal) {
+        return service.renameGame(principal.getName(), id, gameId, request);
+    }
+
+    @DeleteMapping("/{id}/games/{gameId}")
+    public ScoreTrackerDTO deleteGame(@PathVariable Long id, @PathVariable Long gameId, Principal principal) {
+        return service.deleteGame(principal.getName(), id, gameId);
     }
 
     @PostMapping("/{id}/players")

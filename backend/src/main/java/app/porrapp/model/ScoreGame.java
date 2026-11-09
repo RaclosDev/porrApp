@@ -6,22 +6,22 @@ import lombok.*;
 import java.time.Instant;
 
 /**
- * Marcador de un juego (de mesa, de cartas…). Lo crea un usuario, que es el único que apunta
- * partidas; quien tiene el código lo ve en directo.
+ * Un juego de una liga de marcador (el parchís, el mus, el golf…). Una misma liga puede jugar a varios:
+ * cada sesión es de un juego y cada juego se puntúa a su manera.
  */
 @Entity
-@Table(name = "score_trackers")
+@Table(name = "score_games")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class ScoreTracker {
+public class ScoreGame {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "owner_user_id", nullable = false)
-    private Long ownerUserId;
+    @Column(name = "league_id", nullable = false)
+    private Long leagueId;
 
-    @Column(nullable = false, length = 120)
+    @Column(nullable = false, length = 60)
     private String name;
 
     /** Lo que se cuenta: «puntos», «fichas»… */
@@ -33,9 +33,6 @@ public class ScoreTracker {
     @Builder.Default
     @Column(name = "lower_wins", nullable = false)
     private boolean lowerWins = false;
-
-    @Column(name = "join_code", nullable = false, unique = true, length = 12)
-    private String joinCode;
 
     @Builder.Default
     @Column(name = "created_at", nullable = false)

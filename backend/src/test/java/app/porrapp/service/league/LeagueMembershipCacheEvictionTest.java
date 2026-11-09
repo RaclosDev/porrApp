@@ -37,7 +37,7 @@ class LeagueMembershipCacheEvictionTest {
         @Bean LeagueMembershipService membershipService(UserAccountRepository users, LeagueRepository leagues) {
             return new LeagueMembershipService(leagues, users, mock(MembershipRepository.class),
                     mock(PredictionRepository.class), mock(ApplicationEventPublisher.class),
-                    mock(LeaguePaymentService.class));
+                    mock(LeaguePaymentService.class), mock(ScoreboardRoster.class));
         }
     }
 
