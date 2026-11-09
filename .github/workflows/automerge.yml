@@ -107,6 +107,12 @@ jobs:
             if en_conflicto; then
               avisar_y_salir
             fi
+            # Un commit subido mientras tanto deja este atrás: su propia CI decidirá la fusión.
+            actual=$(gh pr view "$pr" --json headRefOid --jq .headRefOid)
+            if [ "$actual" != "$SHA" ]; then
+              echo "El PR #$pr tiene un commit más nuevo ($actual): no se fusiona el $SHA."
+              exit 0
+            fi
             echo "::error::No se pudo fusionar el PR #$pr (mergeable=$mergeable, mergeStateStatus=$status)."
             exit 1
           fi
