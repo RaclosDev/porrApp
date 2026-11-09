@@ -1,0 +1,110 @@
+name: Copia diaria de Postgres
+
+# Railway solo ofrece copias de volúmenes en el plan Pro. Aquí se vuelca la base de producción
+# cada noche, se restaura en una base vacía para comprobar que la copia sirve y se guarda cifrada.
+# El repo es público: el artefacto solo se sube cifrado con age y la clave privada no está en GitHub.
+#
+# Restaurar a mano (pg_restore 18, como el servidor):
+#   gh run download <id> -n porrapp-AAAA-MM-DD
+#   age -d -i age-key.txt -o porrapp.dump porrapp-AAAA-MM-DD.dump.age
+#   pg_restore --no-owner --no-acl --exit-on-error -d <url> porrapp.dump
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+env:
+  PG_IMAGE: postgres:18-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
+  AGE_RECIPIENT: age1a6tpn5xn9ce5cc4kf4rt45erkxrrhlm27eas2rjp6jpn4gkygvpq26w0yw
+
+jobs:
+  backup:
+    if: github.repository == 'RaclosDev/porrApp'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      # El contexto env no está disponible en services: misma imagen que PG_IMAGE.
+      restore-db:
+        image: postgres:18-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
+        env:
+          POSTGRES_PASSWORD: restore
+          POSTGRES_DB: restore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Volcar producción
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Falta el secreto PROD_DATABASE_URL"
+            exit 1
+          fi
+          docker run --rm -e DATABASE_URL -e PGSSLMODE=require -e PGCONNECT_TIMEOUT=20 \
+            -v "$RUNNER_TEMP:/out" "$PG_IMAGE" \
+            sh -c 'pg_dump --dbname="$DATABASE_URL" --format=custom --no-owner --no-acl --file=/out/porrapp.dump'
+
+      - name: Restaurar en una base vacía y comprobarla
+        env:
+          PGPASSWORD: restore
+        run: |
+          pg() { docker run --rm -i --network host -e PGPASSWORD -v "$RUNNER_TEMP:/out:ro" "$PG_IMAGE" "$@"; }
+          pg pg_restore --host=localhost --username=postgres --dbname=restore \
+            --no-owner --no-acl --exit-on-error /out/porrapp.dump
+          expected=$(pg pg_restore --list /out/porrapp.dump | grep -c ' TABLE DATA public ')
+          # Sin imprimir recuentos: los logs de un repo público son visibles para cualquiera.
+          pg psql --host=localhost --username=postgres --dbname=restore -v ON_ERROR_STOP=1 -qtA \
+            -v expected="$expected" <<'SQL'
+          SET backup.expected = :'expected';
+          DO $$
+          DECLARE
+            tables int;
+          BEGIN
+            SELECT count(*) INTO tables FROM information_schema.tables
+             WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+            IF tables <> current_setting('backup.expected')::int THEN
+              RAISE EXCEPTION 'Tablas restauradas: % de %', tables, current_setting('backup.expected');
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM flyway_schema_history WHERE success) THEN
+              RAISE EXCEPTION 'flyway_schema_history está vacía';
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM app_users) THEN RAISE EXCEPTION 'app_users está vacía'; END IF;
+            IF NOT EXISTS (SELECT 1 FROM leagues) THEN RAISE EXCEPTION 'leagues está vacía'; END IF;
+            IF NOT EXISTS (SELECT 1 FROM memberships) THEN RAISE EXCEPTION 'memberships está vacía'; END IF;
+            IF NOT EXISTS (SELECT 1 FROM matches) THEN RAISE EXCEPTION 'matches está vacía'; END IF;
+          END $$;
+          SQL
+          echo "Restauración correcta: $expected tablas con datos."
+
+      - name: Cifrar
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq age > /dev/null
+          name="porrapp-$(date -u +%F)"
+          age --recipient "$AGE_RECIPIENT" --output "$RUNNER_TEMP/$name.dump.age" "$RUNNER_TEMP/porrapp.dump"
+          sudo rm -f "$RUNNER_TEMP/porrapp.dump"
+          echo "BACKUP_NAME=$name" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.BACKUP_NAME }}
+          path: ${{ runner.temp }}/${{ env.BACKUP_NAME }}.dump.age
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Borrar el volcado sin cifrar
+        if: always()
+        run: sudo rm -f "$RUNNER_TEMP/porrapp.dump"
