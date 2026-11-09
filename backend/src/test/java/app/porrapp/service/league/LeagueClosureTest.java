@@ -36,6 +36,7 @@ class LeagueClosureTest {
 
     @Mock private MatchRepository matchRepository;
     @Mock private MatchSelectionService matchSelectionService;
+    @Mock private LeagueSeasons leagueSeasons;
 
     @InjectMocks private LeagueClosure closure;
 
@@ -186,7 +187,18 @@ class LeagueClosureTest {
     }
 
     @Test
-    @DisplayName("Sin competición o en tenis de varios torneos no se da por terminada")
+    @DisplayName("Con la temporada ya archivada ha terminado, también el tenis de varios torneos")
+    void archivedSeasonIsFinished() {
+        Edition tennis = edition(competition("tennis.atp.188", "TOURNAMENT"));
+        tennis.setTennisScope(TennisScope.GRAND_SLAMS);
+        when(leagueSeasons.ended(tennis)).thenReturn(true);
+
+        assertThat(closure.isFinished(tennis, NOW)).isTrue();
+        verifyNoInteractions(matchRepository);
+    }
+
+    @Test
+    @DisplayName("Sin competición o en tenis de varios torneos con la temporada en juego no se da por terminada")
     void noCompetitionOrTennisSeasonIsNeverFinished() {
         Edition tennis = edition(competition("tennis.atp.188", "TOURNAMENT"));
         tennis.setTennisScope(TennisScope.GRAND_SLAMS);

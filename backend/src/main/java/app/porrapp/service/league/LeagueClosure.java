@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 /**
  * Si una liga ya ha terminado: se ha jugado todo lo que cuenta para ella y no queda nada por llegar.
  * Vale para cualquier deporte, porque solo mira el calendario de la liga (sus competiciones y, si elige
- * partidos, los elegidos).
+ * partidos, los elegidos). Lo dice en cuanto se juega el último partido, sin esperar a que el proveedor abra
+ * la temporada siguiente y se archive la jugada ({@link LeagueSeasons#ended}), que también la da por terminada.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,11 +42,14 @@ public class LeagueClosure {
 
     private final MatchRepository matchRepository;
     private final MatchSelectionService matchSelectionService;
+    private final LeagueSeasons leagueSeasons;
 
     @Transactional(readOnly = true)
     public boolean isFinished(Edition edition, Instant now) {
         if (edition == null || edition.getCompetition() == null) return false;
-        // Tenis de varios torneos: entre uno y otro no queda nada pendiente y la liga sigue. Acaba con su temporada.
+        if (leagueSeasons.ended(edition)) return true;
+        // Tenis de varios torneos: entre uno y otro no queda nada pendiente y la liga sigue. Acaba con su
+        // temporada, cuando se archivan sus torneos.
         if (edition.getTennisScope() != null) return false;
         // Lo habitual es una liga en juego: se descarta con una consulta, sin cargar su calendario. Si elige
         // partidos, los suyos pueden haber acabado aunque la competición siga.

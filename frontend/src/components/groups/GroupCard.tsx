@@ -42,7 +42,8 @@ export default function GroupCard({
   const [expanded, setExpanded] = useState(false);
   const [repeating, setRepeating] = useState(false);
   const actionsId = `group-actions-${group.id}`;
-  const ended = Boolean(group.seasonEnded);
+  // Terminada desde que se juega su último partido, antes de que se archive la temporada.
+  const ended = Boolean(group.seasonEnded || summary?.finished);
   const meta = [
     competitionLabel(group),
     // Terminada, la temporada la distingue de la liga que la repite, que se llama igual.
