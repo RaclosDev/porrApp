@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
 import TrackerIdentity from '../components/tracker/TrackerIdentity';
 import TrackerInvite from '../components/tracker/TrackerInvite';
+import TrackerManage from '../components/tracker/TrackerManage';
 import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import { formatDay, winnerLabel } from '../components/tracker/trackerFormat';
 import { useTrackerLeague } from '../hooks/useTrackerLeague';
@@ -12,8 +13,13 @@ import {
   addTrackerPlayer,
   claimTrackerPlayer,
   deleteTracker,
+  deleteTrackerGame,
+  deleteTrackerPlayer,
+  editTrackerGame,
   leaveTracker,
+  mergeTrackerPlayer,
   releaseTrackerPlayer,
+  renameTrackerPlayer,
   type Tracker,
   type TrackerSession,
 } from '../services/endpoints/trackers';
@@ -99,6 +105,39 @@ export default function TrackerHome({ leagueId }: { leagueId: string | null }) {
         }
         onRelease={async () =>
           Boolean(await change(() => releaseTrackerPlayer(tracker.id), 'No se pudo quitarte'))
+        }
+      />
+      <TrackerManage
+        tracker={tracker}
+        busy={busy}
+        onRenamePlayer={async (playerId, name) =>
+          Boolean(
+            await change(
+              () => renameTrackerPlayer(tracker.id, playerId, name),
+              'No se pudo cambiar el nombre',
+            ),
+          )
+        }
+        onDeletePlayer={async (playerId) =>
+          Boolean(
+            await change(() => deleteTrackerPlayer(tracker.id, playerId), 'No se pudo quitar'),
+          )
+        }
+        onMergePlayer={async (playerId, into) =>
+          Boolean(
+            await change(
+              () => mergeTrackerPlayer(tracker.id, playerId, into),
+              'No se pudieron juntar',
+            ),
+          )
+        }
+        onEditGame={async (gameId, game) =>
+          Boolean(
+            await change(() => editTrackerGame(tracker.id, gameId, game), 'No se pudo guardar'),
+          )
+        }
+        onDeleteGame={async (gameId) =>
+          Boolean(await change(() => deleteTrackerGame(tracker.id, gameId), 'No se pudo borrar'))
         }
       />
       <div className="tracker-footer">

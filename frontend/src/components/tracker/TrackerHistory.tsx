@@ -1,10 +1,16 @@
 import { useState } from 'react';
-import type { Tracker, TrackerSession } from '../../services/endpoints/trackers';
+import type { Tracker, TrackerDay, TrackerSession } from '../../services/endpoints/trackers';
+import { confirmAction } from '../../utils/confirmAction';
 import TrackerSheetTable from './TrackerSheetTable';
 import { formatDay, winnerLabel } from './trackerFormat';
 
 interface Props {
   tracker: Tracker;
+  busy?: boolean;
+  /** Solo el administrador: borrar un día apuntado por error. */
+  onDeleteDay?: (dayId: number) => Promise<boolean>;
+  /** Solo el administrador: poner a un día cerrado la fecha (AAAA-MM-DD) en que se jugó. */
+  onMoveDay?: (dayId: number, date: string) => Promise<boolean>;
 }
 
 interface DayGroup {
@@ -12,14 +18,24 @@ interface DayGroup {
   title: string;
   attendees: string;
   sessions: TrackerSession[];
+  day?: TrackerDay;
 }
+
+/** Fecha local AAAA-MM-DD de un instante, para el selector de fecha. */
+const localDate = (at: string | Date) => {
+  const date = new Date(at);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
 
 /**
  * Histórico por días: fecha, quién vino, a qué se jugó y quién ganó cada partida. Tocando una partida
  * se ve su hoja, sin poder tocarla.
  */
-export default function TrackerHistory({ tracker }: Props) {
+export default function TrackerHistory({ tracker, busy = false, onDeleteDay, onMoveDay }: Props) {
   const [viewingId, setViewingId] = useState<number | null>(null);
+  const [movingDayId, setMovingDayId] = useState<number | null>(null);
+  const [date, setDate] = useState('');
   const games = tracker.games ?? [];
   const gameOf = (gameId: number | null) => games.find((game) => game.id === gameId);
   const nameOf = (playerId: number) =>
@@ -35,6 +51,7 @@ export default function TrackerHistory({ tracker }: Props) {
       sessions: day.sessionIds
         .map((sessionId) => byId.get(sessionId))
         .filter((session): session is TrackerSession => Boolean(session)),
+      day,
     }))
     .filter((group) => group.sessions.length > 0);
   // Partidas de antes de que hubiera días de juego.
@@ -88,6 +105,25 @@ export default function TrackerHistory({ tracker }: Props) {
         <li key={group.key} className="tracker-history-day">
           <h3 className="tracker-history-date">{group.title}</h3>
           {group.attendees && <p className="tracker-note">Vinieron {group.attendees}</p>}
+          {group.day?.closedAt && tracker.owner && onDeleteDay && onMoveDay && (
+            <DayActions
+              day={group.day}
+              title={group.title}
+              busy={busy}
+              moving={movingDayId === group.day.id}
+              date={date}
+              onDate={setDate}
+              onStartMove={(day) => {
+                setMovingDayId(day.id);
+                setDate(localDate(day.startedAt));
+              }}
+              onCancelMove={() => setMovingDayId(null)}
+              onMove={async (day) => {
+                if (await onMoveDay(day.id, date)) setMovingDayId(null);
+              }}
+              onDelete={onDeleteDay}
+            />
+          )}
           <ul className="tracker-game-list">
             {group.sessions.map((session) => (
               <li key={session.id}>
@@ -105,5 +141,93 @@ export default function TrackerHistory({ tracker }: Props) {
         </li>
       ))}
     </ol>
+  );
+}
+
+function DayActions({
+  day,
+  title,
+  busy,
+  moving,
+  date,
+  onDate,
+  onStartMove,
+  onCancelMove,
+  onMove,
+  onDelete,
+}: {
+  day: TrackerDay;
+  title: string;
+  busy: boolean;
+  moving: boolean;
+  date: string;
+  onDate: (date: string) => void;
+  onStartMove: (day: TrackerDay) => void;
+  onCancelMove: () => void;
+  onMove: (day: TrackerDay) => Promise<void>;
+  onDelete: (dayId: number) => Promise<boolean>;
+}) {
+  const remove = async () => {
+    const confirmed = await confirmAction({
+      title: `¿Borrar el día ${title}?`,
+      message:
+        'Se borran sus partidas y rondas, y salen de la clasificación. No se puede deshacer.',
+      confirmLabel: 'Borrar día',
+    });
+    if (confirmed) await onDelete(day.id);
+  };
+
+  if (moving) {
+    const inputId = `tracker-day-date-${day.id}`;
+    return (
+      <form
+        className="tracker-day-actions"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (date) void onMove(day);
+        }}
+      >
+        <label htmlFor={inputId}>Se jugó el</label>
+        <input
+          id={inputId}
+          type="date"
+          className="glass-input"
+          value={date}
+          max={localDate(new Date())}
+          onChange={(event) => onDate(event.target.value)}
+        />
+        <button
+          type="submit"
+          className="glass-btn create-league-small-btn"
+          disabled={busy || !date}
+        >
+          Guardar
+        </button>
+        <button type="button" className="create-league-link" onClick={onCancelMove}>
+          Cancelar
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <div className="tracker-day-actions">
+      <button
+        type="button"
+        className="create-league-link"
+        disabled={busy}
+        onClick={() => onStartMove(day)}
+      >
+        Cambiar fecha
+      </button>
+      <button
+        type="button"
+        className="create-league-link"
+        disabled={busy}
+        onClick={() => void remove()}
+      >
+        Borrar día
+      </button>
+    </div>
   );
 }

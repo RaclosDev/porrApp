@@ -715,4 +715,174 @@ class ScoreTrackerServiceTest {
         assertThat(view.currentDayId()).isEqualTo(90L);
         assertThat(view.days().get(0).sessionIds()).containsExactly(70L, 71L);
     }
+
+    @Test
+    void claimingDropsThePlayerCreatedOnJoinIfItNeverPlayed() {
+        ScoreTrackerPlayer joined = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Berto").userId(2L).build();
+        ScoreTrackerPlayer guest = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Bertito").build();
+        when(players.findById(101L)).thenReturn(Optional.of(guest));
+        when(players.findByLeagueIdAndUserId(10L, 2L)).thenReturn(Optional.of(joined));
+
+        service.claimPlayer("miembro@x.com", 10L, 101L);
+
+        verify(players).delete(joined);
+        assertThat(guest.getUserId()).isEqualTo(2L);
+    }
+
+    @Test
+    void claimingKeepsThePreviousPlayerIfItHasPlayed() {
+        ScoreTrackerPlayer joined = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Berto").userId(2L).build();
+        ScoreTrackerPlayer guest = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Bertito").build();
+        when(players.findById(101L)).thenReturn(Optional.of(guest));
+        when(players.findByLeagueIdAndUserId(10L, 2L)).thenReturn(Optional.of(joined));
+        when(sessionPlayers.findByPlayerId(100L)).thenReturn(List.of(new ScoreSessionPlayer(70L, 100L)));
+
+        service.claimPlayer("miembro@x.com", 10L, 101L);
+
+        verify(players, never()).delete(any(ScoreTrackerPlayer.class));
+        assertThat(joined.getUserId()).isNull();
+    }
+
+    @Test
+    void theAdminOrThePlayerThemselfRenamesAPlayerWithAFreeName() {
+        ScoreTrackerPlayer ana = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Ana").build();
+        ScoreTrackerPlayer berto = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Berto").userId(2L).build();
+        when(players.findById(100L)).thenReturn(Optional.of(ana));
+        when(players.findById(101L)).thenReturn(Optional.of(berto));
+        when(players.findByLeagueIdOrderByPositionAsc(10L)).thenReturn(List.of(ana, berto));
+
+        assertThatThrownBy(() -> service.renamePlayer("miembro@x.com", 10L, 100L, "Anita"))
+                .isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> service.renamePlayer("dueno@x.com", 10L, 100L, "berto"))
+                .isInstanceOf(BusinessException.class).hasMessage("Ya hay un jugador con ese nombre");
+
+        service.renamePlayer("dueno@x.com", 10L, 100L, "  Anita ");
+        service.renamePlayer("miembro@x.com", 10L, 101L, "Bertín");
+
+        assertThat(ana.getName()).isEqualTo("Anita");
+        assertThat(berto.getName()).isEqualTo("Bertín");
+    }
+
+    @Test
+    void onlyAnUnclaimedPlayerWhoNeverPlayedCanBeDeleted() {
+        ScoreTrackerPlayer ana = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Ana").build();
+        ScoreTrackerPlayer berto = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Berto").userId(2L).build();
+        ScoreTrackerPlayer carla = ScoreTrackerPlayer.builder().id(102L).leagueId(10L).name("Carla").build();
+        when(players.findById(100L)).thenReturn(Optional.of(ana));
+        when(players.findById(101L)).thenReturn(Optional.of(berto));
+        when(players.findById(102L)).thenReturn(Optional.of(carla));
+        when(scores.findByPlayerIdIn(List.of(102L)))
+                .thenReturn(List.of(ScoreTrackerScore.builder().roundId(80L).playerId(102L).points(3).build()));
+
+        assertThatThrownBy(() -> service.deletePlayer("miembro@x.com", 10L, 100L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> service.deletePlayer("dueno@x.com", 10L, 101L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> service.deletePlayer("dueno@x.com", 10L, 102L)).isInstanceOf(BusinessException.class);
+
+        service.deletePlayer("dueno@x.com", 10L, 100L);
+
+        verify(players).delete(ana);
+        verify(players, never()).delete(carla);
+    }
+
+    @Test
+    void mergingMovesScoresSessionsDaysAndTheAccountToTheRemainingPlayer() {
+        ScoreTrackerPlayer dup = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Berto").userId(2L).build();
+        ScoreTrackerPlayer guest = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Bertito").build();
+        when(players.findById(100L)).thenReturn(Optional.of(dup));
+        when(players.findById(101L)).thenReturn(Optional.of(guest));
+        when(scores.findByPlayerIdIn(List.of(100L)))
+                .thenReturn(List.of(ScoreTrackerScore.builder().roundId(80L).playerId(100L).points(5).build()));
+        when(scores.findByPlayerIdIn(List.of(101L)))
+                .thenReturn(List.of(ScoreTrackerScore.builder().roundId(81L).playerId(101L).points(2).build()));
+        when(sessionPlayers.findByPlayerId(100L))
+                .thenReturn(List.of(new ScoreSessionPlayer(70L, 100L), new ScoreSessionPlayer(71L, 100L)));
+        when(sessionPlayers.findByPlayerId(101L)).thenReturn(List.of(new ScoreSessionPlayer(71L, 101L)));
+        when(dayPlayers.findByPlayerId(100L)).thenReturn(List.of(new ScoreDayPlayer(90L, 100L)));
+
+        assertThatThrownBy(() -> service.mergePlayer("miembro@x.com", 10L, 100L, 101L))
+                .isInstanceOf(BusinessException.class);
+        service.mergePlayer("dueno@x.com", 10L, 100L, 101L);
+
+        ArgumentCaptor<ScoreTrackerScore> moved = ArgumentCaptor.forClass(ScoreTrackerScore.class);
+        verify(scores).save(moved.capture());
+        assertThat(moved.getValue().getPlayerId()).isEqualTo(101L);
+        assertThat(moved.getValue().getRoundId()).isEqualTo(80L);
+        assertThat(moved.getValue().getPoints()).isEqualTo(5);
+        verify(sessionPlayers).save(new ScoreSessionPlayer(70L, 101L));
+        verify(sessionPlayers, never()).save(new ScoreSessionPlayer(71L, 101L));
+        verify(dayPlayers).save(new ScoreDayPlayer(90L, 101L));
+        verify(players).delete(dup);
+        assertThat(guest.getUserId()).isEqualTo(2L);
+    }
+
+    @Test
+    void playersWhoShareARoundOrBothHaveAnAccountCannotBeMerged() {
+        ScoreTrackerPlayer ana = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Ana").build();
+        ScoreTrackerPlayer berto = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Berto").build();
+        when(players.findById(100L)).thenReturn(Optional.of(ana));
+        when(players.findById(101L)).thenReturn(Optional.of(berto));
+        when(scores.findByPlayerIdIn(any()))
+                .thenReturn(List.of(ScoreTrackerScore.builder().roundId(80L).playerId(100L).points(1).build()));
+
+        assertThatThrownBy(() -> service.mergePlayer("dueno@x.com", 10L, 100L, 100L))
+                .isInstanceOf(BusinessException.class).hasMessage("Elige otro jugador");
+        assertThatThrownBy(() -> service.mergePlayer("dueno@x.com", 10L, 100L, 101L))
+                .isInstanceOf(BusinessException.class);
+        ana.setUserId(1L);
+        berto.setUserId(2L);
+        assertThatThrownBy(() -> service.mergePlayer("dueno@x.com", 10L, 100L, 101L))
+                .isInstanceOf(BusinessException.class).hasMessage("Los dos jugadores son de personas distintas");
+        verify(players, never()).delete(any(ScoreTrackerPlayer.class));
+    }
+
+    @Test
+    void theAdminDeletesADayCreatedByMistake() {
+        ScoreDay day = ScoreDay.builder().id(90L).leagueId(10L).build();
+        when(days.findById(90L)).thenReturn(Optional.of(day));
+
+        assertThatThrownBy(() -> service.deleteDay("miembro@x.com", 10L, 90L)).isInstanceOf(BusinessException.class);
+        service.deleteDay("dueno@x.com", 10L, 90L);
+
+        verify(days).delete(day);
+    }
+
+    @Test
+    void aClosedDayMovesToItsRealDateWithItsSessions() {
+        java.time.ZoneId zone = java.time.ZoneId.systemDefault();
+        Instant start = java.time.LocalDate.now(zone).atTime(20, 0).atZone(zone).toInstant();
+        ScoreDay day = ScoreDay.builder().id(90L).leagueId(10L).startedAt(start).closedAt(start.plusSeconds(3600)).build();
+        ScoreTrackerSession session = ScoreTrackerSession.builder().id(70L).leagueId(10L).gameId(50L).dayId(90L)
+                .startedAt(start.plusSeconds(60)).endedAt(start.plusSeconds(1800)).build();
+        ScoreTrackerSession other = ScoreTrackerSession.builder().id(71L).leagueId(10L).gameId(50L).dayId(91L)
+                .startedAt(start).build();
+        when(days.findById(90L)).thenReturn(Optional.of(day));
+        when(sessions.findByLeagueIdOrderByIdAsc(10L)).thenReturn(List.of(session, other));
+        java.time.LocalDate past = java.time.LocalDate.now(zone).minusDays(3);
+
+        assertThatThrownBy(() -> service.moveDay("dueno@x.com", 10L, 90L, java.time.LocalDate.now(zone).plusDays(1)))
+                .isInstanceOf(BusinessException.class);
+        service.moveDay("dueno@x.com", 10L, 90L, past);
+
+        assertThat(day.getStartedAt().atZone(zone).toLocalDate()).isEqualTo(past);
+        assertThat(day.getStartedAt().atZone(zone).getHour()).isEqualTo(20);
+        assertThat(session.getStartedAt().atZone(zone).toLocalDate()).isEqualTo(past);
+        assertThat(session.getEndedAt().atZone(zone).toLocalDate()).isEqualTo(past);
+        assertThat(other.getStartedAt()).isEqualTo(start);
+    }
+
+    @Test
+    void anOpenDayCannotChangeItsDate() {
+        ScoreDay day = ScoreDay.builder().id(90L).leagueId(10L).build();
+        when(days.findById(90L)).thenReturn(Optional.of(day));
+
+        assertThatThrownBy(() -> service.moveDay("dueno@x.com", 10L, 90L, java.time.LocalDate.now().minusDays(1)))
+                .isInstanceOf(BusinessException.class).hasMessage("Cierra el día antes de cambiarle la fecha");
+    }
+
+    @Test
+    void editingAGameAlsoChangesItsUnit() {
+        service.renameGame("dueno@x.com", 10L, 51L, new app.porrapp.dto.ScoreGameNameRequest("Parchís", "fichas"));
+
+        assertThat(parchis.getUnit()).isEqualTo("fichas");
+    }
 }
