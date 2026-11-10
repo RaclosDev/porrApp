@@ -45,6 +45,7 @@ const HOME_SOURCE: Record<LeagueKind, LeagueHomeSource> = {
   error: null,
   none: null,
   unknown: null,
+  scoreboard: null,
 };
 
 export interface MiniStandingRow {

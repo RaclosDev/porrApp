@@ -15,7 +15,12 @@ public record UserDataExport(
         List<PredictionExport> predictions,
         List<PushDevice> pushDevices,
         List<SentNotification> pushNotifications,
-        List<PasskeyExport> passkeys) {
+        List<PasskeyExport> passkeys,
+        List<BoardGamePlayer> boardGames) {
+
+    /** El jugador que la cuenta tiene en cada liga de juegos de mesa, con lo que ha jugado y sumado. */
+    public record BoardGamePlayer(Long leagueId, String name, int roundsPlayed, int totalPoints) {
+    }
 
     /** De cada llave de acceso, su nombre y fechas; la clave pública no es un dato personal útil. */
     public record PasskeyExport(String name, Instant createdAt, Instant lastUsedAt) {

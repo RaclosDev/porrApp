@@ -9,7 +9,10 @@ import type { Tracker } from '../../services/endpoints/trackers';
 vi.mock('../../components/tracker/TrackerQr', () => ({
   default: ({ link }: { link: string }) => <p>QR de {link}</p>,
 }));
-vi.mock('../../utils/leagueInvite', () => ({ copyWithToast: vi.fn() }));
+vi.mock(import('../../utils/leagueInvite'), async (original) => ({
+  ...(await original()),
+  copyWithToast: vi.fn(),
+}));
 
 const tracker: Tracker = {
   id: 1,
@@ -34,10 +37,10 @@ describe('TrackerInvite', () => {
     render(<TrackerInvite tracker={tracker} busy={false} onAddPlayer={vi.fn()} />);
 
     expect(screen.getByText('ABCDEFGH')).toBeInTheDocument();
-    expect(screen.getByText(/QR de .*\/marcador\/unirse\/ABCDEFGH/)).toBeInTheDocument();
+    expect(screen.getByText(/QR de .*\/join\/ABCDEFGH/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }));
     expect(copyWithToast).toHaveBeenCalledWith(
-      expect.stringContaining('/marcador/unirse/ABCDEFGH'),
+      expect.stringContaining('/join/ABCDEFGH'),
       'Enlace copiado',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Ocultar QR' }));
@@ -68,7 +71,7 @@ describe('TrackerInvite', () => {
 });
 
 describe('TrackerCard', () => {
-  it('enlaza al marcador y cuenta jugadores y partidas', () => {
+  it('abre la liga y cuenta jugadores y partidas', () => {
     render(
       <MemoryRouter>
         <ul>
@@ -78,7 +81,7 @@ describe('TrackerCard', () => {
     );
     expect(screen.getByRole('link', { name: 'Abrir el marcador Mus' })).toHaveAttribute(
       'href',
-      '/marcador/5',
+      '/?group=5',
     );
     expect(screen.getByText('1 jugador · 3 partidas')).toBeInTheDocument();
     expect(screen.getByText(/Administras/)).toBeInTheDocument();

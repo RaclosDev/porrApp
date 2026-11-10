@@ -15,8 +15,8 @@ public class ScoreTrackerRound {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "tracker_id", nullable = false)
-    private Long trackerId;
+    @Column(name = "league_id", nullable = false)
+    private Long leagueId;
 
     @Column(name = "session_id", nullable = false)
     private Long sessionId;

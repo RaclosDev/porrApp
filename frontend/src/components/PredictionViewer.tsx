@@ -60,6 +60,7 @@ function PredictionViewer(props: PredictionViewerProps) {
     error: null,
     none: null,
     unknown: null,
+    scoreboard: null,
   };
   return viewers[leagueKind];
 }

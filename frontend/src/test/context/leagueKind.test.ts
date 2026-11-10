@@ -55,6 +55,8 @@ const EXAMPLES: Record<LeagueKind, LeagueKindInput> = {
     competitionExternalId: 'tennis.atp.1',
   }),
   grandPrix: ready({ poolFormat: 'GRAND_PRIX', formatType: 'RACE', competitionExternalId: 'f1' }),
+  // Liga de juegos de mesa: el servidor le pone un formato, pero manda la clase.
+  scoreboard: ready({ poolFormat: 'MATCH_DAY', kind: 'SCOREBOARD' }),
   unknown: ready({
     poolFormat: null,
     formatType: 'TOURNAMENT',

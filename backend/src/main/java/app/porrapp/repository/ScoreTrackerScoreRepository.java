@@ -10,4 +10,6 @@ public interface ScoreTrackerScoreRepository
         extends JpaRepository<ScoreTrackerScore, ScoreTrackerScore.Key> {
 
     List<ScoreTrackerScore> findByRoundIdIn(Collection<Long> roundIds);
+
+    List<ScoreTrackerScore> findByPlayerIdIn(Collection<Long> playerIds);
 }

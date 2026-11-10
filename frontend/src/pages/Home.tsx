@@ -19,6 +19,7 @@ import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import { useTournamentData } from '../context/leagueData';
 import type { LeagueKind } from '../context/leagueKind';
+import TrackerView from './TrackerView';
 
 type HomeMode = 'home' | 'groups';
 
@@ -28,7 +29,7 @@ type HomeMode = 'home' | 'groups';
  * en los demás cuadros, su vista de resultados.
  */
 function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
-  const { leagueKind, groupError } = useAppContext();
+  const { leagueKind, groupError, activeGroupId } = useAppContext();
   const [viewMode, setViewMode] = useState(defaultMode);
   useEffect(() => {
     setViewMode(defaultMode);
@@ -49,11 +50,13 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     tennisDraw: <LeagueHomeDashboard />,
     // Fórmula 1: el inicio son los Grandes Premios.
     grandPrix: <GrandPrixPage />,
+    // Juegos de mesa: el inicio es el marcador de la liga.
+    scoreboard: <TrackerView leagueId={activeGroupId} />,
   };
   return (
     <>
       {/* Una liga terminada abre su inicio con el cierre: campeón, podio y compartir. */}
-      {home && <LeagueClosing />}
+      {home && leagueKind !== 'scoreboard' && <LeagueClosing />}
       {views[leagueKind]}
     </>
   );

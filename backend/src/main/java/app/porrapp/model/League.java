@@ -48,6 +48,19 @@ public class League {
     @Column(name = "entry_fee", nullable = false)
     private boolean entryFee = false;
 
+    /** Clase de liga: {@link #KIND_POOL} (porra sobre una competición) o {@link #KIND_SCOREBOARD} (marcador de juegos, sin edición). */
+    @Builder.Default
+    @Column(nullable = false, length = 20)
+    private String kind = KIND_POOL;
+
+    public static final String KIND_POOL = "POOL";
+    public static final String KIND_SCOREBOARD = "SCOREBOARD";
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isScoreboard() {
+        return KIND_SCOREBOARD.equals(kind);
+    }
+
     @Builder.Default
     private Instant createdAt = Instant.now();
 
