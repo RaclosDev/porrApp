@@ -52,7 +52,7 @@ const scoreboard = {
 };
 
 for (const width of [390, 1440]) {
-  test(`una liga de juegos de mesa sale una vez y nunca es la liga activa a ${width}px`, async ({
+  test(`una liga de juegos de mesa es una liga más y su inicio es el marcador a ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -81,6 +81,7 @@ for (const width of [390, 1440]) {
           avatarUrl: null,
         },
         '/api/groups/1': pool,
+        '/api/groups/9': scoreboardLeague,
         '/api/groups/mine': [pool, scoreboardLeague],
         '/api/trackers': [
           { id: 9, name: 'Mus de los jueves', owner: true, players: 4, rounds: 12 },
@@ -91,33 +92,34 @@ for (const width of [390, 1440]) {
       return route.fulfill({ json: responses[url.pathname] ?? [] });
     });
 
-    await page.goto('/mis-ligas');
+    await page.goto('/');
 
-    // Una sola tarjeta: la del marcador, no otra más como liga de predicciones.
-    await expect(
-      page.getByRole('link', { name: 'Abrir el marcador Mus de los jueves' }),
-    ).toHaveCount(1);
-    await expect(page.getByRole('button', { name: 'Abrir Los del barrio' })).toHaveCount(1);
-    await expect(page.getByRole('button', { name: 'Abrir Mus de los jueves' })).toHaveCount(0);
-
-    // La liga activa pasa a ser la de predicciones.
+    // Sigue siendo la liga activa y su inicio es el marcador.
     const selector = page.locator('#btn-active-league-dropdown');
-    await expect(selector).toContainText('Los del barrio');
-    expect(await page.evaluate(() => localStorage.getItem('activeGroupId'))).toBe('1');
+    await expect(selector).toContainText('Mus de los jueves');
+    await expect(page.getByRole('heading', { name: 'Mus de los jueves' })).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('activeGroupId'))).toBe('9');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
 
-    // Desde el selector de la cabecera se abre su marcador, sin cambiar de liga activa.
-    requested.length = 0;
-    await selector.click();
-    await page.getByRole('button', { name: /Mus de los jueves/ }).click();
-    await expect(page).toHaveURL(/\/marcador\/9$/);
-    await expect(page.getByRole('heading', { name: 'Mus de los jueves' })).toBeVisible();
-    await expect(selector).toContainText('Los del barrio');
-    expect(await page.evaluate(() => localStorage.getItem('activeGroupId'))).toBe('1');
+    // En Mis ligas sale una sola vez, con su tarjeta de juego de mesa.
+    await page.goto('/mis-ligas');
+    const card = page.getByRole('link', { name: 'Abrir el marcador Mus de los jueves' });
+    await expect(card).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Abrir Los del barrio' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Abrir Mus de los jueves' })).toHaveCount(0);
 
-    // Abrirla no pide a la porra datos de una liga que no tiene competición.
-    expect(requested.filter((path) => /\/api\/groups\/9\b|groupId=9\b/.test(path))).toEqual([]);
+    // Se cambia a la porra y se vuelve al marcador desde su tarjeta.
+    await page.getByRole('button', { name: 'Abrir Los del barrio' }).click();
+    await expect(selector).toContainText('Los del barrio');
+    await page.goto('/mis-ligas');
+    await card.click();
+    await expect(page).toHaveURL(new RegExp(`^${ORIGIN}/$`));
+    await expect(selector).toContainText('Mus de los jueves');
+    await expect(page.getByRole('heading', { name: 'Mus de los jueves' })).toBeVisible();
+
+    // Nada pide predicciones ni ranking de una liga que no tiene competición.
+    expect(requested.filter((path) => /groupId=9\b/.test(path))).toEqual([]);
   });
 }

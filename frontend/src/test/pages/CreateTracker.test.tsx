@@ -18,7 +18,7 @@ const renderPage = () =>
       <MemoryRouter initialEntries={['/marcador/nuevo']}>
         <Routes>
           <Route path="/marcador/nuevo" element={<CreateTracker />} />
-          <Route path="/marcador/:id" element={<p>Marcador abierto</p>} />
+          <Route path="/" element={<p>Marcador abierto</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

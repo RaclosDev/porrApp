@@ -6,13 +6,14 @@ import { useUnsavedChangesStore } from '../../utils/unsavedChanges';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { fetchTrackers } from '../../services/endpoints/trackers';
 
 const mockChangeGroup = vi.fn();
 const mockNavigate = vi.fn();
-const mockState = vi.hoisted(() => ({ userGroupsLoaded: true }));
-
-vi.mock('../../services/endpoints/trackers', () => ({ fetchTrackers: vi.fn() }));
+const MUS = { id: 3, name: 'Mus de los jueves', poolFormat: 'MATCH_DAY', kind: 'SCOREBOARD' };
+const mockState = vi.hoisted(() => ({
+  userGroupsLoaded: true,
+  extraGroups: [] as Record<string, unknown>[],
+}));
 
 const Providers = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -47,6 +48,7 @@ vi.mock('../../context/AppContext', () => ({
         competitionName: 'FIFA World Cup 2026',
         poolFormat: 'TOURNAMENT',
       },
+      ...mockState.extraGroups,
     ],
     changeGroup: mockChangeGroup,
     isAuthenticated: true,
@@ -58,14 +60,12 @@ describe('ActiveLeagueDropdown Component', () => {
   beforeEach(() => {
     mockChangeGroup.mockClear();
     mockNavigate.mockClear();
-    vi.mocked(fetchTrackers).mockResolvedValue([]);
+    mockState.extraGroups = [];
     useUnsavedChangesStore.setState({ pending: new Map() });
   });
 
-  it('lista las ligas de juegos de mesa y las abre en su marcador sin hacerlas la liga activa', async () => {
-    vi.mocked(fetchTrackers).mockResolvedValue([
-      { id: 7, name: 'Mus de los jueves', owner: true, players: 4, rounds: 12 },
-    ]);
+  it('una liga de juegos de mesa se elige como cualquier otra', async () => {
+    mockState.extraGroups = [MUS];
     render(
       <Providers>
         <ActiveLeagueDropdown />
@@ -73,27 +73,12 @@ describe('ActiveLeagueDropdown Component', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Peña Madridista/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /Mus de los jueves/ }));
-
-    expect(screen.queryByText('3 ligas')).not.toBeInTheDocument(); // el menú se ha cerrado
-    expect(mockNavigate).toHaveBeenCalledWith('/marcador/7');
-    expect(mockChangeGroup).not.toHaveBeenCalled();
-  });
-
-  it('cuenta las ligas de juegos de mesa junto a las de predicciones', async () => {
-    vi.mocked(fetchTrackers).mockResolvedValue([
-      { id: 7, name: 'Mus de los jueves', owner: true, players: 4, rounds: 12 },
-    ]);
-    render(
-      <Providers>
-        <ActiveLeagueDropdown />
-      </Providers>,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Peña Madridista/i }));
-
     expect(await screen.findByText('3 ligas')).toBeInTheDocument();
     expect(screen.getByText('Juego de mesa')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Mus de los jueves/ }));
+
+    await waitFor(() => expect(mockChangeGroup).toHaveBeenCalledWith('3'));
+    expect(mockNavigate).toHaveBeenCalledWith('/');
   });
 
   it('reserva el hueco mientras llegan las ligas en vez de enseñar «Crear o unirse»', () => {

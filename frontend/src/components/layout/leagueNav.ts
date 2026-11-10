@@ -1,5 +1,6 @@
 import {
   Calendar,
+  Dices,
   Flag,
   Home,
   LayoutGrid,
@@ -48,6 +49,8 @@ const GRAND_PRIX: LeagueNavItem = {
   end: true,
 };
 
+const SCOREBOARD_HOME: LeagueNavItem = { to: '/', label: 'Marcador', icon: Dices, end: true };
+
 const BRACKET_NAV = [HOME, MY_BRACKET, RESULTS, RANKING, MY_LEAGUES];
 const MATCHDAY_NAV = [HOME, MATCHDAYS, RANKING, TABLE, MY_LEAGUES];
 
@@ -68,6 +71,8 @@ const LEAGUE_NAV: Record<LeagueKind, readonly LeagueNavItem[] | null> = {
   fightCard: [HOME, MATCHDAYS, RANKING, FIGHT_CARD, MY_LEAGUES],
   tennisDraw: [HOME, MATCHDAYS, RANKING, TENNIS_DRAW, MY_LEAGUES],
   grandPrix: [GRAND_PRIX, RANKING, F1_STANDINGS, MY_LEAGUES],
+  // Juegos de mesa: el marcador lleva la clasificación y el histórico.
+  scoreboard: [SCOREBOARD_HOME, MY_LEAGUES],
 };
 
 /** Secciones que se enseñan; en la demo el inicio es /demo y no hay Mis Ligas. */

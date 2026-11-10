@@ -16,6 +16,7 @@ import CustomCompetitionEditor from '../components/groups/CustomCompetitionEdito
 import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
 import LeagueMatchesSection, { hasMatchSelection } from '../components/groups/LeagueMatchesSection';
 import { myTrackersQuery } from '../services/queries';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 import type { Group } from '../types/api';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 
@@ -216,7 +217,11 @@ export default function GroupsDashboard() {
         </div>
       ) : (
         <ul className="grid gap-2.5 md:grid-cols-2 max-w-240 mx-auto my-0 p-0 list-none">
-          {sortGroupsByRecent(groups, activeGroupId).map((group) => {
+          {sortGroupsByRecent(
+            // Las de juegos de mesa tienen su tarjeta, con jugadores y partidas.
+            groups.filter((group) => !isScoreboardLeague(group)),
+            activeGroupId,
+          ).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
             const isCreator = isGroupAdmin(group);
             return (
@@ -239,7 +244,11 @@ export default function GroupsDashboard() {
             );
           })}
           {trackerList.map((tracker) => (
-            <TrackerCard key={`tracker-${tracker.id}`} tracker={tracker} />
+            <TrackerCard
+              key={`tracker-${tracker.id}`}
+              tracker={tracker}
+              isSelected={activeGroupId === String(tracker.id)}
+            />
           ))}
         </ul>
       )}

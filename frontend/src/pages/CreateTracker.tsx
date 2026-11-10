@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createTracker } from '../services/endpoints/trackers';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
+import { scoreboardPath } from '../utils/scoreboardLeague';
 
 const UNIT_SUGGESTIONS = ['puntos', 'fichas', 'victorias', 'rondas'];
 
@@ -28,8 +29,12 @@ export default function CreateTracker() {
     setBusy(true);
     try {
       const tracker = await createTracker({ name, unit, lowerWins });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.trackers() });
-      navigate(`/marcador/${tracker.id}`, { replace: true });
+      // La liga nueva tiene que estar en «Mis ligas» antes de abrirla como activa.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.trackers() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+      ]);
+      navigate(scoreboardPath(tracker.id), { replace: true });
     } catch (reason) {
       setError(errorMessage(reason, 'No se pudo crear el marcador'));
       setBusy(false);

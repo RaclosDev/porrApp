@@ -14,18 +14,15 @@ import {
 import { isApiError } from './apiError';
 import { fetchTrackers } from './endpoints/trackers';
 import { queryKeys } from './queryKeys';
-import { isScoreboardLeague } from '../utils/scoreboardLeague';
 
 /**
- * Las ligas de predicciones del usuario. El servidor manda también sus ligas de juegos de mesa, que
- * no tienen competición: se quitan aquí para que ninguna pantalla de la porra las abra ni las elija
- * como liga activa. Esas llegan con `myTrackersQuery`.
+ * Las ligas del usuario, también las de juegos de mesa (`kind: 'SCOREBOARD'`): cualquiera puede ser
+ * la liga activa, y su clase (`leagueKindOf`) decide qué enseña cada pantalla.
  */
 export const myGroupsQuery = (isAuthenticated: boolean) =>
   queryOptions({
     queryKey: queryKeys.myGroups(isAuthenticated),
-    queryFn: async () =>
-      isAuthenticated ? (await fetchMyGroups()).filter((group) => !isScoreboardLeague(group)) : [],
+    queryFn: async () => (isAuthenticated ? fetchMyGroups() : []),
     staleTime: 60_000,
   });
 

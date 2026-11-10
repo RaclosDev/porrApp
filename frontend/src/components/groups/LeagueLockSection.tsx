@@ -23,6 +23,7 @@ const PROGRESSIVE_LOCK: Record<LeagueKind, boolean> = {
   error: false,
   none: false,
   unknown: false,
+  scoreboard: false,
 };
 const allowsProgressiveLock = (group: Group) =>
   PROGRESSIVE_LOCK[leagueKindOf({ hasLeague: true, loading: false, error: false, league: group })];

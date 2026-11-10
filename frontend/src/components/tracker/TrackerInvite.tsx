@@ -1,10 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { Tracker } from '../../services/endpoints/trackers';
-import { copyWithToast } from '../../utils/leagueInvite';
+import { copyWithToast, joinLink } from '../../utils/leagueInvite';
 import TrackerQr from './TrackerQr';
-
-const trackerLink = (code: string) =>
-  `${window.location.origin}/marcador/unirse/${encodeURIComponent(code)}`;
 
 interface Props {
   tracker: Tracker;
@@ -19,7 +16,7 @@ interface Props {
 export default function TrackerInvite({ tracker, busy, onAddPlayer }: Props) {
   const [showQr, setShowQr] = useState(true);
   const [name, setName] = useState('');
-  const link = trackerLink(tracker.joinCode);
+  const link = joinLink(tracker.joinCode);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
