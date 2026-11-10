@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /** Una ronda apuntada en una partida: puntos de quienes la jugaron. */
 @Entity
@@ -28,7 +29,22 @@ public class ScoreTrackerRound {
     @Column(name = "created_by_user_id")
     private Long createdByUserId;
 
+    @Column(name = "client_request_id")
+    private UUID clientRequestId;
+
+    @Column(name = "request_fingerprint", length = 64)
+    private String requestFingerprint;
+
+    @Builder.Default
+    @Version
+    @Column(nullable = false)
+    private int revision = 0;
+
     @Builder.Default
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
+
+    @Builder.Default
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt = Instant.now();
 }

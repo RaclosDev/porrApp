@@ -65,27 +65,23 @@ final class ScoreTrackerStandings {
 
     /**
      * Clasificación acumulada (general o de un juego): los puntos de un juego no se pueden sumar con los de
-     * otro, así que manda quién ha ganado más partidas, luego más rondas, y los empates comparten posición.
-     * El total de puntos solo es informativo; las partidas jugadas dicen quién ha venido menos.
+     * otro, así que manda quién ha ganado más partidas. Las rondas y los puntos solo son informativos.
      */
     static List<Standing> general(List<Player> players, Map<Long, Integer> totals, Map<Long, Integer> roundsWon,
                                   Map<Long, Integer> sessionsWon, Map<Long, Integer> sessionsPlayed) {
         List<Player> sorted = new ArrayList<>(players);
         sorted.sort(Comparator
                 .comparingInt((Player player) -> -sessionsWon.getOrDefault(player.id(), 0))
-                .thenComparingInt(player -> -roundsWon.getOrDefault(player.id(), 0))
                 .thenComparing(Player::name, String.CASE_INSENSITIVE_ORDER));
         List<Standing> standings = new ArrayList<>();
         int rank = 0;
         int previousSessions = -1;
-        int previousRounds = -1;
         for (int index = 0; index < sorted.size(); index++) {
             Player player = sorted.get(index);
             int sessions = sessionsWon.getOrDefault(player.id(), 0);
             int rounds = roundsWon.getOrDefault(player.id(), 0);
-            if (sessions != previousSessions || rounds != previousRounds) rank = index + 1;
+            if (sessions != previousSessions) rank = index + 1;
             previousSessions = sessions;
-            previousRounds = rounds;
             standings.add(new Standing(player.id(), player.name(), totals.getOrDefault(player.id(), 0), rank,
                     rounds, sessions, sessionsPlayed.getOrDefault(player.id(), 0)));
         }

@@ -18,6 +18,7 @@ interface Props {
   onAdd: (round: TrackerRoundDraft) => Promise<boolean>;
   onEdit: (roundId: number, round: TrackerRoundDraft) => Promise<boolean>;
   onDelete: (round: TrackerRound) => Promise<boolean>;
+  closed?: boolean;
 }
 
 const MAX_POINTS = 1_000_000;
@@ -35,20 +36,26 @@ export default function TrackerSheet({
   onAdd,
   onEdit,
   onDelete,
+  closed = false,
 }: Props) {
   const [values, setValues] = useState<Record<number, string>>({});
   const [editing, setEditing] = useState<TrackerRound | null>(null);
+  const [selectedWinners, setSelectedWinners] = useState<number[]>([]);
   const [error, setError] = useState('');
-  const wins = game.mode === 'WINS';
+  const wins = game.mode !== 'POINTS';
 
   const reset = () => {
     setValues({});
     setEditing(null);
+    setSelectedWinners([]);
     setError('');
   };
 
   const startEditing = (round: TrackerRound) => {
     setEditing(round);
+    setSelectedWinners(
+      players.filter((player) => round.scores[player.id] > 0).map((player) => player.id),
+    );
     setError('');
     setValues(
       Object.fromEntries(
@@ -58,7 +65,9 @@ export default function TrackerSheet({
   };
 
   const save = async (draft: TrackerRoundDraft) => {
-    const done = editing ? await onEdit(editing.id, draft) : await onAdd(draft);
+    const done = editing
+      ? await onEdit(editing.id, { ...draft, expectedRevision: editing.revision })
+      : await onAdd(draft);
     if (done) reset();
   };
 
@@ -95,71 +104,117 @@ export default function TrackerSheet({
         onPickRound={startEditing}
       />
 
-      <section className="tracker-entry" aria-labelledby="tracker-entry-title">
-        <h3 id="tracker-entry-title" className="tracker-heading">
-          {editing ? `Corregir la ronda ${editing.number}` : `Ronda ${rounds.length + 1}`}
-        </h3>
-        {wins ? (
-          <div className="tracker-chips" role="group" aria-label="¿Quién gana la ronda?">
-            {players.map((player) => (
-              <button
-                key={player.id}
-                type="button"
-                className={`tracker-chip is-big${editing && editing.scores[player.id] > 0 ? ' is-on' : ''}`}
-                disabled={busy}
-                onClick={() => void save({ winners: [player.id], sessionId: session.id })}
+      {(!closed || editing) && (
+        <section className="tracker-entry" aria-labelledby="tracker-entry-title">
+          <h3 id="tracker-entry-title" className="tracker-heading">
+            {editing
+              ? `Corregir la ronda ${editing.number}`
+              : game.mode === 'DIRECT'
+                ? 'Ganador de la partida'
+                : `Ronda ${rounds.length + 1}`}
+          </h3>
+          {wins ? (
+            <div>
+              <div
+                className="tracker-chips"
+                role="group"
+                aria-label={
+                  game.mode === 'DIRECT' ? '¿Quién gana la partida?' : '¿Quién gana la ronda?'
+                }
               >
-                Gana {player.name}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <form onSubmit={submitPoints} noValidate>
-            <div className="tracker-round-grid">
-              {players.map((player) => (
-                <div key={player.id} className="tracker-round-row">
-                  <label htmlFor={`tracker-points-${player.id}`}>{player.name}</label>
-                  <input
-                    id={`tracker-points-${player.id}`}
-                    className="glass-input"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="–"
-                    value={values[player.id] ?? ''}
-                    onChange={(event) =>
-                      setValues((prev) => ({ ...prev, [player.id]: event.target.value }))
+                {players.map((player) => (
+                  <button
+                    key={player.id}
+                    type="button"
+                    className={`tracker-chip is-big${selectedWinners.includes(player.id) ? ' is-on' : ''}`}
+                    disabled={busy}
+                    aria-pressed={
+                      game.mode === 'DIRECT' ? selectedWinners.includes(player.id) : undefined
                     }
-                  />
-                </div>
-              ))}
+                    onClick={() =>
+                      game.mode === 'DIRECT'
+                        ? setSelectedWinners((current) =>
+                            current.includes(player.id)
+                              ? current.filter((id) => id !== player.id)
+                              : [...current, player.id],
+                          )
+                        : void save({ winners: [player.id], sessionId: session.id })
+                    }
+                  >
+                    Gana {player.name}
+                  </button>
+                ))}
+              </div>
+              {game.mode === 'DIRECT' && (
+                <>
+                  <p className="tracker-note">
+                    Puedes marcar a varias personas si han ganado juntas.
+                  </p>
+                  <button
+                    type="button"
+                    className="glass-btn primary-btn tracker-submit"
+                    disabled={busy || selectedWinners.length === 0}
+                    onClick={() => void save({ winners: selectedWinners, sessionId: session.id })}
+                  >
+                    {editing ? 'Guardar ganadores' : 'Guardar resultado y terminar partida'}
+                  </button>
+                </>
+              )}
             </div>
-            <p className="tracker-note">En blanco, no jugó esa ronda.</p>
-            {error && (
-              <p className="create-league-error is-block" role="alert">
-                {error}
-              </p>
-            )}
-            <button type="submit" className="glass-btn primary-btn tracker-submit" disabled={busy}>
-              {editing ? 'Guardar la ronda' : 'Apuntar ronda'}
-            </button>
-          </form>
-        )}
-        {editing && (
-          <div className="tracker-actions">
-            <button
-              type="button"
-              className="create-league-link"
-              disabled={busy}
-              onClick={() => void onDelete(editing).then((done) => done && reset())}
-            >
-              Borrar la ronda
-            </button>
-            <button type="button" className="create-league-link" onClick={reset}>
-              Cancelar
-            </button>
-          </div>
-        )}
-      </section>
+          ) : (
+            <form onSubmit={submitPoints} noValidate>
+              <div className="tracker-round-grid">
+                {players.map((player) => (
+                  <div key={player.id} className="tracker-round-row">
+                    <label htmlFor={`tracker-points-${player.id}`}>{player.name}</label>
+                    <input
+                      id={`tracker-points-${player.id}`}
+                      className="glass-input"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="–"
+                      value={values[player.id] ?? ''}
+                      onChange={(event) =>
+                        setValues((prev) => ({ ...prev, [player.id]: event.target.value }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="tracker-note">En blanco, no jugó esa ronda.</p>
+              {error && (
+                <p className="create-league-error is-block" role="alert">
+                  {error}
+                </p>
+              )}
+              <button
+                type="submit"
+                className="glass-btn primary-btn tracker-submit"
+                disabled={busy}
+              >
+                {editing ? 'Guardar la ronda' : 'Apuntar ronda'}
+              </button>
+            </form>
+          )}
+          {editing && (
+            <div className="tracker-actions">
+              {!closed && (
+                <button
+                  type="button"
+                  className="create-league-link"
+                  disabled={busy}
+                  onClick={() => void onDelete(editing).then((done) => done && reset())}
+                >
+                  Borrar la ronda
+                </button>
+              )}
+              <button type="button" className="create-league-link" onClick={reset}>
+                Cancelar
+              </button>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

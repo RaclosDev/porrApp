@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Ronda apuntada en una partida. En los juegos por puntos, {@code scores} trae los puntos de quienes la
@@ -11,5 +12,9 @@ import java.util.Map;
  * dice quién la ganó (varios si ganó una pareja). Sin {@code sessionId}, va a la última partida.
  */
 public record ScoreTrackerRoundRequest(@Size(max = 120) String note, Map<Long, Integer> scores, Long sessionId,
-                                       @Size(max = 20) List<Long> winners) {
+                                       @Size(max = 20) List<Long> winners, UUID clientRequestId,
+                                       Integer expectedRevision) {
+    public ScoreTrackerRoundRequest(String note, Map<Long, Integer> scores, Long sessionId, List<Long> winners) {
+        this(note, scores, sessionId, winners, null, null);
+    }
 }
