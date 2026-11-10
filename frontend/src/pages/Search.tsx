@@ -68,6 +68,8 @@ function Search() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Buscar" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
+    // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
+    scoreboard: <Navigate to="/" replace />,
     // El Mundial es un cuadro más, con los puestos de la fase de grupos aparte.
     groupStage: <GroupStageSearchPage />,
     matchday: <Navigate to="/stats" replace />,

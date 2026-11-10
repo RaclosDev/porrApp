@@ -9,6 +9,11 @@ import app.porrapp.model.PoolFormat;
 import app.porrapp.model.Prediction;
 import app.porrapp.model.PushNotificationLog;
 import app.porrapp.model.PushSubscription;
+import app.porrapp.model.ScoreGame;
+import app.porrapp.model.ScoreTrackerPlayer;
+import app.porrapp.model.ScoreTrackerRound;
+import app.porrapp.model.ScoreTrackerScore;
+import app.porrapp.model.ScoreTrackerSession;
 import app.porrapp.model.UserAccount;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,5 +81,40 @@ class UserDataExportPersistenceTest {
         assertThat(export.pushNotifications()).singleElement()
                 .satisfies(n -> assertThat(n.title()).isEqualTo("Te faltan 2 predicciones"));
         assertThat(export.toString()).doesNotContain("Otro", "secret-key", "secret-auth", "push.test");
+    }
+
+    @Test
+    void exportIncludesTheUsersOwnBoardGamePlayerButNotTheOthers() {
+        UserAccount ana = em.persist(UserAccount.builder().googleEmail("board-ana@test.invalid")
+                .participantName("Ana").build());
+        League league = em.persist(League.builder().name("Juegos de mesa").joinCode("TESTBRD1")
+                .adminUser(ana).kind(League.KIND_SCOREBOARD).build());
+        em.persist(Membership.builder().id(new Membership.MembershipId(ana.getId(), league.getId()))
+                .user(ana).league(league).build());
+        ScoreGame game = em.persist(ScoreGame.builder().leagueId(league.getId()).name("Catán").build());
+        ScoreTrackerPlayer mine = em.persist(ScoreTrackerPlayer.builder().leagueId(league.getId()).name("Ana")
+                .position(0).userId(ana.getId()).build());
+        ScoreTrackerPlayer guest = em.persist(ScoreTrackerPlayer.builder().leagueId(league.getId()).name("Invitada")
+                .position(1).build());
+        ScoreTrackerSession session = em.persist(ScoreTrackerSession.builder().leagueId(league.getId())
+                .gameId(game.getId()).build());
+        for (int points : new int[]{3, 5}) {
+            ScoreTrackerRound round = em.persist(ScoreTrackerRound.builder().leagueId(league.getId())
+                    .sessionId(session.getId()).build());
+            em.persist(new ScoreTrackerScore(round.getId(), mine.getId(), points));
+            em.persist(new ScoreTrackerScore(round.getId(), guest.getId(), 99));
+        }
+        em.flush();
+        em.clear();
+
+        UserDataExport export = exports.export("board-ana@test.invalid");
+
+        assertThat(export.boardGames()).singleElement().satisfies(p -> {
+            assertThat(p.leagueId()).isEqualTo(league.getId());
+            assertThat(p.name()).isEqualTo("Ana");
+            assertThat(p.roundsPlayed()).isEqualTo(2);
+            assertThat(p.totalPoints()).isEqualTo(8);
+        });
+        assertThat(export.toString()).doesNotContain("Invitada");
     }
 }

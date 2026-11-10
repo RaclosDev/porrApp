@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface ScoreTrackerSessionRepository extends JpaRepository<ScoreTrackerSession, Long> {
 
-    List<ScoreTrackerSession> findByTrackerIdOrderByIdAsc(Long trackerId);
+    List<ScoreTrackerSession> findByLeagueIdOrderByIdAsc(Long leagueId);
 
-    Optional<ScoreTrackerSession> findFirstByTrackerIdOrderByIdDesc(Long trackerId);
+    Optional<ScoreTrackerSession> findFirstByLeagueIdOrderByIdDesc(Long leagueId);
 }

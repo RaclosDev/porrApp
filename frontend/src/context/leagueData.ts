@@ -21,6 +21,7 @@ import { useAppStore } from '../store/useAppStore';
 import type { Group, LeagueCompetition, MatchRadar, TournamentFormat } from '../types/api';
 import { WORLD_CUP_2026_FORMAT } from '../utils/firstKnockoutRound';
 import { forgetLeague, pickMostRecentLeague } from './leagueFallback';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 import { MATCH_KINDS, leagueKindOf, type LeagueKind } from './leagueKind';
 import { isKnockoutOnlyCup } from '../utils/knockoutDrawPending';
 import { isNbaRegularSeason } from '../utils/nbaPlayoffs';
@@ -132,6 +133,7 @@ function useLeagueState() {
           customCompetition: fromList.customCompetition,
           formatType: fromList.formatType,
           poolFormat: fromList.poolFormat,
+          kind: fromList.kind,
           pichichi: fromList.pichichi,
           isLocked: fromList.isLocked,
           lockDate: fromList.lockDate,
@@ -352,12 +354,22 @@ export function useTournamentData() {
   };
 }
 
+/**
+ * Una liga de juegos de mesa no tiene ranking de predicciones (el servidor lo rechaza). Hasta saber qué
+ * liga es no se pide: así no sale una petición de más al abrir el marcador.
+ */
+const hasPredictionRanking = (
+  activeGroupId: string | null | undefined,
+  groupInfo: Pick<Group, 'kind'> | null | undefined,
+) => Boolean(activeGroupId && groupInfo) && !isScoreboardLeague(groupInfo);
+
 /** Ranking de la liga activa y pronósticos ya descargados. */
 export function useLeagueRanking() {
   const queryClient = useQueryClient();
   const activeGroupId = useAppStore((s) => s.activeGroupId);
-  const { leagueKind } = useLeagueState();
+  const { leagueKind, groupInfo } = useLeagueState();
   const isMatchdayPool = MATCH_KINDS[leagueKind];
+  const hasRanking = hasPredictionRanking(activeGroupId, groupInfo);
 
   // Los pronósticos de toda la liga son pesados: aquí solo se leen de la caché. Los piden las
   // pantallas que los usan (useLeaguePredictions); el resto no los descarga.
@@ -373,7 +385,7 @@ export function useLeagueRanking() {
   } = useQuery({
     queryKey: queryKeys.leaderboard(activeGroupId),
     queryFn: () => fetchLeaderboard(activeGroupId),
-    enabled: Boolean(activeGroupId),
+    enabled: hasRanking,
   });
 
   const { data: leaderboardMatchdays } = useQuery({
@@ -388,7 +400,7 @@ export function useLeagueRanking() {
     leaderboardData: Array.isArray(leaderboard) ? leaderboard : EMPTY_ARRAY,
     leaderboardMatchdays: Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_ARRAY,
     /** Ranking aún sin datos: evita mostrar un podio a cero mientras carga. */
-    loadingLeaderboard: Boolean(activeGroupId) && leaderboardPending && !leaderboardError,
+    loadingLeaderboard: hasRanking && leaderboardPending && !leaderboardError,
     /** Recarga los datos de la liga activa (tras guardar, aceptar o borrar un pronóstico). */
     fetchData: () =>
       Promise.all(
@@ -455,7 +467,7 @@ export function useLeagueDataEffects() {
   const { error: leaderboardError } = useQuery({
     queryKey: queryKeys.leaderboard(activeGroupId),
     queryFn: () => fetchLeaderboard(activeGroupId),
-    enabled: Boolean(activeGroupId),
+    enabled: hasPredictionRanking(activeGroupId, groupInfo),
   });
   const { error: groupError } = useQuery<Partial<Group>>({
     queryKey: queryKeys.group(activeGroupId),

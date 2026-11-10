@@ -28,6 +28,8 @@ public class LeagueResponseDTO {
     private Instant createdAt;
     /** Cuándo se unió el usuario (solo en sus ligas): elige su liga más reciente si sale de la activa. */
     private Instant joinedAt;
+    /** Clase de liga: POOL (porra sobre una competición) o SCOREBOARD (marcador de juegos, sin competición). */
+    private String kind;
     
     /** Identificador de la competición asociada a la edición activa. */
     private Long competitionId;
@@ -95,6 +97,7 @@ public class LeagueResponseDTO {
     public static LeagueResponseDTO of(League league, Edition edition, boolean includeJoinCode) {
         LeagueResponseDTOBuilder builder = builder()
                 .id(league.getId())
+                .kind(league.getKind())
                 .name(league.getName())
                 .joinCode(includeJoinCode ? league.getJoinCode() : null)
                 .adminParticipantName(league.getAdminParticipantName())
@@ -116,6 +119,7 @@ public class LeagueResponseDTO {
     public static LeagueResponseDTO preview(League league, Edition edition) {
         LeagueResponseDTOBuilder builder = builder()
                 .id(league.getId())
+                .kind(league.getKind())
                 .name(league.getName())
                 .imageUrl(league.getImageUrl())
                 .publicLeague(league.isPublicLeague());

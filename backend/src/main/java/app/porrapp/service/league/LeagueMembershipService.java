@@ -28,6 +28,7 @@ public class LeagueMembershipService {
     private final PredictionRepository predictionRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final LeaguePaymentService paymentService;
+    private final ScoreboardRoster scoreboardRoster;
 
     @Transactional
     // Un alta o baja solo cambia el ranking de esa liga y la lista de ligas de ese usuario: la liga
@@ -50,6 +51,7 @@ public class LeagueMembershipService {
                     .league(group)
                     .role("MEMBER")
                     .build());
+            if (group.isScoreboard()) scoreboardRoster.memberJoined(group, user);
             // Se avisa a los demás miembros tras confirmar el alta (MemberJoinedNotifier).
             eventPublisher.publishEvent(new MemberJoinedLeagueEvent(group.getId(), user.getId()));
         }
@@ -72,6 +74,7 @@ public class LeagueMembershipService {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user != null) {
             predictionRepository.deleteByUserIdAndLeagueId(user.getId(), groupId);
+            if (group.isScoreboard()) scoreboardRoster.memberLeft(groupId, user.getId());
 
             Membership.MembershipId memId = new Membership.MembershipId(user.getId(), groupId);
             if (membershipRepository.existsById(memId)) {
@@ -165,6 +168,7 @@ public class LeagueMembershipService {
         }
 
         predictionRepository.deleteByUserIdAndLeagueId(targetUserId, groupId);
+        if (group.isScoreboard()) scoreboardRoster.memberLeft(groupId, targetUserId);
 
         Membership.MembershipId memId = new Membership.MembershipId(targetUserId, groupId);
         membershipRepository.deleteById(memId);

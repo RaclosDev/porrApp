@@ -52,7 +52,10 @@ public class LeagueSummaryService {
                 .collect(Collectors.toMap(e -> e.getLeague().getId(), Function.identity(), (a, b) -> a));
         Instant now = Instant.now();
         return leagues.stream()
-                .map(league -> summary(league.getId(), editions.get(league.getId()), email, now))
+                // Una liga de marcador no tiene predicciones ni clasificación de porra: su ranking es el del marcador.
+                .map(league -> league.isScoreboard()
+                        ? new LeagueSummaryDTO(league.getId(), null, null, 0, 0, false)
+                        : summary(league.getId(), editions.get(league.getId()), email, now))
                 .toList();
     }
 

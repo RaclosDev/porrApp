@@ -37,6 +37,8 @@ function OfficialBracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Resultados" what="los resultados" />,
     unknown: <UnsupportedLeagueState />,
+    // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
+    scoreboard: <Navigate to="/" replace />,
     groupStage: <GroupStageOfficialBracket />,
     customBracket: <CustomTournamentHome />,
     ownBracket: <OfficialTournamentHome />,

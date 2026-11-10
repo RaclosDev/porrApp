@@ -15,8 +15,8 @@ import JoinGroupPanel from '../components/groups/JoinGroupPanel';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
 import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
 import LeagueMatchesSection, { hasMatchSelection } from '../components/groups/LeagueMatchesSection';
-import { fetchTrackers } from '../services/endpoints/trackers';
-import { queryKeys } from '../services/queryKeys';
+import { myTrackersQuery } from '../services/queries';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 import type { Group } from '../types/api';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 
@@ -52,11 +52,12 @@ export default function GroupsDashboard() {
     handleShareWhatsApp,
     userName,
     userId,
+    isAuthenticated,
     activeGroupId,
   } = useGroupsDashboard();
 
   // Los marcadores de juegos de mesa van en la misma lista que las ligas.
-  const trackers = useQuery({ queryKey: queryKeys.trackers(), queryFn: fetchTrackers });
+  const trackers = useQuery(myTrackersQuery(isAuthenticated));
   const trackerList = trackers.data ?? [];
 
   // ?unirse se consume al abrir el modal, para que el selector pueda volver a abrirlo estando ya aquí.
@@ -216,7 +217,11 @@ export default function GroupsDashboard() {
         </div>
       ) : (
         <ul className="grid gap-2.5 md:grid-cols-2 max-w-240 mx-auto my-0 p-0 list-none">
-          {sortGroupsByRecent(groups, activeGroupId).map((group) => {
+          {sortGroupsByRecent(
+            // Las de juegos de mesa tienen su tarjeta, con jugadores y partidas.
+            groups.filter((group) => !isScoreboardLeague(group)),
+            activeGroupId,
+          ).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
             const isCreator = isGroupAdmin(group);
             return (
@@ -239,7 +244,11 @@ export default function GroupsDashboard() {
             );
           })}
           {trackerList.map((tracker) => (
-            <TrackerCard key={`tracker-${tracker.id}`} tracker={tracker} />
+            <TrackerCard
+              key={`tracker-${tracker.id}`}
+              tracker={tracker}
+              isSelected={activeGroupId === String(tracker.id)}
+            />
           ))}
         </ul>
       )}

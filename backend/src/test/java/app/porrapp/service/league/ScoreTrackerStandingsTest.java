@@ -64,4 +64,15 @@ class ScoreTrackerStandingsTest {
         List<Standing> played = ScoreTrackerStandings.rank(PLAYERS, false, List.of(Map.of(1L, 2, 2L, 2, 3L, 0)), Map.of());
         assertThat(ScoreTrackerStandings.leaders(played, 1)).containsExactlyInAnyOrder(1L, 2L);
     }
+
+    @Test
+    void generalRankingOrdersBySessionsWonThenRoundsWonAndTiesShareRank() {
+        List<Standing> standings = ScoreTrackerStandings.general(PLAYERS,
+                Map.of(1L, 10, 2L, 900, 3L, 5), Map.of(1L, 4, 2L, 7, 3L, 4), Map.of(1L, 2, 2L, 1, 3L, 2));
+
+        assertThat(standings).extracting(Standing::playerId).containsExactly(1L, 3L, 2L);
+        assertThat(standings).extracting(Standing::rank).containsExactly(1, 1, 3);
+        assertThat(standings).extracting(Standing::sessionsWon).containsExactly(2, 2, 1);
+        assertThat(standings).extracting(Standing::total).containsExactly(10, 5, 900);
+    }
 }

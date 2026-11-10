@@ -35,4 +35,5 @@ export const LEAGUE_INSIGHTS: Record<LeagueKind, LeagueInsights> = {
   error: NO_INSIGHTS,
   none: NO_INSIGHTS,
   unknown: NO_INSIGHTS,
+  scoreboard: NO_INSIGHTS,
 };
