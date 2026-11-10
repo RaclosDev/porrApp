@@ -30,9 +30,11 @@ function usePreviewRows(
   tablePreviewLimit: number,
 ) {
   const gridRef = useRef<HTMLDivElement>(null);
-  const [extraRows, setExtraRows] = useState({ ranking: 0, table: 0 });
-  const rankingBase = Math.min(RANKING_SIZE, rankingTotal);
-  const tableBase = Math.min(tablePreviewLimit, tableTotal);
+  const [desktop, setDesktop] = useState<{
+    panelHeight: number;
+    rankingLimit: number;
+    tableLimit: number;
+  } | null>(null);
 
   useEffect(() => {
     const grid = gridRef.current;
@@ -41,55 +43,51 @@ function usePreviewRows(
     if (!matches || !sidebar) return;
 
     const observer = new ResizeObserver(() => {
-      const next = { ranking: 0, table: 0 };
       const matchBounds = matches.getBoundingClientRect();
-
-      if (matchBounds.width < grid.getBoundingClientRect().width) {
-        let remaining = matchBounds.height - sidebar.getBoundingClientRect().height;
-        const previews = [
-          { key: 'ranking', base: rankingBase, total: rankingTotal },
-          { key: 'table', base: tableBase, total: tableTotal },
-        ] as const;
-
-        // Recupera el espacio de las filas añadidas en la medición anterior.
-        const budgets = previews.flatMap(({ key, base, total }, index) => {
-          const list = sidebar.children[index]?.querySelector('ol');
-          const row = list?.firstElementChild;
-          if (!list || !row || total <= base) return [];
-          const gap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
-          const rowHeight = row.getBoundingClientRect().height + gap;
-          if (rowHeight <= 0) return [];
-          remaining += Math.max(0, list.children.length - base) * rowHeight;
-          return [{ key, available: total - base, rowHeight }];
-        });
-
-        // Alterna entre las dos tarjetas. Si una se acaba, la otra aprovecha el hueco.
-        let added: boolean;
-        do {
-          added = false;
-          for (const { key, available, rowHeight } of budgets) {
-            if (next[key] >= available || rowHeight > remaining) continue;
-            next[key]++;
-            remaining -= rowHeight;
-            added = true;
-          }
-        } while (added);
+      if (matchBounds.width >= grid.getBoundingClientRect().width) {
+        setDesktop(null);
+        return;
       }
 
-      setExtraRows((current) =>
-        current.ranking === next.ranking && current.table === next.table ? current : next,
+      const gap = Number.parseFloat(getComputedStyle(sidebar).rowGap) || 0;
+      const panelCount = sidebar.children.length;
+      const panelHeight = Math.max(0, (matchBounds.height - gap * (panelCount - 1)) / panelCount);
+      const rowsThatFit = (panel: Element | undefined, total: number) => {
+        const list = panel?.querySelector('ol');
+        const row = list?.firstElementChild;
+        if (!panel || !list || !row) return 0;
+
+        const listGap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
+        const rowHeight = row.getBoundingClientRect().height + listGap;
+        if (rowHeight <= 0) return 0;
+
+        const headerAndPadding =
+          panel.getBoundingClientRect().height - list.getBoundingClientRect().height;
+        const capacity = Math.floor((panelHeight - headerAndPadding + listGap) / rowHeight);
+        return Math.min(total, capacity);
+      };
+
+      const rankingLimit = rowsThatFit(sidebar.children[0], rankingTotal);
+      const tableLimit = rowsThatFit(sidebar.children[1], tableTotal);
+      setDesktop((current) =>
+        current?.panelHeight === panelHeight &&
+        current.rankingLimit === rankingLimit &&
+        current.tableLimit === tableLimit
+          ? current
+          : { panelHeight, rankingLimit, tableLimit },
       );
     });
     observer.observe(grid);
     observer.observe(matches);
     observer.observe(sidebar);
     return () => observer.disconnect();
-  }, [settling, rankingBase, rankingTotal, tableBase, tableTotal]);
+  }, [settling, rankingTotal, tableTotal]);
 
   return {
     gridRef,
-    rankingLimit: rankingBase + extraRows.ranking,
-    tableLimit: tableBase + extraRows.table,
+    panelHeight: desktop?.panelHeight,
+    rankingLimit: Math.max(1, desktop?.rankingLimit ?? RANKING_SIZE),
+    tableLimit: Math.max(1, desktop?.tableLimit ?? tablePreviewLimit),
   };
 }
 
@@ -369,7 +367,7 @@ export default function LeagueHomeDashboard() {
       (activeGroupName || '').trim().toLowerCase();
   const participantCount = leaderboardData?.length || 0;
   const tableTotal = standings?.rows.length ?? 0;
-  const { gridRef, rankingLimit, tableLimit } = usePreviewRows(
+  const { gridRef, panelHeight, rankingLimit, tableLimit } = usePreviewRows(
     settling,
     participantCount,
     tableTotal,
@@ -495,7 +493,14 @@ export default function LeagueHomeDashboard() {
               )}
             </div>
 
-            <div className="home-dashboard-sidebar">
+            <div
+              className="home-dashboard-sidebar"
+              style={
+                panelHeight === undefined
+                  ? undefined
+                  : { gridAutoRows: `minmax(${panelHeight}px, auto)` }
+              }
+            >
               <div className="home-summary-panel paper-panel album-sheet p-4">
                 <PanelHeader title="Ranking" onSeeAll={() => navigate('/ranking')} />
                 {topParticipants.length > 0 ? (

@@ -3,7 +3,7 @@ import { withLeagueKind } from './leagueKind';
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
 
-test('home previews add compact rows only when the match column has room', async ({
+test('home previews each use half the match column for compact rows', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -22,7 +22,7 @@ test('home previews add compact rows only when the match column has room', async
     pichichi: false,
     isLocked: false,
   });
-  const players = Array.from({ length: 8 }, (_, index) => ({
+  const players = Array.from({ length: 6 }, (_, index) => ({
     id: index + 7,
     userId: index + 7,
     name: `Amigo ${index + 1}`,
@@ -85,13 +85,16 @@ test('home previews add compact rows only when the match column has room', async
     });
   const rankingRows = page.getByRole('list', { name: 'Top del ranking' }).getByRole('listitem');
   const tableRows = page.getByRole('list', { name: 'Tabla' }).getByRole('listitem');
-  await expect(rankingRows).toHaveCount(8);
+  await expect(rankingRows).toHaveCount(6);
   await expect(tableRows.nth(8)).toBeVisible();
 
   const rowHeight = async () => (await rankingRows.first().boundingBox())?.height ?? 0;
   const desktopRowHeight = await rowHeight();
   const desktop = await bounds();
   expect(Math.abs(desktop.matches.top - desktop.panels[0].top)).toBeLessThan(2);
+  const panelBudget = (desktop.matches.bottom - desktop.matches.top - 18) / 2;
+  expect(desktop.panels[1].top).toBeCloseTo(desktop.matches.top + panelBudget + 18, 0);
+  expect(desktop.panels[0].height).toBeLessThan(panelBudget);
   const unusedSpace = desktop.matches.bottom - desktop.panels[1].bottom;
   expect(unusedSpace).toBeGreaterThanOrEqual(-1);
   expect(unusedSpace).toBeLessThan(desktopRowHeight + 6);
@@ -113,7 +116,9 @@ test('home previews add compact rows only when the match column has room', async
   await page.reload();
   await expect(page.locator('#app-splash')).toBeHidden();
   await expect(page.locator('.home-match-card')).toHaveCount(3);
-  await expect(rankingRows).toHaveCount(5);
-  await expect(tableRows).toHaveCount(5);
+  await expect(rankingRows.nth(4)).toHaveCount(0);
+  await expect(tableRows.nth(4)).toHaveCount(0);
+  await expect(rankingRows.first()).toBeVisible();
+  await expect(tableRows.first()).toBeVisible();
   expect(await rowHeight()).toBeCloseTo(desktopRowHeight);
 });
