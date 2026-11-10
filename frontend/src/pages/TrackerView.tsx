@@ -3,7 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
-import TrackerStandings from '../components/tracker/TrackerStandings';
+import TrackerOverall from '../components/tracker/TrackerOverall';
+import TrackerHistory from '../components/tracker/TrackerHistory';
+import { formatDay } from '../components/tracker/trackerFormat';
 import TrackerIdentity from '../components/tracker/TrackerIdentity';
 import TrackerInvite from '../components/tracker/TrackerInvite';
 import TrackerAttendees from '../components/tracker/TrackerAttendees';
@@ -33,9 +35,6 @@ import {
 import { queryKeys } from '../services/queryKeys';
 import { confirmAction } from '../utils/confirmAction';
 import { errorMessage } from '../utils/errors';
-
-const formatDay = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
 /**
  * Liga de juegos de mesa en la mesa: se empieza el día con quienes han venido, se elige juego, se
@@ -410,14 +409,17 @@ export default function TrackerView() {
         <h2 id="tracker-overall-title" className="tracker-heading">
           Clasificación general
         </h2>
-        <TrackerStandings
-          caption="Clasificación general"
-          standings={tracker.overall}
-          unit={tracker.unit}
-          showSessions
-          empty={tracker.rounds.length === 0}
-          myPlayerId={tracker.myPlayerId}
-        />
+        <TrackerOverall tracker={tracker} />
+      </section>
+
+      <section
+        className="paper-panel album-sheet tracker-section"
+        aria-labelledby="tracker-history-title"
+      >
+        <h2 id="tracker-history-title" className="tracker-heading">
+          Histórico
+        </h2>
+        <TrackerHistory tracker={tracker} />
       </section>
 
       <TrackerIdentity

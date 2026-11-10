@@ -255,6 +255,37 @@
     font-size: 0.85rem;
   }
 
+  .tracker-filter {
+    margin-bottom: 10px;
+  }
+
+  .tracker-game-card {
+    margin: 0 0 10px;
+    line-height: 1.4;
+  }
+
+  .tracker-history {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tracker-history-date {
+    margin: 0 0 2px;
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  .tracker-history-date::first-letter {
+    text-transform: uppercase;
+  }
+
+  .tracker-history-day .tracker-game-list {
+    margin-top: 8px;
+  }
+
   .tracker-new-game {
     display: grid;
     gap: 8px;

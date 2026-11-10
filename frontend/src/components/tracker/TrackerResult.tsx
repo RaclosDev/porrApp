@@ -1,5 +1,6 @@
 import type { TrackerSession } from '../../services/endpoints/trackers';
 import TrackerStandings from './TrackerStandings';
+import { winnerLabel } from './trackerFormat';
 
 interface Props {
   session: TrackerSession;
@@ -23,19 +24,13 @@ export default function TrackerResult({
   onReopen,
   onCloseDay,
 }: Props) {
-  const names = session.winners
-    .map((id) => session.standings.find((row) => row.playerId === id)?.name)
-    .filter(Boolean);
-
   return (
     <div className="tracker-result">
       <p className="tracker-result-label">
         {gameName} · partida {session.number}
       </p>
       <p className="tracker-result-winner" role="status">
-        {names.length === 0
-          ? 'Sin ganador'
-          : `${names.length > 1 ? 'Ganan' : 'Gana'} ${names.join(' y ')}`}
+        {winnerLabel(session)}
       </p>
       <TrackerStandings
         caption={`Cómo ha quedado la partida ${session.number}`}
