@@ -110,6 +110,44 @@ class FlywayFreshDatabaseTest {
         }
     }
 
+    @Test
+    void daysMigrationTurnsEachOldSessionIntoADayWithEveryoneAndOnlyTheLastOneOpen() throws Exception {
+        String url = createDatabase("score_days");
+        Flyway.configure().dataSource(url, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration").target("48").load().migrate();
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            st.execute("INSERT INTO app_users (id, google_email, participant_name) VALUES (1, 'a@x.com', 'Ana')");
+            st.execute("INSERT INTO score_trackers (id, owner_user_id, name, unit, lower_wins, join_code) VALUES (7, 1, 'Mus', 'bazas', false, 'ABCDEFGH')");
+            st.execute("INSERT INTO score_tracker_players (id, tracker_id, name, position, user_id) VALUES (70, 7, 'Ana', 0, 1), (71, 7, 'Berto', 1, NULL)");
+            st.execute("INSERT INTO score_tracker_sessions (id, tracker_id, started_at) VALUES (80, 7, now() - interval '3 days'), (81, 7, now())");
+            st.execute("INSERT INTO score_tracker_rounds (id, tracker_id, session_id, created_at) VALUES (90, 7, 80, now() - interval '2 days'), (91, 7, 81, now())");
+            st.execute("INSERT INTO score_tracker_scores (round_id, player_id, points) VALUES (90, 70, 3), (90, 71, 1), (91, 70, 2)");
+        }
+
+        flyway(url).migrate();
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM score_games WHERE mode = 'POINTS'")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_days")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(DISTINCT day_id) FROM score_tracker_sessions")).isEqualTo(2);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_day_players")).isEqualTo(4);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_session_players")).isEqualTo(4);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_sessions WHERE id = 80 AND ended_at IS NOT NULL")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_sessions WHERE id = 81 AND ended_at IS NULL")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_days d JOIN score_tracker_sessions s ON s.day_id = d.id WHERE s.id = 80 AND d.closed_at IS NOT NULL")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_days d JOIN score_tracker_sessions s ON s.day_id = d.id WHERE s.id = 81 AND d.closed_at IS NULL")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_tracker_rounds WHERE created_by_user_id IS NULL")).isEqualTo(2);
+            // Borrar la liga se lleva también los días y sus asistentes.
+            st.execute("DELETE FROM memberships WHERE league_id IN (SELECT id FROM leagues WHERE join_code = 'ABCDEFGH')");
+            st.execute("DELETE FROM leagues WHERE join_code = 'ABCDEFGH'");
+            assertThat(queryLong(st, "SELECT count(*) FROM score_days")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM score_day_players")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM score_session_players")).isZero();
+        }
+    }
+
     /** Base vacía propia, para no compartir el esquema con el resto de tests de la clase. */
     private static String createDatabase(String name) throws Exception {
         try (Connection c = DriverManager.getConnection(

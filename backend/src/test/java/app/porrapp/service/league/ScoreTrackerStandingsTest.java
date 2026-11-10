@@ -16,7 +16,7 @@ class ScoreTrackerStandingsTest {
     @Test
     void ranksByTotalAndCountsRoundsWon() {
         List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, false,
-                List.of(Map.of(1L, 3, 2L, 5, 3L, 1), Map.of(1L, 4, 2L, 0, 3L, 2)), Map.of());
+                List.of(Map.of(1L, 3, 2L, 5, 3L, 1), Map.of(1L, 4, 2L, 0, 3L, 2)));
 
         assertThat(standings).extracting(Standing::playerId).containsExactly(1L, 2L, 3L);
         assertThat(standings).extracting(Standing::total).containsExactly(7, 5, 3);
@@ -26,7 +26,7 @@ class ScoreTrackerStandingsTest {
     @Test
     void tiesShareRankAndSkipTheNext() {
         List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, false,
-                List.of(Map.of(1L, 5, 2L, 5, 3L, 1)), Map.of());
+                List.of(Map.of(1L, 5, 2L, 5, 3L, 1)));
 
         assertThat(standings).extracting(Standing::rank).containsExactly(1, 1, 3);
         assertThat(standings).extracting(Standing::roundsWon).containsExactly(1, 1, 0);
@@ -35,44 +35,52 @@ class ScoreTrackerStandingsTest {
     @Test
     void lowerWinsInvertsTheOrder() {
         List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, true,
-                List.of(Map.of(1L, 30, 2L, 10, 3L, 20)), Map.of());
+                List.of(Map.of(1L, 30, 2L, 10, 3L, 20)));
 
         assertThat(standings).extracting(Standing::playerId).containsExactly(2L, 3L, 1L);
         assertThat(standings.get(0).roundsWon()).isEqualTo(1);
     }
 
     @Test
-    void missingPlayersCountAsZero() {
-        List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, false, List.of(Map.of(2L, 4)), Map.of());
+    void whoDidNotPlayARoundNeitherScoresNorCompetesForIt() {
+        List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, false,
+                List.of(Map.of(2L, 4, 3L, 1), Map.of(1L, 2, 2L, 1)));
 
-        assertThat(standings.get(0).playerId()).isEqualTo(2L);
-        assertThat(standings).extracting(Standing::total).containsExactly(4, 0, 0);
+        assertThat(standings).extracting(Standing::playerId).containsExactly(2L, 1L, 3L);
+        assertThat(standings).extracting(Standing::total).containsExactly(5, 2, 1);
+        assertThat(standings).extracting(Standing::roundsWon).containsExactly(1, 1, 0);
     }
 
     @Test
-    void overallStandingsCarrySessionsWon() {
-        List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, false, List.of(), Map.of(1L, 10));
+    void anAbsentPlayerDoesNotWinWhenLowestWins() {
+        List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, true,
+                List.of(Map.of(1L, 12, 2L, 7), Map.of(1L, 3, 2L, 9)));
 
-        assertThat(standings).filteredOn(s -> s.playerId().equals(1L)).extracting(Standing::sessionsWon).containsExactly(10);
+        assertThat(standings).extracting(Standing::playerId).containsExactly(1L, 2L, 3L);
+        assertThat(standings).extracting(Standing::rank).containsExactly(1, 2, 3);
+        assertThat(standings.get(2).roundsWon()).isZero();
+        assertThat(ScoreTrackerStandings.leaders(standings, 2)).containsExactly(1L);
     }
 
     @Test
     void noLeadersBeforeTheFirstRound() {
-        List<Standing> empty = ScoreTrackerStandings.rank(PLAYERS, false, List.of(), Map.of());
+        List<Standing> empty = ScoreTrackerStandings.rank(PLAYERS, false, List.of());
         assertThat(ScoreTrackerStandings.leaders(empty, 0)).isEmpty();
 
-        List<Standing> played = ScoreTrackerStandings.rank(PLAYERS, false, List.of(Map.of(1L, 2, 2L, 2, 3L, 0)), Map.of());
+        List<Standing> played = ScoreTrackerStandings.rank(PLAYERS, false, List.of(Map.of(1L, 2, 2L, 2, 3L, 0)));
         assertThat(ScoreTrackerStandings.leaders(played, 1)).containsExactlyInAnyOrder(1L, 2L);
     }
 
     @Test
     void generalRankingOrdersBySessionsWonThenRoundsWonAndTiesShareRank() {
         List<Standing> standings = ScoreTrackerStandings.general(PLAYERS,
-                Map.of(1L, 10, 2L, 900, 3L, 5), Map.of(1L, 4, 2L, 7, 3L, 4), Map.of(1L, 2, 2L, 1, 3L, 2));
+                Map.of(1L, 10, 2L, 900, 3L, 5), Map.of(1L, 4, 2L, 7, 3L, 4), Map.of(1L, 2, 2L, 1, 3L, 2),
+                Map.of(1L, 3, 2L, 4, 3L, 2));
 
         assertThat(standings).extracting(Standing::playerId).containsExactly(1L, 3L, 2L);
         assertThat(standings).extracting(Standing::rank).containsExactly(1, 1, 3);
         assertThat(standings).extracting(Standing::sessionsWon).containsExactly(2, 2, 1);
         assertThat(standings).extracting(Standing::total).containsExactly(10, 5, 900);
+        assertThat(standings).extracting(Standing::sessionsPlayed).containsExactly(3, 2, 4);
     }
 }
