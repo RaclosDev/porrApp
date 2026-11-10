@@ -56,6 +56,26 @@ describe('pickMostRecentLeague', () => {
   });
 });
 
+describe('dropFromMyGroups', () => {
+  it('also removes a board-game league from the scoreboard list', () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.myGroups(true), [
+      laLiga(1, '2026-01-01'),
+      laLiga(2, '2026-01-02'),
+    ]);
+    client.setQueryData(queryKeys.trackers(), [{ id: 2 }, { id: 3 }]);
+
+    dropFromMyGroups(client, '2');
+
+    expect(
+      client.getQueryData<{ id: number }[]>(queryKeys.myGroups(true))?.map((g) => g.id),
+    ).toEqual([1]);
+    expect(client.getQueryData<{ id: number }[]>(queryKeys.trackers())?.map((t) => t.id)).toEqual([
+      3,
+    ]);
+  });
+});
+
 describe('when the active league stops being available', () => {
   let client: QueryClient;
   let serverGroups: ReturnType<typeof laLiga>[];

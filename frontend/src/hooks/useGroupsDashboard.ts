@@ -126,6 +126,7 @@ export function useGroupsDashboard() {
     setError('');
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.trackers() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.group() }),
     ]);
   }, [queryClient]);
