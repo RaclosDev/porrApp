@@ -29,7 +29,7 @@ export default function TrackerSheet({
   session,
   game,
   players,
-  rounds,
+  rounds: sessionRounds,
   busy,
   onAdd,
   onEdit,
@@ -38,6 +38,8 @@ export default function TrackerSheet({
   const [values, setValues] = useState<Record<number, string>>({});
   const [editing, setEditing] = useState<TrackerRound | null>(null);
   const [error, setError] = useState('');
+  // El servidor numera las rondas en toda la liga; en la hoja cuentan desde 1 en cada partida.
+  const rounds = sessionRounds.map((round, index) => ({ ...round, number: index + 1 }));
   const wins = game.mode === 'WINS';
   const totals = new Map(session.standings.map((row) => [row.playerId, row]));
 

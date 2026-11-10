@@ -51,7 +51,8 @@ const session: TrackerSession = {
 const firstRound: TrackerRound = {
   id: 40,
   sessionId: 5,
-  number: 1,
+  // Numeración de toda la liga: en la hoja sale como la ronda 1 de la partida.
+  number: 7,
   note: null,
   createdAt: '2026-11-10T18:05:00Z',
   scores: { 11: 7, 12: 2 },
@@ -120,7 +121,9 @@ describe('TrackerSheet', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Corregir la ronda 1' }));
     fireEvent.click(screen.getByRole('button', { name: 'Borrar la ronda' }));
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(firstRound));
+    await waitFor(() =>
+      expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: 40, number: 1 })),
+    );
   });
 
   it('en un juego por victorias se toca a quien gana la ronda', () => {

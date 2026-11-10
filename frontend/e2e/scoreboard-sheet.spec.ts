@@ -145,7 +145,8 @@ function fakeLeague() {
       rounds.push({
         id: rounds.length + 40,
         sessionId: session.id,
-        number: rounds.filter((round) => round.sessionId === session.id).length + 1,
+        // Como el servidor: las rondas se numeran en toda la liga.
+        number: rounds.length + 1,
         note: null,
         createdAt: now,
         scores,
