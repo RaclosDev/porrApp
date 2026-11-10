@@ -282,7 +282,7 @@ test('un día de juego entero desde el móvil: quién viene, hoja por puntos y p
   await page.getByRole('button', { name: 'Otra partida' }).click();
   await page.getByRole('button', { name: 'Otro juego nuevo' }).click();
   await page.getByLabel('Nombre del juego').fill('Mus');
-  await page.getByRole('button', { name: 'Por victorias' }).click();
+  await page.getByRole('button', { name: 'Victorias por ronda' }).click();
   await page.getByRole('button', { name: 'Crear y jugar' }).click();
 
   await expect(page.getByRole('heading', { name: 'Mus · partida 2' })).toBeVisible();
