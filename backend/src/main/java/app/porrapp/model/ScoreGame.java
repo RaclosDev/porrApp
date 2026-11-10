@@ -14,6 +14,9 @@ import java.time.Instant;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ScoreGame {
 
+    public static final String MODE_POINTS = "POINTS";
+    public static final String MODE_WINS = "WINS";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -34,7 +37,16 @@ public class ScoreGame {
     @Column(name = "lower_wins", nullable = false)
     private boolean lowerWins = false;
 
+    /** {@link #MODE_POINTS}: cada ronda apunta puntos. {@link #MODE_WINS}: cada ronda apunta quién ganó. */
+    @Builder.Default
+    @Column(nullable = false, length = 10)
+    private String mode = MODE_POINTS;
+
     @Builder.Default
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
+
+    public boolean isWins() {
+        return MODE_WINS.equals(mode);
+    }
 }
