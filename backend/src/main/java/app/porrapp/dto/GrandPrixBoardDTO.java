@@ -28,7 +28,7 @@ public record GrandPrixBoardDTO(List<GrandPrix> grandsPrix, List<Driver> drivers
     public record Picks(Long first, Long second, Long third, Long pole, Long fastestLap) {}
 
     public record Driver(Long id, String name, String shortName, String country, String flagUrl,
-                         String team, String teamColor, String number) {}
+                         String team, String teamColor, String number, String headshotUrl) {}
 
     public record Rules(int exactPosition, int podium, int pole, int fastestLap) {}
 

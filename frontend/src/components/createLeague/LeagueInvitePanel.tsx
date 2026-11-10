@@ -8,7 +8,7 @@ function nextAction(group: Group): { to: string; label: string } {
     return { to: `/mis-ligas?gestionar=${group.id}`, label: 'Configurar mi competición' };
   }
   if (group.poolFormat === 'GRAND_PRIX') {
-    return { to: '/', label: 'Predecir el próximo Gran Premio' };
+    return { to: '/jornadas', label: 'Predecir el próximo Gran Premio' };
   }
   if (group.poolFormat === 'SURVIVOR') {
     return { to: '/jornadas', label: 'Elegir mi equipo' };

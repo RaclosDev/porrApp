@@ -11,9 +11,12 @@ import java.util.List;
  */
 public record FormulaOneStandingsDTO(String season, List<DriverRow> drivers, List<ConstructorRow> constructors) {
 
-    /** @param team escudería de su última carrera, si se conoce */
+    /**
+     * @param team        escudería de su última carrera, si se conoce
+     * @param headshotUrl foto del piloto en el CDN de ESPN
+     */
     public record DriverRow(int rank, String name, String shortName, String abbreviation, String country,
-                            String flagUrl, String team, String teamColor, int points) {}
+                            String flagUrl, String team, String teamColor, int points, String headshotUrl) {}
 
     public record ConstructorRow(int rank, String name, String color, int points) {}
 }

@@ -42,13 +42,7 @@ const GROUP_STAGE_GROUPS: LeagueNavItem = {
   icon: LayoutGrid,
   demoOnly: true,
 };
-const GRAND_PRIX: LeagueNavItem = {
-  to: '/',
-  label: 'Grandes Premios',
-  mobileLabel: 'Carreras',
-  icon: Flag,
-  end: true,
-};
+const RACE_PICKS: LeagueNavItem = { to: '/jornadas', label: 'Predicciones', icon: Flag };
 
 const SCOREBOARD_PLAY: LeagueNavItem = { to: '/partida', label: 'Partida', icon: Dices };
 const SCOREBOARD_HISTORY: LeagueNavItem = { to: '/historico', label: 'Histórico', icon: History };
@@ -72,7 +66,7 @@ const LEAGUE_NAV: Record<LeagueKind, readonly LeagueNavItem[] | null> = {
   matchday: MATCHDAY_NAV,
   fightCard: [HOME, MATCHDAYS, RANKING, FIGHT_CARD, MY_LEAGUES],
   tennisDraw: [HOME, MATCHDAYS, RANKING, TENNIS_DRAW, MY_LEAGUES],
-  grandPrix: [GRAND_PRIX, RANKING, F1_STANDINGS, MY_LEAGUES],
+  grandPrix: [HOME, RACE_PICKS, RANKING, F1_STANDINGS, MY_LEAGUES],
   // Juegos de mesa: la hoja de la partida, su ranking y el histórico por días.
   scoreboard: [HOME, SCOREBOARD_PLAY, RANKING, SCOREBOARD_HISTORY, MY_LEAGUES],
 };
