@@ -15,6 +15,7 @@ import PaperLoading from '../PaperLoading';
 import SheetDialog from '../SheetDialog';
 import RaceClassificationSheet from './RaceClassificationSheet';
 import { UserAvatar } from '../Avatar';
+import { DriverFace } from './DriverFace';
 import {
   EMPTY_PICK,
   PICK_SLOTS,
@@ -343,25 +344,35 @@ function PickForm({
               {slot.label}
               {slot.optional && <span className="gp-optional"> (opcional)</span>}
             </label>
-            <select
-              id={id}
-              className="gp-select"
-              value={value ?? ''}
-              style={teamStripe(value != null ? drivers.get(value) : undefined)}
-              onChange={(event) =>
-                setPick((current) => ({
-                  ...current,
-                  [slot.key]: event.target.value ? Number(event.target.value) : null,
-                }))
-              }
-            >
-              <option value="">{slot.optional ? 'Sin elegir' : 'Elige piloto'}</option>
-              {options.map((driver) => (
-                <option key={driver.id} value={driver.id} disabled={takenOnPodium.has(driver.id)}>
-                  {driverLabel(driver)}
-                </option>
-              ))}
-            </select>
+            <div className="gp-select-row">
+              {value != null && drivers.get(value) && (
+                <DriverFace
+                  name={shortName(drivers.get(value))}
+                  url={drivers.get(value)?.headshotUrl}
+                  color={drivers.get(value)?.teamColor}
+                  size={36}
+                />
+              )}
+              <select
+                id={id}
+                className="gp-select"
+                value={value ?? ''}
+                style={teamStripe(value != null ? drivers.get(value) : undefined)}
+                onChange={(event) =>
+                  setPick((current) => ({
+                    ...current,
+                    [slot.key]: event.target.value ? Number(event.target.value) : null,
+                  }))
+                }
+              >
+                <option value="">{slot.optional ? 'Sin elegir' : 'Elige piloto'}</option>
+                {options.map((driver) => (
+                  <option key={driver.id} value={driver.id} disabled={takenOnPodium.has(driver.id)}>
+                    {driverLabel(driver)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         );
       })}
@@ -385,6 +396,20 @@ function PickForm({
       </button>
       <p className="gp-note">Puedes cambiarla hasta {formatWhen(gp.lockAt)}.</p>
     </form>
+  );
+}
+
+function DriverCell({ driver }: { driver: RaceDriver | undefined }) {
+  return (
+    <span className="gp-cell-driver">
+      <DriverFace
+        name={shortName(driver)}
+        url={driver?.headshotUrl}
+        color={driver?.teamColor}
+        size={26}
+      />
+      {shortName(driver)}
+    </span>
   );
 }
 
@@ -424,7 +449,7 @@ function LockedView({
               <tr key={slot.key}>
                 <th scope="row">{slot.label}</th>
                 <td style={teamStripe(actual != null ? drivers.get(actual) : undefined)}>
-                  {actual != null ? shortName(drivers.get(actual)) : '—'}
+                  {actual != null ? <DriverCell driver={drivers.get(actual)} /> : '—'}
                 </td>
                 <td className={hit ? 'is-hit' : ''}>
                   {mine != null ? shortName(drivers.get(mine)) : '—'}

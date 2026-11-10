@@ -25,6 +25,7 @@ import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.scoring.ScoringRuleSet;
 import app.porrapp.service.league.LeagueService;
 import app.porrapp.service.prediction.ScoreInvalidationService;
+import app.porrapp.sports.EspnFormulaOneClient;
 import app.porrapp.util.AppTime;
 import app.porrapp.util.TextSanitizer;
 import lombok.RequiredArgsConstructor;
@@ -335,7 +336,8 @@ public class GrandPrixService {
         return ids.stream().map(byId::get).filter(Objects::nonNull)
                 .map(d -> new GrandPrixBoardDTO.Driver(d.getId(), d.getName(), d.getShortName(),
                         RacePlaces.country(d.getCountry()),
-                        d.getFlagUrl(), d.getTeamName(), d.getTeamColor(), d.getCarNumber()))
+                        d.getFlagUrl(), d.getTeamName(), d.getTeamColor(), d.getCarNumber(),
+                        EspnFormulaOneClient.headshotUrl(d.getExternalId())))
                 .toList();
     }
 

@@ -21,6 +21,7 @@ const standings: Standings = {
       team: 'Mercedes',
       teamColor: '00D2BE',
       points: 380,
+      headshotUrl: 'https://a.espncdn.com/i/headshots/rpm/players/full/5829.png',
     },
     {
       rank: 2,
@@ -74,6 +75,33 @@ describe('Mundial de Fórmula 1', () => {
     const table = screen.getByRole('table', { name: 'Mundial de constructores' });
     expect(within(table).getAllByRole('row')[2]).toHaveTextContent('Ferrari');
     expect(within(table).getAllByRole('row')[2]).toHaveTextContent('-126');
+  });
+
+  it('pone la cara de cada piloto y, si no carga, sus iniciales', async () => {
+    fetchStandings.mockResolvedValue(standings);
+    const { container } = renderPage();
+
+    await screen.findByRole('table', { name: 'Mundial de pilotos' });
+    const photo = container.querySelector('img.gp-face');
+    expect(photo).toHaveAttribute('src', expect.stringContaining('5829.png'));
+    fireEvent.error(photo as Element);
+    expect(container.querySelector('img.gp-face')).toBeNull();
+    expect(screen.getByText('KA')).toBeInTheDocument();
+    // Sin foto: sus iniciales desde el principio.
+    expect(screen.getByText('MV')).toBeInTheDocument();
+  });
+
+  it('pinta cada escudería con su color y las caras de sus pilotos', async () => {
+    fetchStandings.mockResolvedValue(standings);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Constructores' }));
+    const rows = within(
+      screen.getByRole('table', { name: 'Mundial de constructores' }),
+    ).getAllByRole('row');
+    expect(rows[1].querySelector('.gp-crest')).toHaveStyle({ backgroundColor: 'rgb(0, 210, 190)' });
+    expect(rows[1].querySelectorAll('.gp-face')).toHaveLength(1);
+    expect(rows[2].querySelectorAll('.gp-face')).toHaveLength(0);
   });
 
   it('avisa si la temporada aún no tiene puntos', async () => {

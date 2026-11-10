@@ -59,6 +59,9 @@ vi.mock('../../components/Home/LeagueHomeDashboard', () => ({
 vi.mock('../../components/grandPrix/GrandPrixPage', () => ({
   default: () => <p>Grandes Premios</p>,
 }));
+vi.mock('../../components/grandPrix/GrandPrixHome', () => ({
+  default: () => <p>Portada de carreras</p>,
+}));
 vi.mock('../../components/grandPrix/FormulaOneStandings', () => ({
   default: () => <p>Mundial de F1</p>,
 }));
@@ -188,7 +191,7 @@ const SCREENS: ScreenCase[] = [
       matchday: ROUTES['/jornadas'],
       fightCard: ROUTES['/jornadas'],
       tennisDraw: ROUTES['/jornadas'],
-      grandPrix: ROUTES['/'],
+      grandPrix: ROUTES['/jornadas'],
       scoreboard: ROUTES['/'],
     },
   },
@@ -268,7 +271,7 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Portada de la liga',
       fightCard: 'Portada de la liga',
       tennisDraw: 'Portada de la liga',
-      grandPrix: 'Grandes Premios',
+      grandPrix: 'Portada de carreras',
       scoreboard: 'Marcador de la liga',
     },
   },
@@ -288,7 +291,7 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Portada de la liga',
       fightCard: 'Portada de la liga',
       tennisDraw: 'Portada de la liga',
-      grandPrix: 'Grandes Premios',
+      grandPrix: 'Portada de carreras',
       scoreboard: 'Marcador de la liga',
     },
   },
@@ -328,7 +331,7 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Jornadas de la liga',
       fightCard: 'Jornadas de la liga',
       tennisDraw: 'Jornadas de la liga',
-      grandPrix: ROUTES['/'],
+      grandPrix: 'Grandes Premios',
       scoreboard: ROUTES['/'],
     },
   },
