@@ -61,6 +61,7 @@ function showInvitation() {
         <Routes>
           <Route path="/join/:code" element={<JoinRedirect />} />
           <Route path="/jornadas" element={<p>Tu jornada</p>} />
+          <Route path="/marcador/unirse/:code" element={<p>Entrada del marcador</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -75,6 +76,18 @@ it('mantiene la invitación y se une tras Google sin pasar por Mis ligas', async
   expect(await screen.findByText('Tu jornada')).toBeInTheDocument();
   expect(joinGroup).toHaveBeenCalledExactlyOnceWith('ABC123');
   expect(changeGroup).toHaveBeenCalledWith('42');
+  expect(localStorage.getItem('pendingJoinCode')).toBeNull();
+});
+
+it('el código de una liga de juegos de mesa lleva a la entrada de su marcador', async () => {
+  vi.mocked(fetchGroupInvitationPreview).mockResolvedValue(
+    group({ id: 9, name: 'Mus de los jueves', kind: 'SCOREBOARD' }),
+  );
+  showInvitation();
+  expect(await screen.findByText('Entrada del marcador')).toBeInTheDocument();
+  expect(joinGroup).not.toHaveBeenCalled();
+  expect(changeGroup).not.toHaveBeenCalled();
+  // Sin el código pendiente, Mis ligas no vuelve a mandar a la invitación de la porra.
   expect(localStorage.getItem('pendingJoinCode')).toBeNull();
 });
 

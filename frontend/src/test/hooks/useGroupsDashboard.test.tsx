@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readKnownGroups, useGroupsDashboard } from '../../hooks/useGroupsDashboard';
@@ -95,6 +95,34 @@ describe('useGroupsDashboard', () => {
     expect(api.fetchMyGroups).toHaveBeenCalledTimes(1);
     expect(client.getQueryData(['group', '5'])).toEqual(joined);
     expect(context.changeGroup).toHaveBeenCalledWith('5');
+  });
+
+  it('al unirse a una liga de juegos de mesa abre su marcador y no la deja como liga activa', async () => {
+    const joined = group({ id: 9, name: 'Mus de los jueves', kind: 'SCOREBOARD' });
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([]);
+    vi.mocked(api.joinGroup).mockResolvedValue(joined);
+    const { result } = renderHook(
+      () => ({ dashboard: useGroupsDashboard(), location: useLocation() }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.dashboard.loading).toBe(false));
+    act(() => result.current.dashboard.setJoinCode('MUS123'));
+    await act(async () => {
+      await result.current.dashboard.handleJoin();
+    });
+    expect(result.current.location.pathname).toBe('/marcador/9');
+    expect(context.changeGroup).not.toHaveBeenCalled();
+    expect(result.current.dashboard.joinCode).toBe('');
+  });
+
+  it('las ligas de juegos de mesa no entran en la lista de ligas de predicciones', async () => {
+    vi.mocked(api.fetchMyGroups).mockResolvedValue([
+      group({ id: 1, name: 'Peña de LaLiga' }),
+      group({ id: 9, name: 'Mus de los jueves', kind: 'SCOREBOARD' }),
+    ]);
+    const { result } = renderHook(() => useGroupsDashboard(), { wrapper });
+    await waitFor(() => expect(result.current.groups).toHaveLength(1));
+    expect(result.current.groups[0].name).toBe('Peña de LaLiga');
   });
 
   it('repetir una liga la crea, refresca la lista y deja la nueva como activa', async () => {
