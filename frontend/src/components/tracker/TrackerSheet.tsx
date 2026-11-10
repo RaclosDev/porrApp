@@ -6,6 +6,7 @@ import type {
   TrackerRoundDraft,
   TrackerSession,
 } from '../../services/endpoints/trackers';
+import TrackerSheetTable from './TrackerSheetTable';
 
 interface Props {
   session: TrackerSession;
@@ -29,7 +30,7 @@ export default function TrackerSheet({
   session,
   game,
   players,
-  rounds: sessionRounds,
+  rounds,
   busy,
   onAdd,
   onEdit,
@@ -38,10 +39,7 @@ export default function TrackerSheet({
   const [values, setValues] = useState<Record<number, string>>({});
   const [editing, setEditing] = useState<TrackerRound | null>(null);
   const [error, setError] = useState('');
-  // El servidor numera las rondas en toda la liga; en la hoja cuentan desde 1 en cada partida.
-  const rounds = sessionRounds.map((round, index) => ({ ...round, number: index + 1 }));
   const wins = game.mode === 'WINS';
-  const totals = new Map(session.standings.map((row) => [row.playerId, row]));
 
   const reset = () => {
     setValues({});
@@ -85,74 +83,17 @@ export default function TrackerSheet({
     await save({ scores, sessionId: session.id });
   };
 
-  const cell = (round: TrackerRound, playerId: number) => {
-    const points = round.scores[playerId];
-    if (points === undefined) return <span aria-label="no jugó">–</span>;
-    if (!wins) return points;
-    return points > 0 ? <span aria-label="ganó">✓</span> : '';
-  };
-
   return (
     <div className="tracker-sheet">
-      <div className="tracker-table-wrap">
-        <table className="tracker-table tracker-sheet-table">
-          <caption className="sr-only">
-            Hoja de la partida {session.number} de {game.name}
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Ronda</th>
-              {players.map((player) => (
-                <th key={player.id} scope="col" className="is-num">
-                  {player.name}
-                </th>
-              ))}
-            </tr>
-            <tr className="tracker-sheet-total">
-              <th scope="row">{wins ? 'Ganadas' : 'Total'}</th>
-              {players.map((player) => {
-                const row = totals.get(player.id);
-                const leads = session.rounds > 0 && row?.rank === 1;
-                return (
-                  <td key={player.id} className={`is-num${leads ? ' is-lead' : ''}`}>
-                    {wins ? (row?.roundsWon ?? 0) : (row?.total ?? 0)}
-                  </td>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {rounds.length === 0 ? (
-              <tr>
-                <td colSpan={players.length + 1} className="tracker-note">
-                  Todavía no hay rondas.
-                </td>
-              </tr>
-            ) : (
-              rounds.map((round) => (
-                <tr key={round.id} className={editing?.id === round.id ? 'is-editing' : undefined}>
-                  <th scope="row">
-                    <button
-                      type="button"
-                      className="tracker-round-link"
-                      aria-label={`Corregir la ronda ${round.number}`}
-                      disabled={busy}
-                      onClick={() => startEditing(round)}
-                    >
-                      {round.number}
-                    </button>
-                  </th>
-                  {players.map((player) => (
-                    <td key={player.id} className="is-num">
-                      {cell(round, player.id)}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <TrackerSheetTable
+        session={session}
+        game={game}
+        players={players}
+        rounds={rounds}
+        editingId={editing?.id}
+        busy={busy}
+        onPickRound={startEditing}
+      />
 
       <section className="tracker-entry" aria-labelledby="tracker-entry-title">
         <h3 id="tracker-entry-title" className="tracker-heading">

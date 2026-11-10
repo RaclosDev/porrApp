@@ -261,7 +261,7 @@ test('un día de juego entero desde el móvil: quién viene, hoja por puntos y p
   await page.getByRole('button', { name: 'Terminar partida' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Terminar partida' }).click();
   await expect(page.getByRole('heading', { name: 'Partida terminada' })).toBeVisible();
-  await expect(page.getByText('Gana Berto')).toBeVisible();
+  await expect(page.locator('.tracker-result-winner')).toHaveText('Gana Berto');
   await snap(page, '3-resultado');
 
   // Otra partida, ahora a un juego por victorias.
@@ -277,4 +277,15 @@ test('un día de juego entero desde el móvil: quién viene, hoja por puntos y p
   await page.getByRole('button', { name: 'Gana Ana' }).click();
   await expect(page.locator('.tracker-sheet-total')).toContainText('Ganadas20');
   await snap(page, '4-hoja-victorias');
+
+  // En el histórico queda el día con sus partidas; la primera se abre sin poder tocarla.
+  const history = page.getByRole('region', { name: 'Histórico' });
+  await expect(history.getByText('Vinieron Ana, Berto')).toBeVisible();
+  await expect(history.getByRole('button', { name: /Mus · partida 2/ })).toContainText('En juego');
+  await history.getByRole('button', { name: /Catán · partida 1/ }).click();
+  await expect(history.getByRole('table', { name: 'Hoja de la partida 1 de Catán' })).toBeVisible();
+  await expect(history.getByText('Gana Berto')).toBeVisible();
+  await expect(history.getByRole('button', { name: /Corregir/ })).toHaveCount(0);
+  await history.getByRole('button', { name: 'Volver al histórico' }).scrollIntoViewIfNeeded();
+  await snap(page, '5-historico');
 });
