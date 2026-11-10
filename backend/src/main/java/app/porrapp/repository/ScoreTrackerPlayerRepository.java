@@ -16,4 +16,6 @@ public interface ScoreTrackerPlayerRepository extends JpaRepository<ScoreTracker
     long countByLeagueId(Long leagueId);
 
     Optional<ScoreTrackerPlayer> findByLeagueIdAndUserId(Long leagueId, Long userId);
+
+    List<ScoreTrackerPlayer> findByUserIdOrderByLeagueIdAsc(Long userId);
 }
