@@ -119,6 +119,12 @@ for (const width of [390, 1440]) {
     await expect(selector).toContainText('Mus de los jueves');
     await expect(page.getByRole('heading', { name: 'Mus de los jueves' })).toBeVisible();
 
+    // Los enlaces antiguos de los marcadores: el de una liga va a Mis ligas y el QR, a la invitación.
+    await page.goto('/marcador/4');
+    await expect(page).toHaveURL(`${ORIGIN}/mis-ligas`);
+    await page.goto('/marcador/unirse/MUS123');
+    await expect(page).toHaveURL(`${ORIGIN}/join/MUS123`);
+
     // Nada pide predicciones ni ranking de una liga que no tiene competición.
     expect(requested.filter((path) => /groupId=9\b/.test(path))).toEqual([]);
   });
