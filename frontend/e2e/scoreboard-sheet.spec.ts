@@ -231,6 +231,20 @@ test('un día de juego entero desde el móvil: quién viene, hoja por puntos y p
   await page.setViewportSize({ width: 390, height: 844 });
   await openLeague(page);
 
+  // El inicio de la liga: sin día de juego, el botón para empezarlo lleva a Partida.
+  const nav = page.getByRole('navigation', { name: 'Navegación principal móvil' });
+  await expect(nav.getByRole('link')).toHaveText([
+    'Inicio',
+    'Partida',
+    'Ranking',
+    'Histórico',
+    'Mis Ligas',
+  ]);
+  await expect(page.getByText('Ningún día de juego en curso.')).toBeVisible();
+  await snap(page, '0-inicio');
+  await page.getByRole('link', { name: 'Empezar día de juego' }).click();
+  await expect(page).toHaveURL(`${ORIGIN}/partida`);
+
   // Quién ha venido: Carla no.
   await expect(page.getByRole('heading', { name: '¿Quién ha venido hoy?' })).toBeVisible();
   const attendees = page.getByRole('group', { name: 'Jugadores que han venido' });
@@ -278,8 +292,16 @@ test('un día de juego entero desde el móvil: quién viene, hoja por puntos y p
   await expect(page.locator('.tracker-sheet-total')).toContainText('Ganadas20');
   await snap(page, '4-hoja-victorias');
 
+  // El inicio cuenta el día en curso y lleva de vuelta a la partida.
+  await nav.getByRole('link', { name: 'Inicio' }).click();
+  await expect(page.getByText(/Jugando a Mus · partida 2, 2 rondas./)).toBeVisible();
+  await page.getByRole('link', { name: 'Ir a la partida' }).click();
+  await expect(page.getByRole('heading', { name: 'Mus · partida 2' })).toBeVisible();
+
   // En el histórico queda el día con sus partidas; la primera se abre sin poder tocarla.
-  const history = page.getByRole('region', { name: 'Histórico' });
+  await nav.getByRole('link', { name: 'Histórico' }).click();
+  await expect(page).toHaveURL(`${ORIGIN}/historico`);
+  const history = page.getByRole('region', { name: 'Días de juego' });
   await expect(history.getByText('Vinieron Ana, Berto')).toBeVisible();
   await expect(history.getByRole('button', { name: /Mus · partida 2/ })).toContainText('En juego');
   await history.getByRole('button', { name: /Catán · partida 1/ }).click();

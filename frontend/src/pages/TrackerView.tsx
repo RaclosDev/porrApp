@@ -1,13 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
-import TrackerOverall from '../components/tracker/TrackerOverall';
-import TrackerHistory from '../components/tracker/TrackerHistory';
 import { formatDay } from '../components/tracker/trackerFormat';
-import TrackerIdentity from '../components/tracker/TrackerIdentity';
-import TrackerInvite from '../components/tracker/TrackerInvite';
+import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import TrackerAttendees from '../components/tracker/TrackerAttendees';
 import TrackerGamePicker from '../components/tracker/TrackerGamePicker';
 import TrackerSheet from '../components/tracker/TrackerSheet';
@@ -16,25 +11,18 @@ import {
   addTrackerGame,
   addTrackerPlayer,
   addTrackerRound,
-  claimTrackerPlayer,
   closeTrackerDay,
-  deleteTracker,
   deleteTrackerRound,
   editTrackerRound,
   endTrackerSession,
-  fetchTracker,
-  leaveTracker,
-  releaseTrackerPlayer,
   reopenTrackerSession,
   startTrackerDay,
   startTrackerSession,
-  type Tracker,
   type TrackerGameDraft,
   type TrackerRound,
 } from '../services/endpoints/trackers';
-import { queryKeys } from '../services/queryKeys';
+import { useTrackerLeague } from '../hooks/useTrackerLeague';
 import { confirmAction } from '../utils/confirmAction';
-import { errorMessage } from '../utils/errors';
 
 /**
  * Liga de juegos de mesa en la mesa: se empieza el día con quienes han venido, se elige juego, se
@@ -42,53 +30,14 @@ import { errorMessage } from '../utils/errors';
  * los móviles lo ven en directo.
  */
 export default function TrackerView({ leagueId }: { leagueId: string | null }) {
-  const id = leagueId ?? '';
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  // null: lo decide la liga (abierto mientras no hay jugadores).
-  const [inviteOpen, setInviteOpen] = useState<boolean | null>(null);
+  const { query, tracker, busy, change } = useTrackerLeague(leagueId);
   /** Quién juega lo siguiente que se empiece; null mientras no se toca (todos los del día). */
   const [chosen, setChosen] = useState<number[] | null>(null);
   /** Eligiendo juego aunque haya una partida a medias o un resultado que enseñar. */
   const [picking, setPicking] = useState(false);
 
-  const query = useQuery({
-    queryKey: queryKeys.tracker(id),
-    queryFn: () => fetchTracker(id),
-    retry: false,
-  });
-  const tracker = query.data;
-
-  if (query.isPending) return <PaperLoading label="Cargando la liga" />;
-  if (!tracker) {
-    return (
-      <section className="view-section active create-league">
-        <div className="paper-panel album-sheet create-league-sheet">
-          <h1 className="poster-title create-league-title">Liga no disponible</h1>
-          <p role="alert">{errorMessage(query.error, 'No se pudo cargar la liga')}</p>
-          <Link to="/mis-ligas" className="glass-btn create-league-nav-btn">
-            Ir a Mis ligas
-          </Link>
-        </div>
-      </section>
-    );
-  }
-
-  /** Ejecuta un cambio y deja la liga devuelta como la visible. */
-  const change = async (action: () => Promise<Tracker>, failure: string) => {
-    setBusy(true);
-    try {
-      const next = await action();
-      queryClient.setQueryData(queryKeys.tracker(id), next);
-      return next;
-    } catch (reason) {
-      toast.error(errorMessage(reason, failure));
-      return null;
-    } finally {
-      setBusy(false);
-    }
-  };
+  if (query.isPending) return <PaperLoading label="Cargando la partida" />;
+  if (!tracker) return <TrackerUnavailable error={query.error} />;
 
   const games = tracker.games ?? [];
   const day = (tracker.days ?? []).find((item) => item.id === tracker.currentDayId) ?? null;
@@ -191,30 +140,6 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
     );
   };
 
-  const remove = async () => {
-    const confirmed = await confirmAction({
-      title: tracker.owner ? '¿Borrar la liga?' : '¿Salir de la liga?',
-      message: tracker.owner
-        ? 'Se borran todas las partidas y el histórico para todos. No se puede deshacer.'
-        : 'Dejarás de verla; puedes volver a entrar con el enlace.',
-      confirmLabel: tracker.owner ? 'Borrar liga' : 'Salir',
-    });
-    if (!confirmed) return;
-    try {
-      await (tracker.owner ? deleteTracker(tracker.id) : leaveTracker(tracker.id));
-      queryClient.removeQueries({ queryKey: queryKeys.tracker(id) });
-      // Al salir de la lista de ligas deja de ser la activa y se abre otra.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.trackers() }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
-      ]);
-      navigate('/mis-ligas', { replace: true });
-    } catch (reason) {
-      toast.error(errorMessage(reason, 'No se pudo completar'));
-    }
-  };
-
-  const inviting = inviteOpen ?? tracker.players.length === 0;
   const showSheet = open && !picking;
   const showResult = !open && lastEnded && !picking;
 
@@ -227,26 +152,7 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
             {day ? `Día de juego · ${formatDay(day.startedAt)}` : 'Ningún día de juego en curso'}
           </p>
         </div>
-        <button
-          type="button"
-          className="glass-btn create-league-small-btn"
-          aria-expanded={inviting}
-          onClick={() => setInviteOpen(!inviting)}
-        >
-          {inviting ? 'Cerrar' : 'Invitar'}
-        </button>
       </header>
-
-      {inviting && (
-        <TrackerInvite
-          tracker={tracker}
-          busy={busy}
-          onAddPlayer={async (name) =>
-            Boolean(await change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir'))
-          }
-        />
-      )}
-
       {!day && (
         <section
           className="paper-panel album-sheet tracker-section"
@@ -405,48 +311,6 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
           )}
         </section>
       )}
-
-      <section
-        className="paper-panel album-sheet tracker-section"
-        aria-labelledby="tracker-overall-title"
-      >
-        <h2 id="tracker-overall-title" className="tracker-heading">
-          Clasificación general
-        </h2>
-        <TrackerOverall tracker={tracker} />
-      </section>
-
-      <section
-        className="paper-panel album-sheet tracker-section"
-        aria-labelledby="tracker-history-title"
-      >
-        <h2 id="tracker-history-title" className="tracker-heading">
-          Histórico
-        </h2>
-        <TrackerHistory tracker={tracker} />
-      </section>
-
-      <TrackerIdentity
-        tracker={tracker}
-        busy={busy}
-        onClaim={async (playerId) =>
-          Boolean(
-            await change(() => claimTrackerPlayer(tracker.id, playerId), 'No se pudo apuntarte'),
-          )
-        }
-        onRelease={async () =>
-          Boolean(await change(() => releaseTrackerPlayer(tracker.id), 'No se pudo quitarte'))
-        }
-      />
-
-      <div className="tracker-footer">
-        <Link to="/mis-ligas" className="create-league-link">
-          Volver a Mis ligas
-        </Link>
-        <button type="button" className="create-league-link" onClick={() => void remove()}>
-          {tracker.owner ? 'Borrar la liga' : 'Salir de la liga'}
-        </button>
-      </div>
     </section>
   );
 }
