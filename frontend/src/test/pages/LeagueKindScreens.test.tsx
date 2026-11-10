@@ -99,7 +99,8 @@ vi.mock('../../components/insights/KnockoutSearch', () => ({
 vi.mock('../../components/insights/TennisSearch', () => ({
   default: () => <p>Buscador de jugadores</p>,
 }));
-vi.mock('../../pages/TrackerView', () => ({ default: () => <p>Marcador de la liga</p> }));
+vi.mock('../../pages/TrackerHome', () => ({ default: () => <p>Marcador de la liga</p> }));
+vi.mock('../../pages/TrackerRanking', () => ({ default: () => <p>Ranking del marcador</p> }));
 vi.mock('../../components/CustomPredictionViewer', () => ({
   default: () => <p>Visor del cuadro propio</p>,
 }));
@@ -396,8 +397,8 @@ describe('Ranking para cada clase de liga', () => {
     error: null,
     none: null,
     unknown: null,
-    // Sin ranking de predicciones: el ranking manda al marcador.
-    scoreboard: ROUTES['/'],
+    // Sin ranking de predicciones: su ranking son las partidas ganadas.
+    scoreboard: null,
   };
 
   it.each(LEAGUE_KINDS)('%s', (kind) => {
@@ -423,7 +424,7 @@ describe('Ranking para cada clase de liga', () => {
       </MemoryRouter>,
     );
     if (kind === 'scoreboard') {
-      expect(screen.getByText(ROUTES['/'])).toBeInTheDocument();
+      expect(screen.getByText('Ranking del marcador')).toBeInTheDocument();
       return;
     }
     // Cada enlace sale solo donde su pantalla existe.

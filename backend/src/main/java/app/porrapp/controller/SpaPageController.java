@@ -39,6 +39,7 @@ public class SpaPageController {
     public static final Set<String> APP = Set.of(
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/bracket", "/tabla", "/prediction", "/jornadas",
+            "/partida", "/historico",
             "/restablecer-contrasena");
 
     private static final String NOINDEX = "noindex";
@@ -53,6 +54,7 @@ public class SpaPageController {
             "/privacidad", "/aviso-legal",
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/bracket", "/tabla", "/prediction", "/jornadas",
+            "/partida", "/historico",
             "/restablecer-contrasena"})
     public ResponseEntity<Resource> page(HttpServletRequest request) {
         String path = request.getRequestURI();

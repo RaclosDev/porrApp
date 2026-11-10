@@ -32,7 +32,7 @@ const EXPECTED: Record<LeagueKind, string[] | null> = {
   fightCard: ['Inicio', 'Jornadas', 'Ranking', 'Cartelera', 'Mis Ligas'],
   tennisDraw: ['Inicio', 'Jornadas', 'Ranking', 'Cuadro', 'Mis Ligas'],
   grandPrix: ['Carreras', 'Ranking', 'Mundial', 'Mis Ligas'],
-  scoreboard: ['Marcador', 'Mis Ligas'],
+  scoreboard: ['Inicio', 'Partida', 'Ranking', 'Histórico', 'Mis Ligas'],
 };
 
 const renderMobile = () =>

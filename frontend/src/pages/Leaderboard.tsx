@@ -1,10 +1,11 @@
 import { useEffect, useState, Suspense } from 'react';
 import { lazyPage } from '../services/chunkReload';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { NoLeagueState } from '../components/NoLeagueState';
 import { BarChart3, Search, Share2 } from 'lucide-react';
 import MatchdayPodium from '../components/MatchdayPodium';
 import PaperLoading from '../components/PaperLoading';
+import TrackerRanking from './TrackerRanking';
 import LeaderboardTable from '../components/leaderboard/LeaderboardTable';
 import MatchdaySummary from '../components/leaderboard/MatchdaySummary';
 import ShareImageTemplate from '../components/leaderboard/ShareImageTemplate';
@@ -143,8 +144,8 @@ function Leaderboard() {
 
   if (loading || switchingGroup) return <PaperLoading label="Cargando clasificación" />;
   if (!activeGroupId) return <NoLeagueState title="Clasificación" what="la clasificación" />;
-  // Una liga de juegos de mesa lleva su clasificación en el marcador, que es su inicio.
-  if (state.leagueKind === 'scoreboard') return <Navigate to="/" replace />;
+  // Una liga de juegos de mesa no tiene predicciones: su ranking son las partidas ganadas.
+  if (state.leagueKind === 'scoreboard') return <TrackerRanking leagueId={activeGroupId} />;
 
   const layout = RANKING_LAYOUT[state.leagueKind];
   // Enlaces a Estadísticas y al Buscador: solo en las clases de liga que tienen esas pantallas.

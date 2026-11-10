@@ -19,7 +19,7 @@ import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import { useTournamentData } from '../context/leagueData';
 import type { LeagueKind } from '../context/leagueKind';
-import TrackerView from './TrackerView';
+import TrackerHome from './TrackerHome';
 
 type HomeMode = 'home' | 'groups';
 
@@ -50,8 +50,8 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     tennisDraw: <LeagueHomeDashboard />,
     // Fórmula 1: el inicio son los Grandes Premios.
     grandPrix: <GrandPrixPage />,
-    // Juegos de mesa: el inicio es el marcador de la liga.
-    scoreboard: <TrackerView leagueId={activeGroupId} />,
+    // Juegos de mesa: el inicio es el resumen de la liga (hoy, podio y último día).
+    scoreboard: <TrackerHome leagueId={activeGroupId} />,
   };
   return (
     <>

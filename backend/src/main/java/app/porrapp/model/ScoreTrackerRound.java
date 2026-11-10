@@ -5,7 +5,7 @@ import lombok.*;
 
 import java.time.Instant;
 
-/** Una partida (o ronda) apuntada en una sesión de un marcador. */
+/** Una ronda apuntada en una partida: puntos de quienes la jugaron. */
 @Entity
 @Table(name = "score_tracker_rounds")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -23,6 +23,10 @@ public class ScoreTrackerRound {
 
     @Column(length = 120)
     private String note;
+
+    /** Quién la apuntó (cualquier miembro puede hacerlo). */
+    @Column(name = "created_by_user_id")
+    private Long createdByUserId;
 
     @Builder.Default
     @Column(name = "created_at", nullable = false)

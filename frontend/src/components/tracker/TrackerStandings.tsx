@@ -4,7 +4,7 @@ interface Props {
   caption: string;
   standings: TrackerStanding[];
   unit: string;
-  /** La columna de sesiones ganadas solo tiene sentido en la clasificación acumulada. */
+  /** La columna de partidas ganadas solo tiene sentido en la clasificación acumulada. */
   showSessions?: boolean;
   /** Sin partidas aún nadie va primero. */
   empty: boolean;
@@ -12,7 +12,7 @@ interface Props {
   myPlayerId?: number | null;
 }
 
-/** Clasificación de un marcador: posición con empates, total y partidas (y sesiones) ganadas. */
+/** Clasificación: posición con empates, total y rondas (y partidas) ganadas. */
 export default function TrackerStandings({
   caption,
   standings,
@@ -33,11 +33,11 @@ export default function TrackerStandings({
               {unit}
             </th>
             <th scope="col" className="is-num">
-              Ganadas
+              Rondas
             </th>
             {showSessions && (
               <th scope="col" className="is-num">
-                Sesiones
+                Partidas
               </th>
             )}
           </tr>
