@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
@@ -22,6 +22,76 @@ import { boutBilling, fightOutcomes, fightResultText, weightClassLabel } from '.
 import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult';
 
 const RANKING_SIZE = 5;
+
+function usePreviewRows(
+  settling: boolean,
+  rankingTotal: number,
+  tableTotal: number,
+  tablePreviewLimit: number,
+) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [extraRows, setExtraRows] = useState({ ranking: 0, table: 0 });
+  const rankingBase = Math.min(RANKING_SIZE, rankingTotal);
+  const tableBase = Math.min(tablePreviewLimit, tableTotal);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (settling || !grid || typeof ResizeObserver === 'undefined') return;
+    const [matches, sidebar] = grid.children;
+    if (!matches || !sidebar) return;
+
+    const observer = new ResizeObserver(() => {
+      const next = { ranking: 0, table: 0 };
+      const matchBounds = matches.getBoundingClientRect();
+
+      if (matchBounds.width < grid.getBoundingClientRect().width) {
+        let remaining = matchBounds.height - sidebar.getBoundingClientRect().height;
+        const previews = [
+          { key: 'ranking', base: rankingBase, total: rankingTotal },
+          { key: 'table', base: tableBase, total: tableTotal },
+        ] as const;
+
+        // Recupera el espacio de las filas añadidas en la medición anterior.
+        const budgets = previews.flatMap(({ key, base, total }, index) => {
+          const list = sidebar.children[index]?.querySelector('ol');
+          const row = list?.firstElementChild;
+          if (!list || !row || total <= base) return [];
+          const gap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
+          const rowHeight = row.getBoundingClientRect().height + gap;
+          if (rowHeight <= 0) return [];
+          remaining += Math.max(0, list.children.length - base) * rowHeight;
+          return [{ key, available: total - base, rowHeight }];
+        });
+
+        // Alterna entre las dos tarjetas. Si una se acaba, la otra aprovecha el hueco.
+        let added: boolean;
+        do {
+          added = false;
+          for (const { key, available, rowHeight } of budgets) {
+            if (next[key] >= available || rowHeight > remaining) continue;
+            next[key]++;
+            remaining -= rowHeight;
+            added = true;
+          }
+        } while (added);
+      }
+
+      setExtraRows((current) =>
+        current.ranking === next.ranking && current.table === next.table ? current : next,
+      );
+    });
+    observer.observe(grid);
+    observer.observe(matches);
+    observer.observe(sidebar);
+    return () => observer.disconnect();
+  }, [settling, rankingBase, rankingTotal, tableBase, tableTotal]);
+
+  return {
+    gridRef,
+    rankingLimit: rankingBase + extraRows.ranking,
+    tableLimit: tableBase + extraRows.table,
+  };
+}
 
 function formatKickOff(date: string | null) {
   if (!date) return 'VS';
@@ -298,7 +368,14 @@ export default function LeagueHomeDashboard() {
     (activeCompetitionName ?? '').trim().toLowerCase() !==
       (activeGroupName || '').trim().toLowerCase();
   const participantCount = leaderboardData?.length || 0;
-  const topParticipants = (leaderboardData ?? []).slice(0, RANKING_SIZE);
+  const tableTotal = standings?.rows.length ?? 0;
+  const { gridRef, rankingLimit, tableLimit } = usePreviewRows(
+    settling,
+    participantCount,
+    tableTotal,
+    standings?.previewLimit ?? tableTotal,
+  );
+  const topParticipants = (leaderboardData ?? []).slice(0, rankingLimit);
   // Mismo puesto para los empatados, como en la clasificación completa.
   const topTotals = [...new Set(topParticipants.map((p) => p.total || 0))];
 
@@ -384,7 +461,7 @@ export default function LeagueHomeDashboard() {
             </button>
           )}
 
-          <div className="home-dashboard-grid">
+          <div className="home-dashboard-grid" ref={gridRef}>
             <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
               <PanelHeader
                 title={matches.title}
@@ -423,7 +500,7 @@ export default function LeagueHomeDashboard() {
                 <PanelHeader title="Ranking" onSeeAll={() => navigate('/ranking')} />
                 {topParticipants.length > 0 ? (
                   <ol
-                    className="home-summary-rows flex flex-col gap-1.5 m-0 p-0 list-none"
+                    className="flex flex-col gap-1.5 m-0 p-0 list-none"
                     aria-label="Top del ranking"
                   >
                     {topParticipants.map((p, index) => {
@@ -451,10 +528,10 @@ export default function LeagueHomeDashboard() {
                 <div className="home-summary-panel paper-panel album-sheet p-4">
                   <PanelHeader title={standings.title} onSeeAll={() => navigate(standings.to)} />
                   <ol
-                    className="home-summary-rows flex flex-col gap-1.5 m-0 p-0 list-none"
+                    className="flex flex-col gap-1.5 m-0 p-0 list-none"
                     aria-label={standings.title}
                   >
-                    {standings.rows.map((row) => (
+                    {standings.rows.slice(0, tableLimit).map((row) => (
                       <MiniRow
                         key={row.team}
                         {...row}
