@@ -32,7 +32,7 @@ export default function TrackerSheetTable({
   busy,
   onPickRound,
 }: Props) {
-  const wins = game.mode === 'WINS';
+  const wins = game.mode !== 'POINTS';
   const totals = new Map(session.standings.map((row) => [row.playerId, row]));
 
   const cell = (round: TrackerRound, playerId: number) => {

@@ -248,6 +248,10 @@ export default function GroupsDashboard() {
               key={`tracker-${tracker.id}`}
               tracker={tracker}
               isSelected={activeGroupId === String(tracker.id)}
+              group={groups.find((group) => String(group.id) === String(tracker.id))}
+              onShare={handleShareWhatsApp}
+              onRules={setSelectedGroupForRules}
+              onMembers={setSelectedGroupForMembers}
             />
           ))}
         </ul>

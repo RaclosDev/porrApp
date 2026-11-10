@@ -13,9 +13,11 @@ interface Props {
 }
 
 const describe = (game: TrackerGame) =>
-  game.mode === 'WINS'
-    ? 'Por victorias'
-    : `Por ${game.unit}${game.lowerWins ? ', gana quien menos suma' : ''}`;
+  game.mode === 'DIRECT'
+    ? 'Ganador por partida'
+    : game.mode === 'WINS'
+      ? 'Victorias por ronda'
+      : `Por ${game.unit}${game.lowerWins ? ', gana quien menos suma' : ''}`;
 
 /** Elegir a qué se juega: uno de los juegos de la liga o uno nuevo, que empieza en cuanto se crea. */
 export default function TrackerGamePicker({ games, busy, onPick, onCreate }: Props) {
@@ -31,7 +33,7 @@ export default function TrackerGamePicker({ games, busy, onPick, onCreate }: Pro
     const created = await onCreate({
       name: name.trim(),
       mode,
-      unit: mode === 'WINS' ? 'victorias' : unit.trim() || 'puntos',
+      unit: mode !== 'POINTS' ? 'victorias' : unit.trim() || 'puntos',
       lowerWins: mode === 'POINTS' && lowerWins,
     });
     if (created) {
@@ -80,7 +82,8 @@ export default function TrackerGamePicker({ games, busy, onPick, onCreate }: Pro
               {(
                 [
                   ['POINTS', 'Por puntos'],
-                  ['WINS', 'Por victorias'],
+                  ['WINS', 'Victorias por ronda'],
+                  ['DIRECT', 'Ganador por partida'],
                 ] as const
               ).map(([value, text]) => (
                 <button
@@ -118,7 +121,11 @@ export default function TrackerGamePicker({ games, busy, onPick, onCreate }: Pro
               </label>
             </>
           ) : (
-            <p className="tracker-note">En cada ronda se toca a quien la gana.</p>
+            <p className="tracker-note">
+              {mode === 'DIRECT'
+                ? 'Se marca quién gana y la partida termina al guardarlo.'
+                : 'En cada ronda se toca a quien la gana; la partida se termina al acabar.'}
+            </p>
           )}
           <div className="tracker-actions">
             <button

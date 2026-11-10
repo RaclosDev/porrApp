@@ -16,7 +16,8 @@ export default function TrackerOverall({ tracker }: Props) {
   const [year, setYear] = useState<number | null>(null);
   const played = (tracker.games ?? []).filter((game) => game.sessions > 0);
   const game = played.find((item) => item.id === gameId) ?? null;
-  const years = [...new Set(tracker.sessions.filter((item) => item.rounds > 0).map(yearOf))].sort(
+  const gameYear = (session: (typeof tracker.sessions)[number]) => yearOf(session, tracker.days);
+  const years = [...new Set(tracker.sessions.filter((item) => item.rounds > 0).map(gameYear))].sort(
     (a, b) => b - a,
   );
   const season = years.includes(year ?? NaN) ? year : null;
@@ -24,8 +25,9 @@ export default function TrackerOverall({ tracker }: Props) {
     season != null
       ? standingsFrom(
           tracker.sessions.filter(
-            (item) => yearOf(item) === season && (!game || item.gameId === game.id),
+            (item) => gameYear(item) === season && (!game || item.gameId === game.id),
           ),
+          tracker.rounds,
         )
       : game
         ? (tracker.byGame?.find((item) => item.gameId === game.id)?.standings ?? [])
@@ -87,6 +89,7 @@ export default function TrackerOverall({ tracker }: Props) {
         standings={standings}
         unit={game?.unit ?? tracker.unit}
         showSessions
+        showTotal={Boolean(game)}
         empty={
           season != null
             ? standings.length === 0

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import JoinRedirect from '../../components/JoinRedirect';
 import { useAppContext } from '../../context/AppContext';
 import { fetchGroupInvitationPreview, fetchMyGroups, joinGroup } from '../../services/api';
+import { claimTrackerPlayer } from '../../services/endpoints/trackers';
 
 const signIn = vi.hoisted(() => vi.fn());
 const emailSignIn = vi.hoisted(() => vi.fn());
@@ -28,6 +29,7 @@ vi.mock('@react-oauth/google', () => ({
     <button onClick={() => onSuccess({ credential: 'test' })}>Continuar con Google</button>
   ),
 }));
+vi.mock('../../services/endpoints/trackers', () => ({ claimTrackerPlayer: vi.fn() }));
 vi.mock('../../services/api', () => ({
   fetchGroupInvitationPreview: vi.fn(),
   fetchMyGroups: vi.fn(),
@@ -52,12 +54,12 @@ beforeEach(() => {
   emailSignIn.mockResolvedValue('signed-in');
 });
 
-function showInvitation() {
+function showInvitation(path = '/join/abc123') {
   return render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <MemoryRouter initialEntries={['/join/abc123']}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/join/:code" element={<JoinRedirect />} />
           <Route path="/jornadas" element={<p>Tu jornada</p>} />
@@ -153,4 +155,23 @@ it('muestra una invitación inválida sin ofrecer acceso ni alta', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('Esta invitación no está disponible');
   expect(screen.queryByRole('button', { name: 'Continuar con Google' })).not.toBeInTheDocument();
   expect(joinGroup).not.toHaveBeenCalled();
+});
+
+it('con el enlace «este eres tú» se queda con el jugador apuntado a mano', async () => {
+  const mus = group({ id: 9, name: 'Mus de los jueves', kind: 'SCOREBOARD' });
+  vi.mocked(fetchGroupInvitationPreview).mockResolvedValue(mus);
+  vi.mocked(joinGroup).mockResolvedValue(mus);
+  vi.mocked(claimTrackerPlayer).mockRejectedValueOnce(new Error('Ya es de otro'));
+  showInvitation('/join/abc123?jugador=77');
+  fireEvent.click(await screen.findByRole('button', { name: 'Continuar con Google' }));
+  // Aunque no se pueda reclamar, se entra en la liga igual.
+  expect(await screen.findByText('Inicio de la liga')).toBeInTheDocument();
+  expect(claimTrackerPlayer).toHaveBeenCalledExactlyOnceWith(9, 77);
+});
+
+it('en una liga normal el parámetro de jugador no hace nada', async () => {
+  showInvitation('/join/abc123?jugador=77');
+  fireEvent.click(await screen.findByRole('button', { name: 'Continuar con Google' }));
+  expect(await screen.findByText('Tu jornada')).toBeInTheDocument();
+  expect(claimTrackerPlayer).not.toHaveBeenCalled();
 });

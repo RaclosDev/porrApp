@@ -185,6 +185,31 @@
     margin-bottom: 8px;
   }
 
+  .tracker-profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+    margin: 12px 0 0;
+  }
+
+  .tracker-profile-stats div {
+    padding: 8px 10px;
+    border: 1px solid currentColor;
+    border-radius: 8px;
+  }
+
+  .tracker-profile-stats dt {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .tracker-profile-stats dd {
+    margin: 2px 0 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+  }
+
   .tracker-subheading {
     margin: 14px 0 6px;
     font-size: 0.8rem;
@@ -445,4 +470,47 @@
 
 .tracker-qr.is-loading {
   min-block-size: 220px;
+}
+
+.tracker-manage-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tracker-manage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.tracker-manage-tag {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.tracker-manage-editor {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.tracker-manage-editor .tracker-add-player {
+  margin-top: 0;
+}
+
+.tracker-manage-unit {
+  flex: 0 1 8rem !important;
+}
+
+.tracker-day-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
 }

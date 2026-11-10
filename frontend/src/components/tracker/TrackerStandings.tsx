@@ -6,6 +6,7 @@ interface Props {
   unit: string;
   /** La columna de partidas ganadas solo tiene sentido en la clasificación acumulada. */
   showSessions?: boolean;
+  showTotal?: boolean;
   /** Sin partidas aún nadie va primero. */
   empty: boolean;
   /** Jugador que es el usuario, para marcarlo en la tabla. */
@@ -18,6 +19,7 @@ export default function TrackerStandings({
   standings,
   unit,
   showSessions,
+  showTotal = true,
   empty,
   myPlayerId,
 }: Props) {
@@ -29,15 +31,17 @@ export default function TrackerStandings({
           <tr>
             <th scope="col">#</th>
             <th scope="col">Jugador</th>
-            <th scope="col" className="is-num">
-              {unit}
-            </th>
+            {showTotal && (
+              <th scope="col" className="is-num">
+                {unit}
+              </th>
+            )}
             <th scope="col" className="is-num">
               Rondas
             </th>
             {showSessions && (
               <th scope="col" className="is-num">
-                Partidas
+                Ganadas
               </th>
             )}
           </tr>
@@ -55,7 +59,7 @@ export default function TrackerStandings({
                   </>
                 )}
               </th>
-              <td className="is-num">{row.total}</td>
+              {showTotal && <td className="is-num">{row.total}</td>}
               <td className="is-num">{row.roundsWon}</td>
               {showSessions && <td className="is-num">{row.sessionsWon}</td>}
             </tr>

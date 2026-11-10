@@ -10,7 +10,6 @@ import TrackerResult from '../components/tracker/TrackerResult';
 import {
   addTrackerGame,
   addTrackerPlayer,
-  addTrackerRound,
   closeTrackerDay,
   deleteTrackerRound,
   editTrackerRound,
@@ -22,6 +21,7 @@ import {
   type TrackerRound,
 } from '../services/endpoints/trackers';
 import { useTrackerLeague } from '../hooks/useTrackerLeague';
+import { useOfflineRounds } from '../hooks/useOfflineRounds';
 import { confirmAction } from '../utils/confirmAction';
 
 /**
@@ -30,7 +30,8 @@ import { confirmAction } from '../utils/confirmAction';
  * los móviles lo ven en directo.
  */
 export default function TrackerView({ leagueId }: { leagueId: string | null }) {
-  const { query, tracker, busy, change } = useTrackerLeague(leagueId);
+  const { id, query, tracker, busy, change } = useTrackerLeague(leagueId);
+  const offline = useOfflineRounds(tracker?.id, id);
   /** Quién juega lo siguiente que se empiece; null mientras no se toca (todos los del día). */
   const [chosen, setChosen] = useState<number[] | null>(null);
   /** Eligiendo juego aunque haya una partida a medias o un resultado que enseñar. */
@@ -136,7 +137,10 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
     });
     if (!confirmed) return false;
     return Boolean(
-      await change(() => deleteTrackerRound(tracker.id, round.id), 'No se pudo borrar'),
+      await change(
+        () => deleteTrackerRound(tracker.id, round.id, round.revision),
+        'No se pudo borrar',
+      ),
     );
   };
 
@@ -202,6 +206,19 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
               </button>
             )}
           </div>
+          {offline.pending > 0 && (
+            <p className="tracker-note" role="status">
+              {offline.pending} {offline.pending === 1 ? 'ronda pendiente' : 'rondas pendientes'}.
+              {offline.problem
+                ? ` Necesita revisión: ${offline.problem}`
+                : ' Se enviarán al volver la red.'}
+              {offline.problem && (
+                <button type="button" onClick={offline.retry}>
+                  Reintentar
+                </button>
+              )}
+            </p>
+          )}
           <TrackerSheet
             key={open.id}
             session={open}
@@ -212,7 +229,12 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
             rounds={tracker.rounds.filter((round) => round.sessionId === open.id)}
             busy={busy}
             onAdd={async (round) =>
-              Boolean(await change(() => addTrackerRound(tracker.id, round), 'No se pudo apuntar'))
+              Boolean(
+                await change(async () => {
+                  const next = await offline.add(round);
+                  return next === 'queued' ? tracker : next;
+                }, 'No se pudo apuntar'),
+              )
             }
             onEdit={async (roundId, round) =>
               Boolean(
@@ -245,6 +267,7 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
           </h2>
           <TrackerResult
             session={lastEnded}
+            leagueName={tracker.name}
             gameName={gameOf(lastEnded.gameId).name}
             unit={gameOf(lastEnded.gameId).unit}
             myPlayerId={tracker.myPlayerId}

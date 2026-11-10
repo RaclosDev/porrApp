@@ -11,4 +11,6 @@ public interface ScoreDayPlayerRepository extends JpaRepository<ScoreDayPlayer, 
     List<ScoreDayPlayer> findByDayIdIn(Collection<Long> dayIds);
 
     List<ScoreDayPlayer> findByDayId(Long dayId);
+
+    List<ScoreDayPlayer> findByPlayerId(Long playerId);
 }

@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
+import type { TrackerSummary } from '../services/endpoints/trackers';
 import { forgetGroupVisit, readGroupVisits } from '../store/useAppStore';
 import type { Group } from '../types/api';
 import { clearGroupDrafts } from '../utils/drafts';
@@ -65,9 +66,15 @@ export function forgetLeague(queryClient: QueryClient, groupId: string | number)
   forgetGroupVisit(id);
 }
 
-/** Quita una liga de la lista del usuario en caché, antes de que el servidor la vuelva a enviar. */
+/**
+ * Quita una liga de la lista del usuario en caché, antes de que el servidor la vuelva a enviar. Las
+ * de juegos de mesa tienen además su tarjeta en la lista de marcadores, que también se limpia.
+ */
 export function dropFromMyGroups(queryClient: QueryClient, groupId: string | number) {
   queryClient.setQueryData<Group[]>(queryKeys.myGroups(true), (groups) =>
     groups?.filter((g) => String(g.id) !== String(groupId)),
+  );
+  queryClient.setQueryData<TrackerSummary[]>(queryKeys.trackers(), (trackers) =>
+    trackers?.filter((t) => String(t.id) !== String(groupId)),
   );
 }

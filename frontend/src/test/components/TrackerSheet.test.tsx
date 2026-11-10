@@ -57,6 +57,7 @@ const firstRound: TrackerRound = {
   createdAt: '2026-11-10T18:05:00Z',
   scores: { 11: 7, 12: 2 },
   recordedBy: 'Ana',
+  revision: 0,
 };
 
 const points = { name: 'Catán', unit: 'puntos', mode: 'POINTS' as const, lowerWins: false };
@@ -116,7 +117,11 @@ describe('TrackerSheet', () => {
     fireEvent.change(screen.getByLabelText('Berto'), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar la ronda' }));
     await waitFor(() =>
-      expect(onEdit).toHaveBeenCalledWith(40, { scores: { 11: 7, 12: 4 }, sessionId: 5 }),
+      expect(onEdit).toHaveBeenCalledWith(40, {
+        scores: { 11: 7, 12: 4 },
+        sessionId: 5,
+        expectedRevision: 0,
+      }),
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Corregir la ronda 1' }));
@@ -168,7 +173,7 @@ describe('TrackerGamePicker', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Otro juego nuevo' }));
     fireEvent.change(screen.getByLabelText('Nombre del juego'), { target: { value: ' Mus ' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Por victorias' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Victorias por ronda' }));
     fireEvent.click(screen.getByRole('button', { name: 'Crear y jugar' }));
 
     await waitFor(() =>
@@ -228,7 +233,7 @@ describe('TrackerStandings', () => {
     );
 
     expect(screen.getAllByRole('row')).toHaveLength(4);
-    expect(screen.getByRole('columnheader', { name: 'Partidas' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Ganadas' })).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /Carla/ })).toHaveTextContent('3');
     expect(screen.getByText('10')).toBeInTheDocument();
   });
