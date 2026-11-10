@@ -120,6 +120,7 @@ const tracker: Tracker = {
       createdAt: '2026-11-05T18:10:00Z',
       scores: { 11: 9, 12: 4 },
       recordedBy: 'Ana',
+      revision: 0,
     },
   ],
   overall: [row(11, 'Ana', 17, 1, 2), row(12, 'Berto', 12, 2, 1)],
@@ -156,6 +157,25 @@ describe('TrackerHistory', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Volver al histórico' }));
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(2);
+  });
+
+  it('permite al administrador corregir una ronda de un día cerrado', async () => {
+    const onEditRound = vi.fn().mockResolvedValue(true);
+    render(<TrackerHistory tracker={tracker} onEditRound={onEditRound} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Catán · partida 1/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Corregir la ronda 1' }));
+    fireEvent.change(screen.getByLabelText('Ana'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar la ronda' }));
+
+    await waitFor(() =>
+      expect(onEditRound).toHaveBeenCalledWith(40, {
+        scores: { 11: 10, 12: 4 },
+        sessionId: 1,
+        expectedRevision: 0,
+      }),
+    );
+    expect(screen.queryByRole('button', { name: 'Borrar la ronda' })).not.toBeInTheDocument();
   });
 
   it('sin partidas avisa de lo que saldrá', () => {

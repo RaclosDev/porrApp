@@ -13,6 +13,7 @@ import app.porrapp.dto.ScoreTrackerRequest;
 import app.porrapp.dto.ScoreTrackerRoundRequest;
 import app.porrapp.dto.ScoreTrackerSessionRequest;
 import app.porrapp.dto.ScoreTrackerSummaryDTO;
+import app.porrapp.model.ScoreTrackerRoundChange;
 import app.porrapp.dto.StatusResponse;
 import app.porrapp.service.league.ScoreTrackerService;
 import jakarta.validation.Valid;
@@ -69,8 +70,15 @@ public class ScoreTrackerController {
     }
 
     @DeleteMapping("/{id}/rounds/{roundId}")
-    public ScoreTrackerDTO deleteRound(@PathVariable Long id, @PathVariable Long roundId, Principal principal) {
-        return service.deleteRound(principal.getName(), id, roundId);
+    public ScoreTrackerDTO deleteRound(@PathVariable Long id, @PathVariable Long roundId,
+                                       @RequestParam Integer revision, Principal principal) {
+        return service.deleteRound(principal.getName(), id, roundId, revision);
+    }
+
+    @GetMapping("/{id}/rounds/{roundId}/changes")
+    public List<ScoreTrackerRoundChange> roundHistory(@PathVariable Long id, @PathVariable Long roundId,
+                                                       Principal principal) {
+        return service.roundHistory(principal.getName(), id, roundId);
     }
 
     @PostMapping("/{id}/sessions")

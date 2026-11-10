@@ -20,7 +20,8 @@ const TEMPLATES: GameTemplate[] = [
   { game: 'Mus', unit: 'victorias', lowerWins: false, mode: 'WINS' },
   { game: 'Catán', unit: 'puntos de victoria', lowerWins: false, mode: 'POINTS' },
   { game: 'Chinchón', unit: 'puntos', lowerWins: true, mode: 'POINTS' },
-  { game: 'Parchís', unit: 'victorias', lowerWins: false, mode: 'WINS' },
+  { game: 'Parchís', unit: 'victorias', lowerWins: false, mode: 'DIRECT' },
+  { game: 'Polilla tramposa', unit: 'victorias', lowerWins: false, mode: 'DIRECT' },
   { game: 'Carcassonne', unit: 'puntos', lowerWins: false, mode: 'POINTS' },
   { game: 'Dominó', unit: 'puntos', lowerWins: false, mode: 'POINTS' },
 ];
@@ -114,11 +115,13 @@ export default function CreateTracker() {
           </div>
           {template && (
             <p className="create-league-hint">
-              {template.mode === 'WINS'
+              {template.mode === 'DIRECT'
                 ? 'Se apunta quién gana cada partida.'
-                : template.lowerWins
-                  ? `Se suman ${template.unit} y gana quien menos tiene.`
-                  : `Se suman ${template.unit} y gana quien más tiene.`}{' '}
+                : template.mode === 'WINS'
+                  ? 'Se apunta quién gana cada ronda y se cuentan sus victorias.'
+                  : template.lowerWins
+                    ? `Se suman ${template.unit} y gana quien menos tiene.`
+                    : `Se suman ${template.unit} y gana quien más tiene.`}{' '}
               Luego puedes añadir más juegos.
             </p>
           )}

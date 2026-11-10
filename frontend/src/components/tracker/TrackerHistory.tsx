@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import type { Tracker, TrackerDay, TrackerSession } from '../../services/endpoints/trackers';
+import type {
+  Tracker,
+  TrackerDay,
+  TrackerRoundDraft,
+  TrackerSession,
+} from '../../services/endpoints/trackers';
 import { confirmAction } from '../../utils/confirmAction';
 import TrackerSheetTable from './TrackerSheetTable';
+import TrackerSheet from './TrackerSheet';
 import { formatDay, winnerLabel } from './trackerFormat';
 import { dayCard, shareResult } from './shareResult';
 
@@ -12,6 +18,7 @@ interface Props {
   onDeleteDay?: (dayId: number) => Promise<boolean>;
   /** Solo el administrador: poner a un día cerrado la fecha (AAAA-MM-DD) en que se jugó. */
   onMoveDay?: (dayId: number, date: string) => Promise<boolean>;
+  onEditRound?: (roundId: number, round: TrackerRoundDraft) => Promise<boolean>;
 }
 
 interface DayGroup {
@@ -33,10 +40,17 @@ const localDate = (at: string | Date) => {
  * Histórico por días: fecha, quién vino, a qué se jugó y quién ganó cada partida. Tocando una partida
  * se ve su hoja, sin poder tocarla.
  */
-export default function TrackerHistory({ tracker, busy = false, onDeleteDay, onMoveDay }: Props) {
+export default function TrackerHistory({
+  tracker,
+  busy = false,
+  onDeleteDay,
+  onMoveDay,
+  onEditRound,
+}: Props) {
   const [viewingId, setViewingId] = useState<number | null>(null);
   const [movingDayId, setMovingDayId] = useState<number | null>(null);
   const [date, setDate] = useState('');
+  const [visibleDays, setVisibleDays] = useState(10);
   const games = tracker.games ?? [];
   const gameOf = (gameId: number | null) => games.find((game) => game.id === gameId);
   const nameOf = (playerId: number) =>
@@ -44,10 +58,10 @@ export default function TrackerHistory({ tracker, busy = false, onDeleteDay, onM
   const byId = new Map(tracker.sessions.map((session) => [session.id, session]));
 
   const groups: DayGroup[] = [...(tracker.days ?? [])]
-    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .sort((a, b) => (b.playedOn ?? b.startedAt).localeCompare(a.playedOn ?? a.startedAt))
     .map((day) => ({
       key: `day-${day.id}`,
-      title: formatDay(day.startedAt),
+      title: formatDay(day.playedOn ? `${day.playedOn}T12:00:00` : day.startedAt),
       attendees: day.playerIds.map(nameOf).filter(Boolean).join(', '),
       sessions: day.sessionIds
         .map((sessionId) => byId.get(sessionId))
@@ -74,17 +88,36 @@ export default function TrackerHistory({ tracker, busy = false, onDeleteDay, onM
         <p className="tracker-result-label">
           {game?.name ?? tracker.name} · partida {viewing.number}
           {' · '}
-          {formatDay(viewing.startedAt)}
+          {formatDay(
+            (tracker.days ?? []).find((day) => day.id === viewing.dayId)?.playedOn
+              ? `${(tracker.days ?? []).find((day) => day.id === viewing.dayId)?.playedOn}T12:00:00`
+              : viewing.startedAt,
+          )}
         </p>
         <p className="tracker-result-winner">
           {viewing.endedAt ? winnerLabel(viewing) : 'Partida en juego'}
         </p>
-        <TrackerSheetTable
-          session={viewing}
-          game={{ name: game?.name ?? tracker.name, mode: game?.mode ?? 'POINTS' }}
-          players={tracker.players.filter((player) => playerIds.includes(player.id))}
-          rounds={rounds}
-        />
+        {tracker.owner && viewing.endedAt && game && onEditRound ? (
+          <TrackerSheet
+            key={viewing.id}
+            session={viewing}
+            game={game}
+            players={tracker.players.filter((player) => playerIds.includes(player.id))}
+            rounds={rounds}
+            busy={busy}
+            closed
+            onAdd={async () => false}
+            onEdit={onEditRound}
+            onDelete={async () => false}
+          />
+        ) : (
+          <TrackerSheetTable
+            session={viewing}
+            game={{ name: game?.name ?? tracker.name, mode: game?.mode ?? 'POINTS' }}
+            players={tracker.players.filter((player) => playerIds.includes(player.id))}
+            rounds={rounds}
+          />
+        )}
         <button
           type="button"
           className="glass-btn create-league-small-btn tracker-end"
@@ -101,57 +134,68 @@ export default function TrackerHistory({ tracker, busy = false, onDeleteDay, onM
   }
 
   return (
-    <ol className="tracker-history">
-      {groups.map((group) => (
-        <li key={group.key} className="tracker-history-day">
-          <h3 className="tracker-history-date">{group.title}</h3>
-          {group.attendees && <p className="tracker-note">Vinieron {group.attendees}</p>}
-          {group.day?.closedAt && (
-            <button
-              type="button"
-              className="create-league-link"
-              aria-label={`Compartir el día ${group.title}`}
-              onClick={() => void shareResult(dayCard(tracker.name, group.title, group.sessions))}
-            >
-              Compartir el día
-            </button>
-          )}
-          {group.day?.closedAt && tracker.owner && onDeleteDay && onMoveDay && (
-            <DayActions
-              day={group.day}
-              title={group.title}
-              busy={busy}
-              moving={movingDayId === group.day.id}
-              date={date}
-              onDate={setDate}
-              onStartMove={(day) => {
-                setMovingDayId(day.id);
-                setDate(localDate(day.startedAt));
-              }}
-              onCancelMove={() => setMovingDayId(null)}
-              onMove={async (day) => {
-                if (await onMoveDay(day.id, date)) setMovingDayId(null);
-              }}
-              onDelete={onDeleteDay}
-            />
-          )}
-          <ul className="tracker-game-list">
-            {group.sessions.map((session) => (
-              <li key={session.id}>
-                <button
-                  type="button"
-                  className="glass-btn tracker-game-btn"
-                  onClick={() => setViewingId(session.id)}
-                >
-                  {gameOf(session.gameId)?.name ?? tracker.name} · partida {session.number}
-                  <span>{session.endedAt ? winnerLabel(session) : 'En juego'}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
-    </ol>
+    <>
+      <ol className="tracker-history">
+        {groups.slice(0, visibleDays).map((group) => (
+          <li key={group.key} className="tracker-history-day">
+            <h3 className="tracker-history-date">{group.title}</h3>
+            {group.attendees && <p className="tracker-note">Vinieron {group.attendees}</p>}
+            {group.day?.closedAt && (
+              <button
+                type="button"
+                className="create-league-link"
+                aria-label={`Compartir el día ${group.title}`}
+                onClick={() => void shareResult(dayCard(tracker.name, group.title, group.sessions))}
+              >
+                Compartir el día
+              </button>
+            )}
+            {group.day?.closedAt && tracker.owner && onDeleteDay && onMoveDay && (
+              <DayActions
+                day={group.day}
+                title={group.title}
+                busy={busy}
+                moving={movingDayId === group.day.id}
+                date={date}
+                onDate={setDate}
+                onStartMove={(day) => {
+                  setMovingDayId(day.id);
+                  setDate(day.playedOn ?? localDate(day.startedAt));
+                }}
+                onCancelMove={() => setMovingDayId(null)}
+                onMove={async (day) => {
+                  if (await onMoveDay(day.id, date)) setMovingDayId(null);
+                }}
+                onDelete={onDeleteDay}
+              />
+            )}
+            <ul className="tracker-game-list">
+              {group.sessions.map((session) => (
+                <li key={session.id}>
+                  <button
+                    type="button"
+                    className="glass-btn tracker-game-btn"
+                    onClick={() => setViewingId(session.id)}
+                  >
+                    {gameOf(session.gameId)?.name ?? tracker.name} · partida {session.number}
+                    <span>{session.endedAt ? winnerLabel(session) : 'En juego'}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
+      {groups.length > visibleDays && (
+        <button
+          type="button"
+          className="glass-btn create-league-small-btn"
+          onClick={() => setVisibleDays((count) => count + 10)}
+        >
+          Ver más días ({groups.length - visibleDays} pendientes)
+        </button>
+      )}
+    </>
   );
 }
 

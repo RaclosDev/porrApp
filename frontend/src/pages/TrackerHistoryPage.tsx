@@ -2,7 +2,7 @@ import PaperLoading from '../components/PaperLoading';
 import TrackerHistory from '../components/tracker/TrackerHistory';
 import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import { useTrackerLeague } from '../hooks/useTrackerLeague';
-import { deleteTrackerDay, moveTrackerDay } from '../services/endpoints/trackers';
+import { deleteTrackerDay, editTrackerRound, moveTrackerDay } from '../services/endpoints/trackers';
 
 /** Histórico de una liga de juegos de mesa: cada día, quién vino y la hoja de cada partida. */
 export default function TrackerHistoryPage({ leagueId }: { leagueId: string | null }) {
@@ -33,6 +33,14 @@ export default function TrackerHistoryPage({ leagueId }: { leagueId: string | nu
           onMoveDay={async (dayId, date) =>
             Boolean(
               await change(() => moveTrackerDay(tracker.id, dayId, date), 'No se pudo cambiar'),
+            )
+          }
+          onEditRound={async (roundId, round) =>
+            Boolean(
+              await change(
+                () => editTrackerRound(tracker.id, roundId, round),
+                'No se pudo corregir',
+              ),
             )
           }
         />

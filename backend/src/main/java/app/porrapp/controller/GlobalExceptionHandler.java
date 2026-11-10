@@ -3,6 +3,7 @@ package app.porrapp.controller;
 import app.porrapp.config.RequestBodyLimitFilter;
 import app.porrapp.dto.ErrorResponse;
 import app.porrapp.exception.BusinessException;
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -81,6 +83,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         log.warn("Violación de integridad de datos: {}", ex.getMessage());
         return error(HttpStatus.CONFLICT, "Conflicto con los datos existentes o registro duplicado.");
+    }
+
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
+    public ResponseEntity<ErrorResponse> handleOptimisticConflict(Exception ex) {
+        return error(HttpStatus.CONFLICT, "La ronda ha cambiado. Actualiza la partida antes de corregirla.");
     }
 
     /** Validación de los DTOs con @Valid: se devuelve el primer mensaje de error. */

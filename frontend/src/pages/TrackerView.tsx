@@ -137,7 +137,10 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
     });
     if (!confirmed) return false;
     return Boolean(
-      await change(() => deleteTrackerRound(tracker.id, round.id), 'No se pudo borrar'),
+      await change(
+        () => deleteTrackerRound(tracker.id, round.id, round.revision),
+        'No se pudo borrar',
+      ),
     );
   };
 
@@ -205,9 +208,15 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
           </div>
           {offline.pending > 0 && (
             <p className="tracker-note" role="status">
-              {offline.pending === 1
-                ? '1 ronda guardada sin conexión: se enviará al volver la red.'
-                : `${offline.pending} rondas guardadas sin conexión: se enviarán al volver la red.`}
+              {offline.pending} {offline.pending === 1 ? 'ronda pendiente' : 'rondas pendientes'}.
+              {offline.problem
+                ? ` Necesita revisión: ${offline.problem}`
+                : ' Se enviarán al volver la red.'}
+              {offline.problem && (
+                <button type="button" onClick={offline.retry}>
+                  Reintentar
+                </button>
+              )}
             </p>
           )}
           <TrackerSheet

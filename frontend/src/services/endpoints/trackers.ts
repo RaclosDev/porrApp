@@ -20,8 +20,8 @@ export interface TrackerStanding {
   sessionsPlayed?: number;
 }
 
-/** Forma de puntuar un juego: sumando puntos en cada ronda o contando quién gana cada una. */
-export type TrackerGameMode = 'POINTS' | 'WINS';
+/** Forma de puntuar: puntos por ronda, victorias por ronda o ganador directo. */
+export type TrackerGameMode = 'POINTS' | 'WINS' | 'DIRECT';
 
 export interface TrackerGame {
   id: number;
@@ -40,6 +40,7 @@ export interface TrackerDay {
   closedAt: string | null;
   playerIds: number[];
   sessionIds: number[];
+  playedOn?: string;
 }
 
 /** Partida de un juego en un día, con quién la juega; `endedAt` vacío mientras está abierta. */
@@ -66,6 +67,7 @@ export interface TrackerRound {
   /** Puntos por id de jugador, solo de quienes jugaron la ronda (en victorias, 1 quien ganó). */
   scores: Record<string, number>;
   recordedBy: string | null;
+  revision: number;
 }
 
 export interface Tracker {
@@ -100,6 +102,8 @@ export interface TrackerRoundDraft {
   scores?: Record<string, number>;
   winners?: number[];
   sessionId?: number;
+  clientRequestId?: string;
+  expectedRevision?: number;
 }
 
 export interface TrackerGameDraft {
@@ -151,8 +155,8 @@ export const editTrackerRound = (id: number, roundId: number, round: TrackerRoun
     fallbackError: 'No se pudo corregir la ronda',
   });
 
-export const deleteTrackerRound = (id: number, roundId: number) =>
-  request<Tracker>(`/trackers/${id}/rounds/${roundId}`, {
+export const deleteTrackerRound = (id: number, roundId: number, revision: number) =>
+  request<Tracker>(`/trackers/${id}/rounds/${roundId}?revision=${revision}`, {
     method: 'DELETE',
     fallbackError: 'No se pudo borrar la ronda',
   });
