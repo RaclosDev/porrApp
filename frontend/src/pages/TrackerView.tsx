@@ -6,38 +6,53 @@ import PaperLoading from '../components/PaperLoading';
 import TrackerStandings from '../components/tracker/TrackerStandings';
 import TrackerIdentity from '../components/tracker/TrackerIdentity';
 import TrackerInvite from '../components/tracker/TrackerInvite';
-import TrackerRoundForm from '../components/tracker/TrackerRoundForm';
+import TrackerAttendees from '../components/tracker/TrackerAttendees';
+import TrackerGamePicker from '../components/tracker/TrackerGamePicker';
+import TrackerSheet from '../components/tracker/TrackerSheet';
+import TrackerResult from '../components/tracker/TrackerResult';
 import {
+  addTrackerGame,
   addTrackerPlayer,
   addTrackerRound,
   claimTrackerPlayer,
+  closeTrackerDay,
   deleteTracker,
   deleteTrackerRound,
+  editTrackerRound,
+  endTrackerSession,
   fetchTracker,
   leaveTracker,
   releaseTrackerPlayer,
+  reopenTrackerSession,
+  startTrackerDay,
   startTrackerSession,
   type Tracker,
+  type TrackerGameDraft,
+  type TrackerRound,
 } from '../services/endpoints/trackers';
 import { queryKeys } from '../services/queryKeys';
 import { confirmAction } from '../utils/confirmAction';
 import { errorMessage } from '../utils/errors';
 
 const formatDay = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+  new Date(iso).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
 /**
- * Marcador en directo: clasificación de la sesión, clasificación histórica y partidas. Quien lo
- * creó apunta; el resto lo ve y se actualiza solo cuando se apunta algo.
+ * Liga de juegos de mesa en la mesa: se empieza el día con quienes han venido, se elige juego, se
+ * apunta cada ronda en la hoja y al terminar se ve quién ha ganado. Cualquier miembro apunta y todos
+ * los móviles lo ven en directo.
  */
 export default function TrackerView() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [picked, setPicked] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  // null: lo decide el marcador (abierto mientras no se ha apuntado ninguna partida).
+  // null: lo decide la liga (abierto mientras no hay jugadores).
   const [inviteOpen, setInviteOpen] = useState<boolean | null>(null);
+  /** Quién juega lo siguiente que se empiece; null mientras no se toca (todos los del día). */
+  const [chosen, setChosen] = useState<number[] | null>(null);
+  /** Eligiendo juego aunque haya una partida a medias o un resultado que enseñar. */
+  const [picking, setPicking] = useState(false);
 
   const query = useQuery({
     queryKey: queryKeys.tracker(id),
@@ -46,13 +61,13 @@ export default function TrackerView() {
   });
   const tracker = query.data;
 
-  if (query.isPending) return <PaperLoading label="Cargando el marcador" />;
+  if (query.isPending) return <PaperLoading label="Cargando la liga" />;
   if (!tracker) {
     return (
       <section className="view-section active create-league">
         <div className="paper-panel album-sheet create-league-sheet">
-          <h1 className="poster-title create-league-title">Marcador no disponible</h1>
-          <p role="alert">{errorMessage(query.error, 'No se pudo cargar el marcador')}</p>
+          <h1 className="poster-title create-league-title">Liga no disponible</h1>
+          <p role="alert">{errorMessage(query.error, 'No se pudo cargar la liga')}</p>
           <Link to="/mis-ligas" className="glass-btn create-league-nav-btn">
             Ir a Mis ligas
           </Link>
@@ -61,56 +76,129 @@ export default function TrackerView() {
     );
   }
 
-  /** Ejecuta un cambio del creador y deja el marcador devuelto como el visible. */
+  /** Ejecuta un cambio y deja la liga devuelta como la visible. */
   const change = async (action: () => Promise<Tracker>, failure: string) => {
     setBusy(true);
     try {
-      queryClient.setQueryData(queryKeys.tracker(id), await action());
-      return true;
+      const next = await action();
+      queryClient.setQueryData(queryKeys.tracker(id), next);
+      return next;
     } catch (reason) {
       toast.error(errorMessage(reason, failure));
-      return false;
+      return null;
     } finally {
       setBusy(false);
     }
   };
 
-  const sessionId = picked ?? tracker.currentSessionId;
-  const session =
-    tracker.sessions.find((item) => item.id === sessionId) ??
-    tracker.sessions[tracker.sessions.length - 1];
-  const sessionRounds = tracker.rounds.filter((round) => round.sessionId === session?.id).reverse();
-  const playerName = (playerId: string) =>
-    tracker.players.find((player) => String(player.id) === playerId)?.name ?? '';
-  const isCurrent = session?.id === tracker.currentSessionId;
+  const games = tracker.games ?? [];
+  const day = (tracker.days ?? []).find((item) => item.id === tracker.currentDayId) ?? null;
+  const daySessions = day ? tracker.sessions.filter((item) => item.dayId === day.id) : [];
+  const open = daySessions.find((item) => !item.endedAt) ?? null;
+  const lastEnded = [...daySessions].reverse().find((item) => item.endedAt) ?? null;
+  const gameOf = (gameId: number | null) =>
+    games.find((game) => game.id === gameId) ?? {
+      name: 'Partida',
+      unit: tracker.unit,
+      mode: 'POINTS' as const,
+      lowerWins: tracker.lowerWins,
+    };
 
-  const startSession = async () => {
-    const confirmed = await confirmAction({
-      title: '¿Empezar una sesión nueva?',
-      message: 'La clasificación de la sesión vuelve a cero; el histórico se conserva.',
-      confirmLabel: 'Empezar sesión',
-    });
-    if (!confirmed) return;
-    setPicked(null);
-    await change(() => startTrackerSession(tracker.id), 'No se pudo empezar la sesión');
+  const everyone = tracker.players.map((player) => player.id);
+  const defaults = day && day.playerIds.length > 0 ? day.playerIds : everyone;
+  const selected = (chosen ?? defaults).filter((playerId) => everyone.includes(playerId));
+  const toggle = (playerId: number) =>
+    setChosen(
+      selected.includes(playerId)
+        ? selected.filter((item) => item !== playerId)
+        : [...selected, playerId],
+    );
+
+  const addPlayer = async (name: string) => {
+    const next = await change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir');
+    if (!next) return false;
+    const added = next.players.find((player) => !everyone.includes(player.id));
+    if (added) setChosen([...selected, added.id]);
+    return true;
   };
 
-  const removeRound = async (roundId: number, number: number) => {
+  const startDay = async () => {
+    if (selected.length === 0) {
+      toast.error('Marca al menos a un jugador.');
+      return;
+    }
+    if (await change(() => startTrackerDay(tracker.id, selected), 'No se pudo empezar el día')) {
+      setChosen(null);
+    }
+  };
+
+  const play = async (gameId: number) => {
+    if (selected.length === 0) {
+      toast.error('Marca al menos a un jugador.');
+      return false;
+    }
+    const next = await change(
+      () => startTrackerSession(tracker.id, { gameId, playerIds: selected }),
+      'No se pudo empezar la partida',
+    );
+    if (next) {
+      setPicking(false);
+      setChosen(null);
+    }
+    return Boolean(next);
+  };
+
+  const createGame = async (game: TrackerGameDraft) => {
+    const known = new Set(games.map((item) => item.id));
+    const next = await change(() => addTrackerGame(tracker.id, game), 'No se pudo crear el juego');
+    const created = next?.games?.find((item) => !known.has(item.id));
+    return created ? play(created.id) : false;
+  };
+
+  const endSession = async () => {
+    if (!open) return;
     const confirmed = await confirmAction({
-      title: `¿Borrar la partida ${number}?`,
-      message: 'Se quita de la clasificación de la sesión y del histórico.',
-      confirmLabel: 'Borrar partida',
+      title: '¿Terminar la partida?',
+      message: 'Se cierra la hoja y se ve quién ha ganado. Se puede reabrir para corregirla.',
+      confirmLabel: 'Terminar partida',
     });
-    if (confirmed) await change(() => deleteTrackerRound(tracker.id, roundId), 'No se pudo borrar');
+    if (confirmed) {
+      await change(() => endTrackerSession(tracker.id, open.id), 'No se pudo terminar');
+    }
+  };
+
+  const closeDay = async () => {
+    if (!day) return;
+    const confirmed = await confirmAction({
+      title: '¿Cerrar el día de juego?',
+      message: 'Las partidas quedan en el histórico. La próxima vez se empieza un día nuevo.',
+      confirmLabel: 'Cerrar el día',
+    });
+    if (confirmed) {
+      setPicking(false);
+      await change(() => closeTrackerDay(tracker.id, day.id), 'No se pudo cerrar el día');
+    }
+  };
+
+  const removeRound = async (round: TrackerRound) => {
+    const confirmed = await confirmAction({
+      title: `¿Borrar la ronda ${round.number}?`,
+      message: 'Se quita de la hoja y de la clasificación.',
+      confirmLabel: 'Borrar ronda',
+    });
+    if (!confirmed) return false;
+    return Boolean(
+      await change(() => deleteTrackerRound(tracker.id, round.id), 'No se pudo borrar'),
+    );
   };
 
   const remove = async () => {
     const confirmed = await confirmAction({
-      title: tracker.owner ? '¿Borrar el marcador?' : '¿Salir del marcador?',
+      title: tracker.owner ? '¿Borrar la liga?' : '¿Salir de la liga?',
       message: tracker.owner
         ? 'Se borran todas las partidas y el histórico para todos. No se puede deshacer.'
-        : 'Dejarás de verlo; puedes volver a entrar con el enlace.',
-      confirmLabel: tracker.owner ? 'Borrar marcador' : 'Salir',
+        : 'Dejarás de verla; puedes volver a entrar con el enlace.',
+      confirmLabel: tracker.owner ? 'Borrar liga' : 'Salir',
     });
     if (!confirmed) return;
     try {
@@ -123,8 +211,9 @@ export default function TrackerView() {
     }
   };
 
-  const empty = tracker.rounds.length === 0;
-  const inviting = inviteOpen ?? (tracker.owner && empty);
+  const inviting = inviteOpen ?? tracker.players.length === 0;
+  const showSheet = open && !picking;
+  const showResult = !open && lastEnded && !picking;
 
   return (
     <section className="view-section active create-league tracker">
@@ -132,7 +221,7 @@ export default function TrackerView() {
         <div>
           <h1 className="m-0 poster-title text-[1.8rem] text-white">{tracker.name}</h1>
           <p className="create-league-progress" role="status">
-            En directo: se actualiza solo cuando se apunta una partida.
+            {day ? `Día de juego · ${formatDay(day.startedAt)}` : 'Ningún día de juego en curso'}
           </p>
         </div>
         <button
@@ -149,52 +238,167 @@ export default function TrackerView() {
         <TrackerInvite
           tracker={tracker}
           busy={busy}
-          onAddPlayer={(name) =>
-            change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir')
+          onAddPlayer={async (name) =>
+            Boolean(await change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir'))
           }
         />
       )}
 
-      {session && (
+      {!day && (
         <section
           className="paper-panel album-sheet tracker-section"
-          aria-labelledby="tracker-session-title"
+          aria-labelledby="tracker-day-title"
+        >
+          <h2 id="tracker-day-title" className="tracker-heading">
+            ¿Quién ha venido hoy?
+          </h2>
+          <TrackerAttendees
+            label="Jugadores que han venido"
+            players={tracker.players}
+            selected={selected}
+            busy={busy}
+            onToggle={toggle}
+            onAddPlayer={addPlayer}
+          />
+          <button
+            type="button"
+            className="glass-btn primary-btn tracker-submit"
+            disabled={busy || selected.length === 0}
+            onClick={() => void startDay()}
+          >
+            Empezar día de juego
+          </button>
+        </section>
+      )}
+
+      {showSheet && (
+        <section
+          className="paper-panel album-sheet tracker-section"
+          aria-labelledby="tracker-sheet-title"
         >
           <div className="tracker-section-head">
-            <h2 id="tracker-session-title" className="tracker-heading">
-              Sesión {session.number}
-              {isCurrent ? ' (en curso)' : ''} · {formatDay(session.startedAt)}
+            <h2 id="tracker-sheet-title" className="tracker-heading">
+              {gameOf(open.gameId).name} · partida {open.number}
             </h2>
-            {tracker.sessions.length > 1 && (
-              <div className="tracker-select">
-                <label htmlFor="tracker-session-select">Ver otra sesión</label>
-                <select
-                  id="tracker-session-select"
-                  className="glass-input"
-                  value={session.id}
-                  onChange={(event) => setPicked(Number(event.target.value))}
-                >
-                  {[...tracker.sessions].reverse().map((item) => (
-                    <option key={item.id} value={item.id}>
-                      Sesión {item.number} · {formatDay(item.startedAt)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {open.rounds === 0 && (
+              <button
+                type="button"
+                className="create-league-link"
+                onClick={() => {
+                  setChosen(open.playerIds);
+                  setPicking(true);
+                }}
+              >
+                Cambiar de juego
+              </button>
             )}
           </div>
-          <TrackerStandings
-            caption={`Clasificación de la sesión ${session.number}`}
-            standings={session.standings}
-            unit={tracker.unit}
-            empty={session.rounds === 0}
-            myPlayerId={tracker.myPlayerId}
+          <TrackerSheet
+            key={open.id}
+            session={open}
+            game={gameOf(open.gameId)}
+            players={tracker.players.filter(
+              (player) => open.playerIds.length === 0 || open.playerIds.includes(player.id),
+            )}
+            rounds={tracker.rounds.filter((round) => round.sessionId === open.id)}
+            busy={busy}
+            onAdd={async (round) =>
+              Boolean(await change(() => addTrackerRound(tracker.id, round), 'No se pudo apuntar'))
+            }
+            onEdit={async (roundId, round) =>
+              Boolean(
+                await change(
+                  () => editTrackerRound(tracker.id, roundId, round),
+                  'No se pudo corregir',
+                ),
+              )
+            }
+            onDelete={removeRound}
           />
-          {session.winners.length > 0 && !isCurrent && (
-            <p className="tracker-note">
-              Ganó{session.winners.length > 1 ? 'n' : ''}:{' '}
-              {session.winners.map((winner) => playerName(String(winner))).join(', ')}
-            </p>
+          <button
+            type="button"
+            className="glass-btn create-league-small-btn tracker-end"
+            disabled={busy || open.rounds === 0}
+            onClick={() => void endSession()}
+          >
+            Terminar partida
+          </button>
+        </section>
+      )}
+
+      {showResult && (
+        <section
+          className="paper-panel album-sheet tracker-section"
+          aria-labelledby="tracker-result-title"
+        >
+          <h2 id="tracker-result-title" className="tracker-heading">
+            Partida terminada
+          </h2>
+          <TrackerResult
+            session={lastEnded}
+            gameName={gameOf(lastEnded.gameId).name}
+            unit={gameOf(lastEnded.gameId).unit}
+            myPlayerId={tracker.myPlayerId}
+            busy={busy}
+            onAnother={() => setPicking(true)}
+            onReopen={() =>
+              void change(
+                () => reopenTrackerSession(tracker.id, lastEnded.id),
+                'No se pudo reabrir',
+              )
+            }
+            onCloseDay={() => void closeDay()}
+          />
+        </section>
+      )}
+
+      {day && !showSheet && !showResult && (
+        <section
+          className="paper-panel album-sheet tracker-section"
+          aria-labelledby="tracker-pick-title"
+        >
+          <div className="tracker-section-head">
+            <h2 id="tracker-pick-title" className="tracker-heading">
+              ¿A qué jugáis?
+            </h2>
+            {picking && (
+              <button
+                type="button"
+                className="create-league-link"
+                onClick={() => {
+                  setPicking(false);
+                  setChosen(null);
+                }}
+              >
+                {open ? 'Volver a la partida' : 'Volver'}
+              </button>
+            )}
+          </div>
+          <h3 className="tracker-subheading">Quién juega</h3>
+          <TrackerAttendees
+            label="Jugadores de la partida"
+            players={tracker.players}
+            selected={selected}
+            busy={busy}
+            onToggle={toggle}
+            onAddPlayer={addPlayer}
+          />
+          <h3 className="tracker-subheading">Juego</h3>
+          <TrackerGamePicker
+            games={games}
+            busy={busy}
+            onPick={(gameId) => void play(gameId)}
+            onCreate={createGame}
+          />
+          {daySessions.length > 0 && !open && (
+            <button
+              type="button"
+              className="create-league-link tracker-close-day"
+              disabled={busy}
+              onClick={() => void closeDay()}
+            >
+              Cerrar el día de juego
+            </button>
           )}
         </section>
       )}
@@ -204,108 +408,37 @@ export default function TrackerView() {
         aria-labelledby="tracker-overall-title"
       >
         <h2 id="tracker-overall-title" className="tracker-heading">
-          Histórico de todas las sesiones
+          Clasificación general
         </h2>
         <TrackerStandings
-          caption="Clasificación histórica"
+          caption="Clasificación general"
           standings={tracker.overall}
           unit={tracker.unit}
           showSessions
-          empty={empty}
+          empty={tracker.rounds.length === 0}
           myPlayerId={tracker.myPlayerId}
         />
-        {tracker.lowerWins && <p className="tracker-note">Gana quien menos suma.</p>}
       </section>
-
-      {tracker.owner && session && isCurrent && (
-        <div className="paper-panel album-sheet">
-          <TrackerRoundForm
-            tracker={tracker}
-            busy={busy}
-            onSubmit={(round) =>
-              change(() => addTrackerRound(tracker.id, round), 'No se pudo apuntar la partida')
-            }
-          />
-        </div>
-      )}
 
       <TrackerIdentity
         tracker={tracker}
         busy={busy}
-        onClaim={(playerId) =>
-          change(() => claimTrackerPlayer(tracker.id, playerId), 'No se pudo apuntarte')
+        onClaim={async (playerId) =>
+          Boolean(
+            await change(() => claimTrackerPlayer(tracker.id, playerId), 'No se pudo apuntarte'),
+          )
         }
-        onRelease={() => change(() => releaseTrackerPlayer(tracker.id), 'No se pudo quitarte')}
+        onRelease={async () =>
+          Boolean(await change(() => releaseTrackerPlayer(tracker.id), 'No se pudo quitarte'))
+        }
       />
-
-      {session && (
-        <section
-          className="paper-panel album-sheet tracker-section"
-          aria-labelledby="tracker-rounds-title"
-        >
-          <h2 id="tracker-rounds-title" className="tracker-heading">
-            Partidas de la sesión {session.number}
-          </h2>
-          {sessionRounds.length === 0 ? (
-            <p className="tracker-note">Todavía no se ha apuntado ninguna partida.</p>
-          ) : (
-            <ol className="tracker-rounds" reversed>
-              {sessionRounds.map((round) => (
-                <li key={round.id} value={round.number}>
-                  <div>
-                    <strong>Partida {round.number}</strong>
-                    {round.note ? ` · ${round.note}` : ''}
-                    <span className="tracker-round-scores">
-                      {Object.entries(round.scores)
-                        .filter(([, points]) => points !== 0)
-                        .map(([playerId, points]) => `${playerName(playerId)} ${points}`)
-                        .join(' · ') || 'Sin puntos'}
-                    </span>
-                  </div>
-                  {tracker.owner && (
-                    <button
-                      type="button"
-                      className="create-league-link"
-                      disabled={busy}
-                      onClick={() => void removeRound(round.id, round.number)}
-                    >
-                      Borrar
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
-      )}
-
-      {tracker.owner && (
-        <section
-          className="paper-panel album-sheet tracker-section"
-          aria-labelledby="tracker-manage-title"
-        >
-          <h2 id="tracker-manage-title" className="tracker-heading">
-            Gestionar
-          </h2>
-          <div className="tracker-actions">
-            <button
-              type="button"
-              className="glass-btn create-league-small-btn"
-              disabled={busy || session?.rounds === 0}
-              onClick={() => void startSession()}
-            >
-              Empezar sesión nueva
-            </button>
-          </div>
-        </section>
-      )}
 
       <div className="tracker-footer">
         <Link to="/mis-ligas" className="create-league-link">
           Volver a Mis ligas
         </Link>
         <button type="button" className="create-league-link" onClick={() => void remove()}>
-          {tracker.owner ? 'Borrar marcador' : 'Salir del marcador'}
+          {tracker.owner ? 'Borrar la liga' : 'Salir de la liga'}
         </button>
       </div>
     </section>
