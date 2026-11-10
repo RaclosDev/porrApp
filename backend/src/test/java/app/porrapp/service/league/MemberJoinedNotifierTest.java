@@ -179,4 +179,13 @@ class MemberJoinedNotifierTest {
     private static PushSubscription device(UserAccount user, String key) {
         return PushSubscription.builder().user(user).endpoint("https://push.test/" + key).p256dh("p").auth("x").build();
     }
+
+    @Test
+    void aStartedGameDayNotifiesTheOtherMembersWithAlertsOn() {
+        assertThat(notifier.notifyDayStarted(new ScoreDayStartedEvent(5L, 4L))).isEqualTo(2);
+
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(sender, org.mockito.Mockito.times(2)).send(anyString(), anyString(), anyString(), payload.capture(), anyInt());
+        assertThat(payload.getValue()).contains("Ha empezado un día de juego").contains("Pepe").contains("Los del barrio");
+    }
 }

@@ -24,7 +24,8 @@ public record ScoreTrackerDTO(Long id, String name, String unit, boolean lowerWi
     }
 
     /** Día de juego: cuándo empezó, si ya se cerró, quién vino y sus partidas en orden. */
-    public record Day(Long id, String startedAt, String closedAt, List<Long> playerIds, List<Long> sessionIds) {
+    public record Day(Long id, String startedAt, String closedAt, List<Long> playerIds, List<Long> sessionIds,
+                      String playedOn) {
     }
 
     /**
@@ -41,7 +42,7 @@ public record ScoreTrackerDTO(Long id, String name, String unit, boolean lowerWi
      * ganó y 0 el resto). {@code recordedBy} es el nombre de quien la apuntó, si se sabe.
      */
     public record Round(Long id, Long sessionId, int number, String note, String createdAt,
-                        Map<Long, Integer> scores, String recordedBy) {
+                        Map<Long, Integer> scores, String recordedBy, int revision) {
     }
 
     /** Clasificación acumulada de todas las partidas de un juego. */

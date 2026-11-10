@@ -17,5 +17,5 @@ public record ScoreTrackerRequest(
         @Size(max = 30) String unit,
         boolean lowerWins,
         @Size(max = 19) List<@NotBlank @Size(max = 40) String> players,
-        @Pattern(regexp = "POINTS|WINS") String mode) {
+        @Pattern(regexp = "POINTS|WINS|DIRECT") String mode) {
 }

@@ -16,6 +16,7 @@ public class ScoreGame {
 
     public static final String MODE_POINTS = "POINTS";
     public static final String MODE_WINS = "WINS";
+    public static final String MODE_DIRECT = "DIRECT";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,7 +38,7 @@ public class ScoreGame {
     @Column(name = "lower_wins", nullable = false)
     private boolean lowerWins = false;
 
-    /** {@link #MODE_POINTS}: cada ronda apunta puntos. {@link #MODE_WINS}: cada ronda apunta quién ganó. */
+    /** Puntos por ronda, victorias por ronda o ganador directo de la partida. */
     @Builder.Default
     @Column(nullable = false, length = 10)
     private String mode = MODE_POINTS;
@@ -47,6 +48,10 @@ public class ScoreGame {
     private Instant createdAt = Instant.now();
 
     public boolean isWins() {
-        return MODE_WINS.equals(mode);
+        return MODE_WINS.equals(mode) || MODE_DIRECT.equals(mode);
+    }
+
+    public boolean isDirect() {
+        return MODE_DIRECT.equals(mode);
     }
 }

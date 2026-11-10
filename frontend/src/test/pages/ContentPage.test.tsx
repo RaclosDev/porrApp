@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import ContentPage from '../../pages/ContentPage';
@@ -25,6 +25,23 @@ const publishedShots = new Set(
 );
 
 describe('ContentPage', () => {
+  it('la página de juegos de mesa deja probar la hoja de puntos sin cuenta', () => {
+    renderPage('/apuntar-puntos-juegos-de-mesa');
+    expect(screen.getByRole('link', { name: 'Probar la hoja de puntos' })).toHaveAttribute(
+      'href',
+      '#demo',
+    );
+    const table = screen.getByRole('table', { name: 'Hoja de puntos de ejemplo' });
+    const totals = () => within(table).getByRole('row', { name: /Total/ });
+    expect(totals()).toHaveTextContent('Total1822 ★ (va ganando)19');
+
+    fireEvent.change(screen.getByLabelText('Puntos de Ana'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apuntar ronda' }));
+    expect(totals()).toHaveTextContent('Total28 ★ (va ganando)2219');
+    fireEvent.click(screen.getByRole('button', { name: 'Empezar de nuevo' }));
+    expect(totals()).toHaveTextContent('Total1822 ★ (va ganando)19');
+  });
+
   it('shows phone screenshots of a UFC league under the headline, with fixed size and alt text', () => {
     renderPage('/porra-ufc');
 

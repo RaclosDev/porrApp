@@ -11,4 +11,6 @@ public interface ScoreSessionPlayerRepository extends JpaRepository<ScoreSession
     List<ScoreSessionPlayer> findBySessionIdIn(Collection<Long> sessionIds);
 
     List<ScoreSessionPlayer> findBySessionId(Long sessionId);
+
+    List<ScoreSessionPlayer> findByPlayerId(Long playerId);
 }

@@ -282,7 +282,7 @@ test('un día de juego entero desde el móvil: quién viene, hoja por puntos y p
   await page.getByRole('button', { name: 'Otra partida' }).click();
   await page.getByRole('button', { name: 'Otro juego nuevo' }).click();
   await page.getByLabel('Nombre del juego').fill('Mus');
-  await page.getByRole('button', { name: 'Por victorias' }).click();
+  await page.getByRole('button', { name: 'Victorias por ronda' }).click();
   await page.getByRole('button', { name: 'Crear y jugar' }).click();
 
   await expect(page.getByRole('heading', { name: 'Mus · partida 2' })).toBeVisible();
@@ -298,7 +298,7 @@ test('un día de juego entero desde el móvil: quién viene, hoja por puntos y p
   await page.getByRole('link', { name: 'Ir a la partida' }).click();
   await expect(page.getByRole('heading', { name: 'Mus · partida 2' })).toBeVisible();
 
-  // En el histórico queda el día con sus partidas; la primera se abre sin poder tocarla.
+  // En el histórico queda el día con sus partidas; el dueño puede corregir rondas cerradas.
   await nav.getByRole('link', { name: 'Histórico' }).click();
   await expect(page).toHaveURL(`${ORIGIN}/historico`);
   const history = page.getByRole('region', { name: 'Días de juego' });
@@ -307,7 +307,7 @@ test('un día de juego entero desde el móvil: quién viene, hoja por puntos y p
   await history.getByRole('button', { name: /Catán · partida 1/ }).click();
   await expect(history.getByRole('table', { name: 'Hoja de la partida 1 de Catán' })).toBeVisible();
   await expect(history.getByText('Gana Berto')).toBeVisible();
-  await expect(history.getByRole('button', { name: /Corregir/ })).toHaveCount(0);
+  await expect(history.getByRole('button', { name: /Corregir/ })).toHaveCount(2);
   await history.getByRole('button', { name: 'Volver al histórico' }).scrollIntoViewIfNeeded();
   await snap(page, '5-historico');
 });

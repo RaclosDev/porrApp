@@ -1,6 +1,8 @@
 package app.porrapp.controller;
 
+import app.porrapp.dto.ScoreDayDateRequest;
 import app.porrapp.dto.ScoreGameNameRequest;
+import app.porrapp.dto.ScorePlayerMergeRequest;
 import app.porrapp.dto.ScoreGameRequest;
 import app.porrapp.dto.ScorePlayerIdsRequest;
 import app.porrapp.dto.ScoreTrackerClaimRequest;
@@ -11,6 +13,7 @@ import app.porrapp.dto.ScoreTrackerRequest;
 import app.porrapp.dto.ScoreTrackerRoundRequest;
 import app.porrapp.dto.ScoreTrackerSessionRequest;
 import app.porrapp.dto.ScoreTrackerSummaryDTO;
+import app.porrapp.model.ScoreTrackerRoundChange;
 import app.porrapp.dto.StatusResponse;
 import app.porrapp.service.league.ScoreTrackerService;
 import jakarta.validation.Valid;
@@ -67,8 +70,15 @@ public class ScoreTrackerController {
     }
 
     @DeleteMapping("/{id}/rounds/{roundId}")
-    public ScoreTrackerDTO deleteRound(@PathVariable Long id, @PathVariable Long roundId, Principal principal) {
-        return service.deleteRound(principal.getName(), id, roundId);
+    public ScoreTrackerDTO deleteRound(@PathVariable Long id, @PathVariable Long roundId,
+                                       @RequestParam Integer revision, Principal principal) {
+        return service.deleteRound(principal.getName(), id, roundId, revision);
+    }
+
+    @GetMapping("/{id}/rounds/{roundId}/changes")
+    public List<ScoreTrackerRoundChange> roundHistory(@PathVariable Long id, @PathVariable Long roundId,
+                                                       Principal principal) {
+        return service.roundHistory(principal.getName(), id, roundId);
     }
 
     @PostMapping("/{id}/sessions")
@@ -141,6 +151,36 @@ public class ScoreTrackerController {
     public ScoreTrackerDTO addPlayer(@PathVariable Long id, @Valid @RequestBody ScoreTrackerPlayerRequest request,
                                      Principal principal) {
         return service.addPlayer(principal.getName(), id, request.name());
+    }
+
+    @PutMapping("/{id}/players/{playerId}")
+    public ScoreTrackerDTO renamePlayer(@PathVariable Long id, @PathVariable Long playerId,
+                                        @Valid @RequestBody ScoreTrackerPlayerRequest request, Principal principal) {
+        return service.renamePlayer(principal.getName(), id, playerId, request.name());
+    }
+
+    @DeleteMapping("/{id}/players/{playerId}")
+    public ScoreTrackerDTO deletePlayer(@PathVariable Long id, @PathVariable Long playerId, Principal principal) {
+        return service.deletePlayer(principal.getName(), id, playerId);
+    }
+
+    /** Junta un jugador con otro que era la misma persona. */
+    @PostMapping("/{id}/players/{playerId}/merge")
+    public ScoreTrackerDTO mergePlayer(@PathVariable Long id, @PathVariable Long playerId,
+                                       @Valid @RequestBody ScorePlayerMergeRequest request, Principal principal) {
+        return service.mergePlayer(principal.getName(), id, playerId, request.intoPlayerId());
+    }
+
+    @DeleteMapping("/{id}/days/{dayId}")
+    public ScoreTrackerDTO deleteDay(@PathVariable Long id, @PathVariable Long dayId, Principal principal) {
+        return service.deleteDay(principal.getName(), id, dayId);
+    }
+
+    /** Pone a un día de juego ya cerrado la fecha en que se jugó. */
+    @PutMapping("/{id}/days/{dayId}/date")
+    public ScoreTrackerDTO moveDay(@PathVariable Long id, @PathVariable Long dayId,
+                                   @Valid @RequestBody ScoreDayDateRequest request, Principal principal) {
+        return service.moveDay(principal.getName(), id, dayId, request.date());
     }
 
     /** El usuario se apunta a uno de los jugadores como «soy yo». */

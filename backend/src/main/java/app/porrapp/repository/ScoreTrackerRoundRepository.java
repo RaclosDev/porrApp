@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface ScoreTrackerRoundRepository extends JpaRepository<ScoreTrackerRound, Long> {
 
@@ -13,4 +15,6 @@ public interface ScoreTrackerRoundRepository extends JpaRepository<ScoreTrackerR
     List<ScoreTrackerRound> findByLeagueIdIn(Collection<Long> leagueIds);
 
     long countByLeagueId(Long leagueId);
+
+    Optional<ScoreTrackerRound> findByLeagueIdAndClientRequestId(Long leagueId, UUID clientRequestId);
 }
