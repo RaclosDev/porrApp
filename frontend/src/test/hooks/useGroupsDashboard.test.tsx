@@ -97,10 +97,11 @@ describe('useGroupsDashboard', () => {
     expect(context.changeGroup).toHaveBeenCalledWith('5');
   });
 
-  it('al unirse a una liga de juegos de mesa abre su marcador y no la deja como liga activa', async () => {
+  it('al unirse a una liga de juegos de mesa la deja como activa y abre su marcador', async () => {
     const joined = group({ id: 9, name: 'Mus de los jueves', kind: 'SCOREBOARD' });
     vi.mocked(api.fetchMyGroups).mockResolvedValue([]);
     vi.mocked(api.joinGroup).mockResolvedValue(joined);
+    vi.mocked(api.fetchGroup).mockResolvedValue(joined);
     const { result } = renderHook(
       () => ({ dashboard: useGroupsDashboard(), location: useLocation() }),
       { wrapper },
@@ -110,19 +111,20 @@ describe('useGroupsDashboard', () => {
     await act(async () => {
       await result.current.dashboard.handleJoin();
     });
-    expect(result.current.location.pathname).toBe('/marcador/9');
-    expect(context.changeGroup).not.toHaveBeenCalled();
+    // Sin jornadas: su inicio es el marcador.
+    expect(result.current.location.pathname).toBe('/');
+    expect(context.changeGroup).toHaveBeenCalledWith('9');
     expect(result.current.dashboard.joinCode).toBe('');
   });
 
-  it('las ligas de juegos de mesa no entran en la lista de ligas de predicciones', async () => {
+  it('las ligas de juegos de mesa están en la lista de ligas del usuario', async () => {
     vi.mocked(api.fetchMyGroups).mockResolvedValue([
       group({ id: 1, name: 'Peña de LaLiga' }),
       group({ id: 9, name: 'Mus de los jueves', kind: 'SCOREBOARD' }),
     ]);
     const { result } = renderHook(() => useGroupsDashboard(), { wrapper });
-    await waitFor(() => expect(result.current.groups).toHaveLength(1));
-    expect(result.current.groups[0].name).toBe('Peña de LaLiga');
+    await waitFor(() => expect(result.current.groups).toHaveLength(2));
+    expect(result.current.groups[1].name).toBe('Mus de los jueves');
   });
 
   it('repetir una liga la crea, refresca la lista y deja la nueva como activa', async () => {

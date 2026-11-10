@@ -41,8 +41,9 @@ import { errorMessage } from '../utils/errors';
  * apunta cada ronda en la hoja y al terminar se ve quién ha ganado. Cualquier miembro apunta y todos
  * los móviles lo ven en directo.
  */
-export default function TrackerView() {
-  const { id = '' } = useParams();
+export default function TrackerView({ leagueId }: { leagueId?: string | null }) {
+  const params = useParams();
+  const id = leagueId ?? params.id ?? '';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -203,7 +204,11 @@ export default function TrackerView() {
     try {
       await (tracker.owner ? deleteTracker(tracker.id) : leaveTracker(tracker.id));
       queryClient.removeQueries({ queryKey: queryKeys.tracker(id) });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.trackers() });
+      // Al salir de la lista de ligas deja de ser la activa y se abre otra.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.trackers() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+      ]);
       navigate('/mis-ligas', { replace: true });
     } catch (reason) {
       toast.error(errorMessage(reason, 'No se pudo completar'));

@@ -29,6 +29,8 @@ function Bracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Mi porra" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
+    // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
+    scoreboard: <Navigate to="/" replace />,
     groupStage: <GroupStageBracket />,
     // Los cuadros propios (personalizadas, Worlds de LoL…) se pronostican sobre sus cruces.
     customBracket: <CustomBracket />,

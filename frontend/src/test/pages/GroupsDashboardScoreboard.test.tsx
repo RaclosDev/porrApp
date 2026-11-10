@@ -41,7 +41,7 @@ beforeEach(() => {
   vi.mocked(fetchMyLeagueSummaries).mockResolvedValue([]);
 });
 
-it('una liga de juegos de mesa sale una sola vez, como marcador y no como liga de predicciones', async () => {
+it('una liga de juegos de mesa sale una sola vez, con su tarjeta, y se abre como liga activa', async () => {
   // El servidor la manda en las dos listas: como liga del usuario y como marcador.
   vi.mocked(fetchMyGroups).mockResolvedValue([
     group({ id: 1, name: 'Peña de LaLiga' }),
@@ -55,7 +55,7 @@ it('una liga de juegos de mesa sale una sola vez, como marcador y no como liga d
   const scoreboard = await screen.findByRole('link', {
     name: 'Abrir el marcador Mus de los jueves',
   });
-  expect(scoreboard).toHaveAttribute('href', '/marcador/9');
+  expect(scoreboard).toHaveAttribute('href', '/?group=9');
   expect(await screen.findByText('Peña de LaLiga')).toBeInTheDocument();
   expect(screen.getAllByText('Mus de los jueves')).toHaveLength(1);
   expect(within(scoreboard).getByText('Mus de los jueves')).toBeInTheDocument();

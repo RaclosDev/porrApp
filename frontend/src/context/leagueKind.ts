@@ -17,6 +17,7 @@ import { isTennisCompetition } from '../utils/tennisDraw';
  * - `fightCard`: velada a velada (UFC); su tabla es la cartelera.
  * - `tennisDraw`: partido a partido de tenis; su tabla es el cuadro del torneo.
  * - `grandPrix`: Gran Premio a Gran Premio (Fórmula 1).
+ * - `scoreboard`: liga de juegos de mesa; no hay predicciones y su inicio es el marcador.
  * - `unknown`: una combinación que esta versión no reconoce; no se enseña nada de otra clase.
  */
 export type LeagueKind =
@@ -31,6 +32,7 @@ export type LeagueKind =
   | 'fightCard'
   | 'tennisDraw'
   | 'grandPrix'
+  | 'scoreboard'
   | 'unknown';
 
 const KINDS: Record<LeagueKind, true> = {
@@ -45,6 +47,7 @@ const KINDS: Record<LeagueKind, true> = {
   fightCard: true,
   tennisDraw: true,
   grandPrix: true,
+  scoreboard: true,
   unknown: true,
 };
 
@@ -65,6 +68,7 @@ export type LeagueFacts = Pick<
   | 'customCompetition'
   | 'competitionExternalId'
   | 'multiCompetition'
+  | 'kind'
 >;
 
 export interface LeagueKindInput {
@@ -92,6 +96,7 @@ export function leagueKindOf({ hasLeague, loading, error, league }: LeagueKindIn
   if (!hasLeague) return 'none';
   if (error) return 'error';
   if (loading || !league) return 'loading';
+  if (league.kind === 'SCOREBOARD') return 'scoreboard';
   const format: PoolFormat | null | undefined = league.poolFormat;
   switch (format) {
     case 'GRAND_PRIX':
@@ -121,6 +126,7 @@ export const BRACKET_KINDS = {
   fightCard: false,
   tennisDraw: false,
   grandPrix: false,
+  scoreboard: false,
   loading: false,
   error: false,
   none: false,
@@ -137,6 +143,7 @@ export const MATCH_KINDS = {
   ownBracket: false,
   knockoutDraw: false,
   grandPrix: false,
+  scoreboard: false,
   loading: false,
   error: false,
   none: false,

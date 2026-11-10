@@ -7,6 +7,7 @@ import {
   RouterProvider,
   Routes,
   useLocation,
+  useParams,
 } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { useAppStore } from './store/useAppStore';
@@ -41,7 +42,6 @@ const GroupsDashboard = lazyPage(() => import('./pages/GroupsDashboard'));
 const CreateLeague = lazyPage(() => import('./pages/CreateLeague'));
 const CreateTracker = lazyPage(() => import('./pages/CreateTracker'));
 const TrackerView = lazyPage(() => import('./pages/TrackerView'));
-const JoinTracker = lazyPage(() => import('./pages/JoinTracker'));
 const JoinRedirect = lazyPage(() => import('./components/JoinRedirect'));
 const OfficialBracket = lazyPage(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = lazyPage(() => import('./pages/LinkedInEntry'));
@@ -170,6 +170,12 @@ const ProtectedRoute = ({
 };
 
 /** Lo que va dentro del enrutador: avisos globales, la maqueta y las rutas. */
+/** Los QR antiguos de los marcadores llevan a la invitación de la liga. */
+function LegacyScoreboardJoin() {
+  const { code = '' } = useParams();
+  return <Navigate to={`/join/${encodeURIComponent(code)}`} replace />;
+}
+
 function AppShell() {
   return (
     <>
@@ -268,14 +274,8 @@ function AppShell() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/marcador/unirse/:code"
-              element={
-                <ProtectedRoute>
-                  <JoinTracker />
-                </ProtectedRoute>
-              }
-            />
+            {/* Enlaces y QR antiguos de los marcadores: la invitación es la de cualquier liga. */}
+            <Route path="/marcador/unirse/:code" element={<LegacyScoreboardJoin />} />
             <Route
               path="/marcador/:id"
               element={

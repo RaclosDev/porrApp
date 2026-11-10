@@ -15,6 +15,10 @@ import type { Group } from '../types/api';
 import { isMatchBasedFormat } from '../utils/poolFormat';
 import { isScoreboardLeague } from '../utils/scoreboardLeague';
 
+/** Dónde empieza la liga recién abierta: las de jornadas en sus jornadas; el resto, en el inicio. */
+const landingOf = (scoreboard: boolean, poolFormat?: string | null) =>
+  !scoreboard && isMatchBasedFormat(poolFormat) ? '/jornadas' : '/';
+
 /** La invitación conserva su contexto durante el acceso y abre la liga al aceptar. */
 export default function JoinRedirect() {
   const { code = '' } = useParams();
@@ -41,23 +45,16 @@ export default function JoinRedirect() {
     if (normalizedCode) localStorage.setItem('pendingJoinCode', normalizedCode);
   }, [normalizedCode]);
 
-  // El código de una liga de juegos de mesa se canjea en su propia entrada, que abre el marcador.
+  // Una liga de juegos de mesa no tiene jornadas: su inicio es el marcador.
   const scoreboard = isScoreboardLeague(preview);
-  useEffect(() => {
-    if (!scoreboard) return;
-    localStorage.removeItem('pendingJoinCode');
-    navigate(`/marcador/unirse/${normalizedCode}`, { replace: true });
-  }, [scoreboard, normalizedCode, navigate]);
 
   useEffect(() => {
-    if (!signedIn || !preview || scoreboard || joining.current) return;
+    if (!signedIn || !preview || joining.current) return;
     const existing = membership.data?.find((group) => String(group.id) === String(preview.id));
     if (!existing) return;
     localStorage.removeItem('pendingJoinCode');
     changeGroup(String(existing.id));
-    navigate(isMatchBasedFormat(preview.poolFormat || existing.poolFormat) ? '/jornadas' : '/', {
-      replace: true,
-    });
+    navigate(landingOf(scoreboard, preview.poolFormat || existing.poolFormat), { replace: true });
   }, [signedIn, preview, scoreboard, membership.data, changeGroup, navigate]);
 
   /** @param signInFirst inicio de sesión que hacer antes de unirse; si falla, no se une */
@@ -77,9 +74,7 @@ export default function JoinRedirect() {
       queryClient.setQueryData(queryKeys.group(String(group.id)), group);
       localStorage.removeItem('pendingJoinCode');
       changeGroup(String(group.id));
-      navigate(isMatchBasedFormat(group.poolFormat || preview.poolFormat) ? '/jornadas' : '/', {
-        replace: true,
-      });
+      navigate(landingOf(scoreboard, group.poolFormat || preview.poolFormat), { replace: true });
     } catch (cause) {
       setError(errorMessage(cause, 'No se ha podido entrar en la liga. Inténtalo de nuevo.'));
     } finally {
@@ -107,12 +102,15 @@ export default function JoinRedirect() {
               <h1 className="poster-title text-2xl m-0 break-words min-w-0">{preview.name}</h1>
             </div>
             <p className="m-0 text-muted">
-              {preview.competitionName || 'Fútbol'} ·{' '}
-              {preview.poolFormat === 'SURVIVOR'
-                ? 'Superviviente'
-                : preview.poolFormat === 'MATCH_DAY'
-                  ? 'Por jornadas'
-                  : 'Cuadro del torneo'}
+              {scoreboard
+                ? 'Juego de mesa'
+                : `${preview.competitionName || 'Fútbol'} · ${
+                    preview.poolFormat === 'SURVIVOR'
+                      ? 'Superviviente'
+                      : preview.poolFormat === 'MATCH_DAY'
+                        ? 'Por jornadas'
+                        : 'Cuadro del torneo'
+                  }`}
             </p>
             {busy ? (
               <p role="status">Preparando tu entrada en la liga…</p>
@@ -129,7 +127,7 @@ export default function JoinRedirect() {
               <AuthPanel
                 intent="signup"
                 hideHeading
-                lede="Crea tu cuenta o entra para unirte a esta liga. Después te llevaremos directamente a tu porra."
+                lede={`Crea tu cuenta o entra para unirte a esta liga. Después te llevaremos directamente ${scoreboard ? 'al marcador' : 'a tu porra'}.`}
                 onGoogleSuccess={(response) => accept(() => signIn(response))}
                 onApple={() => accept(appleSignIn)}
                 signInOptions={{ navigateAfterLogin: false }}

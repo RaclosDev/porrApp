@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Dices } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 import { confirmAction } from '../utils/confirmAction';
@@ -13,8 +11,7 @@ import {
 } from '../utils/unsavedChanges';
 import { LeagueAvatar } from './Avatar';
 import { competitionLabel, poolFormatShortLabel } from '../utils/poolFormat';
-import { myTrackersQuery } from '../services/queries';
-import { scoreboardPath } from '../utils/scoreboardLeague';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 
 /** Bandera del país de la competición; sin país conocido, la liga muestra su monograma. */
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -46,11 +43,7 @@ export default function ActiveLeagueDropdown() {
     choosingLeague,
   } = useAppContext();
 
-  // Las ligas de juegos de mesa salen en la lista, pero no son la liga activa: abren su marcador.
-  const { data: scoreboards = [], isPending: scoreboardsPending } = useQuery(
-    myTrackersQuery(isAuthenticated),
-  );
-  const leagueCount = (userGroups?.length || 0) + scoreboards.length;
+  const leagueCount = userGroups?.length || 0;
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -105,8 +98,7 @@ export default function ActiveLeagueDropdown() {
 
   // Mientras llegan las ligas o se elige cuál abrir, «Crear o unirse» o «Ninguna liga» asomarían
   // un instante antes del selector.
-  const onlyScoreboardsUnknown = !userGroups?.length && scoreboardsPending;
-  if (isAuthenticated && (!userGroupsLoaded || choosingLeague || onlyScoreboardsUnknown)) {
+  if (isAuthenticated && (!userGroupsLoaded || choosingLeague)) {
     return <span className="chrome-placeholder w-50 h-11" aria-hidden="true" />;
   }
 
@@ -127,16 +119,20 @@ export default function ActiveLeagueDropdown() {
     );
   }
 
-  const currentBadge = getCompetitionBadge(activeCompetitionName);
   const activeGroup = (userGroups || []).find((g) => String(g.id) === String(activeGroupId));
+  const currentBadge = isScoreboardLeague(activeGroup)
+    ? '🎲'
+    : getCompetitionBadge(activeCompetitionName);
   const activeImageUrl = activeGroup?.imageUrl || null;
   const displayLeagueName = activeGroupName || 'Liga';
   // Solo la competición real de la liga: sin liga (o sin dato) no se supone ninguna.
   const displayCompName = !activeGroupId
     ? 'Elige una de tus ligas'
-    : activeGroupMultiCompetition
-      ? 'Varias competiciones'
-      : activeCompetitionName || '';
+    : isScoreboardLeague(activeGroup)
+      ? 'Juego de mesa'
+      : activeGroupMultiCompetition
+        ? 'Varias competiciones'
+        : activeCompetitionName || '';
 
   return (
     <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
@@ -182,10 +178,14 @@ export default function ActiveLeagueDropdown() {
           </div>
 
           <div className="max-h-60 overflow-y-auto flex flex-col gap-[3px]">
-            {scoreboards.length > 0 || sortedGroups.length > 0 ? (
+            {sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
-                const gBadge = g.multiCompetition ? null : getCompetitionBadge(g.competitionName);
+                const gBadge = isScoreboardLeague(g)
+                  ? '🎲'
+                  : g.multiCompetition
+                    ? null
+                    : getCompetitionBadge(g.competitionName);
                 return (
                   <button
                     className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(17,_24,_39,_0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)]'} text-main`}
@@ -205,12 +205,15 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {[
-                            competitionLabel(g),
-                            // Terminada, la temporada la distingue de la liga que la repite.
-                            g.seasonEnded ? `${g.season ?? 'Temporada'} terminada` : null,
-                            poolFormatShortLabel(g.poolFormat),
-                          ]
+                          {(isScoreboardLeague(g)
+                            ? ['Juego de mesa']
+                            : [
+                                competitionLabel(g),
+                                // Terminada, la temporada la distingue de la liga que la repite.
+                                g.seasonEnded ? `${g.season ?? 'Temporada'} terminada` : null,
+                                poolFormatShortLabel(g.poolFormat),
+                              ]
+                          )
                             .filter(Boolean)
                             .join(' · ')}
                         </span>
@@ -227,30 +230,6 @@ export default function ActiveLeagueDropdown() {
                   : 'Inicia sesión para unirte o ver tus ligas.'}
               </div>
             )}
-            {scoreboards.map((scoreboard) => (
-              <button
-                className="flex items-center gap-2 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full border border-transparent bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)] text-main"
-                key={`scoreboard-${scoreboard.id}`}
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate(scoreboardPath(scoreboard.id));
-                }}
-              >
-                <span
-                  className="shrink-0 size-[30px] inline-flex items-center justify-center"
-                  aria-hidden="true"
-                >
-                  <Dices size={22} />
-                </span>
-                <span className="min-w-0 flex flex-col">
-                  <span className="text-[0.88rem] font-medium overflow-hidden text-ellipsis whitespace-nowrap">
-                    {scoreboard.name}
-                  </span>
-                  <span className="text-[0.72rem] text-muted">Juego de mesa</span>
-                </span>
-              </button>
-            ))}
           </div>
 
           {/* Sin sesión, Mis ligas pide iniciarla antes de crear o unirse. */}

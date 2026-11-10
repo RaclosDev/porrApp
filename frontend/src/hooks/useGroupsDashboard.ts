@@ -23,7 +23,7 @@ import { dropFromMyGroups, forgetLeague } from '../context/leagueFallback';
 import { confirmAction } from '../utils/confirmAction';
 import { isMatchBasedFormat } from '../utils/poolFormat';
 import { copyWithToast, joinLink, shareJoinLinkOnWhatsApp } from '../utils/leagueInvite';
-import { isScoreboardLeague, scoreboardPath } from '../utils/scoreboardLeague';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 
 type GroupId = number | string;
 
@@ -231,16 +231,6 @@ export function useGroupsDashboard() {
     try {
       const group = await joinGroup(joinCode);
 
-      // Una liga de juegos de mesa no es una porra: se abre en su marcador y no pasa a ser la activa.
-      if (isScoreboardLeague(group)) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.trackers() });
-        setJoinCode('');
-        setError('');
-        toast.success(`¡Te has unido a "${group.name}"!`);
-        navigate(scoreboardPath(group.id), { replace: true });
-        return;
-      }
-
       rememberKnownGroup(group.id);
 
       const groupId = group.id.toString();
@@ -249,6 +239,7 @@ export function useGroupsDashboard() {
       // El alta afecta a la tarjeta, al listado de miembros y al ranking de esta liga.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.trackers() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) }),
@@ -267,7 +258,7 @@ export function useGroupsDashboard() {
   const handleEnterGroup = (groupId: GroupId) => {
     changeGroup(groupId.toString());
     const g = groups.find((item) => item.id.toString() === groupId.toString());
-    if (g && isMatchBasedFormat(g.poolFormat)) {
+    if (g && !isScoreboardLeague(g) && isMatchBasedFormat(g.poolFormat)) {
       navigate('/jornadas');
     } else {
       navigate('/');

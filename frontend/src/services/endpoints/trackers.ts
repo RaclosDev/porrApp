@@ -134,13 +134,6 @@ export const createTracker = (draft: TrackerDraft) =>
     fallbackError: 'No se pudo crear el marcador',
   });
 
-export const joinTracker = (code: string) =>
-  request<Tracker>('/trackers/join', {
-    method: 'POST',
-    json: { code },
-    fallbackError: 'No se pudo entrar al marcador',
-  });
-
 export const addTrackerRound = (id: number, round: TrackerRoundDraft) =>
   request<Tracker>(`/trackers/${id}/rounds`, {
     method: 'POST',
