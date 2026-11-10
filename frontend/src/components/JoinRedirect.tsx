@@ -1,8 +1,8 @@
 import PaperLoading from './PaperLoading';
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AuthPanel from './AuthPanel';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
@@ -14,16 +14,38 @@ import { errorMessage } from '../utils/errors';
 import type { Group } from '../types/api';
 import { isMatchBasedFormat } from '../utils/poolFormat';
 import { isScoreboardLeague } from '../utils/scoreboardLeague';
+import { claimTrackerPlayer } from '../services/endpoints/trackers';
 
 /** Dónde empieza la liga recién abierta: las de jornadas en sus jornadas; el resto, en el inicio. */
 const landingOf = (scoreboard: boolean, poolFormat?: string | null) =>
   !scoreboard && isMatchBasedFormat(poolFormat) ? '/jornadas' : '/';
+
+/**
+ * Quien entra con el enlace «este eres tú» de una liga de juegos de mesa hereda el histórico de ese
+ * jugador; si no se puede (otro ya lo es o ya no existe), entra igual y lo elige en el inicio.
+ */
+async function claimInvited(
+  queryClient: QueryClient,
+  playerId: number | null,
+  groupId: number | string,
+) {
+  if (!playerId) return;
+  try {
+    await claimTrackerPlayer(Number(groupId), playerId);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.tracker(groupId) });
+  } catch {
+    // Se sigue sin reclamar.
+  }
+}
 
 /** La invitación conserva su contexto durante el acceso y abre la liga al aceptar. */
 export default function JoinRedirect() {
   const { code = '' } = useParams();
   const normalizedCode = code.trim().toUpperCase();
   const navigate = useNavigate();
+  // En una liga de juegos de mesa, el jugador apuntado a mano que es quien abre el enlace.
+  const [searchParams] = useSearchParams();
+  const invitedPlayer = Number(searchParams.get('jugador')) || null;
   const queryClient = useQueryClient();
   const { isAuthenticated, userName, changeGroup } = useAppContext();
   const signedIn = isAuthenticated && Boolean(userName);
@@ -53,9 +75,22 @@ export default function JoinRedirect() {
     const existing = membership.data?.find((group) => String(group.id) === String(preview.id));
     if (!existing) return;
     localStorage.removeItem('pendingJoinCode');
-    changeGroup(String(existing.id));
-    navigate(landingOf(scoreboard, preview.poolFormat || existing.poolFormat), { replace: true });
-  }, [signedIn, preview, scoreboard, membership.data, changeGroup, navigate]);
+    joining.current = true;
+    void claimInvited(queryClient, scoreboard ? invitedPlayer : null, existing.id).finally(() => {
+      joining.current = false;
+      changeGroup(String(existing.id));
+      navigate(landingOf(scoreboard, preview.poolFormat || existing.poolFormat), { replace: true });
+    });
+  }, [
+    signedIn,
+    preview,
+    scoreboard,
+    membership.data,
+    changeGroup,
+    navigate,
+    queryClient,
+    invitedPlayer,
+  ]);
 
   /** @param signInFirst inicio de sesión que hacer antes de unirse; si falla, no se une */
   const accept = async (signInFirst?: () => Promise<boolean>) => {
@@ -73,6 +108,7 @@ export default function JoinRedirect() {
       ]);
       queryClient.setQueryData(queryKeys.group(String(group.id)), group);
       localStorage.removeItem('pendingJoinCode');
+      await claimInvited(queryClient, scoreboard ? invitedPlayer : null, group.id);
       changeGroup(String(group.id));
       navigate(landingOf(scoreboard, group.poolFormat || preview.poolFormat), { replace: true });
     } catch (cause) {

@@ -34,7 +34,7 @@ export interface TrackerGame {
 }
 
 /** Día de juego: quién vino y sus partidas en orden; `closedAt` vacío mientras sigue. */
-interface TrackerDay {
+export interface TrackerDay {
   id: number;
   startedAt: string;
   closedAt: string | null;
@@ -226,4 +226,52 @@ export const releaseTrackerPlayer = (id: number) =>
   request<Tracker>(`/trackers/${id}/me`, {
     method: 'DELETE',
     fallbackError: 'No se pudo quitarte del jugador',
+  });
+
+export const renameTrackerPlayer = (id: number, playerId: number, name: string) =>
+  request<Tracker>(`/trackers/${id}/players/${playerId}`, {
+    method: 'PUT',
+    json: { name },
+    fallbackError: 'No se pudo cambiar el nombre',
+  });
+
+export const deleteTrackerPlayer = (id: number, playerId: number) =>
+  request<Tracker>(`/trackers/${id}/players/${playerId}`, {
+    method: 'DELETE',
+    fallbackError: 'No se pudo quitar el jugador',
+  });
+
+/** Junta `playerId` con `intoPlayerId`: sus rondas pasan al segundo y el primero desaparece. */
+export const mergeTrackerPlayer = (id: number, playerId: number, intoPlayerId: number) =>
+  request<Tracker>(`/trackers/${id}/players/${playerId}/merge`, {
+    method: 'POST',
+    json: { intoPlayerId },
+    fallbackError: 'No se pudieron juntar los jugadores',
+  });
+
+export const editTrackerGame = (id: number, gameId: number, game: { name: string; unit: string }) =>
+  request<Tracker>(`/trackers/${id}/games/${gameId}`, {
+    method: 'PUT',
+    json: game,
+    fallbackError: 'No se pudo cambiar el juego',
+  });
+
+export const deleteTrackerGame = (id: number, gameId: number) =>
+  request<Tracker>(`/trackers/${id}/games/${gameId}`, {
+    method: 'DELETE',
+    fallbackError: 'No se pudo borrar el juego',
+  });
+
+export const deleteTrackerDay = (id: number, dayId: number) =>
+  request<Tracker>(`/trackers/${id}/days/${dayId}`, {
+    method: 'DELETE',
+    fallbackError: 'No se pudo borrar el día',
+  });
+
+/** Pone a un día de juego cerrado la fecha (AAAA-MM-DD) en que se jugó. */
+export const moveTrackerDay = (id: number, dayId: number, date: string) =>
+  request<Tracker>(`/trackers/${id}/days/${dayId}/date`, {
+    method: 'PUT',
+    json: { date },
+    fallbackError: 'No se pudo cambiar la fecha',
   });

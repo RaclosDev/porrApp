@@ -1,7 +1,11 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import TrackerHistory from '../../components/tracker/TrackerHistory';
 import TrackerOverall from '../../components/tracker/TrackerOverall';
+import TrackerManage from '../../components/tracker/TrackerManage';
+import { confirmAction } from '../../utils/confirmAction';
+vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
+
 import type { Tracker, TrackerSession, TrackerStanding } from '../../services/endpoints/trackers';
 
 const row = (
@@ -219,5 +223,95 @@ describe('Ranking por temporada', () => {
     fireEvent.click(within(seasons).getByRole('button', { name: '2026' }));
     const current = screen.getByRole('table', { name: 'Clasificación general en 2026' });
     expect(within(current).getAllByRole('row')[1]).toHaveTextContent(/1Ana.*2$/);
+  });
+});
+
+describe('Gestión de días, jugadores y juegos', () => {
+  it('el administrador cambia la fecha de un día cerrado y lo borra; el abierto no se toca', async () => {
+    vi.mocked(confirmAction).mockResolvedValue(true);
+    const onMoveDay = vi.fn().mockResolvedValue(true);
+    const onDeleteDay = vi.fn().mockResolvedValue(true);
+    render(<TrackerHistory tracker={tracker} onMoveDay={onMoveDay} onDeleteDay={onDeleteDay} />);
+
+    expect(screen.getAllByRole('button', { name: 'Cambiar fecha' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar fecha' }));
+    fireEvent.change(screen.getByLabelText('Se jugó el'), { target: { value: '2026-11-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(onMoveDay).toHaveBeenCalledWith(1, '2026-11-01'));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Borrar día' }));
+    await waitFor(() => expect(onDeleteDay).toHaveBeenCalledWith(1));
+  });
+
+  it('quien no administra no ve las acciones de los días', () => {
+    render(
+      <TrackerHistory
+        tracker={{ ...tracker, owner: false }}
+        onMoveDay={vi.fn()}
+        onDeleteDay={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Cambiar fecha' })).not.toBeInTheDocument();
+  });
+
+  const managed: Tracker = {
+    ...tracker,
+    players: [...tracker.players, { id: 14, name: 'Dani' }],
+  };
+  const handlers = () => ({
+    onRenamePlayer: vi.fn().mockResolvedValue(true),
+    onDeletePlayer: vi.fn().mockResolvedValue(true),
+    onMergePlayer: vi.fn().mockResolvedValue(true),
+    onEditGame: vi.fn().mockResolvedValue(true),
+    onDeleteGame: vi.fn().mockResolvedValue(true),
+  });
+
+  it('renombra, junta y quita solo a quien no ha jugado ni tiene cuenta', async () => {
+    vi.mocked(confirmAction).mockResolvedValue(true);
+    const on = handlers();
+    render(<TrackerManage tracker={managed} busy={false} {...on} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar a Carla' }));
+    expect(screen.queryByRole('button', { name: 'Quitar a Carla' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Nombre de Carla'), { target: { value: 'Carlota' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(on.onRenamePlayer).toHaveBeenCalledWith(13, 'Carlota'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar a Dani' }));
+    fireEvent.change(screen.getByLabelText('Juntar a Dani con'), { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Juntar' }));
+    await waitFor(() => expect(on.onMergePlayer).toHaveBeenCalledWith(14, 12));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar a Dani' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar a Dani' }));
+    await waitFor(() => expect(on.onDeletePlayer).toHaveBeenCalledWith(14));
+  });
+
+  it('edita un juego y solo deja borrar el que no tiene rondas', async () => {
+    vi.mocked(confirmAction).mockResolvedValue(true);
+    const on = handlers();
+    render(<TrackerManage tracker={managed} busy={false} {...on} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Catán' }));
+    expect(screen.queryByRole('button', { name: 'Borrar Catán' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Qué se cuenta'), {
+      target: { value: 'puntos de victoria' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() =>
+      expect(on.onEditGame).toHaveBeenCalledWith(3, { name: 'Catán', unit: 'puntos de victoria' }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Dixit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar Dixit' }));
+    await waitFor(() => expect(on.onDeleteGame).toHaveBeenCalledWith(5));
+  });
+
+  it('un miembro solo puede cambiar su propio nombre y no ve los juegos', () => {
+    render(<TrackerManage tracker={{ ...managed, owner: false }} busy={false} {...handlers()} />);
+
+    expect(screen.getByRole('button', { name: 'Editar a Ana' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar a Berto' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Juegos' })).not.toBeInTheDocument();
   });
 });

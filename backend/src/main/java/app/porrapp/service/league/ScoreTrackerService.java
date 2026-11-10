@@ -47,6 +47,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -682,6 +685,8 @@ public class ScoreTrackerService {
         if (name.isEmpty()) throw BusinessException.badRequest("Ponle nombre al juego");
         requireFreeGameName(games.findByLeagueIdOrderByIdAsc(leagueId), name, gameId);
         game.setName(name);
+        String unit = clean(request.unit());
+        if (!unit.isEmpty()) game.setUnit(unit);
         games.save(game);
         return changed(league, userId);
     }
@@ -753,6 +758,11 @@ public class ScoreTrackerService {
         players.findByLeagueIdAndUserId(leagueId, userId).ifPresent(previous -> {
             previous.setUserId(null);
             players.saveAndFlush(previous);
+            // El que se creó al unirse y nunca ha jugado sobra: ahora es el jugador que reclama.
+            if (!hasPlayed(previous.getId())) {
+                players.delete(previous);
+                players.flush();
+            }
         });
         target.setUserId(userId);
         players.save(target);
@@ -765,6 +775,145 @@ public class ScoreTrackerService {
         League league = visible(userId, leagueId);
         roster.memberLeft(leagueId, userId);
         return changed(league, userId);
+    }
+
+    private boolean hasPlayed(Long playerId) {
+        return !scores.findByPlayerIdIn(List.of(playerId)).isEmpty()
+                || !sessionPlayers.findByPlayerId(playerId).isEmpty();
+    }
+
+    private ScoreTrackerPlayer playerOf(Long leagueId, Long playerId) {
+        return players.findById(playerId).filter(found -> found.getLeagueId().equals(leagueId))
+                .orElseThrow(() -> BusinessException.badRequest("Jugador no válido"));
+    }
+
+    /** Cambia el nombre de un jugador: lo hace el administrador o la persona que es ese jugador. */
+    @Transactional
+    public ScoreTrackerDTO renamePlayer(String email, Long leagueId, Long playerId, String name) {
+        Long userId = userId(email);
+        League league = visible(userId, leagueId);
+        ScoreTrackerPlayer player = playerOf(leagueId, playerId);
+        if (!administers(league, userId) && !userId.equals(player.getUserId())) {
+            throw BusinessException.forbidden("Solo el administrador o ese jugador pueden cambiarle el nombre");
+        }
+        String cleaned = clean(name);
+        if (cleaned.isEmpty()) throw BusinessException.badRequest("Escribe el nombre del jugador");
+        String wanted = cleaned.length() > MAX_NAME_LENGTH ? cleaned.substring(0, MAX_NAME_LENGTH) : cleaned;
+        if (players.findByLeagueIdOrderByPositionAsc(leagueId).stream()
+                .anyMatch(other -> !other.getId().equals(playerId) && other.getName().equalsIgnoreCase(wanted))) {
+            throw BusinessException.badRequest("Ya hay un jugador con ese nombre");
+        }
+        player.setName(wanted);
+        players.save(player);
+        return changed(league, userId);
+    }
+
+    /** Quita un jugador apuntado por error: solo el administrador y solo si no ha jugado ninguna partida. */
+    @Transactional
+    public ScoreTrackerDTO deletePlayer(String email, Long leagueId, Long playerId) {
+        Long userId = userId(email);
+        League league = owned(userId, leagueId);
+        ScoreTrackerPlayer player = playerOf(leagueId, playerId);
+        if (player.getUserId() != null) {
+            throw BusinessException.conflict("Ese jugador es de una persona de la liga: no se puede quitar");
+        }
+        if (hasPlayed(playerId)) {
+            throw BusinessException.conflict("Ese jugador ya ha jugado: júntalo con otro en vez de quitarlo");
+        }
+        players.delete(player);
+        players.flush();
+        return changed(league, userId);
+    }
+
+    /**
+     * Junta dos jugadores que eran la misma persona: las rondas, partidas y días de uno pasan al otro y el
+     * primero desaparece. Si el que se quita era de alguien, su cuenta pasa al que queda.
+     */
+    @Transactional
+    public ScoreTrackerDTO mergePlayer(String email, Long leagueId, Long playerId, Long intoPlayerId) {
+        Long userId = userId(email);
+        League league = owned(userId, leagueId);
+        if (playerId.equals(intoPlayerId)) throw BusinessException.badRequest("Elige otro jugador");
+        ScoreTrackerPlayer source = playerOf(leagueId, playerId);
+        ScoreTrackerPlayer target = playerOf(leagueId, intoPlayerId);
+        if (source.getUserId() != null && target.getUserId() != null) {
+            throw BusinessException.conflict("Los dos jugadores son de personas distintas");
+        }
+        List<ScoreTrackerScore> moved = scores.findByPlayerIdIn(List.of(playerId));
+        Set<Long> targetRounds = scores.findByPlayerIdIn(List.of(intoPlayerId)).stream()
+                .map(ScoreTrackerScore::getRoundId).collect(Collectors.toSet());
+        if (moved.stream().anyMatch(score -> targetRounds.contains(score.getRoundId()))) {
+            throw BusinessException.conflict("Los dos jugaron la misma ronda: no son la misma persona");
+        }
+        scores.deleteAll(moved);
+        scores.flush();
+        moved.forEach(score -> scores.save(ScoreTrackerScore.builder().roundId(score.getRoundId())
+                .playerId(intoPlayerId).points(score.getPoints()).build()));
+
+        List<ScoreSessionPlayer> sourceSessions = sessionPlayers.findByPlayerId(playerId);
+        Set<Long> targetSessions = sessionPlayers.findByPlayerId(intoPlayerId).stream()
+                .map(ScoreSessionPlayer::getSessionId).collect(Collectors.toSet());
+        sessionPlayers.deleteAll(sourceSessions);
+        sessionPlayers.flush();
+        sourceSessions.stream().map(ScoreSessionPlayer::getSessionId).filter(id -> !targetSessions.contains(id))
+                .forEach(id -> sessionPlayers.save(new ScoreSessionPlayer(id, intoPlayerId)));
+
+        List<ScoreDayPlayer> sourceDays = dayPlayers.findByPlayerId(playerId);
+        Set<Long> targetDays = dayPlayers.findByPlayerId(intoPlayerId).stream()
+                .map(ScoreDayPlayer::getDayId).collect(Collectors.toSet());
+        dayPlayers.deleteAll(sourceDays);
+        dayPlayers.flush();
+        sourceDays.stream().map(ScoreDayPlayer::getDayId).filter(id -> !targetDays.contains(id))
+                .forEach(id -> dayPlayers.save(new ScoreDayPlayer(id, intoPlayerId)));
+
+        Long account = source.getUserId();
+        players.delete(source);
+        players.flush();
+        if (account != null) {
+            target.setUserId(account);
+            players.save(target);
+        }
+        return changed(league, userId);
+    }
+
+    /** Borra un día de juego apuntado por error, con sus partidas (solo el administrador). */
+    @Transactional
+    public ScoreTrackerDTO deleteDay(String email, Long leagueId, Long dayId) {
+        Long userId = userId(email);
+        League league = owned(userId, leagueId);
+        days.delete(dayOf(leagueId, dayId));
+        days.flush();
+        return changed(league, userId);
+    }
+
+    /**
+     * Cambia la fecha de un día de juego terminado, para apuntar uno pasado: se juega, se cierra y se le pone
+     * el día en que fue. Sus partidas se mueven con él y conservan la hora.
+     */
+    @Transactional
+    public ScoreTrackerDTO moveDay(String email, Long leagueId, Long dayId, LocalDate date) {
+        Long userId = userId(email);
+        League league = owned(userId, leagueId);
+        ScoreDay day = dayOf(leagueId, dayId);
+        if (day.isOpen()) throw BusinessException.badRequest("Cierra el día antes de cambiarle la fecha");
+        ZoneId zone = ZoneId.systemDefault();
+        if (date.isAfter(LocalDate.now(zone))) throw BusinessException.badRequest("La fecha no puede ser futura");
+        long shift = ChronoUnit.DAYS.between(day.getStartedAt().atZone(zone).toLocalDate(), date);
+        if (shift == 0) return view(league, userId);
+        day.setStartedAt(shifted(day.getStartedAt(), shift, zone));
+        day.setClosedAt(shifted(day.getClosedAt(), shift, zone));
+        days.save(day);
+        sessions.findByLeagueIdOrderByIdAsc(leagueId).stream().filter(session -> dayId.equals(session.getDayId()))
+                .forEach(session -> {
+                    session.setStartedAt(shifted(session.getStartedAt(), shift, zone));
+                    session.setEndedAt(shifted(session.getEndedAt(), shift, zone));
+                    sessions.save(session);
+                });
+        return changed(league, userId);
+    }
+
+    private static Instant shifted(Instant at, long days, ZoneId zone) {
+        return at == null ? null : at.atZone(zone).plusDays(days).toInstant();
     }
 
     /** Borra la liga entera (solo su administrador). */

@@ -1,6 +1,8 @@
 package app.porrapp.controller;
 
+import app.porrapp.dto.ScoreDayDateRequest;
 import app.porrapp.dto.ScoreGameNameRequest;
+import app.porrapp.dto.ScorePlayerMergeRequest;
 import app.porrapp.dto.ScoreGameRequest;
 import app.porrapp.dto.ScorePlayerIdsRequest;
 import app.porrapp.dto.ScoreTrackerClaimRequest;
@@ -141,6 +143,36 @@ public class ScoreTrackerController {
     public ScoreTrackerDTO addPlayer(@PathVariable Long id, @Valid @RequestBody ScoreTrackerPlayerRequest request,
                                      Principal principal) {
         return service.addPlayer(principal.getName(), id, request.name());
+    }
+
+    @PutMapping("/{id}/players/{playerId}")
+    public ScoreTrackerDTO renamePlayer(@PathVariable Long id, @PathVariable Long playerId,
+                                        @Valid @RequestBody ScoreTrackerPlayerRequest request, Principal principal) {
+        return service.renamePlayer(principal.getName(), id, playerId, request.name());
+    }
+
+    @DeleteMapping("/{id}/players/{playerId}")
+    public ScoreTrackerDTO deletePlayer(@PathVariable Long id, @PathVariable Long playerId, Principal principal) {
+        return service.deletePlayer(principal.getName(), id, playerId);
+    }
+
+    /** Junta un jugador con otro que era la misma persona. */
+    @PostMapping("/{id}/players/{playerId}/merge")
+    public ScoreTrackerDTO mergePlayer(@PathVariable Long id, @PathVariable Long playerId,
+                                       @Valid @RequestBody ScorePlayerMergeRequest request, Principal principal) {
+        return service.mergePlayer(principal.getName(), id, playerId, request.intoPlayerId());
+    }
+
+    @DeleteMapping("/{id}/days/{dayId}")
+    public ScoreTrackerDTO deleteDay(@PathVariable Long id, @PathVariable Long dayId, Principal principal) {
+        return service.deleteDay(principal.getName(), id, dayId);
+    }
+
+    /** Pone a un día de juego ya cerrado la fecha en que se jugó. */
+    @PutMapping("/{id}/days/{dayId}/date")
+    public ScoreTrackerDTO moveDay(@PathVariable Long id, @PathVariable Long dayId,
+                                   @Valid @RequestBody ScoreDayDateRequest request, Principal principal) {
+        return service.moveDay(principal.getName(), id, dayId, request.date());
     }
 
     /** El usuario se apunta a uno de los jugadores como «soy yo». */
