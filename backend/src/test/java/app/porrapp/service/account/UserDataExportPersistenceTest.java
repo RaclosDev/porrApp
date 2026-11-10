@@ -9,6 +9,7 @@ import app.porrapp.model.PoolFormat;
 import app.porrapp.model.Prediction;
 import app.porrapp.model.PushNotificationLog;
 import app.porrapp.model.PushSubscription;
+import app.porrapp.model.ScoreDay;
 import app.porrapp.model.ScoreGame;
 import app.porrapp.model.ScoreTrackerPlayer;
 import app.porrapp.model.ScoreTrackerRound;
@@ -96,8 +97,9 @@ class UserDataExportPersistenceTest {
                 .position(0).userId(ana.getId()).build());
         ScoreTrackerPlayer guest = em.persist(ScoreTrackerPlayer.builder().leagueId(league.getId()).name("Invitada")
                 .position(1).build());
+        ScoreDay day = em.persist(ScoreDay.builder().leagueId(league.getId()).build());
         ScoreTrackerSession session = em.persist(ScoreTrackerSession.builder().leagueId(league.getId())
-                .gameId(game.getId()).build());
+                .gameId(game.getId()).dayId(day.getId()).build());
         for (int points : new int[]{3, 5}) {
             ScoreTrackerRound round = em.persist(ScoreTrackerRound.builder().leagueId(league.getId())
                     .sessionId(session.getId()).build());
