@@ -372,6 +372,141 @@
     }
   }
 
+  /* Caras de los pilotos (ESPN) con el aro de su escudería, y escudos con su color */
+  .gp-face {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid var(--gp-team);
+    background: var(--panel-bg);
+    object-fit: cover;
+    object-position: center top;
+  }
+
+  .gp-face.is-initials {
+    font-weight: 800;
+    color: var(--text-main);
+  }
+
+  .gp-crest {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  .gp-face-stack {
+    display: inline-flex;
+  }
+
+  .gp-face-stack .gp-face + .gp-face {
+    margin-left: -8px;
+  }
+
+  .gp-select-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .gp-select-row .gp-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gp-cell-driver {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Inicio: próximas carreras y disputadas */
+  .gp-next,
+  .gp-done {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+  }
+
+  button.gp-next,
+  button.gp-done {
+    cursor: pointer;
+  }
+
+  button.gp-next:focus-visible,
+  button.gp-done:focus-visible {
+    outline: 2px solid var(--accent-text);
+    outline-offset: 2px;
+  }
+
+  .gp-next-copy,
+  .gp-done-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .gp-next-copy strong,
+  .gp-done-copy strong {
+    color: var(--text-main);
+  }
+
+  .gp-next-side {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+  }
+
+  .gp-done-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .gp-done {
+    flex-wrap: wrap;
+  }
+
+  .gp-done-copy {
+    flex: 1 1 140px;
+  }
+
+  .gp-done-podium {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+
+  .gp-done-driver {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
   @media (prefers-reduced-motion: no-preference) {
     .gp-card-side svg {
       transition: transform 0.2s ease;

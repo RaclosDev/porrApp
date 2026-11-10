@@ -24,7 +24,19 @@ public class EspnFormulaOneClient {
 
     private static final String STANDINGS = "https://site.api.espn.com/apis/v2/sports/racing/f1/standings";
 
+    private static final String HEADSHOT = "https://a.espncdn.com/combiner/i?img=/i/headshots/rpm/players/full/%s.png&w=120&h=87&scale=crop";
+
     private final EspnSportsDataProvider espn;
+
+    /**
+     * Foto del piloto en el CDN de ESPN, recortada a 120×87. La API no la incluye, pero sigue siempre esta
+     * ruta; si un piloto no la tiene, el navegador recibe un 404 y se pintan sus iniciales.
+     *
+     * @return null si el id no es de ESPN
+     */
+    public static String headshotUrl(String athleteId) {
+        return athleteId != null && athleteId.matches("\\d{1,20}") ? HEADSHOT.formatted(athleteId) : null;
+    }
 
     public boolean isAvailable() {
         return espn.isAvailable();

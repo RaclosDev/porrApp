@@ -15,7 +15,7 @@ import LeagueHomeDashboard from '../components/Home/LeagueHomeDashboard';
 import LeagueClosing from '../components/league/LeagueClosing';
 import { isMathematicallyEliminated, isMathematicallyQualified } from '../utils/groupStatus';
 import InkStamp from '../components/InkStamp';
-import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
+import GrandPrixHome from '../components/grandPrix/GrandPrixHome';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import { useTournamentData } from '../context/leagueData';
 import type { LeagueKind } from '../context/leagueKind';
@@ -48,8 +48,8 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     matchday: <LeagueHomeDashboard />,
     fightCard: <LeagueHomeDashboard />,
     tennisDraw: <LeagueHomeDashboard />,
-    // Fórmula 1: el inicio son los Grandes Premios.
-    grandPrix: <GrandPrixPage />,
+    // Carreras: las dos próximas, el ranking, el Mundial y las ya disputadas.
+    grandPrix: <GrandPrixHome />,
     // Juegos de mesa: el inicio es el resumen de la liga (hoy, podio y último día).
     scoreboard: <TrackerHome leagueId={activeGroupId} />,
   };

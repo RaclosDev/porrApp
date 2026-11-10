@@ -566,6 +566,8 @@ export interface RaceDriver {
   /** Hexadecimal sin almohadilla. */
   teamColor: string | null;
   number: string | null;
+  /** Foto en el CDN de ESPN; puede dar 404 con un piloto nuevo. */
+  headshotUrl?: string | null;
 }
 
 type GrandPrixStatus = 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'CANCELLED' | 'POSTPONED';
@@ -610,6 +612,7 @@ export interface FormulaOneStandings {
     /** Hexadecimal sin almohadilla. */
     teamColor: string | null;
     points: number;
+    headshotUrl?: string | null;
   }[];
   constructors: { rank: number; name: string; color: string | null; points: number }[];
 }
