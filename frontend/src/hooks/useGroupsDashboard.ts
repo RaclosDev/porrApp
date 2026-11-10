@@ -23,6 +23,7 @@ import { dropFromMyGroups, forgetLeague } from '../context/leagueFallback';
 import { confirmAction } from '../utils/confirmAction';
 import { isMatchBasedFormat } from '../utils/poolFormat';
 import { copyWithToast, joinLink, shareJoinLinkOnWhatsApp } from '../utils/leagueInvite';
+import { isScoreboardLeague, scoreboardPath } from '../utils/scoreboardLeague';
 
 type GroupId = number | string;
 
@@ -230,6 +231,16 @@ export function useGroupsDashboard() {
     try {
       const group = await joinGroup(joinCode);
 
+      // Una liga de juegos de mesa no es una porra: se abre en su marcador y no pasa a ser la activa.
+      if (isScoreboardLeague(group)) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.trackers() });
+        setJoinCode('');
+        setError('');
+        toast.success(`¡Te has unido a "${group.name}"!`);
+        navigate(scoreboardPath(group.id), { replace: true });
+        return;
+      }
+
       rememberKnownGroup(group.id);
 
       const groupId = group.id.toString();
@@ -331,6 +342,7 @@ export function useGroupsDashboard() {
     handleShareWhatsApp,
     userName,
     userId,
+    isAuthenticated,
     activeGroupId,
     navigate,
   };

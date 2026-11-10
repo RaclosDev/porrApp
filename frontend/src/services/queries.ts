@@ -12,12 +12,29 @@ import {
   fetchPredictionScore,
 } from './api';
 import { isApiError } from './apiError';
+import { fetchTrackers } from './endpoints/trackers';
 import { queryKeys } from './queryKeys';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 
+/**
+ * Las ligas de predicciones del usuario. El servidor manda también sus ligas de juegos de mesa, que
+ * no tienen competición: se quitan aquí para que ninguna pantalla de la porra las abra ni las elija
+ * como liga activa. Esas llegan con `myTrackersQuery`.
+ */
 export const myGroupsQuery = (isAuthenticated: boolean) =>
   queryOptions({
     queryKey: queryKeys.myGroups(isAuthenticated),
-    queryFn: () => (isAuthenticated ? fetchMyGroups() : Promise.resolve([])),
+    queryFn: async () =>
+      isAuthenticated ? (await fetchMyGroups()).filter((group) => !isScoreboardLeague(group)) : [],
+    staleTime: 60_000,
+  });
+
+/** Las ligas de juegos de mesa del usuario, para Mis ligas y el selector de la cabecera. */
+export const myTrackersQuery = (isAuthenticated: boolean) =>
+  queryOptions({
+    queryKey: queryKeys.trackers(),
+    queryFn: fetchTrackers,
+    enabled: isAuthenticated,
     staleTime: 60_000,
   });
 

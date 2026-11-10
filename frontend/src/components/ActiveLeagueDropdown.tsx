@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Dices } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 import { confirmAction } from '../utils/confirmAction';
@@ -11,6 +13,8 @@ import {
 } from '../utils/unsavedChanges';
 import { LeagueAvatar } from './Avatar';
 import { competitionLabel, poolFormatShortLabel } from '../utils/poolFormat';
+import { myTrackersQuery } from '../services/queries';
+import { scoreboardPath } from '../utils/scoreboardLeague';
 
 /** Bandera del país de la competición; sin país conocido, la liga muestra su monograma. */
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -41,6 +45,12 @@ export default function ActiveLeagueDropdown() {
     userGroupsLoaded,
     choosingLeague,
   } = useAppContext();
+
+  // Las ligas de juegos de mesa salen en la lista, pero no son la liga activa: abren su marcador.
+  const { data: scoreboards = [], isPending: scoreboardsPending } = useQuery(
+    myTrackersQuery(isAuthenticated),
+  );
+  const leagueCount = (userGroups?.length || 0) + scoreboards.length;
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -95,12 +105,13 @@ export default function ActiveLeagueDropdown() {
 
   // Mientras llegan las ligas o se elige cuál abrir, «Crear o unirse» o «Ninguna liga» asomarían
   // un instante antes del selector.
-  if (isAuthenticated && (!userGroupsLoaded || choosingLeague)) {
+  const onlyScoreboardsUnknown = !userGroups?.length && scoreboardsPending;
+  if (isAuthenticated && (!userGroupsLoaded || choosingLeague || onlyScoreboardsUnknown)) {
     return <span className="chrome-placeholder w-50 h-11" aria-hidden="true" />;
   }
 
   // Sin ligas va a Mis ligas, que ofrece crear y unirse; el asistente de crear liga solo crea.
-  if (isAuthenticated && (!userGroups || userGroups.length === 0)) {
+  if (isAuthenticated && leagueCount === 0) {
     return (
       <button
         type="button"
@@ -166,12 +177,12 @@ export default function ActiveLeagueDropdown() {
           <div className="poster-title py-1.5 px-2.5 text-[0.8rem] text-muted border-b border-b-line mb-1 flex justify-between items-center">
             <span>Mis Ligas</span>
             <span className="text-[0.7rem] text-muted normal-case font-[Inter,sans-serif] tracking-normal">
-              {userGroups?.length || 0} {userGroups?.length === 1 ? 'liga' : 'ligas'}
+              {leagueCount} {leagueCount === 1 ? 'liga' : 'ligas'}
             </span>
           </div>
 
           <div className="max-h-60 overflow-y-auto flex flex-col gap-[3px]">
-            {sortedGroups.length > 0 ? (
+            {scoreboards.length > 0 || sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
                 const gBadge = g.multiCompetition ? null : getCompetitionBadge(g.competitionName);
@@ -216,6 +227,30 @@ export default function ActiveLeagueDropdown() {
                   : 'Inicia sesión para unirte o ver tus ligas.'}
               </div>
             )}
+            {scoreboards.map((scoreboard) => (
+              <button
+                className="flex items-center gap-2 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full border border-transparent bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)] text-main"
+                key={`scoreboard-${scoreboard.id}`}
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate(scoreboardPath(scoreboard.id));
+                }}
+              >
+                <span
+                  className="shrink-0 size-[30px] inline-flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <Dices size={22} />
+                </span>
+                <span className="min-w-0 flex flex-col">
+                  <span className="text-[0.88rem] font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+                    {scoreboard.name}
+                  </span>
+                  <span className="text-[0.72rem] text-muted">Juego de mesa</span>
+                </span>
+              </button>
+            ))}
           </div>
 
           {/* Sin sesión, Mis ligas pide iniciarla antes de crear o unirse. */}

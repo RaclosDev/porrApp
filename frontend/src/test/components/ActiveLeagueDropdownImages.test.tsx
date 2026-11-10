@@ -1,8 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ActiveLeagueDropdown from '../../components/ActiveLeagueDropdown';
 
+vi.mock('../../services/endpoints/trackers', () => ({
+  fetchTrackers: vi.fn().mockResolvedValue([]),
+}));
 vi.mock('../../context/AppContext', () => ({
   useAppContext: () => ({
     activeGroupId: 1,
@@ -27,9 +31,11 @@ vi.mock('../../context/AppContext', () => ({
 describe('ActiveLeagueDropdown con imágenes de liga', () => {
   it('muestra la imagen de la liga activa y de cada liga del selector, con su monograma como respaldo', () => {
     const { container } = render(
-      <MemoryRouter>
-        <ActiveLeagueDropdown />
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <ActiveLeagueDropdown />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     expect(container.querySelector('img')).toHaveAttribute('src', '/api/groups/1/image?v=9');
 

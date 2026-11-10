@@ -13,6 +13,7 @@ import { LeagueAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
 import type { Group } from '../types/api';
 import { isMatchBasedFormat } from '../utils/poolFormat';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 
 /** La invitación conserva su contexto durante el acceso y abre la liga al aceptar. */
 export default function JoinRedirect() {
@@ -40,8 +41,16 @@ export default function JoinRedirect() {
     if (normalizedCode) localStorage.setItem('pendingJoinCode', normalizedCode);
   }, [normalizedCode]);
 
+  // El código de una liga de juegos de mesa se canjea en su propia entrada, que abre el marcador.
+  const scoreboard = isScoreboardLeague(preview);
   useEffect(() => {
-    if (!signedIn || !preview || joining.current) return;
+    if (!scoreboard) return;
+    localStorage.removeItem('pendingJoinCode');
+    navigate(`/marcador/unirse/${normalizedCode}`, { replace: true });
+  }, [scoreboard, normalizedCode, navigate]);
+
+  useEffect(() => {
+    if (!signedIn || !preview || scoreboard || joining.current) return;
     const existing = membership.data?.find((group) => String(group.id) === String(preview.id));
     if (!existing) return;
     localStorage.removeItem('pendingJoinCode');
@@ -49,7 +58,7 @@ export default function JoinRedirect() {
     navigate(isMatchBasedFormat(preview.poolFormat || existing.poolFormat) ? '/jornadas' : '/', {
       replace: true,
     });
-  }, [signedIn, preview, membership.data, changeGroup, navigate]);
+  }, [signedIn, preview, scoreboard, membership.data, changeGroup, navigate]);
 
   /** @param signInFirst inicio de sesión que hacer antes de unirse; si falla, no se une */
   const accept = async (signInFirst?: () => Promise<boolean>) => {

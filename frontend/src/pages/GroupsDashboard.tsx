@@ -15,8 +15,7 @@ import JoinGroupPanel from '../components/groups/JoinGroupPanel';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
 import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
 import LeagueMatchesSection, { hasMatchSelection } from '../components/groups/LeagueMatchesSection';
-import { fetchTrackers } from '../services/endpoints/trackers';
-import { queryKeys } from '../services/queryKeys';
+import { myTrackersQuery } from '../services/queries';
 import type { Group } from '../types/api';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 
@@ -52,11 +51,12 @@ export default function GroupsDashboard() {
     handleShareWhatsApp,
     userName,
     userId,
+    isAuthenticated,
     activeGroupId,
   } = useGroupsDashboard();
 
   // Los marcadores de juegos de mesa van en la misma lista que las ligas.
-  const trackers = useQuery({ queryKey: queryKeys.trackers(), queryFn: fetchTrackers });
+  const trackers = useQuery(myTrackersQuery(isAuthenticated));
   const trackerList = trackers.data ?? [];
 
   // ?unirse se consume al abrir el modal, para que el selector pueda volver a abrirlo estando ya aquí.
