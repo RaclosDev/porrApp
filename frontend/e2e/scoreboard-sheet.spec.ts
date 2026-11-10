@@ -161,6 +161,20 @@ function fakeLeague() {
 
 async function openLeague(page: Page) {
   const league = fakeLeague();
+  const musGroup = {
+    id: 9,
+    name: 'Mus de los jueves',
+    kind: 'SCOREBOARD',
+    joinCode: 'MUS123',
+    adminUserId: 7,
+    adminParticipantName: 'Auditor',
+    competitionId: null,
+    competitionName: null,
+    formatType: null,
+    poolFormat: 'MATCH_DAY',
+    pichichi: false,
+    isLocked: false,
+  };
   await page.addInitScript(() => {
     localStorage.setItem('has_session', '1');
     localStorage.setItem('my_prediction_name', 'Auditor');
@@ -193,29 +207,15 @@ async function openLeague(page: Page) {
         lastSelectedGroupId: null,
         avatarUrl: null,
       },
-      '/api/groups/mine': [
-        {
-          id: 9,
-          name: 'Mus de los jueves',
-          kind: 'SCOREBOARD',
-          joinCode: 'MUS123',
-          adminUserId: 7,
-          adminParticipantName: 'Auditor',
-          competitionId: null,
-          competitionName: null,
-          formatType: null,
-          poolFormat: 'MATCH_DAY',
-          pichichi: false,
-          isLocked: false,
-        },
-      ],
+      '/api/groups/mine': [musGroup],
+      '/api/groups/9': musGroup,
       '/api/trackers': [{ id: 9, name: 'Mus de los jueves', owner: true, players: 3, rounds: 0 }],
       '/api/matches/radar': { live: [], last: [], next: [] },
     };
     return route.fulfill({ json: responses[url.pathname] ?? [] });
   });
-  // Su única liga es de juegos de mesa: se abre directamente, sin acabar en Mis ligas.
-  await page.goto('/marcador/9');
+  // Su única liga es de juegos de mesa: es la activa y el inicio es su marcador.
+  await page.goto('/?group=9');
   await expect(page.getByRole('heading', { name: 'Mus de los jueves' })).toBeVisible();
 }
 

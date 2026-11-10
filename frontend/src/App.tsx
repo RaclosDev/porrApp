@@ -41,7 +41,6 @@ const Search = lazyPage(() => import('./pages/Search'));
 const GroupsDashboard = lazyPage(() => import('./pages/GroupsDashboard'));
 const CreateLeague = lazyPage(() => import('./pages/CreateLeague'));
 const CreateTracker = lazyPage(() => import('./pages/CreateTracker'));
-const TrackerView = lazyPage(() => import('./pages/TrackerView'));
 const JoinRedirect = lazyPage(() => import('./components/JoinRedirect'));
 const OfficialBracket = lazyPage(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = lazyPage(() => import('./pages/LinkedInEntry'));
@@ -276,14 +275,8 @@ function AppShell() {
             />
             {/* Enlaces y QR antiguos de los marcadores: la invitación es la de cualquier liga. */}
             <Route path="/marcador/unirse/:code" element={<LegacyScoreboardJoin />} />
-            <Route
-              path="/marcador/:id"
-              element={
-                <ProtectedRoute>
-                  <TrackerView />
-                </ProtectedRoute>
-              }
-            />
+            {/* Los ids de los marcadores antiguos ya no son los de sus ligas: se elige en Mis ligas. */}
+            <Route path="/marcador/:id" element={<Navigate to="/mis-ligas" replace />} />
             <Route
               path="/bracket"
               element={

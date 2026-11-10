@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
@@ -41,9 +41,8 @@ import { errorMessage } from '../utils/errors';
  * apunta cada ronda en la hoja y al terminar se ve quién ha ganado. Cualquier miembro apunta y todos
  * los móviles lo ven en directo.
  */
-export default function TrackerView({ leagueId }: { leagueId?: string | null }) {
-  const params = useParams();
-  const id = leagueId ?? params.id ?? '';
+export default function TrackerView({ leagueId }: { leagueId: string | null }) {
+  const id = leagueId ?? '';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
