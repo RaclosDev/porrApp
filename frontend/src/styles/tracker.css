@@ -185,6 +185,31 @@
     margin-bottom: 8px;
   }
 
+  .tracker-profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+    margin: 12px 0 0;
+  }
+
+  .tracker-profile-stats div {
+    padding: 8px 10px;
+    border: 1px solid currentColor;
+    border-radius: 8px;
+  }
+
+  .tracker-profile-stats dt {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .tracker-profile-stats dd {
+    margin: 2px 0 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+  }
+
   .tracker-subheading {
     margin: 14px 0 6px;
     font-size: 0.8rem;

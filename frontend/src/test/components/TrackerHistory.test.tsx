@@ -3,8 +3,15 @@ import { describe, expect, it, vi } from 'vitest';
 import TrackerHistory from '../../components/tracker/TrackerHistory';
 import TrackerOverall from '../../components/tracker/TrackerOverall';
 import TrackerManage from '../../components/tracker/TrackerManage';
+import TrackerProfile from '../../components/tracker/TrackerProfile';
+import { playerProfile } from '../../components/tracker/playerProfile';
+import { dayCard, sessionCard, shareResult } from '../../components/tracker/shareResult';
 import { confirmAction } from '../../utils/confirmAction';
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
+vi.mock('../../components/tracker/shareResult', async (original) => ({
+  ...(await original<typeof import('../../components/tracker/shareResult')>()),
+  shareResult: vi.fn(),
+}));
 
 import type { Tracker, TrackerSession, TrackerStanding } from '../../services/endpoints/trackers';
 
@@ -313,5 +320,73 @@ describe('Gestión de días, jugadores y juegos', () => {
     expect(screen.getByRole('button', { name: 'Editar a Ana' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar a Berto' })).not.toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Juegos' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Ficha de jugador', () => {
+  it('cuenta solo partidas terminadas, rachas, juegos y cara a cara con empates', () => {
+    const ana = playerProfile(tracker, 11);
+    expect(ana).toMatchObject({ played: 2, won: 2, streak: 2, bestStreak: 2 });
+    expect(ana.games).toEqual([{ gameId: 3, name: 'Catán', played: 2, won: 2 }]);
+    expect(ana.rivals).toEqual([
+      { playerId: 12, name: 'Berto', together: 2, won: 1, lost: 0 },
+      { playerId: 13, name: 'Carla', together: 1, won: 1, lost: 0 },
+    ]);
+    expect(playerProfile(tracker, 12)).toMatchObject({ played: 2, won: 1, streak: 1 });
+    expect(playerProfile(tracker, 12).rivals[0]).toMatchObject({ name: 'Ana', won: 0, lost: 1 });
+  });
+
+  it('abre la ficha propia y deja cambiar de jugador', () => {
+    render(<TrackerProfile tracker={tracker} />);
+
+    expect(screen.getByLabelText('Jugador')).toHaveValue('11');
+    expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
+      '2 (100 %)',
+    );
+    fireEvent.change(screen.getByLabelText('Jugador'), { target: { value: '12' } });
+    expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
+      '1 (50 %)',
+    );
+    expect(screen.getByRole('columnheader', { name: 'Gana Berto' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Jugador'), { target: { value: '13' } });
+    expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
+      '0 (0 %)',
+    );
+  });
+
+  it('avisa si el jugador aún no ha terminado ninguna partida', () => {
+    render(<TrackerProfile tracker={{ ...tracker, sessions: [] }} />);
+    expect(screen.getByText('Ana aún no ha terminado ninguna partida.')).toBeInTheDocument();
+  });
+});
+
+describe('Compartir el resultado', () => {
+  it('la tarjeta de una partida lleva ganador y puntos; la del día, partidas ganadas', () => {
+    expect(sessionCard('Jueves', 'Catán', 'puntos', tracker.sessions[0])).toEqual({
+      title: 'Jueves',
+      subtitle: 'Catán · partida 1',
+      headline: 'Gana Ana',
+      rows: [
+        { rank: 1, name: 'Ana', value: '9 puntos' },
+        { rank: 2, name: 'Berto', value: '4 puntos' },
+      ],
+    });
+    const day = dayCard('Jueves', '12 de noviembre', tracker.sessions.slice(1));
+    expect(day.headline).toBe('Gana Ana y Berto');
+    expect(day.rows[0]).toEqual({ rank: 1, name: 'Ana', value: '1 de 1 ganadas' });
+  });
+
+  it('solo los días cerrados se pueden compartir', () => {
+    render(<TrackerHistory tracker={tracker} />);
+    const share = screen.getAllByRole('button', { name: /Compartir el día/ });
+    expect(share).toHaveLength(1);
+    fireEvent.click(share[0]);
+    expect(shareResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headline: 'Gana Ana',
+        subtitle: expect.stringMatching(/^Día de juego/),
+      }),
+    );
   });
 });

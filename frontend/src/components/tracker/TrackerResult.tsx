@@ -1,9 +1,11 @@
 import type { TrackerSession } from '../../services/endpoints/trackers';
 import TrackerStandings from './TrackerStandings';
 import { winnerLabel } from './trackerFormat';
+import { sessionCard, shareResult } from './shareResult';
 
 interface Props {
   session: TrackerSession;
+  leagueName: string;
   gameName: string;
   unit: string;
   myPlayerId: number | null;
@@ -16,6 +18,7 @@ interface Props {
 /** Al terminar una partida: quién la ha ganado, cómo ha quedado y qué se hace ahora. */
 export default function TrackerResult({
   session,
+  leagueName,
   gameName,
   unit,
   myPlayerId,
@@ -55,6 +58,13 @@ export default function TrackerResult({
           onClick={onCloseDay}
         >
           Cerrar el día
+        </button>
+        <button
+          type="button"
+          className="glass-btn create-league-small-btn"
+          onClick={() => void shareResult(sessionCard(leagueName, gameName, unit, session))}
+        >
+          Compartir resultado
         </button>
         <button type="button" className="create-league-link" disabled={busy} onClick={onReopen}>
           Reabrir para corregir

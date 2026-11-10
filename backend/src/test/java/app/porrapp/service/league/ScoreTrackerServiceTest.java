@@ -69,6 +69,8 @@ class ScoreTrackerServiceTest {
     private final ScoreSessionPlayerRepository sessionPlayers = mock(ScoreSessionPlayerRepository.class);
     private final UserAccountRepository users = mock(UserAccountRepository.class);
     private final WebSocketService webSocket = mock(WebSocketService.class);
+    private final org.springframework.context.ApplicationEventPublisher events =
+            mock(org.springframework.context.ApplicationEventPublisher.class);
     private final UserAccount owner = user(1L, "Dueño");
     private final League league = League.builder().id(10L).name("Mus").joinCode("ABCDEFGH")
             .kind(League.KIND_SCOREBOARD).adminUser(owner).build();
@@ -76,7 +78,7 @@ class ScoreTrackerServiceTest {
     private final ScoreGame parchis = ScoreGame.builder().id(51L).leagueId(10L).name("Parchís").build();
     private final ScoreTrackerService service = new ScoreTrackerService(leagues, memberships, membershipService,
             leagueService, new ScoreboardRoster(players), games, players, sessions, rounds, scores, days, dayPlayers,
-            sessionPlayers, users, webSocket);
+            sessionPlayers, users, webSocket, events);
 
     private static UserAccount user(Long id, String name) {
         UserAccount user = new UserAccount();
