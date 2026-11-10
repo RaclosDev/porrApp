@@ -79,7 +79,8 @@ public class FormulaOneStandingsService {
                         flag != null && flag.startsWith("https://") ? flag : null,
                         driver == null ? null : driver.getTeamName(),
                         driver == null ? null : driver.getTeamColor(),
-                        stat(entry, "championshipPts")));
+                        stat(entry, "championshipPts"),
+                        EspnFormulaOneClient.headshotUrl(athlete.path("id").asText(null))));
             }
         }
         List<FormulaOneStandingsDTO.ConstructorRow> constructors = new ArrayList<>();

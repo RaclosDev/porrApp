@@ -30,7 +30,7 @@ function formatKickOff(date: string | null) {
   return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
-function PanelHeader({
+export function PanelHeader({
   title,
   icon,
   onSeeAll,
@@ -62,7 +62,7 @@ function PanelHeader({
 }
 
 /** Fila compacta con posición, nombre y valor; la usan el ranking y la tabla de equipos. */
-function MiniRow({
+export function MiniRow({
   rank,
   name,
   crest,

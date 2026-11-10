@@ -41,7 +41,7 @@ function Bracket() {
     fightCard: <Navigate to="/jornadas" replace />,
     tennisDraw: <Navigate to="/jornadas" replace />,
     // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
-    grandPrix: <Navigate to="/" replace />,
+    grandPrix: <Navigate to="/jornadas" replace />,
   };
   return views[leagueKind];
 }
