@@ -1,12 +1,15 @@
 /** Marcadores de juegos de mesa o de cartas: partidas apuntadas, sesiones y clasificación acumulada. */
 import { request } from '../http';
 
-interface TrackerPlayer {
+export interface TrackerPlayer {
   id: number;
   name: string;
 }
 
-/** Posición con empates (1, 1, 3…); `sessionsWon` solo viene en la clasificación acumulada. */
+/**
+ * Posición con empates (1, 1, 3…). `sessionsWon` y `sessionsPlayed` solo cuentan en las
+ * clasificaciones acumuladas.
+ */
 export interface TrackerStanding {
   playerId: number;
   name: string;
@@ -14,33 +17,64 @@ export interface TrackerStanding {
   rank: number;
   roundsWon: number;
   sessionsWon: number;
+  sessionsPlayed?: number;
 }
 
-interface TrackerSession {
+/** Forma de puntuar un juego: sumando puntos en cada ronda o contando quién gana cada una. */
+export type TrackerGameMode = 'POINTS' | 'WINS';
+
+export interface TrackerGame {
+  id: number;
+  name: string;
+  unit: string;
+  lowerWins: boolean;
+  sessions: number;
+  rounds: number;
+  mode: TrackerGameMode;
+}
+
+/** Día de juego: quién vino y sus partidas en orden; `closedAt` vacío mientras sigue. */
+interface TrackerDay {
+  id: number;
+  startedAt: string;
+  closedAt: string | null;
+  playerIds: number[];
+  sessionIds: number[];
+}
+
+/** Partida de un juego en un día, con quién la juega; `endedAt` vacío mientras está abierta. */
+export interface TrackerSession {
   id: number;
   number: number;
+  gameId: number | null;
   startedAt: string;
   rounds: number;
   standings: TrackerStanding[];
   winners: number[];
+  dayId: number | null;
+  playerIds: number[];
+  endedAt: string | null;
+  plannedRounds: number | null;
 }
 
-interface TrackerRound {
+export interface TrackerRound {
   id: number;
   sessionId: number;
   number: number;
   note: string | null;
   createdAt: string;
-  /** Puntos por id de jugador. */
+  /** Puntos por id de jugador, solo de quienes jugaron la ronda (en victorias, 1 quien ganó). */
   scores: Record<string, number>;
+  recordedBy: string | null;
 }
 
 export interface Tracker {
   id: number;
   name: string;
+  /** Unidad y sentido del juego de la última partida. */
   unit: string;
   lowerWins: boolean;
-  /** Solo quien lo creó apunta partidas; el resto lo ve en directo. */
+  /** Quien administra la liga: el único que renombra o borra juegos y borra la liga. */
   owner: boolean;
   joinCode: string;
   /** Jugador que soy yo (con mi cuenta), si ya me he apuntado a uno. */
@@ -48,10 +82,31 @@ export interface Tracker {
   /** Jugadores ya reclamados por alguien con cuenta. */
   claimedPlayerIds: number[];
   currentSessionId: number | null;
+  currentGameId?: number | null;
+  games?: TrackerGame[];
   players: TrackerPlayer[];
   sessions: TrackerSession[];
   rounds: TrackerRound[];
   overall: TrackerStanding[];
+  byGame?: { gameId: number; standings: TrackerStanding[] }[];
+  /** Día de juego en curso, si lo hay. */
+  currentDayId?: number | null;
+  days?: TrackerDay[];
+}
+
+/** Lo que se apunta en una ronda: puntos de quienes la jugaron o, en victorias, quién ganó. */
+export interface TrackerRoundDraft {
+  note?: string;
+  scores?: Record<string, number>;
+  winners?: number[];
+  sessionId?: number;
+}
+
+export interface TrackerGameDraft {
+  name: string;
+  unit: string;
+  lowerWins: boolean;
+  mode: TrackerGameMode;
 }
 
 export interface TrackerSummary {
@@ -86,26 +141,66 @@ export const joinTracker = (code: string) =>
     fallbackError: 'No se pudo entrar al marcador',
   });
 
-export const addTrackerRound = (
-  id: number,
-  round: { note: string; scores: Record<string, number> },
-) =>
+export const addTrackerRound = (id: number, round: TrackerRoundDraft) =>
   request<Tracker>(`/trackers/${id}/rounds`, {
     method: 'POST',
     json: round,
-    fallbackError: 'No se pudo apuntar la partida',
+    fallbackError: 'No se pudo apuntar la ronda',
+  });
+
+export const editTrackerRound = (id: number, roundId: number, round: TrackerRoundDraft) =>
+  request<Tracker>(`/trackers/${id}/rounds/${roundId}`, {
+    method: 'PUT',
+    json: round,
+    fallbackError: 'No se pudo corregir la ronda',
   });
 
 export const deleteTrackerRound = (id: number, roundId: number) =>
   request<Tracker>(`/trackers/${id}/rounds/${roundId}`, {
     method: 'DELETE',
-    fallbackError: 'No se pudo borrar la partida',
+    fallbackError: 'No se pudo borrar la ronda',
   });
 
-export const startTrackerSession = (id: number) =>
+export const startTrackerSession = (
+  id: number,
+  session: { gameId?: number; playerIds?: number[]; plannedRounds?: number } = {},
+) =>
   request<Tracker>(`/trackers/${id}/sessions`, {
     method: 'POST',
-    fallbackError: 'No se pudo empezar la sesión',
+    json: session,
+    fallbackError: 'No se pudo empezar la partida',
+  });
+
+export const endTrackerSession = (id: number, sessionId: number) =>
+  request<Tracker>(`/trackers/${id}/sessions/${sessionId}/end`, {
+    method: 'POST',
+    fallbackError: 'No se pudo terminar la partida',
+  });
+
+export const reopenTrackerSession = (id: number, sessionId: number) =>
+  request<Tracker>(`/trackers/${id}/sessions/${sessionId}/reopen`, {
+    method: 'POST',
+    fallbackError: 'No se pudo reabrir la partida',
+  });
+
+export const startTrackerDay = (id: number, playerIds: number[]) =>
+  request<Tracker>(`/trackers/${id}/days`, {
+    method: 'POST',
+    json: { playerIds },
+    fallbackError: 'No se pudo empezar el día de juego',
+  });
+
+export const closeTrackerDay = (id: number, dayId: number) =>
+  request<Tracker>(`/trackers/${id}/days/${dayId}/close`, {
+    method: 'POST',
+    fallbackError: 'No se pudo cerrar el día de juego',
+  });
+
+export const addTrackerGame = (id: number, game: TrackerGameDraft) =>
+  request<Tracker>(`/trackers/${id}/games`, {
+    method: 'POST',
+    json: game,
+    fallbackError: 'No se pudo crear el juego',
   });
 
 export const addTrackerPlayer = (id: number, name: string) =>
