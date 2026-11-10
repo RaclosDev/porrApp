@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import AppScreens from '../components/landing/AppScreens';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import NetLine from '../components/landing/NetLine';
+import ScoreboardDemo from '../components/landing/ScoreboardDemo';
 import SiteFooter from '../components/landing/SiteFooter';
 import type { ContentPage as ContentPageData } from '../seo/pages';
 import { openSignupToCreateLeague } from '../utils/loginModal';
@@ -40,6 +41,10 @@ export default function ContentPage({ page }: ContentPageProps) {
             <a href={page.download.href} download className="landing-btn">
               {page.download.label}
             </a>
+          ) : page.scoreboardDemo ? (
+            <a href="#demo" className="landing-btn">
+              Probar la hoja de puntos
+            </a>
           ) : (
             <Link to="/demo" className="landing-btn">
               Ver una porra de ejemplo
@@ -49,6 +54,8 @@ export default function ContentPage({ page }: ContentPageProps) {
       </section>
 
       {page.screens ? <AppScreens screens={page.screens} /> : null}
+
+      {page.scoreboardDemo ? <ScoreboardDemo /> : null}
 
       {first ? (
         <article className="landing-poster landing-tape -rotate-1 mt-12 p-6 sm:p-8 max-w-200 mx-auto flex flex-col gap-3">

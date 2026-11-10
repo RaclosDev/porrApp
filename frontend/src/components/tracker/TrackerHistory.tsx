@@ -3,6 +3,7 @@ import type { Tracker, TrackerDay, TrackerSession } from '../../services/endpoin
 import { confirmAction } from '../../utils/confirmAction';
 import TrackerSheetTable from './TrackerSheetTable';
 import { formatDay, winnerLabel } from './trackerFormat';
+import { dayCard, shareResult } from './shareResult';
 
 interface Props {
   tracker: Tracker;
@@ -105,6 +106,16 @@ export default function TrackerHistory({ tracker, busy = false, onDeleteDay, onM
         <li key={group.key} className="tracker-history-day">
           <h3 className="tracker-history-date">{group.title}</h3>
           {group.attendees && <p className="tracker-note">Vinieron {group.attendees}</p>}
+          {group.day?.closedAt && (
+            <button
+              type="button"
+              className="create-league-link"
+              aria-label={`Compartir el día ${group.title}`}
+              onClick={() => void shareResult(dayCard(tracker.name, group.title, group.sessions))}
+            >
+              Compartir el día
+            </button>
+          )}
           {group.day?.closedAt && tracker.owner && onDeleteDay && onMoveDay && (
             <DayActions
               day={group.day}

@@ -1,12 +1,29 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { createTracker } from '../services/endpoints/trackers';
+import { createTracker, type TrackerGameMode } from '../services/endpoints/trackers';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
 import { scoreboardPath } from '../utils/scoreboardLeague';
 
 const UNIT_SUGGESTIONS = ['puntos', 'fichas', 'victorias', 'rondas'];
+
+interface GameTemplate {
+  game: string;
+  unit: string;
+  lowerWins: boolean;
+  mode: TrackerGameMode;
+}
+
+/** Juegos habituales ya preparados: cómo se cuenta y quién gana. */
+const TEMPLATES: GameTemplate[] = [
+  { game: 'Mus', unit: 'victorias', lowerWins: false, mode: 'WINS' },
+  { game: 'Catán', unit: 'puntos de victoria', lowerWins: false, mode: 'POINTS' },
+  { game: 'Chinchón', unit: 'puntos', lowerWins: true, mode: 'POINTS' },
+  { game: 'Parchís', unit: 'victorias', lowerWins: false, mode: 'WINS' },
+  { game: 'Carcassonne', unit: 'puntos', lowerWins: false, mode: 'POINTS' },
+  { game: 'Dominó', unit: 'puntos', lowerWins: false, mode: 'POINTS' },
+];
 
 /**
  * Crear un marcador para un juego de mesa o de cartas: solo nombre y qué se cuenta. Los jugadores no se
@@ -18,8 +35,17 @@ export default function CreateTracker() {
   const [name, setName] = useState('');
   const [unit, setUnit] = useState('puntos');
   const [lowerWins, setLowerWins] = useState(false);
+  const [template, setTemplate] = useState<GameTemplate | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const choose = (option: GameTemplate) => {
+    if (template === option) return setTemplate(null);
+    setTemplate(option);
+    setUnit(option.unit);
+    setLowerWins(option.lowerWins);
+    if (!name.trim()) setName(option.game);
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -28,7 +54,11 @@ export default function CreateTracker() {
     setError('');
     setBusy(true);
     try {
-      const tracker = await createTracker({ name, unit, lowerWins });
+      const tracker = await createTracker(
+        template
+          ? { name, unit, lowerWins, gameName: template.game, mode: template.mode }
+          : { name, unit, lowerWins },
+      );
       // La liga nueva tiene que estar en «Mis ligas» antes de abrirla como activa.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.trackers() }),
@@ -67,6 +97,33 @@ export default function CreateTracker() {
           />
         </div>
 
+        <fieldset className="create-league-field">
+          <legend>¿A qué jugáis? (opcional)</legend>
+          <div className="tracker-unit-options">
+            {TEMPLATES.map((option) => (
+              <button
+                key={option.game}
+                type="button"
+                className={`glass-btn create-league-small-btn${template === option ? ' is-active' : ''}`}
+                aria-pressed={template === option}
+                onClick={() => choose(option)}
+              >
+                {option.game}
+              </button>
+            ))}
+          </div>
+          {template && (
+            <p className="create-league-hint">
+              {template.mode === 'WINS'
+                ? 'Se apunta quién gana cada partida.'
+                : template.lowerWins
+                  ? `Se suman ${template.unit} y gana quien menos tiene.`
+                  : `Se suman ${template.unit} y gana quien más tiene.`}{' '}
+              Luego puedes añadir más juegos.
+            </p>
+          )}
+        </fieldset>
+
         <div className="create-league-field">
           <label htmlFor="tracker-unit">¿Qué se cuenta en cada partida?</label>
           <div className="tracker-unit-options">
@@ -76,7 +133,10 @@ export default function CreateTracker() {
                 type="button"
                 className={`glass-btn create-league-small-btn${unit === option ? ' is-active' : ''}`}
                 aria-pressed={unit === option}
-                onClick={() => setUnit(option)}
+                onClick={() => {
+                  setUnit(option);
+                  setTemplate(null);
+                }}
               >
                 {option}
               </button>

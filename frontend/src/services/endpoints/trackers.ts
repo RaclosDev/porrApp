@@ -121,6 +121,9 @@ export interface TrackerDraft {
   name: string;
   unit: string;
   lowerWins: boolean;
+  /** Nombre del primer juego; sin él, se llama como la liga. */
+  gameName?: string;
+  mode?: TrackerGameMode;
 }
 
 export const fetchTrackers = () => request<TrackerSummary[]>('/trackers');

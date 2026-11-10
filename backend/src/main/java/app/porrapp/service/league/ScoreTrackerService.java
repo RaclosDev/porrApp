@@ -39,6 +39,7 @@ import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.notification.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -100,6 +101,7 @@ public class ScoreTrackerService {
     private final ScoreSessionPlayerRepository sessionPlayers;
     private final UserAccountRepository users;
     private final WebSocketService webSocketService;
+    private final ApplicationEventPublisher events;
 
     private UserAccount account(String email) {
         return users.findByGoogleEmail(email).orElseThrow(() -> BusinessException.forbidden("Usuario no encontrado"));
@@ -210,7 +212,7 @@ public class ScoreTrackerService {
             playerIds.add(players.save(ScoreTrackerPlayer.builder().leagueId(league.getId()).name(names.get(i))
                     .userId(i == 0 ? userId : null).position(i).build()).getId());
         }
-        startSession(league.getId(), game.getId(), playerIds, null);
+        startSession(league.getId(), game.getId(), playerIds, null, userId);
         return view(league, userId);
     }
 
@@ -281,7 +283,7 @@ public class ScoreTrackerService {
             currentDay(leagueId);
             ScoreTrackerSession last = sessions.findFirstByLeagueIdOrderByIdDesc(leagueId).orElse(null);
             session = last != null && last.isOpen() ? last
-                    : startSession(leagueId, last != null ? last.getGameId() : firstGame(leagueId).getId(), null, null);
+                    : startSession(leagueId, last != null ? last.getGameId() : firstGame(leagueId).getId(), null, null, userId);
         }
         Map<Long, Integer> points = roundPoints(leagueId, session, request);
         String note = clean(request.note());
@@ -480,8 +482,9 @@ public class ScoreTrackerService {
         sessions.flush();
     }
 
-    private ScoreDay newDay(Long leagueId, Collection<Long> attendees) {
+    private ScoreDay newDay(Long leagueId, Collection<Long> attendees, Long userId) {
         ScoreDay day = days.save(ScoreDay.builder().leagueId(leagueId).build());
+        events.publishEvent(new ScoreDayStartedEvent(leagueId, userId));
         attendees.forEach(id -> dayPlayers.save(new ScoreDayPlayer(day.getId(), id)));
         return day;
     }
@@ -495,7 +498,7 @@ public class ScoreTrackerService {
         List<Long> attendees = chosen ? chosenPlayers(leagueId, playerIds) : List.copyOf(playerIds(leagueId));
         ScoreDay day = currentDay(leagueId);
         if (day == null) {
-            newDay(leagueId, attendees);
+            newDay(leagueId, attendees, userId);
         } else if (chosen) {
             replaceDayPlayers(day.getId(), attendees);
         }
@@ -569,15 +572,16 @@ public class ScoreTrackerService {
                     sessions.save(open);
                 }
             }
-            startSession(leagueId, game, chosen, plannedRounds);
+            startSession(leagueId, game, chosen, plannedRounds, userId);
         }
         return changed(league, userId);
     }
 
     /** Crea la partida en el día en curso, o en uno nuevo si no lo hay. */
-    private ScoreTrackerSession startSession(Long leagueId, Long gameId, List<Long> chosen, Integer plannedRounds) {
+    private ScoreTrackerSession startSession(Long leagueId, Long gameId, List<Long> chosen, Integer plannedRounds,
+                                             Long userId) {
         ScoreDay day = currentDay(leagueId);
-        if (day == null) day = newDay(leagueId, chosen != null ? chosen : playerIds(leagueId));
+        if (day == null) day = newDay(leagueId, chosen != null ? chosen : playerIds(leagueId), userId);
         List<Long> participants = chosen;
         if (participants == null) {
             participants = dayPlayers.findByDayId(day.getId()).stream().map(ScoreDayPlayer::getPlayerId).toList();
