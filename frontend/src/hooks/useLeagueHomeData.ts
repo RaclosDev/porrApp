@@ -69,7 +69,7 @@ interface LeagueHomeData {
     allTo: string;
     empty: string;
   };
-  standings: { title: string; to: string; rows: MiniStandingRow[] } | null;
+  standings: { title: string; to: string; rows: MiniStandingRow[]; previewLimit?: number } | null;
   /** Aún falta la tabla de equipos (o los equipos de la competición personalizada). */
   loading: boolean;
 }
@@ -227,7 +227,8 @@ export function useLeagueHomeData(): LeagueHomeData {
             ? {
                 title: miniTable.title ? `Tabla · ${miniTable.title}` : 'Tabla',
                 to: '/tabla',
-                rows: miniTable.rows.slice(0, MINI_TABLE_SIZE).map((team) => ({
+                previewLimit: MINI_TABLE_SIZE,
+                rows: miniTable.rows.map((team) => ({
                   team: team.teamName,
                   rank: team.rank,
                   name: team.teamName,
@@ -284,7 +285,8 @@ export function useLeagueHomeData(): LeagueHomeData {
         standings = {
           title: 'Fase suiza',
           to: '/bracket',
-          rows: swiss.slice(0, MINI_TABLE_SIZE).map((row, index) => ({
+          previewLimit: MINI_TABLE_SIZE,
+          rows: swiss.map((row, index) => ({
             team: row.team,
             rank: index + 1,
             name: row.team,
