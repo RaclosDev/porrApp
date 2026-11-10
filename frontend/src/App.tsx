@@ -20,6 +20,7 @@ import ScrollOnNavigate from './components/ScrollOnNavigate';
 import CookieConsent from './components/layout/CookieConsent';
 import RouteHead from './components/layout/RouteHead';
 import { RequireLeague } from './components/NoLeagueState';
+import ScoreboardOnly from './components/tracker/ScoreboardOnly';
 import { CONTENT_PAGES } from './seo/pages';
 import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
@@ -41,6 +42,8 @@ const Search = lazyPage(() => import('./pages/Search'));
 const GroupsDashboard = lazyPage(() => import('./pages/GroupsDashboard'));
 const CreateLeague = lazyPage(() => import('./pages/CreateLeague'));
 const CreateTracker = lazyPage(() => import('./pages/CreateTracker'));
+const TrackerView = lazyPage(() => import('./pages/TrackerView'));
+const TrackerHistoryPage = lazyPage(() => import('./pages/TrackerHistoryPage'));
 const JoinRedirect = lazyPage(() => import('./components/JoinRedirect'));
 const OfficialBracket = lazyPage(() => import('./pages/OfficialBracket'));
 const LinkedInEntry = lazyPage(() => import('./pages/LinkedInEntry'));
@@ -270,6 +273,31 @@ function AppShell() {
               element={
                 <ProtectedRoute>
                   <CreateTracker />
+                </ProtectedRoute>
+              }
+            />
+            {/* Liga de juegos de mesa: la hoja de la partida y el histórico por días. */}
+            <Route
+              path="/partida"
+              element={
+                <ProtectedRoute>
+                  <RequireLeague title="Partida" what="la partida">
+                    <ScoreboardOnly>
+                      {(leagueId) => <TrackerView leagueId={leagueId} />}
+                    </ScoreboardOnly>
+                  </RequireLeague>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/historico"
+              element={
+                <ProtectedRoute>
+                  <RequireLeague title="Histórico" what="el histórico">
+                    <ScoreboardOnly>
+                      {(leagueId) => <TrackerHistoryPage leagueId={leagueId} />}
+                    </ScoreboardOnly>
+                  </RequireLeague>
                 </ProtectedRoute>
               }
             />

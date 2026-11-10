@@ -176,3 +176,48 @@ describe('TrackerOverall', () => {
     expect(screen.getByRole('columnheader', { name: 'victorias' })).toBeInTheDocument();
   });
 });
+
+describe('Ranking por temporada', () => {
+  const twoYears: Tracker = {
+    ...tracker,
+    sessions: [
+      ...tracker.sessions,
+      ended({
+        id: 4,
+        number: 4,
+        dayId: null,
+        startedAt: '2025-12-30T18:00:00Z',
+        endedAt: '2025-12-30T20:00:00Z',
+        standings: [row(13, 'Carla', 10, 1), row(12, 'Berto', 2, 2)],
+        playerIds: [13, 12],
+        winners: [13],
+      }),
+    ],
+  };
+
+  it('sin varios años no enseña el filtro', () => {
+    render(<TrackerOverall tracker={tracker} />);
+    expect(screen.queryByRole('group', { name: 'Temporada' })).not.toBeInTheDocument();
+  });
+
+  it('cuenta solo las partidas del año elegido', () => {
+    render(<TrackerOverall tracker={twoYears} />);
+
+    const seasons = screen.getByRole('group', { name: 'Temporada' });
+    expect(
+      within(seasons)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Siempre', '2026', '2025']);
+
+    fireEvent.click(within(seasons).getByRole('button', { name: '2025' }));
+    const table = screen.getByRole('table', { name: 'Clasificación general en 2025' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows.map((item) => item.querySelector('th')?.textContent)).toEqual(['Carla', 'Berto']);
+
+    // En 2026 Ana gana dos (una empatada con Berto) y Berto una.
+    fireEvent.click(within(seasons).getByRole('button', { name: '2026' }));
+    const current = screen.getByRole('table', { name: 'Clasificación general en 2026' });
+    expect(within(current).getAllByRole('row')[1]).toHaveTextContent(/1Ana.*2$/);
+  });
+});
