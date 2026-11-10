@@ -227,7 +227,7 @@ function SkeletonRows({ count, height }: { count: number; height: number }) {
 function DashboardSkeleton() {
   return (
     <div
-      className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5"
+      className="home-dashboard-grid"
       role="status"
       aria-label="Cargando la liga"
       aria-busy="true"
@@ -236,7 +236,7 @@ function DashboardSkeleton() {
         <Skeleton width="40%" height={20} />
         <SkeletonRows count={5} height={74} />
       </div>
-      <div className="flex flex-col gap-4.5 min-w-0">
+      <div className="home-dashboard-sidebar">
         <div className="paper-panel album-sheet p-4 flex flex-col gap-2.5">
           <Skeleton width="30%" height={20} />
           <SkeletonRows count={5} height={32} />
@@ -384,7 +384,7 @@ export default function LeagueHomeDashboard() {
             </button>
           )}
 
-          <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
+          <div className="home-dashboard-grid">
             <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
               <PanelHeader
                 title={matches.title}
@@ -418,12 +418,12 @@ export default function LeagueHomeDashboard() {
               )}
             </div>
 
-            <div className="flex flex-col gap-4.5 min-w-0">
-              <div className="paper-panel album-sheet p-4">
+            <div className="home-dashboard-sidebar">
+              <div className="home-summary-panel paper-panel album-sheet p-4">
                 <PanelHeader title="Ranking" onSeeAll={() => navigate('/ranking')} />
                 {topParticipants.length > 0 ? (
                   <ol
-                    className="flex flex-col gap-1.5 m-0 p-0 list-none"
+                    className="home-summary-rows flex flex-col gap-1.5 m-0 p-0 list-none"
                     aria-label="Top del ranking"
                   >
                     {topParticipants.map((p, index) => {
@@ -448,10 +448,10 @@ export default function LeagueHomeDashboard() {
               </div>
 
               {standings && standings.rows.length > 0 && (
-                <div className="paper-panel album-sheet p-4">
+                <div className="home-summary-panel paper-panel album-sheet p-4">
                   <PanelHeader title={standings.title} onSeeAll={() => navigate(standings.to)} />
                   <ol
-                    className="flex flex-col gap-1.5 m-0 p-0 list-none"
+                    className="home-summary-rows flex flex-col gap-1.5 m-0 p-0 list-none"
                     aria-label={standings.title}
                   >
                     {standings.rows.map((row) => (
