@@ -135,6 +135,14 @@
     margin-top: 12px;
   }
 
+  .tracker-player-form {
+    margin-top: 12px;
+  }
+
+  .tracker-player-form > label {
+    font-weight: 700;
+  }
+
   .tracker-add-player .glass-input {
     flex: 1;
     min-width: 0;

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -6,9 +6,11 @@ import TrackerHome from '../../pages/TrackerHome';
 import type { Tracker, TrackerSession } from '../../services/endpoints/trackers';
 
 const fetchTracker = vi.fn();
+const addPlayer = vi.fn();
 vi.mock('../../services/endpoints/trackers', async (original) => ({
   ...(await original<typeof import('../../services/endpoints/trackers')>()),
   fetchTracker: (id: string) => fetchTracker(id),
+  addTrackerPlayer: (id: number, name: string) => addPlayer(id, name),
 }));
 
 const session = (overrides: Partial<TrackerSession>): TrackerSession => ({
@@ -128,13 +130,33 @@ describe('Inicio de una liga de juegos de mesa', () => {
     expect(screen.getByText(/Jugando a Catán · partida 2, 1 ronda\./)).toBeInTheDocument();
   });
 
-  it('sin jugadores abre la invitación', async () => {
+  it('sin jugadores abre el alta sin cuenta y mantiene aparte las invitaciones', async () => {
     renderHome({ ...base, players: [], overall: [], days: [], sessions: [] });
 
-    expect(await screen.findByRole('button', { name: 'Cerrar' })).toHaveAttribute(
+    expect(await screen.findByRole('button', { name: 'Añadir jugador' })).toHaveAttribute(
       'aria-expanded',
       'true',
     );
+    expect(screen.getByLabelText('Nombre del jugador')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Invitar con enlace' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     expect(screen.queryByRole('region', { name: 'Quién va ganando' })).not.toBeInTheDocument();
+    addPlayer.mockResolvedValue({ ...base, players: [{ id: 15, name: 'Luis' }] });
+    fireEvent.change(screen.getByLabelText('Nombre del jugador'), { target: { value: 'Luis' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Luis ya está en la liga.');
+    expect(screen.getByLabelText('Nombre del jugador')).toHaveValue('');
+  });
+
+  it('un miembro sin identidad ve los jugadores y puede abrir el alta, sin controles de administrador', async () => {
+    renderHome({ ...base, owner: false, myPlayerId: null });
+    fireEvent.click(await screen.findByRole('button', { name: 'Añadir jugador' }));
+    expect(screen.getByLabelText('Nombre del jugador')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Jugadores' })).toHaveTextContent('Berto');
+    expect(screen.queryByRole('button', { name: 'Editar a Berto' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar formulario' }));
+    expect(screen.getByRole('button', { name: 'Añadir jugador' })).toHaveFocus();
   });
 });

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
 import TrackerIdentity from '../components/tracker/TrackerIdentity';
 import TrackerInvite from '../components/tracker/TrackerInvite';
+import TrackerAddPlayer from '../components/tracker/TrackerAddPlayer';
 import TrackerManage from '../components/tracker/TrackerManage';
 import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import { formatDay, winnerLabel } from '../components/tracker/trackerFormat';
@@ -36,8 +37,9 @@ export default function TrackerHome({ leagueId }: { leagueId: string | null }) {
   const { id, query, tracker, busy, change } = useTrackerLeague(leagueId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // null: lo decide la liga (abierto mientras no hay jugadores).
-  const [inviteOpen, setInviteOpen] = useState<boolean | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState<boolean | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
 
   if (query.isPending) return <PaperLoading label="Cargando la liga" />;
   if (!tracker) return <TrackerUnavailable error={query.error} />;
@@ -65,7 +67,7 @@ export default function TrackerHome({ leagueId }: { leagueId: string | null }) {
     }
   };
 
-  const inviting = inviteOpen ?? tracker.players.length === 0;
+  const adding = addOpen ?? tracker.players.length === 0;
 
   return (
     <section className="view-section active create-league tracker">
@@ -74,24 +76,62 @@ export default function TrackerHome({ leagueId }: { leagueId: string | null }) {
           <h1 className="m-0 poster-title text-[1.8rem] text-white">{tracker.name}</h1>
           <p className="create-league-progress">Liga de juegos de mesa</p>
         </div>
-        <button
-          type="button"
-          className="glass-btn create-league-small-btn"
-          aria-expanded={inviting}
-          onClick={() => setInviteOpen(!inviting)}
-        >
-          {inviting ? 'Cerrar' : 'Invitar'}
-        </button>
+        <div className="tracker-actions">
+          <button
+            ref={addButton}
+            type="button"
+            className="glass-btn create-league-small-btn"
+            aria-expanded={adding}
+            aria-controls="tracker-add-panel"
+            disabled={busy}
+            onClick={() => setAddOpen(!adding)}
+          >
+            Añadir jugador
+          </button>
+          <button
+            type="button"
+            className="glass-btn create-league-small-btn"
+            aria-expanded={inviteOpen}
+            onClick={() => setInviteOpen(!inviteOpen)}
+          >
+            {inviteOpen ? 'Cerrar invitación' : 'Invitar con enlace'}
+          </button>
+        </div>
       </header>
-      {inviting && (
-        <TrackerInvite
-          tracker={tracker}
-          busy={busy}
-          onAddPlayer={async (name) =>
-            Boolean(await change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir'))
-          }
-        />
+      {adding && (
+        <section
+          id="tracker-add-panel"
+          className="paper-panel album-sheet tracker-section"
+          aria-labelledby="tracker-add-title"
+        >
+          <div className="tracker-section-head">
+            <h2 id="tracker-add-title" className="tracker-heading">
+              Añadir jugador sin cuenta
+            </h2>
+            <button
+              type="button"
+              className="create-league-link"
+              disabled={busy}
+              onClick={() => {
+                setAddOpen(false);
+                addButton.current?.focus();
+              }}
+            >
+              Cerrar formulario
+            </button>
+          </div>
+          <TrackerAddPlayer
+            busy={busy}
+            onAddPlayer={async (name) => {
+              setAddOpen(true);
+              return Boolean(
+                await change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir'),
+              );
+            }}
+          />
+        </section>
       )}
+      {inviteOpen && <TrackerInvite tracker={tracker} />}
       <TrackerToday tracker={tracker} />
       <TrackerPodium tracker={tracker} />
       <TrackerLastDay tracker={tracker} />
