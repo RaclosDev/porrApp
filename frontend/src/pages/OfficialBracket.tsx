@@ -39,6 +39,7 @@ function OfficialBracket() {
     unknown: <UnsupportedLeagueState />,
     // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
     scoreboard: <Navigate to="/" replace />,
+    tournament: <Navigate to="/" replace />,
     groupStage: <GroupStageOfficialBracket />,
     customBracket: <CustomTournamentHome />,
     ownBracket: <OfficialTournamentHome />,

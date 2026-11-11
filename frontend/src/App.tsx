@@ -42,6 +42,8 @@ const Search = lazyPage(() => import('./pages/Search'));
 const GroupsDashboard = lazyPage(() => import('./pages/GroupsDashboard'));
 const CreateLeague = lazyPage(() => import('./pages/CreateLeague'));
 const CreateTracker = lazyPage(() => import('./pages/CreateTracker'));
+const CreateTournament = lazyPage(() => import('./pages/CreateTournament'));
+const OrganizedTournament = lazyPage(() => import('./pages/OrganizedTournament'));
 const TrackerView = lazyPage(() => import('./pages/TrackerView'));
 const TrackerHistoryPage = lazyPage(() => import('./pages/TrackerHistoryPage'));
 const JoinRedirect = lazyPage(() => import('./components/JoinRedirect'));
@@ -195,6 +197,23 @@ function AppShell() {
             <Route path="/" element={<RootPage />} />
             <Route path="/demo" element={<DemoPage />} />
             <Route path="/join/:code" element={<JoinRedirect />} />
+            <Route path="/t/:publicId" element={<OrganizedTournament publicView />} />
+            <Route
+              path="/torneos/nuevo"
+              element={
+                <ProtectedRoute>
+                  <CreateTournament />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/torneos/:id"
+              element={
+                <ProtectedRoute>
+                  <OrganizedTournament />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/linkedin" element={<LinkedInEntry />} />
             <Route path="/privacidad" element={<Legal kind="privacy" />} />
             <Route path="/aviso-legal" element={<Legal kind="legal" />} />

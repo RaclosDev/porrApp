@@ -42,6 +42,7 @@ Capturas de la interfaz real, renovadas en noviembre de 2026. La primera fila us
 - **Elegir cómo competir:** cuadro completo, solo eliminatorias, jornadas, superviviente o Grandes Premios. Las opciones dependen del deporte y la competición.
 - **Predecir según el deporte:** 1X2 y marcador en fútbol, series de LoL, sets de tenis, ganador y resolución de una pelea de UFC, o podio, pole y vuelta rápida en F1. También hay competiciones de baloncesto y fútbol americano.
 - **Crear competiciones propias:** equipos, calendario, resultados y cierres de predicciones configurables.
+- **Organizar torneos sin porras:** desde «Mis ligas → Organizar torneo», añade hasta 64 personas, equipos o parejas sin cuenta. Genera una liga de ida/vuelta o una eliminatoria aleatoria, por cabezas de serie o con posiciones elegidas; registra resultados y publica un enlace o QR de consulta sin registro. Puedes intercambiar posiciones antes de jugar y corregir resultados sin sobrescribir rondas posteriores ya disputadas.
 - **Llevar juegos de mesa:** jugadores, días de juego, partidas, rondas y clasificación; puntuación por puntos o victorias, con histórico y corrección de resultados.
 - **Seguir la liga:** sincronización de resultados oficiales, recálculo de puntos en el servidor y avisos por WebSocket para refrescar las vistas. Estadísticas y reparto de predicciones en los partidos ya cerrados.
 - **Usarla desde el móvil:** PWA instalable, acceso con Google, email y contraseña o llaves de acceso WebAuthn.

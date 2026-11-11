@@ -193,6 +193,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: ROUTES['/jornadas'],
       grandPrix: ROUTES['/jornadas'],
       scoreboard: ROUTES['/'],
+      tournament: ROUTES['/'],
     },
   },
   {
@@ -213,6 +214,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Estadísticas por partido',
       grandPrix: 'Más elegidos de la Fórmula 1',
       scoreboard: ROUTES['/'],
+      tournament: ROUTES['/'],
     },
   },
   {
@@ -233,6 +235,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Buscador de jugadores',
       grandPrix: 'Buscador de pilotos',
       scoreboard: ROUTES['/'],
+      tournament: ROUTES['/'],
     },
   },
   {
@@ -253,6 +256,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: ROUTES['/tabla'],
       grandPrix: ROUTES['/'],
       scoreboard: ROUTES['/'],
+      tournament: ROUTES['/'],
     },
   },
   {
@@ -273,6 +277,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Portada de la liga',
       grandPrix: 'Portada de carreras',
       scoreboard: 'Marcador de la liga',
+      tournament: 'Torneo de seguimiento',
     },
   },
   {
@@ -293,6 +298,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Portada de la liga',
       grandPrix: 'Portada de carreras',
       scoreboard: 'Marcador de la liga',
+      tournament: 'Torneo de seguimiento',
     },
   },
   {
@@ -313,6 +319,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Cuadro del torneo',
       grandPrix: 'Mundial de F1',
       scoreboard: ROUTES['/'],
+      tournament: ROUTES['/'],
     },
   },
   {
@@ -333,6 +340,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Jornadas de la liga',
       grandPrix: 'Grandes Premios',
       scoreboard: ROUTES['/'],
+      tournament: ROUTES['/'],
     },
   },
 ];
@@ -375,6 +383,7 @@ describe('Visor de porras para cada clase de liga', () => {
     none: null,
     unknown: null,
     scoreboard: null,
+    tournament: null,
   };
 
   it.each(LEAGUE_KINDS)('%s', (kind) => {
@@ -402,6 +411,7 @@ describe('Ranking para cada clase de liga', () => {
     unknown: null,
     // Sin ranking de predicciones: su ranking son las partidas ganadas.
     scoreboard: null,
+    tournament: null,
   };
 
   it.each(LEAGUE_KINDS)('%s', (kind) => {

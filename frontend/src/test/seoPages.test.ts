@@ -34,6 +34,8 @@ describe('seo pages', () => {
         (path) =>
           path !== '*' &&
           !path.startsWith('/join/') &&
+          !path.startsWith('/torneos/:') &&
+          !path.startsWith('/t/:') &&
           // Redirecciones de enlaces antiguos de los marcadores.
           !path.startsWith('/marcador/:') &&
           !path.startsWith('/marcador/unirse/'),

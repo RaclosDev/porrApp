@@ -18,6 +18,8 @@ export default tseslint.config(
       'jsx-a11y/no-autofocus': 'off',
       // Los interruptores llevan el texto dentro de <span><strong>, a un nivel más de lo habitual.
       'jsx-a11y/label-has-associated-control': ['error', { depth: 3 }],
+      // Las regiones con scroll necesitan foco para desplazarse con el teclado.
+      'jsx-a11y/no-noninteractive-tabindex': ['error', { roles: ['tabpanel', 'region'] }],
     },
   },
   {

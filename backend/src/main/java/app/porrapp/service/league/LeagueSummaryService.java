@@ -53,7 +53,7 @@ public class LeagueSummaryService {
         Instant now = Instant.now();
         return leagues.stream()
                 // Una liga de marcador no tiene predicciones ni clasificación de porra: su ranking es el del marcador.
-                .map(league -> league.isScoreboard()
+                .map(league -> (league.isScoreboard() || league.isTournament())
                         ? new LeagueSummaryDTO(league.getId(), null, null, 0, 0, false)
                         : summary(league.getId(), editions.get(league.getId()), email, now))
                 .toList();

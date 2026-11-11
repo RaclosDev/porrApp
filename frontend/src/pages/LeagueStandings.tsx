@@ -36,6 +36,7 @@ export default function LeagueStandings() {
     unknown: <UnsupportedLeagueState />,
     // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
     scoreboard: <Navigate to="/" replace />,
+    tournament: <Navigate to="/" replace />,
     matchday: <CompetitionTable />,
     // En la UFC no hay clasificación de equipos: la tabla es la cartelera de cada velada.
     fightCard: <UfcCardBoard />,

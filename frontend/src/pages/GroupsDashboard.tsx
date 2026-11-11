@@ -126,6 +126,12 @@ export default function GroupsDashboard() {
           <h2 className="m-0 poster-title text-[1.8rem] text-white">Mis ligas</h2>
         </div>
         <div className="flex gap-2.5 flex-wrap">
+          <Link
+            to="/torneos/nuevo"
+            className="glass-btn py-2 px-4 font-bold inline-flex items-center min-h-11"
+          >
+            Organizar torneo
+          </Link>
           <button
             type="button"
             onClick={() => setShowJoinModal((prev) => !prev)}
@@ -217,9 +223,23 @@ export default function GroupsDashboard() {
         </div>
       ) : (
         <ul className="grid gap-2.5 md:grid-cols-2 max-w-240 mx-auto my-0 p-0 list-none">
+          {groups
+            .filter((group) => group.kind === 'TOURNAMENT')
+            .map((group) => (
+              <li key={group.id} className="paper-panel album-sheet p-5">
+                <h3 className="poster-title">{group.name}</h3>
+                <p>Torneo de seguimiento</p>
+                <Link
+                  className="glass-btn inline-flex items-center min-h-11 px-4"
+                  to={`/torneos/${group.id}`}
+                >
+                  Administrar torneo
+                </Link>
+              </li>
+            ))}
           {sortGroupsByRecent(
             // Las de juegos de mesa tienen su tarjeta, con jugadores y partidas.
-            groups.filter((group) => !isScoreboardLeague(group)),
+            groups.filter((group) => !isScoreboardLeague(group) && group.kind !== 'TOURNAMENT'),
             activeGroupId,
           ).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
