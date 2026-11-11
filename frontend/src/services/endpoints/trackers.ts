@@ -21,7 +21,7 @@ export interface TrackerStanding {
 }
 
 /** Forma de puntuar: puntos por ronda, victorias por ronda o ganador directo. */
-export type TrackerGameMode = 'POINTS' | 'WINS' | 'DIRECT';
+export type TrackerGameMode = 'POINTS' | 'WINS' | 'DIRECT' | 'ROUNDS';
 
 export interface TrackerGame {
   id: number;
@@ -31,6 +31,7 @@ export interface TrackerGame {
   sessions: number;
   rounds: number;
   mode: TrackerGameMode;
+  targetWins?: number | null;
 }
 
 /** Día de juego: quién vino y sus partidas en orden; `closedAt` vacío mientras sigue. */
@@ -111,6 +112,7 @@ export interface TrackerGameDraft {
   unit: string;
   lowerWins: boolean;
   mode: TrackerGameMode;
+  targetWins?: number | null;
 }
 
 export interface TrackerSummary {
@@ -123,9 +125,9 @@ export interface TrackerSummary {
 
 export interface TrackerDraft {
   name: string;
-  unit: string;
-  lowerWins: boolean;
-  /** Nombre del primer juego; sin él, se llama como la liga. */
+  unit?: string;
+  lowerWins?: boolean;
+  /** Primer juego opcional, para compatibilidad con clientes anteriores. */
   gameName?: string;
   mode?: TrackerGameMode;
 }
@@ -175,6 +177,13 @@ export const endTrackerSession = (id: number, sessionId: number) =>
   request<Tracker>(`/trackers/${id}/sessions/${sessionId}/end`, {
     method: 'POST',
     fallbackError: 'No se pudo terminar la partida',
+  });
+
+export const setTrackerSessionPlayers = (id: number, sessionId: number, playerIds: number[]) =>
+  request<Tracker>(`/trackers/${id}/sessions/${sessionId}/players`, {
+    method: 'PUT',
+    json: { playerIds },
+    fallbackError: 'No se pudieron cambiar los jugadores',
   });
 
 export const reopenTrackerSession = (id: number, sessionId: number) =>

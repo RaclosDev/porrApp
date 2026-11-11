@@ -23,6 +23,11 @@ final class ScoreTrackerStandings {
      * los presentes, o quien menos si {@code lowerWins}. Quien no ha jugado ninguna ronda va detrás.
      */
     static List<Standing> rank(List<Player> players, boolean lowerWins, List<Map<Long, Integer>> rounds) {
+        return rank(players, lowerWins, rounds, false);
+    }
+
+    static List<Standing> rank(List<Player> players, boolean lowerWins, List<Map<Long, Integer>> rounds,
+                               boolean rankByRounds) {
         Map<Long, Integer> totals = new HashMap<>();
         Map<Long, Integer> roundsWon = new HashMap<>();
         Set<Long> played = new HashSet<>();
@@ -41,7 +46,8 @@ final class ScoreTrackerStandings {
             }
         }
         Comparator<Player> byTotal = Comparator.comparingInt(
-                (Player player) -> (lowerWins ? 1 : -1) * totals.getOrDefault(player.id(), 0));
+                (Player player) -> rankByRounds ? -roundsWon.getOrDefault(player.id(), 0)
+                        : (lowerWins ? 1 : -1) * totals.getOrDefault(player.id(), 0));
         List<Player> sorted = new ArrayList<>(players);
         sorted.sort(Comparator.comparingInt((Player player) -> played.contains(player.id()) ? 0 : 1)
                 .thenComparing(byTotal)
@@ -53,9 +59,10 @@ final class ScoreTrackerStandings {
         for (int index = 0; index < sorted.size(); index++) {
             Player player = sorted.get(index);
             int total = totals.getOrDefault(player.id(), 0);
+            int rankingValue = rankByRounds ? roundsWon.getOrDefault(player.id(), 0) : total;
             boolean hasPlayed = played.contains(player.id());
-            if (previous == null || total != previous || hasPlayed != previousPlayed) rank = index + 1;
-            previous = total;
+            if (previous == null || rankingValue != previous || hasPlayed != previousPlayed) rank = index + 1;
+            previous = rankingValue;
             previousPlayed = hasPlayed;
             standings.add(new Standing(player.id(), player.name(), total, rank,
                     roundsWon.getOrDefault(player.id(), 0), 0, 0));

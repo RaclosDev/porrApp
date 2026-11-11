@@ -1,28 +1,19 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import type { Tracker } from '../../services/endpoints/trackers';
 import { copyWithToast, joinLink } from '../../utils/leagueInvite';
 import TrackerQr from './TrackerQr';
 
 interface Props {
   tracker: Tracker;
-  busy: boolean;
-  onAddPlayer: (name: string) => Promise<boolean>;
 }
 
 /**
  * Cómo entra la gente al marcador: escaneando el QR, con el enlace o con el código, y cada uno aparece
- * solo como jugador. Quien creó el marcador puede además apuntar a mano a quien no tenga la app.
+ * solo como jugador.
  */
-export default function TrackerInvite({ tracker, busy, onAddPlayer }: Props) {
+export default function TrackerInvite({ tracker }: Props) {
   const [showQr, setShowQr] = useState(true);
-  const [name, setName] = useState('');
   const link = joinLink(tracker.joinCode);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!name.trim()) return;
-    if (await onAddPlayer(name)) setName('');
-  };
 
   return (
     <section
@@ -30,7 +21,7 @@ export default function TrackerInvite({ tracker, busy, onAddPlayer }: Props) {
       aria-labelledby="tracker-invite-title"
     >
       <h2 id="tracker-invite-title" className="tracker-heading">
-        Invita a tus amigos
+        Invitar a la liga
       </h2>
       <p className="tracker-note">
         Quien entre con el QR, el enlace o el código aparece aquí como jugador y lo ve en directo.
@@ -80,26 +71,6 @@ export default function TrackerInvite({ tracker, busy, onAddPlayer }: Props) {
           WhatsApp
         </button>
       </div>
-
-      {tracker.owner && (
-        <form className="tracker-add-player" onSubmit={submit} noValidate>
-          <label htmlFor="tracker-new-player" className="sr-only">
-            Jugador sin la app
-          </label>
-          <input
-            id="tracker-new-player"
-            className="glass-input"
-            maxLength={40}
-            autoComplete="off"
-            placeholder="¿Alguien sin la app? Escribe su nombre"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <button type="submit" className="glass-btn create-league-small-btn" disabled={busy}>
-            Añadir
-          </button>
-        </form>
-      )}
     </section>
   );
 }

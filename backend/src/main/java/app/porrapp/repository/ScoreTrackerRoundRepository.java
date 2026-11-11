@@ -12,6 +12,8 @@ public interface ScoreTrackerRoundRepository extends JpaRepository<ScoreTrackerR
 
     List<ScoreTrackerRound> findByLeagueIdOrderByIdAsc(Long leagueId);
 
+    List<ScoreTrackerRound> findBySessionIdOrderByIdAsc(Long sessionId);
+
     List<ScoreTrackerRound> findByLeagueIdIn(Collection<Long> leagueIds);
 
     long countByLeagueId(Long leagueId);
