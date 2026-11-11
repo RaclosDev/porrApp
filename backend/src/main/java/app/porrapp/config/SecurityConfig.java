@@ -32,6 +32,7 @@ public class SecurityConfig {
 
     /** Lecturas que no exigen sesión (GET y HEAD). */
     private static final String[] PUBLIC_READS = {
+            "/api/tournaments/public/*",
             "/api/predictions/**",
             "/api/matches/**",
             "/api/rules/**",

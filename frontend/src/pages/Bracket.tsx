@@ -31,6 +31,7 @@ function Bracket() {
     unknown: <UnsupportedLeagueState />,
     // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
     scoreboard: <Navigate to="/" replace />,
+    tournament: <Navigate to="/" replace />,
     groupStage: <GroupStageBracket />,
     // Los cuadros propios (personalizadas, Worlds de LoL…) se pronostican sobre sus cruces.
     customBracket: <CustomBracket />,

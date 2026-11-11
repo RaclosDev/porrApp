@@ -55,6 +55,12 @@ public class League {
 
     public static final String KIND_POOL = "POOL";
     public static final String KIND_SCOREBOARD = "SCOREBOARD";
+    public static final String KIND_TOURNAMENT = "TOURNAMENT";
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isTournament() {
+        return KIND_TOURNAMENT.equals(kind);
+    }
 
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isScoreboard() {

@@ -61,6 +61,16 @@ class SpaPageControllerTest {
     }
 
     @Test
+    void sharedTournamentAndAdminDeepLinksServeTheAppWithoutIndexing() throws Exception {
+        for (String path : new String[] {"/torneos/42", "/t/742048c5-c4b6-4bcc-ab10-2ebcc48e91cf"}) {
+            mockMvc.perform(get(path))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("X-Robots-Tag", "noindex"))
+                    .andExpect(content().contentType("text/html;charset=UTF-8"));
+        }
+    }
+
+    @Test
     void prerenderedPageIsServedInsteadOfTheCommonShell() throws Exception {
         mockMvc.perform(get("/porra-laliga"))
                 .andExpect(status().isOk())
