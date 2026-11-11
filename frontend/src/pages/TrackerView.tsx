@@ -17,6 +17,7 @@ import {
   reopenTrackerSession,
   startTrackerDay,
   startTrackerSession,
+  setTrackerSessionPlayers,
   type TrackerGameDraft,
   type TrackerRound,
 } from '../services/endpoints/trackers';
@@ -36,6 +37,7 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
   const [chosen, setChosen] = useState<number[] | null>(null);
   /** Eligiendo juego aunque haya una partida a medias o un resultado que enseñar. */
   const [picking, setPicking] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
 
   if (query.isPending) return <PaperLoading label="Cargando la partida" />;
   if (!tracker) return <TrackerUnavailable error={query.error} />;
@@ -44,7 +46,17 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
   const day = (tracker.days ?? []).find((item) => item.id === tracker.currentDayId) ?? null;
   const daySessions = day ? tracker.sessions.filter((item) => item.dayId === day.id) : [];
   const open = daySessions.find((item) => !item.endedAt) ?? null;
-  const lastEnded = [...daySessions].reverse().find((item) => item.endedAt) ?? null;
+  const lastEnded =
+    [...daySessions].reverse().find((item) => item.endedAt && item.rounds > 0) ?? null;
+  const editingPlayers = Boolean(open && editingSessionId === open.id);
+  const pendingRounds = offline.pending > 0;
+  const lockedPlayers = [
+    ...new Set(
+      tracker.rounds
+        .filter((round) => round.sessionId === open?.id)
+        .flatMap((round) => Object.keys(round.scores).map(Number)),
+    ),
+  ];
   const gameOf = (gameId: number | null) =>
     games.find((game) => game.id === gameId) ?? {
       name: 'Partida',
@@ -83,6 +95,7 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
   };
 
   const play = async (gameId: number) => {
+    if (busy || pendingRounds) return false;
     if (selected.length === 0) {
       toast.error('Marca al menos a un jugador.');
       return false;
@@ -99,40 +112,64 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
   };
 
   const createGame = async (game: TrackerGameDraft) => {
+    if (busy || pendingRounds || selected.length === 0) return false;
     const known = new Set(games.map((item) => item.id));
     const next = await change(() => addTrackerGame(tracker.id, game), 'No se pudo crear el juego');
     const created = next?.games?.find((item) => !known.has(item.id));
-    return created ? play(created.id) : false;
+    if (!created) return false;
+    await play(created.id);
+    return true;
+  };
+
+  const savePlayers = async () => {
+    if (!open || busy || pendingRounds || selected.length === 0) return;
+    if (
+      await change(
+        () => setTrackerSessionPlayers(tracker.id, open.id, selected),
+        'No se pudieron cambiar los jugadores',
+      )
+    ) {
+      setEditingSessionId(null);
+      setChosen(null);
+    }
   };
 
   const endSession = async () => {
-    if (!open) return;
+    if (!open || busy || pendingRounds) return;
     const confirmed = await confirmAction({
       title: '¿Terminar la partida?',
       message:
-        gameOf(open.gameId).targetWins && open.winners.length === 0
-          ? 'Aún no se ha alcanzado el objetivo de rondas ganadas. Se guardará sin ganador. Puedes reabrirla para continuar.'
-          : 'Se cierra la hoja y se ve quién ha ganado. Se puede reabrir para corregirla.',
+        open.rounds === 0
+          ? 'No hay rondas apuntadas. Esta partida no sumará resultados y podrás elegir otro juego.'
+          : gameOf(open.gameId).targetWins && open.winners.length === 0
+            ? 'Aún no se ha alcanzado el objetivo de rondas ganadas. Se guardará sin ganador. Puedes reabrirla para continuar.'
+            : 'Se cierra la hoja y se ve quién ha ganado. Se puede reabrir para corregirla.',
       confirmLabel: 'Terminar partida',
     });
     if (confirmed) {
-      await change(() => endTrackerSession(tracker.id, open.id), 'No se pudo terminar');
+      if (await change(() => endTrackerSession(tracker.id, open.id), 'No se pudo terminar')) {
+        setEditingSessionId(null);
+        setChosen(null);
+        if (open.rounds === 0) setPicking(true);
+      }
     }
   };
 
   const closeDay = async () => {
-    if (!day) return;
+    if (!day || busy || pendingRounds || (open && open.rounds > 0)) return;
     const confirmed = await confirmAction({
       title: '¿Cerrar el día de juego?',
-      message:
-        open && gameOf(open.gameId).targetWins && open.winners.length === 0
-          ? 'La partida abierta quedará sin ganador porque no se ha alcanzado el objetivo. Todo quedará guardado en el histórico.'
-          : 'Las partidas quedan en el histórico. La próxima vez se empieza un día nuevo.',
+      message: daySessions.some((session) => session.rounds > 0)
+        ? 'Las partidas con resultados quedan en el histórico. Las partidas vacías se descartan.'
+        : 'No hay resultados apuntados. Se descartará este día vacío y podrás empezar uno nuevo.',
       confirmLabel: 'Cerrar el día',
     });
     if (confirmed) {
-      setPicking(false);
-      await change(() => closeTrackerDay(tracker.id, day.id), 'No se pudo cerrar el día');
+      if (await change(() => closeTrackerDay(tracker.id, day.id), 'No se pudo cerrar el día')) {
+        setPicking(false);
+        setChosen(null);
+        setEditingSessionId(null);
+      }
     }
   };
 
@@ -200,18 +237,33 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
             <h2 id="tracker-sheet-title" className="tracker-heading">
               {gameOf(open.gameId).name} · partida {open.number}
             </h2>
-            {open.rounds === 0 && (
+            <div className="tracker-actions">
               <button
                 type="button"
                 className="create-league-link"
+                disabled={busy || pendingRounds}
+                aria-expanded={editingPlayers}
                 onClick={() => {
-                  setChosen(open.playerIds);
-                  setPicking(true);
+                  setEditingSessionId(editingPlayers ? null : open.id);
+                  setChosen(editingPlayers ? null : open.playerIds);
                 }}
               >
-                Cambiar de juego
+                Cambiar jugadores
               </button>
-            )}
+              {open.rounds === 0 && !editingPlayers && (
+                <button
+                  type="button"
+                  className="create-league-link"
+                  disabled={busy || pendingRounds}
+                  onClick={() => {
+                    setChosen(open.playerIds);
+                    setPicking(true);
+                  }}
+                >
+                  Cambiar de juego
+                </button>
+              )}
+            </div>
           </div>
           {offline.pending > 0 && (
             <p className="tracker-note" role="status">
@@ -226,41 +278,91 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
               )}
             </p>
           )}
-          <TrackerSheet
-            key={open.id}
-            session={open}
-            game={gameOf(open.gameId)}
-            players={tracker.players.filter(
-              (player) => open.playerIds.length === 0 || open.playerIds.includes(player.id),
-            )}
-            rounds={tracker.rounds.filter((round) => round.sessionId === open.id)}
-            busy={busy}
-            onAdd={async (round) =>
-              Boolean(
-                await change(async () => {
-                  const next = await offline.add(round);
-                  return next === 'queued' ? tracker : next;
-                }, 'No se pudo apuntar'),
-              )
-            }
-            onEdit={async (roundId, round) =>
-              Boolean(
-                await change(
-                  () => editTrackerRound(tracker.id, roundId, round),
-                  'No se pudo corregir',
-                ),
-              )
-            }
-            onDelete={removeRound}
-          />
+          {editingPlayers && (
+            <section className="tracker-entry" aria-label="Cambiar jugadores de la partida">
+              <p className="tracker-note">
+                Puedes añadir a quien llegue después. Quien ya tiene resultados debe permanecer en
+                la partida para conservarlos.
+              </p>
+              <TrackerAttendees
+                label="Jugadores de esta partida"
+                players={tracker.players}
+                selected={selected}
+                locked={lockedPlayers}
+                busy={busy || pendingRounds}
+                onToggle={toggle}
+                onAddPlayer={addPlayer}
+              />
+              <div className="tracker-actions">
+                <button
+                  type="button"
+                  className="glass-btn primary-btn"
+                  disabled={busy || pendingRounds || selected.length === 0}
+                  onClick={() => void savePlayers()}
+                >
+                  Guardar jugadores
+                </button>
+                <button
+                  type="button"
+                  className="create-league-link"
+                  disabled={busy}
+                  onClick={() => {
+                    setEditingSessionId(null);
+                    setChosen(null);
+                  }}
+                >
+                  Cancelar cambios
+                </button>
+              </div>
+            </section>
+          )}
+          <div hidden={editingPlayers}>
+            <TrackerSheet
+              key={open.id}
+              session={open}
+              game={gameOf(open.gameId)}
+              players={tracker.players.filter(
+                (player) => open.playerIds.length === 0 || open.playerIds.includes(player.id),
+              )}
+              rounds={tracker.rounds.filter((round) => round.sessionId === open.id)}
+              busy={busy}
+              onAdd={async (round) =>
+                Boolean(
+                  await change(async () => {
+                    const next = await offline.add(round);
+                    return next === 'queued' ? tracker : next;
+                  }, 'No se pudo apuntar'),
+                )
+              }
+              onEdit={async (roundId, round) =>
+                Boolean(
+                  await change(
+                    () => editTrackerRound(tracker.id, roundId, round),
+                    'No se pudo corregir',
+                  ),
+                )
+              }
+              onDelete={removeRound}
+            />
+          </div>
           <button
             type="button"
             className="glass-btn create-league-small-btn tracker-end"
-            disabled={busy || open.rounds === 0}
+            disabled={busy || pendingRounds || editingPlayers}
             onClick={() => void endSession()}
           >
             Terminar partida
           </button>
+          {open.rounds === 0 && !editingPlayers && (
+            <button
+              type="button"
+              className="create-league-link tracker-close-day"
+              disabled={busy || pendingRounds}
+              onClick={() => void closeDay()}
+            >
+              Cerrar el día de juego
+            </button>
+          )}
         </section>
       )}
 
@@ -278,7 +380,7 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
             gameName={gameOf(lastEnded.gameId).name}
             unit={gameOf(lastEnded.gameId).unit}
             myPlayerId={tracker.myPlayerId}
-            busy={busy}
+            busy={busy || pendingRounds}
             onAnother={() => setPicking(true)}
             onReopen={() =>
               void change(
@@ -323,17 +425,22 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
             onAddPlayer={addPlayer}
           />
           <h3 className="tracker-subheading">Juego</h3>
+          {selected.length === 0 && (
+            <p className="tracker-note" role="status">
+              Marca al menos a un jugador para empezar una partida.
+            </p>
+          )}
           <TrackerGamePicker
             games={games}
-            busy={busy}
+            busy={busy || pendingRounds || selected.length === 0}
             onPick={(gameId) => void play(gameId)}
             onCreate={createGame}
           />
-          {daySessions.length > 0 && !open && (
+          {(!open || open.rounds === 0) && (
             <button
               type="button"
               className="create-league-link tracker-close-day"
-              disabled={busy}
+              disabled={busy || pendingRounds}
               onClick={() => void closeDay()}
             >
               Cerrar el día de juego
