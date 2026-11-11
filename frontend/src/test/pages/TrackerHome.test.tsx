@@ -6,9 +6,11 @@ import TrackerHome from '../../pages/TrackerHome';
 import type { Tracker, TrackerSession } from '../../services/endpoints/trackers';
 
 const fetchTracker = vi.fn();
+const addPlayer = vi.fn();
 vi.mock('../../services/endpoints/trackers', async (original) => ({
   ...(await original<typeof import('../../services/endpoints/trackers')>()),
   fetchTracker: (id: string) => fetchTracker(id),
+  addTrackerPlayer: (id: number, name: string) => addPlayer(id, name),
 }));
 
 const session = (overrides: Partial<TrackerSession>): TrackerSession => ({
@@ -141,6 +143,11 @@ describe('Inicio de una liga de juegos de mesa', () => {
       'false',
     );
     expect(screen.queryByRole('region', { name: 'Quién va ganando' })).not.toBeInTheDocument();
+    addPlayer.mockResolvedValue({ ...base, players: [{ id: 15, name: 'Luis' }] });
+    fireEvent.change(screen.getByLabelText('Nombre del jugador'), { target: { value: 'Luis' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir', exact: true }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Luis ya está en la liga.');
+    expect(screen.getByLabelText('Nombre del jugador')).toHaveValue('');
   });
 
   it('un miembro sin identidad ve los jugadores y puede abrir el alta, sin controles de administrador', async () => {

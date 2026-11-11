@@ -122,9 +122,12 @@ export default function TrackerHome({ leagueId }: { leagueId: string | null }) {
           </div>
           <TrackerAddPlayer
             busy={busy}
-            onAddPlayer={async (name) =>
-              Boolean(await change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir'))
-            }
+            onAddPlayer={async (name) => {
+              setAddOpen(true);
+              return Boolean(
+                await change(() => addTrackerPlayer(tracker.id, name), 'No se pudo añadir'),
+              );
+            }}
           />
         </section>
       )}
