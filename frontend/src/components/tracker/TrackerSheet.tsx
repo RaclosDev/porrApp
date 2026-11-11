@@ -10,7 +10,7 @@ import TrackerSheetTable from './TrackerSheetTable';
 
 interface Props {
   session: TrackerSession;
-  game: Pick<TrackerGame, 'name' | 'unit' | 'mode' | 'lowerWins'>;
+  game: Pick<TrackerGame, 'name' | 'unit' | 'mode' | 'lowerWins' | 'targetWins'>;
   /** Quienes juegan la partida, en el orden de la liga. */
   players: TrackerPlayer[];
   rounds: TrackerRound[];
@@ -42,7 +42,7 @@ export default function TrackerSheet({
   const [editing, setEditing] = useState<TrackerRound | null>(null);
   const [selectedWinners, setSelectedWinners] = useState<number[]>([]);
   const [error, setError] = useState('');
-  const wins = game.mode !== 'POINTS';
+  const wins = game.mode === 'WINS' || game.mode === 'DIRECT';
 
   const reset = () => {
     setValues({});
@@ -94,6 +94,18 @@ export default function TrackerSheet({
 
   return (
     <div className="tracker-sheet">
+      {game.targetWins && (
+        <p className="tracker-note" role="status">
+          Objetivo: ganar {game.targetWins} {game.targetWins === 1 ? 'ronda' : 'rondas'}. La partida
+          termina al alcanzarlo.
+        </p>
+      )}
+      {game.mode === 'ROUNDS' && (
+        <p className="tracker-note">
+          Cada ronda la gana quien {game.lowerWins ? 'menos' : 'más'} puntos tiene. La partida se
+          decide por rondas ganadas.
+        </p>
+      )}
       <TrackerSheetTable
         session={session}
         game={game}

@@ -51,6 +51,7 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
       unit: tracker.unit,
       mode: 'POINTS' as const,
       lowerWins: tracker.lowerWins,
+      targetWins: null,
     };
 
   const everyone = tracker.players.map((player) => player.id);
@@ -108,7 +109,10 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
     if (!open) return;
     const confirmed = await confirmAction({
       title: '¿Terminar la partida?',
-      message: 'Se cierra la hoja y se ve quién ha ganado. Se puede reabrir para corregirla.',
+      message:
+        gameOf(open.gameId).targetWins && open.winners.length === 0
+          ? 'Aún no se ha alcanzado el objetivo de rondas ganadas. Se guardará sin ganador. Puedes reabrirla para continuar.'
+          : 'Se cierra la hoja y se ve quién ha ganado. Se puede reabrir para corregirla.',
       confirmLabel: 'Terminar partida',
     });
     if (confirmed) {
@@ -120,7 +124,10 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
     if (!day) return;
     const confirmed = await confirmAction({
       title: '¿Cerrar el día de juego?',
-      message: 'Las partidas quedan en el histórico. La próxima vez se empieza un día nuevo.',
+      message:
+        open && gameOf(open.gameId).targetWins && open.winners.length === 0
+          ? 'La partida abierta quedará sin ganador porque no se ha alcanzado el objetivo. Todo quedará guardado en el histórico.'
+          : 'Las partidas quedan en el histórico. La próxima vez se empieza un día nuevo.',
       confirmLabel: 'Cerrar el día',
     });
     if (confirmed) {

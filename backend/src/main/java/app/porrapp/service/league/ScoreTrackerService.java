@@ -185,7 +185,7 @@ public class ScoreTrackerService {
     }
 
     /**
-     * Crea la liga con quien la crea como primer jugador y su primer juego. El resto entra al unirse con el
+     * Crea la liga con quien la crea como primer jugador. El juego se elige al jugar. El resto entra al unirse con el
      * código o los añade el administrador a mano; los nombres que lleve la petición se suman detrás.
      */
     @Transactional
@@ -215,14 +215,17 @@ public class ScoreTrackerService {
                 .kind(League.KIND_SCOREBOARD).build());
         memberships.save(Membership.builder().id(new Membership.MembershipId(userId, league.getId()))
                 .user(owner).league(league).role("ADMIN").build());
-        ScoreGame game = games.save(newGame(league.getId(), gameName(request.gameName(), name), request.unit(),
-                request.lowerWins(), request.mode()));
         List<Long> playerIds = new ArrayList<>();
         for (int i = 0; i < names.size(); i++) {
             playerIds.add(players.save(ScoreTrackerPlayer.builder().leagueId(league.getId()).name(names.get(i))
                     .userId(i == 0 ? userId : null).position(i).build()).getId());
         }
-        startSession(league.getId(), game.getId(), playerIds, null, userId);
+        // Compatibilidad con clientes anteriores que creaban también el primer juego.
+        if (!clean(request.gameName()).isEmpty() || !clean(request.unit()).isEmpty() || request.mode() != null) {
+            ScoreGame game = games.save(newGame(league.getId(), gameName(request.gameName(), name), request.unit(),
+                    request.lowerWins(), request.mode()));
+            startSession(league.getId(), game.getId(), playerIds, null, userId);
+        }
         return view(league, userId);
     }
 
@@ -321,11 +324,29 @@ public class ScoreTrackerService {
         points.forEach((playerId, value) -> scores.save(ScoreTrackerScore.builder().roundId(round.getId())
                 .playerId(playerId).points(value).build()));
         recordRoundChange(leagueId, round.getId(), userId, "CREATED", null, roundState(round, points));
-        if (sessionGame.isDirect()) {
+        if (sessionGame.isDirect() || targetReached(session, sessionGame)) {
             session.setEndedAt(Instant.now());
             sessions.save(session);
         }
         return changed(league, userId);
+    }
+
+    private boolean targetReached(ScoreTrackerSession session, ScoreGame game) {
+        if (game.getTargetWins() == null) return false;
+        List<Long> roundIds = rounds.findBySessionIdOrderByIdAsc(session.getId()).stream()
+                .map(ScoreTrackerRound::getId).toList();
+        if (roundIds.isEmpty()) return false;
+        Map<Long, Map<Long, Integer>> pointsByRound = new LinkedHashMap<>();
+        Set<Long> scored = new HashSet<>();
+        for (ScoreTrackerScore score : scores.findByRoundIdIn(roundIds)) {
+            pointsByRound.computeIfAbsent(score.getRoundId(), key -> new LinkedHashMap<>())
+                    .put(score.getPlayerId(), score.getPoints());
+            scored.add(score.getPlayerId());
+        }
+        List<Player> participants = scored.stream().map(id -> new Player(id, "")).toList();
+        return ScoreTrackerStandings.rank(participants, !game.isWins() && game.isLowerWins(),
+                        new ArrayList<>(pointsByRound.values()), true).stream()
+                .anyMatch(row -> row.roundsWon() >= game.getTargetWins());
     }
 
     /** Corrige una ronda: sustituye sus puntos (o quién la ganó) y su nota. */
@@ -362,6 +383,10 @@ public class ScoreTrackerService {
         rounds.save(round);
         rounds.flush();
         recordRoundChange(leagueId, roundId, userId, "UPDATED", before, roundState(round, afterPoints));
+        if (session.isOpen() && targetReached(session, gameOf(leagueId, session.getGameId()))) {
+            session.setEndedAt(Instant.now());
+            sessions.save(session);
+        }
         return changed(league, userId);
     }
 
@@ -759,14 +784,20 @@ public class ScoreTrackerService {
         List<ScoreGame> existing = games.findByLeagueIdOrderByIdAsc(leagueId);
         if (existing.size() >= MAX_GAMES) throw BusinessException.badRequest("Máximo " + MAX_GAMES + " juegos");
         requireFreeGameName(existing, name, null);
-        games.save(newGame(leagueId, name, request.unit(), request.lowerWins(), request.mode()));
+        if (request.targetWins() != null && (request.targetWins() < 1 || request.targetWins() > 500
+                || !(ScoreGame.MODE_WINS.equals(request.mode()) || ScoreGame.MODE_ROUNDS.equals(request.mode())))) {
+            throw BusinessException.badRequest("El objetivo debe ser de 1 a 500 rondas ganadas");
+        }
+        ScoreGame game = newGame(leagueId, name, request.unit(), request.lowerWins(), request.mode());
+        game.setTargetWins(request.targetWins());
+        games.save(game);
         return changed(league, userId);
     }
 
     /** En los juegos por victorias no hay «gana quien menos» y la unidad por defecto son las victorias. */
     private static ScoreGame newGame(Long leagueId, String name, String unit, boolean lowerWins, String mode) {
         boolean wins = ScoreGame.MODE_WINS.equals(mode) || ScoreGame.MODE_DIRECT.equals(mode);
-        String selectedMode = wins ? mode : ScoreGame.MODE_POINTS;
+        String selectedMode = wins || ScoreGame.MODE_ROUNDS.equals(mode) ? mode : ScoreGame.MODE_POINTS;
         String cleanUnit = clean(unit);
         return ScoreGame.builder().leagueId(leagueId).name(name)
                 .unit(cleanUnit.isEmpty() ? (wins ? "victorias" : "puntos") : cleanUnit)
@@ -788,15 +819,12 @@ public class ScoreTrackerService {
         return changed(league, userId);
     }
 
-    /** Un juego solo se borra si no tiene partidas apuntadas y no es el único de la liga. */
+    /** Un juego solo se borra si no tiene rondas apuntadas. */
     @Transactional
     public ScoreTrackerDTO deleteGame(String email, Long leagueId, Long gameId) {
         Long userId = userId(email);
         League league = owned(userId, leagueId);
         ScoreGame game = gameOf(leagueId, gameId);
-        if (games.countByLeagueId(leagueId) <= 1) {
-            throw BusinessException.badRequest("La liga necesita al menos un juego");
-        }
         Set<Long> gameSessions = sessions.findByLeagueIdOrderByIdAsc(leagueId).stream()
                 .filter(session -> session.getGameId().equals(gameId)).map(ScoreTrackerSession::getId)
                 .collect(Collectors.toSet());
@@ -1106,8 +1134,14 @@ public class ScoreTrackerService {
             List<Player> sessionPlayerList = playerList.stream()
                     .filter(player -> participants.contains(player.id())).toList();
             boolean lowerWins = game != null && !game.isWins() && game.isLowerWins();
-            List<Standing> standings = ScoreTrackerStandings.rank(sessionPlayerList, lowerWins, ownPoints);
+            List<Standing> standings = ScoreTrackerStandings.rank(sessionPlayerList, lowerWins, ownPoints,
+                    game != null && ScoreGame.MODE_ROUNDS.equals(game.getMode()));
             List<Long> winners = ScoreTrackerStandings.leaders(standings, own.size());
+            if (game != null && game.getTargetWins() != null) {
+                Set<Long> reached = standings.stream().filter(row -> row.roundsWon() >= game.getTargetWins())
+                        .map(Standing::playerId).collect(Collectors.toSet());
+                winners = winners.stream().filter(reached::contains).toList();
+            }
             Long gameKey = session.getGameId();
             Map<Long, Integer> totals = totalsByGame.computeIfAbsent(gameKey, key -> new HashMap<>());
             Map<Long, Integer> roundsWon = roundsWonByGame.computeIfAbsent(gameKey, key -> new HashMap<>());
@@ -1158,7 +1192,7 @@ public class ScoreTrackerService {
             gamePlayed.forEach((id, value) -> sessionsPlayed.merge(id, value, Integer::sum));
             gameViews.add(new Game(game.getId(), game.getName(), game.getUnit(), game.isLowerWins(),
                     sessionCountByGame.getOrDefault(game.getId(), 0),
-                    roundCountByGame.getOrDefault(game.getId(), 0), game.getMode()));
+                    roundCountByGame.getOrDefault(game.getId(), 0), game.getMode(), game.getTargetWins()));
         }
         List<Standing> overall = ScoreTrackerStandings.general(playerList, totals, roundsWon, sessionsWon,
                 sessionsPlayed);

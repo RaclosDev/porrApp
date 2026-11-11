@@ -116,7 +116,7 @@ export default function TrackerManage({
                   {editing === key && (
                     <GameEditor
                       game={game}
-                      deletable={game.rounds === 0 && games.length > 1}
+                      deletable={game.rounds === 0}
                       busy={busy}
                       onSave={(draft) => done(() => onEditGame(game.id, draft))()}
                       onDelete={() => done(() => onDeleteGame(game.id))()}

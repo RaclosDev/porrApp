@@ -17,6 +17,7 @@ public class ScoreGame {
     public static final String MODE_POINTS = "POINTS";
     public static final String MODE_WINS = "WINS";
     public static final String MODE_DIRECT = "DIRECT";
+    public static final String MODE_ROUNDS = "ROUNDS";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,6 +43,10 @@ public class ScoreGame {
     @Builder.Default
     @Column(nullable = false, length = 10)
     private String mode = MODE_POINTS;
+
+    /** Objetivo opcional de rondas ganadas; las reglas se conservan mientras exista el juego. */
+    @Column(name = "target_wins")
+    private Integer targetWins;
 
     @Builder.Default
     @Column(name = "created_at", nullable = false)

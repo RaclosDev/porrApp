@@ -24,19 +24,18 @@ const renderPage = () =>
     </QueryClientProvider>,
   );
 
-it('pide solo nombre y qué se cuenta, sin jugadores, y abre el marcador creado', async () => {
+it('crea un grupo sin elegir juego, puntuación ni asistentes', async () => {
   vi.mocked(createTracker).mockResolvedValue({ id: 9 } as never);
   renderPage();
 
   expect(screen.queryByLabelText(/jugador/i)).not.toBeInTheDocument();
-  fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Golf' } });
-  fireEvent.click(screen.getByRole('button', { name: 'fichas' }));
-  expect(screen.getByRole('button', { name: 'fichas' })).toHaveAttribute('aria-pressed', 'true');
-  fireEvent.click(screen.getByRole('checkbox', { name: /Gana quien menos suma/ }));
+  fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: ' Gym ' } });
+  expect(screen.queryByText('¿Cómo se puntúa?')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Catán' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Crear marcador' }));
 
   expect(await screen.findByText('Marcador abierto')).toBeInTheDocument();
-  expect(createTracker).toHaveBeenCalledWith({ name: 'Golf', unit: 'fichas', lowerWins: true });
+  expect(createTracker).toHaveBeenCalledWith({ name: 'Gym' });
 });
 
 it('avisa si falta el nombre y enseña el error del servidor', async () => {
@@ -50,25 +49,4 @@ it('avisa si falta el nombre y enseña el error del servidor', async () => {
   fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Mus' } });
   fireEvent.click(screen.getByRole('button', { name: 'Crear marcador' }));
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Sin conexión'));
-});
-
-it('una plantilla deja el juego preparado: qué se cuenta, quién gana y su nombre', async () => {
-  vi.mocked(createTracker).mockResolvedValue({ id: 9 } as never);
-  renderPage();
-
-  fireEvent.click(screen.getByRole('button', { name: 'Chinchón' }));
-  expect(screen.getByLabelText('Nombre')).toHaveValue('Chinchón');
-  expect(screen.getByRole('checkbox', { name: /Gana quien menos suma/ })).toBeChecked();
-  expect(screen.getByText(/gana quien menos tiene/)).toBeInTheDocument();
-  fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Chinchón de la abuela' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Crear marcador' }));
-
-  await screen.findByText('Marcador abierto');
-  expect(createTracker).toHaveBeenCalledWith({
-    name: 'Chinchón de la abuela',
-    unit: 'puntos',
-    lowerWins: true,
-    gameName: 'Chinchón',
-    mode: 'POINTS',
-  });
 });
