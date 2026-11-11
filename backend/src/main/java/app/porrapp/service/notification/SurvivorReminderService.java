@@ -109,16 +109,18 @@ public class SurvivorReminderService {
             int ttl = (int) Math.max(60, Duration.between(now, p.deadline()).toSeconds());
 
             boolean any = false;
+            boolean queued = false;
             for (PushSubscription device : userDevices) {
                 WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(),
-                        payload, ttl);
+                        payload, ttl, device.getUser().getId());
                 if (result == WebPushSender.Result.SENT) any = true;
+                if (result == WebPushSender.Result.QUEUED) queued = true;
                 if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
             }
-            // Si no llegó a ningún dispositivo se reintenta en la siguiente pasada, mientras siga abierta.
-            if (any) {
+            // Los fallos temporales quedan pendientes por dispositivo, incluso si otro ya lo recibió.
+            if (any || queued) {
                 delivered++;
-                notificationLog.record(p.userId(), message, now);
+                if (any) notificationLog.record(p.userId(), message, now);
                 reminderRepository.save(new MatchReminderSent(new MatchReminderSent.Key(p.userId(), p.markerMatchId(),
                         MatchReminderSent.survivor(p.league().getId())), now));
             }

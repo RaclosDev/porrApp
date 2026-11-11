@@ -31,8 +31,9 @@ class PushSubscriptionServiceTest {
 
     private final PushSubscriptionRepository subscriptions = mock(PushSubscriptionRepository.class);
     private final UserAccountRepository users = mock(UserAccountRepository.class);
+    private final WebPushSender sender = mock(WebPushSender.class);
     private final PushSubscriptionService service =
-            new PushSubscriptionService(subscriptions, users, mock(WebPushSender.class));
+            new PushSubscriptionService(subscriptions, users, sender);
 
     private UserAccount ana;
     private UserAccount bea;
@@ -47,6 +48,42 @@ class PushSubscriptionServiceTest {
 
     private static PushSubscription stored(UserAccount owner, String p256dh, String auth) {
         return PushSubscription.builder().id(9L).user(owner).endpoint(ENDPOINT).p256dh(p256dh).auth(auth).build();
+    }
+
+    @Test
+    void testNotificationCannotTargetAnotherAccountsDevice() {
+        when(subscriptions.findByEndpoint(ENDPOINT)).thenReturn(Optional.of(stored(bea, P256DH, AUTH)));
+        assertThatThrownBy(() -> service.testNotification("ana@test.com", ENDPOINT)).isInstanceOf(BusinessException.class);
+        org.mockito.Mockito.verifyNoInteractions(sender);
+    }
+
+    @Test
+    void testNotificationReportsProviderAcceptanceWithoutChangingPreferences() {
+        when(subscriptions.findByEndpoint(ENDPOINT)).thenReturn(Optional.of(stored(ana, P256DH, AUTH)));
+        when(sender.send(org.mockito.ArgumentMatchers.eq(ENDPOINT), org.mockito.ArgumentMatchers.eq(P256DH),
+                org.mockito.ArgumentMatchers.eq(AUTH), org.mockito.ArgumentMatchers.contains("Prueba de notificaciones"),
+                org.mockito.ArgumentMatchers.eq(60), org.mockito.ArgumentMatchers.eq(ana.getId()))).thenReturn(WebPushSender.Result.SENT);
+        service.testNotification("ana@test.com", ENDPOINT);
+        verify(users, never()).save(any());
+        verify(subscriptions, never()).deleteByEndpointAndUserId(any(), any());
+    }
+
+    @Test
+    void testNotificationRemovesOnlyAnExpiredDeviceAndReportsFailure() {
+        when(subscriptions.findByEndpoint(ENDPOINT)).thenReturn(Optional.of(stored(ana, P256DH, AUTH)));
+        when(sender.send(any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt(), any())).thenReturn(WebPushSender.Result.GONE);
+        assertThatThrownBy(() -> service.testNotification("ana@test.com", ENDPOINT))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("caducado");
+        verify(subscriptions).deleteByEndpointAndUserId(ENDPOINT, ana.getId());
+    }
+
+    @Test
+    void failedTestNeverClaimsAcceptance() {
+        when(subscriptions.findByEndpoint(ENDPOINT)).thenReturn(Optional.of(stored(ana, P256DH, AUTH)));
+        when(sender.send(any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt(), any())).thenReturn(WebPushSender.Result.FAILED);
+        assertThatThrownBy(() -> service.testNotification("ana@test.com", ENDPOINT))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("no ha aceptado");
+        verify(subscriptions, never()).deleteByEndpointAndUserId(any(), any());
     }
 
     @Test

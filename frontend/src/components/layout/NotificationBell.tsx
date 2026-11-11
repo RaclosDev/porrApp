@@ -45,8 +45,8 @@ export default function NotificationBell({ onOpenSettings }: { onOpenSettings: (
   const { data: config } = useQuery({
     queryKey: PUSH_CONFIG_QUERY_KEY,
     queryFn: fetchPushConfig,
-    staleTime: Infinity,
-    retry: false,
+    staleTime: 60_000,
+    retry: 2,
   });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);

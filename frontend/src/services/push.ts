@@ -1,4 +1,5 @@
-import { savePushSubscription } from './api';
+import { savePushSubscription, sendTestPush } from './api';
+import { isApiError } from './apiError';
 
 /** El navegador puede recibir avisos push (en iOS, solo con la app añadida a la pantalla de inicio). */
 function isPushSupported(): boolean {
@@ -91,7 +92,22 @@ async function subscribe(
 
 /** Suscribe este dispositivo (si hace falta) y lo registra en el servidor. Requiere permiso concedido. */
 export async function syncPushSubscription(publicKey: string): Promise<void> {
-  const registration = await navigator.serviceWorker.ready;
+  // ready no rechaza si el service worker no llega a activarse.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const registration = await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () =>
+          reject(
+            new Error(
+              'No se ha podido preparar las notificaciones. Recarga la app y vuelve a intentarlo.',
+            ),
+          ),
+        15_000,
+      );
+    }),
+  ]).finally(() => clearTimeout(timer));
   let subscription = await registration.pushManager.getSubscription();
   if (subscription && !sameKey(subscription, publicKey)) {
     await subscription.unsubscribe();
@@ -119,6 +135,23 @@ export async function enablePush(publicKey: string): Promise<boolean> {
   if (permission !== 'granted') return false;
   await syncPushSubscription(publicKey);
   return true;
+}
+
+/** Prueba el envío desde el servidor al dispositivo que está usando esta cuenta. */
+export async function testPush(publicKey: string): Promise<void> {
+  if (!(await enablePush(publicKey))) {
+    throw new Error('Para probar los avisos, permite las notificaciones en este dispositivo.');
+  }
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.getSubscription();
+  if (!subscription) throw new Error('Activa primero los avisos en este dispositivo.');
+  try {
+    await sendTestPush(subscription.endpoint);
+  } catch (err) {
+    // Un endpoint dado de baja por el proveedor no se recupera volviendo a guardarlo en el servidor.
+    if (isApiError(err, 410)) await subscription.unsubscribe();
+    throw err;
+  }
 }
 
 /**

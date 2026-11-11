@@ -25,6 +25,7 @@ async function signedIn(page: Page, extra: Record<string, unknown> = {}) {
     localStorage.setItem('activeCompetitionId', '2');
     // El aviso de la llave de acceso, ya contestado: no es de estas pruebas y tapa los botones.
     localStorage.setItem('passkey_prompt_answered:7', '1');
+    localStorage.setItem('push_prompt_v2:7', String(Date.now()));
   });
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url());
@@ -124,6 +125,62 @@ for (const width of [390, 1440]) {
     await page.screenshot({ path: testInfo.outputPath(`avisos-${width}.png`) });
   });
 }
+
+test('recupera los avisos desde ajustes tras fallar el registro del dispositivo', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.addInitScript(() => {
+    Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
+    const subscription = {
+      endpoint: 'https://fcm.googleapis.com/fcm/send/test-device',
+      options: {},
+      toJSON: () => ({
+        endpoint: 'https://fcm.googleapis.com/fcm/send/test-device',
+        keys: { p256dh: 'test-key', auth: 'test-auth' },
+      }),
+    };
+    Object.defineProperty(navigator.serviceWorker, 'ready', {
+      value: Promise.resolve({
+        pushManager: { getSubscription: () => Promise.resolve(subscription) },
+      }),
+    });
+  });
+  await signedIn(page);
+  let registrations = 0;
+  await page.route('**/api/push/subscriptions', (route) => {
+    registrations++;
+    return route.fulfill({
+      status: registrations === 1 ? 503 : 200,
+      json: registrations === 1 ? { message: 'Sin conexión' } : { success: true },
+    });
+  });
+  await page.goto('/mis-ligas');
+  await expect.poll(() => registrations).toBe(1);
+  await page.getByRole('button', { name: 'Menú de usuario' }).click();
+  await page.getByRole('button', { name: 'Avisos', exact: true }).click();
+  const reminders = page.getByRole('region', { name: 'Avisos' });
+  await reminders.getByRole('button', { name: 'Activar avisos en este dispositivo' }).click();
+  await expect(reminders.getByRole('status')).toContainText('Dispositivo registrado');
+  await expect.poll(() => registrations).toBe(2);
+  let testedEndpoint: unknown;
+  await page.route('**/api/push/test', (route) => {
+    testedEndpoint = route.request().postDataJSON().endpoint;
+    return route.fulfill({ json: { success: true } });
+  });
+  await reminders.getByRole('button', { name: 'Probar notificaciones' }).click();
+  await expect(reminders.getByRole('status')).toContainText('Prueba aceptada');
+  expect(testedEndpoint).toBe('https://fcm.googleapis.com/fcm/send/test-device');
+  await expect(
+    reminders.getByRole('checkbox', { name: 'Avisarme cuando alguien se una a mis ligas' }),
+  ).toBeChecked();
+  await expect(
+    reminders.getByRole('checkbox', {
+      name: 'Avisarme cuando termine una jornada, con el ranking',
+    }),
+  ).not.toBeChecked();
+  await page.screenshot({ path: testInfo.outputPath('avisos-recuperados.png') });
+});
 
 test('el asistente enseña a una competición propia de LoL sus reglas, no las series oficiales', async ({
   page,

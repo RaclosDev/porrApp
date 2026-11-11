@@ -8,6 +8,7 @@ import java.time.Instant;
 
 /** Un dispositivo (navegador o PWA instalada) en el que el usuario aceptó recibir avisos push. */
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "push_subscriptions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PushSubscription {
@@ -15,6 +16,8 @@ public class PushSubscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private boolean receiptsEnabled;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

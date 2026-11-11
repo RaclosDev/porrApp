@@ -39,7 +39,13 @@ public class PushController {
         return StatusResponse.success();
     }
 
-    /** Los 3 últimos avisos que han llegado al usuario, del más reciente al más antiguo. */
+    @PostMapping("/test")
+    public StatusResponse test(@RequestBody PushSubscriptionRequest request, Principal principal) {
+        pushSubscriptionService.testNotification(principal.getName(), request.endpoint());
+        return StatusResponse.success();
+    }
+
+    /** Los 3 últimos avisos aceptados por el proveedor, del más reciente al más antiguo. */
     @GetMapping("/recent")
     public List<PushNotificationResponse> recent(Principal principal) {
         return notificationLogService.recent(principal.getName());

@@ -38,7 +38,7 @@ class FightCardNotifierTest {
     @BeforeEach
     void setUp() {
         when(sender.isEnabled()).thenReturn(true);
-        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.SENT);
         when(users.findAllById(any())).thenReturn(List.of(ana, luis));
         when(subscriptions.findByUserIdIn(anyCollection()))
@@ -54,8 +54,8 @@ class FightCardNotifierTest {
         assertThat(sent).isEqualTo(1);
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
         verify(sender).send(eq("https://push/ana"), anyString(), anyString(), payload.capture(),
-                eq(FightCardNotifier.TTL_SECONDS));
-        verify(sender, never()).send(eq("https://push/luis"), anyString(), anyString(), anyString(), anyInt());
+                eq(FightCardNotifier.TTL_SECONDS), org.mockito.ArgumentMatchers.anyLong());
+        verify(sender, never()).send(eq("https://push/luis"), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
         assertThat(payload.getValue()).contains("Pelea cancelada").contains("/jornadas?group=7");
         verify(notificationLog).record(eq(1L), any(), any());
     }
@@ -76,7 +76,7 @@ class FightCardNotifierTest {
         when(sender.isEnabled()).thenReturn(false);
 
         assertThat(notifier.notify(List.of(notice(ana, 7L, "Pelea cancelada", "uno")))).isZero();
-        verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt());
+        verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
     }
 
     private static FightCardChangedEvent.Notice notice(UserAccount user, Long leagueId, String title, String body) {

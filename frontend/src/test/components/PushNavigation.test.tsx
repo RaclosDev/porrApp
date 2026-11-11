@@ -1,9 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import PushNavigation, { PUSH_NAVIGATE } from '../../components/PushNavigation';
 
 const container = new EventTarget();
+const postMessage = vi.fn();
+Object.defineProperty(container, 'controller', { value: { postMessage } });
 
 function CurrentPath() {
   const { pathname, search } = useLocation();
@@ -17,6 +19,7 @@ const post = (data: unknown) =>
 
 describe('PushNavigation', () => {
   beforeEach(() => {
+    postMessage.mockClear();
     Object.defineProperty(navigator, 'serviceWorker', { value: container, configurable: true });
     render(
       <MemoryRouter initialEntries={['/jornadas']}>
@@ -33,6 +36,13 @@ describe('PushNavigation', () => {
   it('abre la pantalla del aviso pulsado con la app ya abierta', () => {
     post({ type: PUSH_NAVIGATE, url: '/ranking?group=6&jornada=Jornada%2012' });
     expect(screen.getByTestId('path')).toHaveTextContent('/ranking?group=6&jornada=Jornada%2012');
+  });
+
+  it('recupera acuses al abrir la app y recuperar conexión', () => {
+    expect(postMessage).toHaveBeenCalledWith({ type: 'porrapp:flush-push-receipts' });
+    postMessage.mockClear();
+    window.dispatchEvent(new Event('online'));
+    expect(postMessage).toHaveBeenCalledTimes(1);
   });
 
   it('ignora otros mensajes y rutas fuera de la app', () => {

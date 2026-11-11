@@ -123,7 +123,7 @@ class MatchdayFinishedNotifierTest {
         calendar(finished(1L, "Jornada 12", NOW.minus(3, ChronoUnit.HOURS)));
         PushSubscription phone = device(ana, "https://push/ana");
         when(subscriptions.findByUserIdIn(Set.of(1L))).thenReturn(List.of(phone));
-        when(sender.send(eq(phone.getEndpoint()), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(eq(phone.getEndpoint()), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.SENT);
 
         assertThat(notifier.notifyFinished(NOW)).isEqualTo(1);
@@ -144,7 +144,29 @@ class MatchdayFinishedNotifierTest {
 
         assertThat(notifier.notifyFinished(NOW)).isZero();
         verify(notices).save(any());
-        verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt());
+        verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void queuedDevicesAreNotLoggedAsDeliveredButTheMatchdayCanClose() {
+        calendar(finished(1L, "Jornada 12", NOW.minus(3, ChronoUnit.HOURS)));
+        when(subscriptions.findByUserIdIn(Set.of(1L))).thenReturn(List.of(device(ana, "https://push/ana")));
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(WebPushSender.Result.QUEUED);
+        assertThat(notifier.notifyFinished(NOW)).isZero();
+        verify(notices).save(any());
+        org.mockito.Mockito.verifyNoInteractions(notificationLog);
+    }
+
+    @Test
+    void doesNotMarkAMatchdayWhenTheFailedSendCouldNotBeQueued() {
+        calendar(finished(1L, "Jornada 12", NOW.minus(3, ChronoUnit.HOURS)));
+        when(subscriptions.findByUserIdIn(Set.of(1L))).thenReturn(List.of(device(ana, "https://push/ana")));
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(WebPushSender.Result.FAILED);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> notifier.notifyFinished(NOW))
+                .isInstanceOf(IllegalStateException.class);
+        verify(notices, never()).save(any());
     }
 
     @Test

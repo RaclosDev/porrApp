@@ -105,10 +105,10 @@ public class MatchdayFinishedNotifier {
         List<Finished> pending = readOnly.execute(status -> findFinished(now));
         int delivered = 0;
         for (Finished finished : pending == null ? List.<Finished>of() : pending) {
-            // Se anota antes de enviar: un fallo a mitad no debe repetir el aviso a quien ya lo recibió.
+            delivered += notifyMembers(finished, now);
+            // Se cierra cuando cada envío ha sido aceptado, encolado o descartado por baja.
             noticeRepository.save(new MatchdayFinishedNotice(
                     new MatchdayFinishedNotice.Key(finished.edition().getId(), finished.matchday()), now));
-            delivered += notifyMembers(finished, now);
         }
         return delivered;
     }
@@ -182,8 +182,9 @@ public class MatchdayFinishedNotifier {
             Long userId = device.getUser().getId();
             if (!recipients.contains(userId)) continue;
             WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(),
-                    payload, TTL_SECONDS);
+                    payload, TTL_SECONDS, device.getUser().getId());
             if (result == WebPushSender.Result.SENT) delivered.add(userId);
+            if (result == WebPushSender.Result.FAILED) throw new IllegalStateException("No se pudo conservar el aviso de jornada");
             if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
         }
         delivered.forEach(userId -> notificationLog.record(userId, message, now));
