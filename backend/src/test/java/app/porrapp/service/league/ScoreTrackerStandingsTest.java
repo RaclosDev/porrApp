@@ -14,6 +14,27 @@ class ScoreTrackerStandingsTest {
     private static final List<Player> PLAYERS = List.of(new Player(1L, "Ana"), new Player(2L, "Berto"), new Player(3L, "Carla"));
 
     @Test
+    void roundsCanDecideTheWinnerEvenWhenAnotherPlayerHasMorePoints() {
+        List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, false,
+                List.of(Map.of(1L, 2, 2L, 1), Map.of(1L, 3, 2L, 2), Map.of(1L, 0, 2L, 100)), true);
+
+        assertThat(standings).extracting(Standing::playerId).containsExactly(1L, 2L, 3L);
+        assertThat(standings).extracting(Standing::roundsWon).containsExactly(2, 1, 0);
+        assertThat(standings).extracting(Standing::total).containsExactly(5, 103, 0);
+        assertThat(ScoreTrackerStandings.leaders(standings, 3)).containsExactly(1L);
+    }
+
+    @Test
+    void lowestPointsCanWinEachRoundWithTiesAndAbsences() {
+        List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, true,
+                List.of(Map.of(1L, -2, 2L, -2), Map.of(1L, 3, 2L, 0), Map.of(1L, -1)), true);
+
+        assertThat(standings).extracting(Standing::roundsWon).containsExactly(2, 2, 0);
+        assertThat(standings).extracting(Standing::rank).containsExactly(1, 1, 3);
+        assertThat(ScoreTrackerStandings.leaders(standings, 3)).containsExactly(1L, 2L);
+    }
+
+    @Test
     void ranksByTotalAndCountsRoundsWon() {
         List<Standing> standings = ScoreTrackerStandings.rank(PLAYERS, false,
                 List.of(Map.of(1L, 3, 2L, 5, 3L, 1), Map.of(1L, 4, 2L, 0, 3L, 2)));
