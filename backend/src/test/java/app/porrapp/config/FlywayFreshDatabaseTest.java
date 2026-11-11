@@ -27,6 +27,22 @@ class FlywayFreshDatabaseTest {
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @Test
+    void upgradesDeployedScoreboardSchemaWithPushDeliveryAndPermissions() throws Exception {
+        String url = createDatabase("push_upgrade");
+        Flyway.configure().dataSource(url, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration").target("57").load().migrate();
+
+        assertThat(flyway(url).migrate().migrationsExecuted).isEqualTo(3);
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM push_delivery_retries WHERE receipt_token IS NOT NULL")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM push_device_states")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM push_subscriptions WHERE receipts_enabled")).isZero();
+        }
+    }
+
+    @Test
     void rejectsChangedChecksumWithoutRewritingHistory() throws Exception {
         String url = createDatabase("checksum_integrity");
         Flyway flyway = flyway(url);
