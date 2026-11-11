@@ -37,11 +37,11 @@ export default function TrackerStandings({
               </th>
             )}
             <th scope="col" className="is-num">
-              Rondas
+              Rondas ganadas
             </th>
             {showSessions && (
               <th scope="col" className="is-num">
-                Ganadas
+                Partidas ganadas
               </th>
             )}
           </tr>
