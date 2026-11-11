@@ -73,6 +73,7 @@ const RANKING_LAYOUT: Record<LeagueKind, RankingLayout> = {
   none: NO_RANKING,
   unknown: NO_RANKING,
   scoreboard: NO_RANKING,
+  tournament: NO_RANKING,
 };
 
 /**

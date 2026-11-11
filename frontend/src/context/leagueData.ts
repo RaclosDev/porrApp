@@ -361,7 +361,10 @@ export function useTournamentData() {
 const hasPredictionRanking = (
   activeGroupId: string | null | undefined,
   groupInfo: Pick<Group, 'kind'> | null | undefined,
-) => Boolean(activeGroupId && groupInfo) && !isScoreboardLeague(groupInfo);
+) =>
+  Boolean(activeGroupId && groupInfo) &&
+  !isScoreboardLeague(groupInfo) &&
+  groupInfo?.kind !== 'TOURNAMENT';
 
 /** Ranking de la liga activa y pronósticos ya descargados. */
 export function useLeagueRanking() {

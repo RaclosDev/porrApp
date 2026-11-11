@@ -1156,6 +1156,7 @@ export const APP_PATHS = [
   '/mis-ligas',
   '/crear-liga',
   '/marcador/nuevo',
+  '/torneos/nuevo',
   '/bracket',
   '/tabla',
   '/prediction',
