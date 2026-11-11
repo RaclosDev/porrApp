@@ -163,13 +163,13 @@ class SurvivorReminderServiceTest {
     @Test
     void sendsOneReminderAndRecordsItForTheRound() {
         when(subscriptions.findByUserIdIn(any())).thenReturn(List.of(device(ana, "https://push/ana")));
-        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.SENT);
 
         assertThat(service.sendReminders(NOW)).isEqualTo(1);
 
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-        verify(sender).send(eq("https://push/ana"), anyString(), anyString(), payload.capture(), anyInt());
+        verify(sender).send(eq("https://push/ana"), anyString(), anyString(), payload.capture(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
         assertThat(payload.getValue()).contains("Elige tu equipo de la Jornada 13 antes del sábado 16:15")
                 .contains("/jornadas?group=5");
         ArgumentCaptor<MatchReminderSent> saved = ArgumentCaptor.forClass(MatchReminderSent.class);
@@ -180,7 +180,7 @@ class SurvivorReminderServiceTest {
     @Test
     void retriesWhenNoDeviceReceivedIt() {
         when(subscriptions.findByUserIdIn(any())).thenReturn(List.of(device(ana, "https://push/ana")));
-        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.FAILED);
 
         assertThat(service.sendReminders(NOW)).isZero();

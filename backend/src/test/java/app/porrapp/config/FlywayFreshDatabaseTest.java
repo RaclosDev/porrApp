@@ -27,6 +27,22 @@ class FlywayFreshDatabaseTest {
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @Test
+    void upgradesDeployedScoreboardSchemaWithPushDeliveryAndPermissions() throws Exception {
+        String url = createDatabase("push_upgrade");
+        Flyway.configure().dataSource(url, POSTGRES.getUsername(), POSTGRES.getPassword())
+                .locations("classpath:db/migration").target("57").load().migrate();
+
+        assertThat(flyway(url).migrate().migrationsExecuted).isEqualTo(3);
+
+        try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+             Statement st = c.createStatement()) {
+            assertThat(queryLong(st, "SELECT count(*) FROM push_delivery_retries WHERE receipt_token IS NOT NULL")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM push_device_states")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM push_subscriptions WHERE receipts_enabled")).isZero();
+        }
+    }
+
+    @Test
     void rejectsChangedChecksumWithoutRewritingHistory() throws Exception {
         String url = createDatabase("checksum_integrity");
         Flyway flyway = flyway(url);
@@ -130,6 +146,13 @@ class FlywayFreshDatabaseTest {
         try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
              Statement st = c.createStatement()) {
             assertThat(queryLong(st, "SELECT count(*) FROM score_games WHERE mode = 'POINTS'")).isEqualTo(1);
+            assertThat(queryLong(st, "SELECT count(*) FROM score_games WHERE target_wins IS NULL")).isEqualTo(1);
+            assertThatThrownBy(() -> st.execute("UPDATE score_games SET target_wins = 5"))
+                    .isInstanceOf(java.sql.SQLException.class).hasMessageContaining("score_games_target_wins_check");
+            st.execute("UPDATE score_games SET mode = 'ROUNDS', target_wins = 5");
+            assertThat(queryLong(st, "SELECT target_wins FROM score_games")).isEqualTo(5);
+            assertThatThrownBy(() -> st.execute("UPDATE score_games SET target_wins = 0"))
+                    .isInstanceOf(java.sql.SQLException.class).hasMessageContaining("score_games_target_wins_check");
             assertThat(queryLong(st, "SELECT count(*) FROM score_days")).isEqualTo(2);
             assertThat(queryLong(st, "SELECT count(DISTINCT day_id) FROM score_tracker_sessions")).isEqualTo(2);
             assertThat(queryLong(st, "SELECT count(*) FROM score_day_players")).isEqualTo(4);

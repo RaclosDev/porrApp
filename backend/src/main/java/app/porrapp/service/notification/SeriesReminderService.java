@@ -103,16 +103,18 @@ public class SeriesReminderService {
             String payload = message.toJson(objectMapper);
 
             boolean any = false;
+            boolean queued = false;
             for (PushSubscription device : userDevices) {
                 WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(),
-                        payload, ttl);
+                        payload, ttl, device.getUser().getId());
                 if (result == WebPushSender.Result.SENT) any = true;
+                if (result == WebPushSender.Result.QUEUED) queued = true;
                 if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
             }
-            // Si no llegó a ningún dispositivo se reintenta en la siguiente pasada, mientras siga abierta.
-            if (any) {
+            // Los fallos temporales quedan pendientes por dispositivo, incluso si otro ya lo recibió.
+            if (any || queued) {
                 delivered++;
-                notificationLog.record(entry.getKey(), message, now);
+                if (any) notificationLog.record(entry.getKey(), message, now);
                 reminderRepository.saveAll(pending.stream()
                         .map(p -> new MatchReminderSent(new MatchReminderSent.Key(p.userId(), p.firstGame().getId()), now))
                         .collect(Collectors.toMap(MatchReminderSent::getId, r -> r, (a, b) -> a))

@@ -23,8 +23,22 @@ export default function PushNavigation() {
       navigate(url);
     };
     const worker = navigator.serviceWorker;
+    const flushReceipts = () => {
+      if (document.visibilityState !== 'hidden') {
+        worker.controller?.postMessage({ type: 'porrapp:flush-push-receipts' });
+      }
+    };
     worker.addEventListener('message', onMessage);
-    return () => worker.removeEventListener('message', onMessage);
+    worker.addEventListener('controllerchange', flushReceipts);
+    window.addEventListener('online', flushReceipts);
+    document.addEventListener('visibilitychange', flushReceipts);
+    flushReceipts();
+    return () => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('controllerchange', flushReceipts);
+      window.removeEventListener('online', flushReceipts);
+      document.removeEventListener('visibilitychange', flushReceipts);
+    };
   }, [navigate]);
   return null;
 }

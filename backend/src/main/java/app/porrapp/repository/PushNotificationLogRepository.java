@@ -18,6 +18,9 @@ public interface PushNotificationLogRepository extends JpaRepository<PushNotific
 
     List<PushNotificationLog> findByUserIdOrderBySentAtDesc(Long userId);
 
+    boolean existsByUserIdAndTitleAndBodyAndUrlAndSentAtGreaterThanEqual(
+            Long userId, String title, String body, String url, Instant sentAt);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM PushNotificationLog l WHERE l.sentAt < :before")

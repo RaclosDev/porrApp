@@ -276,16 +276,15 @@ public class FormulaOneSyncService {
         if (scoredNow) {
             int scored = scoringService.scoreWeekend(match, weekend);
             log.info("Fórmula 1: resultados de {} guardados ({} predicciones puntuadas)", round, scored);
-            if (weekend.getResultsNotifiedAt() == null) {
-                if (recent) {
-                    try {
-                        resultNotifier.notifyResult(match, weekend);
-                    } catch (RuntimeException error) {
-                        log.warn("Fórmula 1: no se pudo avisar del resultado de {}: {}", round, error.getMessage());
-                    }
-                }
+        }
+        // Si falló el registro del envío, el siguiente sync lo recupera aunque el podio no cambie.
+        if (finished && weekend.hasPodium() && weekend.getResultsNotifiedAt() == null) {
+            try {
+                if (recent) resultNotifier.notifyResult(match, weekend);
                 weekend.setResultsNotifiedAt(Instant.now());
                 raceWeekendRepository.save(weekend);
+            } catch (RuntimeException error) {
+                log.warn("Fórmula 1: no se pudo avisar del resultado de {}: {}", round, error.getMessage());
             }
         }
         // Clasificación completa de una carrera reciente: se deja guardada para quien la abra.
