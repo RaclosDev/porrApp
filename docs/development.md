@@ -77,6 +77,25 @@ Para diagnosticar una entrega, consultar `subscription_id`, `user_id`, `created_
 
 El móvil guarda los acuses pendientes si falla la conexión y los recupera al recibir otro push, abrir la app o recuperar conexión con ella abierta. Los reenvíos usan la misma etiqueta y `renotify: false`, de modo que actualizan la tarjeta existente sin repetir el sonido. Si el usuario ya la descartó, un reenvío puede volver a crearla: Web Push exige una notificación visible por mensaje y no garantiza entrega exactamente una vez. El acuse **no demuestra que la persona haya visto el aviso**, ni permite detectar modos de concentración o ajustes de presentación del sistema.
 
+### Permisos por dispositivo (diagnóstico interno)
+
+Tras completar el perfil, la siguiente visita autenticada ofrece activar los avisos. Si siguen pendientes o bloqueados, vuelve a mostrar la ayuda al entrar después de siete días. El plazo se guarda por cuenta y navegador desde que se muestra el aviso; borrar los datos del navegador lo reinicia. Los permisos bloqueados requieren cambiarlos en ajustes; iPhone/iPad sin instalar recibe instrucciones de instalación. La petición nativa solo se ejecuta al pulsar «Activar avisos». No se modifican las categorías elegidas en Cuenta → Avisos.
+
+`POST /api/push/device-state` requiere sesión y registra exclusivamente la cuenta autenticada. `push_device_states` conserva la última observación por cuenta y un identificador aleatorio del navegador, con la fecha del último aviso. Se actualiza al abrir la app, recuperar conexión o volver a ella (máximo una observación sin cambios cada cinco minutos). No hay un listado público ni para administradores de ligas. Los registros se eliminan al borrar la cuenta.
+
+Consulta interna de solo lectura, sin endpoints ni claves de suscripción:
+
+```sql
+SELECT u.id AS user_id, u.participant_name, d.device_id,
+       COALESCE(d.permission, 'unknown') AS permission,
+       d.install_required, d.observed_at, d.last_prompt_at
+FROM app_users u
+LEFT JOIN push_device_states d ON d.user_id = u.id
+ORDER BY u.id, d.observed_at DESC;
+```
+
+`denied` significa bloqueado, `default` pendiente y `unsupported` que ese entorno no expone la API. `unknown` significa que aún no se ha observado ningún dispositivo, no que el usuario lo haya rechazado. Consultar siempre `observed_at`: no podemos conocer cambios hechos con la app cerrada. Una cuenta puede tener permisos diferentes en cada navegador. `granted` no acredita una suscripción activa, categorías habilitadas ni recepción; contrastarlo con `push_subscriptions`, preferencias y acuses de entrega. No se detectan modos de concentración ni se identifica físicamente el móvil.
+
 ## Variables de entorno
 
 | Variable | Uso |

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { fetchPushConfig } from '../../services/api';
@@ -9,39 +9,88 @@ import {
   syncPushSubscription,
 } from '../../services/push';
 import { errorMessage } from '../../utils/errors';
-
-const DISMISSED_KEY = 'push_prompt_dismissed_at';
-/** Tras «Ahora no», se vuelve a ofrecer pasada una semana. */
-const DISMISS_FOR_MS = 7 * 24 * 60 * 60 * 1000;
+import {
+  pushPromptDue,
+  rememberPushPrompt,
+  reportPushDeviceState,
+} from '../../services/pushPrompt';
 
 export const PUSH_CONFIG_QUERY_KEY = ['push-config'] as const;
-
-function recentlyDismissed(): boolean {
-  const at = Number(localStorage.getItem(DISMISSED_KEY));
-  return Number.isFinite(at) && at > 0 && Date.now() - at < DISMISS_FOR_MS;
-}
 
 /**
  * Recordatorios de predicción: los avisos vienen activados en la cuenta, pero el navegador exige
  * que el usuario dé permiso. Este aviso lo pide y, con el permiso ya dado, mantiene registrado el
  * dispositivo sin preguntar nada.
  */
-export default function PushReminderPrompt({ canPrompt }: { canPrompt: boolean }) {
+export default function PushReminderPrompt({
+  canPrompt,
+  userId,
+  onVisibilityChange,
+}: {
+  canPrompt: boolean;
+  userId: string;
+  onVisibilityChange?: (visible: boolean) => void;
+}) {
   const { data: config } = useQuery({
     queryKey: PUSH_CONFIG_QUERY_KEY,
     queryFn: fetchPushConfig,
     staleTime: 60_000,
     retry: 2,
   });
-  const [dismissed, setDismissed] = useState(recentlyDismissed);
+  const [dismissed, setDismissed] = useState(() => !pushPromptDue(userId));
   const [busy, setBusy] = useState(false);
   const [permission, setPermission] = useState(notificationPermission);
+  const recorded = useRef(false);
 
   const publicKey = config?.publicKey ?? null;
   const enabled = Boolean(
     publicKey &&
     (config?.remindersEnabled || config?.memberJoinedEnabled || config?.matchdayFinishedEnabled),
   );
+  const installRequired = needsIosInstall();
+  const visible = Boolean(
+    canPrompt &&
+    publicKey &&
+    !dismissed &&
+    (installRequired || permission === 'default' || permission === 'denied'),
+  );
+
+  useEffect(() => {
+    onVisibilityChange?.(visible);
+    return () => onVisibilityChange?.(false);
+  }, [visible, onVisibilityChange]);
+
+  useEffect(() => {
+    if (!visible || recorded.current) return;
+    recorded.current = true;
+    rememberPushPrompt(userId);
+    void reportPushDeviceState(true).catch(() => {});
+  }, [visible, userId]);
+
+  useEffect(() => {
+    let lastReport = 0;
+    let lastPermission = '';
+    const observe = () => {
+      const current = notificationPermission();
+      setPermission(current);
+      if (document.visibilityState === 'hidden' || !navigator.onLine) return;
+      if (lastPermission === current && Date.now() - lastReport < 300_000) return;
+      lastReport = Date.now();
+      lastPermission = current;
+      void reportPushDeviceState().catch(() => {
+        lastPermission = '';
+      });
+    };
+    observe();
+    window.addEventListener('focus', observe);
+    window.addEventListener('online', observe);
+    document.addEventListener('visibilitychange', observe);
+    return () => {
+      window.removeEventListener('focus', observe);
+      window.removeEventListener('online', observe);
+      document.removeEventListener('visibilitychange', observe);
+    };
+  }, []);
   useEffect(() => {
     if (!enabled || !publicKey) return;
     let disposed = false;
@@ -94,12 +143,9 @@ export default function PushReminderPrompt({ canPrompt }: { canPrompt: boolean }
     };
   }, [enabled, publicKey]);
 
-  if (!canPrompt || !enabled || !publicKey || dismissed) return null;
-  // Sin soporte (p. ej. Safari de iOS fuera de la app instalada) el aviso de instalación ya lo explica.
-  if (permission !== 'default' || needsIosInstall()) return null;
+  if (!visible || !publicKey) return null;
 
   const dismiss = () => {
-    localStorage.setItem(DISMISSED_KEY, String(Date.now()));
     setDismissed(true);
   };
 
@@ -109,14 +155,13 @@ export default function PushReminderPrompt({ canPrompt }: { canPrompt: boolean }
       const ok = await enablePush(publicKey);
       setPermission(notificationPermission());
       if (ok)
-        toast.success(
-          'Avisos activados: te avisaremos una hora antes de que cierre cada partido sin tu predicción.',
-        );
+        toast.success('Permiso activado. Puedes elegir qué avisos recibir en Cuenta → Avisos.');
       else toast('Sin permiso no podemos avisarte. Puedes darlo en los ajustes del navegador.');
       setDismissed(true);
     } catch (err) {
       toast.error(errorMessage(err, 'No se pudieron activar los avisos'));
     } finally {
+      void reportPushDeviceState().catch(() => {});
       setBusy(false);
     }
   };
@@ -124,29 +169,41 @@ export default function PushReminderPrompt({ canPrompt }: { canPrompt: boolean }
   return (
     <div
       role="region"
-      aria-label="Avisos de predicción"
+      aria-label="Notificaciones de PorrApp"
       className="paper-panel album-sheet landing-tape fixed bottom-[calc(90px_+_env(safe-area-inset-bottom,_0px))] md:bottom-5 left-1/2 z-[999998] flex w-[90%] max-w-[350px] -translate-x-1/2 flex-col items-center gap-2.5 rounded-[4px] border border-[var(--ink)] px-5 py-[15px] shadow-[4px_4px_0_rgba(0,0,0,0.2)]"
     >
       <p className="m-0 text-center font-bold text-main">
-        Que no se te escape ninguna predicción: te avisamos una hora antes de que cierre cada
-        partido.
+        {installRequired
+          ? 'Recibe los avisos de PorrApp en tu iPhone o iPad'
+          : permission === 'denied'
+            ? 'Tienes las notificaciones bloqueadas en este dispositivo'
+            : 'Activa las notificaciones de PorrApp'}
+      </p>
+      <p className="m-0 text-center text-sm text-main">
+        {installRequired
+          ? 'Abre PorrApp en Safari, pulsa Compartir → Añadir a pantalla de inicio y abre la app desde su icono para activar los avisos.'
+          : permission === 'denied'
+            ? 'Permite las notificaciones en los ajustes del navegador o, si usas la app instalada en iPhone, en Ajustes → Notificaciones → PorrApp. Al volver comprobaremos el permiso.'
+            : 'Podremos avisarte de nuevos miembros, resultados y predicciones pendientes. Tú eliges qué recibir en Cuenta → Avisos.'}
       </p>
       <div className="mt-[5px] flex gap-2.5">
-        <button
-          type="button"
-          onClick={activate}
-          disabled={busy}
-          className="glass-btn primary-btn px-[15px] py-2 font-bold text-main"
-        >
-          Activar avisos
-        </button>
+        {!installRequired && permission === 'default' && (
+          <button
+            type="button"
+            onClick={activate}
+            disabled={busy}
+            className="glass-btn primary-btn px-[15px] py-2 font-bold text-main"
+          >
+            Activar avisos
+          </button>
+        )}
         <button
           type="button"
           onClick={dismiss}
           disabled={busy}
           className="glass-btn px-[15px] py-2"
         >
-          Ahora no
+          Recordármelo en una semana
         </button>
       </div>
     </div>

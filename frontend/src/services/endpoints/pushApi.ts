@@ -33,6 +33,13 @@ export interface RecentPushNotification {
 
 export const fetchPushConfig = () => request<PushConfig>('/push/config');
 
+export const savePushDeviceState = (state: {
+  deviceId: string;
+  permission: NotificationPermission | 'unsupported';
+  installRequired: boolean;
+  promptShown: boolean;
+}) => request<void>('/push/device-state', { method: 'POST', json: state });
+
 /** Los 3 últimos avisos del usuario, del más reciente al más antiguo. */
 export const fetchRecentPushNotifications = () =>
   request<RecentPushNotification[]>('/push/recent', {

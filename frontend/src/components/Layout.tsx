@@ -63,6 +63,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   // Ajustes de cuenta abiertos y en qué sección: «Avisos» abre directamente la suya.
   const [profileSettings, setProfileSettings] = useState<SettingsSection | null>(null);
+  const [pushPromptVisible, setPushPromptVisible] = useState(false);
   const showProfileSettings = profileSettings != null;
   const profileSetupCompleted = useAppStore((state) => state.profileSetupCompleted);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
@@ -101,13 +102,14 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Un usuario autenticado sin ninguna liga solo puede crear o unirse a una.
   const isNoLeagueAllowedPath = noLeagueAllowed(location.pathname);
 
-  // Avisos inferiores, uno a la vez: el de cookies, el de instalar, el de la llave de acceso y
-  // por último el de los recordatorios.
+  // Los permisos de notificación van tras completar el perfil y el consentimiento de cookies.
+  // Los avisos de instalación y llave de acceso esperan a que se cierre esa petición.
   const bottomPromptFree = !showInstallBanner && !isLanding && !consentPending;
   const passkeyPrompt = usePasskeyPrompt(
     userId,
     isUserLoggedIn &&
       !isDemo &&
+      !pushPromptVisible &&
       bottomPromptFree &&
       profileSetupCompleted !== false &&
       !showProfileSettings,
@@ -263,10 +265,20 @@ function Layout({ children }: { children: React.ReactNode }) {
 
       {passkeyPrompt.show && <PasskeyPrompt userId={userId} onDone={passkeyPrompt.done} />}
       {isUserLoggedIn && !isDemo && (
-        <PushReminderPrompt canPrompt={bottomPromptFree && !passkeyPrompt.show} />
+        <PushReminderPrompt
+          key={userId}
+          userId={userId}
+          canPrompt={
+            !consentPending &&
+            !isInviteAuthScreen &&
+            profileSetupCompleted !== false &&
+            !showProfileSettings
+          }
+          onVisibilityChange={setPushPromptVisible}
+        />
       )}
 
-      {showInstallBanner && (
+      {showInstallBanner && !pushPromptVisible && (
         <InstallBanner
           handleDismissBanner={handleDismissBanner}
           handleInstallClick={handleInstallClick}
