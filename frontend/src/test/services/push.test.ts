@@ -55,8 +55,22 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+});
+
+it('fails with a recoverable message if the service worker never becomes ready', async () => {
+  vi.useFakeTimers();
+  Object.defineProperty(navigator, 'serviceWorker', {
+    configurable: true,
+    value: { ready: new Promise<ServiceWorkerRegistration>(() => {}) },
+  });
+  const result = expect(syncPushSubscription(KEY)).rejects.toThrow('Recarga la app');
+  await vi.advanceTimersByTimeAsync(15_000);
+  await result;
+  expect(savePushSubscription).not.toHaveBeenCalled();
+  expect(pushManager.subscribe).not.toHaveBeenCalled();
 });
 
 it('asks for permission, subscribes with the server key and registers the device', async () => {
