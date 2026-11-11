@@ -4,10 +4,11 @@ interface Props {
   /** Enlace que abre el QR al escanearlo. */
   link: string;
   name: string;
+  label?: string;
 }
 
 /** QR del enlace de invitación, para que quien esté al lado lo escanee y entre. */
-export default function TrackerQr({ link, name }: Props) {
+export default function TrackerQr({ link, name, label }: Props) {
   const [src, setSrc] = useState('');
   const [failed, setFailed] = useState(false);
 
@@ -37,7 +38,7 @@ export default function TrackerQr({ link, name }: Props) {
       src={src}
       width={220}
       height={220}
-      alt={`Código QR para unirse al marcador ${name}`}
+      alt={label ?? `Código QR para unirse al marcador ${name}`}
     />
   );
 }

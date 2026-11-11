@@ -32,12 +32,14 @@ class FlywayFreshDatabaseTest {
         Flyway.configure().dataSource(url, POSTGRES.getUsername(), POSTGRES.getPassword())
                 .locations("classpath:db/migration").target("57").load().migrate();
 
-        assertThat(flyway(url).migrate().migrationsExecuted).isEqualTo(3);
+        assertThat(flyway(url).migrate().migrationsExecuted).isEqualTo(4);
 
         try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
              Statement st = c.createStatement()) {
             assertThat(queryLong(st, "SELECT count(*) FROM push_delivery_retries WHERE receipt_token IS NOT NULL")).isZero();
             assertThat(queryLong(st, "SELECT count(*) FROM push_device_states")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM organized_tournaments")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM tournament_result_changes")).isZero();
             assertThat(queryLong(st, "SELECT count(*) FROM push_subscriptions WHERE receipts_enabled")).isZero();
         }
     }

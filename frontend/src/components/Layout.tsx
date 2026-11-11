@@ -29,6 +29,8 @@ const PredictionViewer = lazyPage(() => import('./PredictionViewer'));
 const noLeagueAllowed = (pathname: string) =>
   pathname === '/mis-ligas' ||
   pathname === '/crear-liga' ||
+  pathname.startsWith('/torneos/') ||
+  pathname.startsWith('/t/') ||
   pathname.startsWith('/join/') ||
   // Una liga de juegos de mesa se crea aunque no haya ninguna otra liga.
   pathname === '/marcador/nuevo' ||
@@ -91,6 +93,8 @@ function Layout({ children }: { children: React.ReactNode }) {
   // En la pantalla de acceso/invitación no mostrar la navegación global: la propia
   // pantalla ya contiene el acceso con Google y el contexto de la invitación.
   const isInviteAuthScreen =
+    location.pathname.startsWith('/t/') ||
+    location.pathname.startsWith('/torneos/') ||
     location.pathname.startsWith('/join/') ||
     (!isUserLoggedIn && location.pathname === '/mis-ligas');
 
