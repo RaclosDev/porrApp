@@ -46,6 +46,7 @@ const HOME_SOURCE: Record<LeagueKind, LeagueHomeSource> = {
   none: null,
   unknown: null,
   scoreboard: null,
+  tournament: null,
 };
 
 export interface MiniStandingRow {
