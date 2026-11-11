@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import TrackerInvite from '../../components/tracker/TrackerInvite';
+import TrackerAddPlayer from '../../components/tracker/TrackerAddPlayer';
 import TrackerCard from '../../components/tracker/TrackerCard';
 import { copyWithToast } from '../../utils/leagueInvite';
 import type { Tracker } from '../../services/endpoints/trackers';
@@ -34,7 +35,7 @@ afterEach(() => vi.clearAllMocks());
 
 describe('TrackerInvite', () => {
   it('enseña el QR y el código desde el principio y deja copiar el enlace', () => {
-    render(<TrackerInvite tracker={tracker} busy={false} onAddPlayer={vi.fn()} />);
+    render(<TrackerInvite tracker={tracker} />);
 
     expect(screen.getByText('ABCDEFGH')).toBeInTheDocument();
     expect(screen.getByText(/QR de .*\/join\/ABCDEFGH/)).toBeInTheDocument();
@@ -51,22 +52,47 @@ describe('TrackerInvite', () => {
     );
   });
 
-  it('el dueño apunta a mano a quien no tiene la app y el campo se vacía', async () => {
+  it('apunta a quien no tiene cuenta, limpia el nombre y confirma el alta', async () => {
     const onAddPlayer = vi.fn().mockResolvedValue(true);
-    render(<TrackerInvite tracker={tracker} busy={false} onAddPlayer={onAddPlayer} />);
+    render(<TrackerAddPlayer busy={false} onAddPlayer={onAddPlayer} />);
 
-    fireEvent.change(screen.getByLabelText('Jugador sin la app'), { target: { value: 'Luis' } });
+    fireEvent.change(screen.getByLabelText('Nombre del jugador'), { target: { value: ' Luis ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Añadir' }));
 
-    await waitFor(() => expect(screen.getByLabelText('Jugador sin la app')).toHaveValue(''));
+    await waitFor(() => expect(screen.getByLabelText('Nombre del jugador')).toHaveValue(''));
     expect(onAddPlayer).toHaveBeenCalledWith('Luis');
+    expect(screen.getByRole('status')).toHaveTextContent('Luis ya está en la liga.');
+    expect(screen.getByLabelText('Nombre del jugador')).toHaveFocus();
   });
 
-  it('no deja apuntar a mano a quien solo está invitado', () => {
-    render(
-      <TrackerInvite tracker={{ ...tracker, owner: false }} busy={false} onAddPlayer={vi.fn()} />,
-    );
-    expect(screen.queryByLabelText('Jugador sin la app')).not.toBeInTheDocument();
+  it('conserva el nombre cuando falla y permite reintentarlo sin duplicar envíos', async () => {
+    let finish: (ok: boolean) => void = () => {};
+    const onAddPlayer = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<boolean>((resolve) => {
+            finish = resolve;
+          }),
+      )
+      .mockResolvedValue(true);
+    render(<TrackerAddPlayer busy={false} onAddPlayer={onAddPlayer} />);
+    fireEvent.change(screen.getByLabelText('Nombre del jugador'), { target: { value: 'Luis' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir' }));
+    expect(screen.getByRole('button', { name: 'Añadiendo…' })).toBeDisabled();
+    finish(false);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Añadir' })).toBeEnabled());
+    expect(screen.getByLabelText('Nombre del jugador')).toHaveValue('Luis');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir' }));
+    await screen.findByRole('status');
+    expect(onAddPlayer).toHaveBeenCalledTimes(2);
+  });
+
+  it('la invitación por enlace está separada del alta sin cuenta', () => {
+    render(<TrackerInvite tracker={{ ...tracker, owner: false }} />);
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copiar enlace' })).toBeInTheDocument();
   });
 });
 

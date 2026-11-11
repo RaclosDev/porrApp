@@ -37,7 +37,6 @@ export default function TrackerManage({
   const canEditPlayer = (player: TrackerPlayer) =>
     tracker.owner || player.id === tracker.myPlayerId;
   const games = tracker.games ?? [];
-  if (!tracker.owner && tracker.myPlayerId == null) return null;
 
   const done = (action: Action) => async () => {
     if (await action()) setEditing(null);
@@ -46,8 +45,11 @@ export default function TrackerManage({
   return (
     <section className="paper-panel album-sheet tracker-section" aria-labelledby="tracker-manage">
       <h2 id="tracker-manage" className="tracker-heading">
-        Jugadores y juegos
+        {tracker.owner ? 'Jugadores y juegos' : 'Jugadores'}
       </h2>
+      {tracker.players.length === 0 && (
+        <p className="tracker-note">Añade a quienes vais a jugar o invítalos con un enlace.</p>
+      )}
       <ul className="tracker-manage-list" aria-label="Jugadores">
         {tracker.players.map((player) => {
           const key = `player-${player.id}`;

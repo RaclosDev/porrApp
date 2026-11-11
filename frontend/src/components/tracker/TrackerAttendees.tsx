@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
 import type { TrackerPlayer } from '../../services/endpoints/trackers';
+import TrackerAddPlayer from './TrackerAddPlayer';
 
 interface Props {
   /** Texto del grupo de botones, para lectores de pantalla. */
@@ -20,14 +20,6 @@ export default function TrackerAttendees({
   onToggle,
   onAddPlayer,
 }: Props) {
-  const [name, setName] = useState('');
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!name.trim()) return;
-    if (await onAddPlayer(name.trim())) setName('');
-  };
-
   return (
     <div className="tracker-attendees">
       {players.length === 0 ? (
@@ -51,27 +43,7 @@ export default function TrackerAttendees({
           })}
         </div>
       )}
-      <form className="tracker-add-player" onSubmit={submit}>
-        <label htmlFor="tracker-new-player" className="sr-only">
-          Nombre del jugador nuevo
-        </label>
-        <input
-          id="tracker-new-player"
-          className="glass-input"
-          maxLength={40}
-          autoComplete="off"
-          placeholder="Añadir jugador"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <button
-          type="submit"
-          className="glass-btn create-league-small-btn"
-          disabled={busy || !name.trim()}
-        >
-          Añadir
-        </button>
-      </form>
+      <TrackerAddPlayer busy={busy} onAddPlayer={onAddPlayer} label="Nombre del jugador nuevo" />
     </div>
   );
 }
