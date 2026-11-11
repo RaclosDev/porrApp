@@ -22,10 +22,11 @@ export default function ReminderSettings({ sectionRef }: { sectionRef?: Ref<HTML
   const { data: config, isPending } = useQuery({
     queryKey: PUSH_CONFIG_QUERY_KEY,
     queryFn: fetchPushConfig,
-    staleTime: Infinity,
-    retry: false,
+    staleTime: 60_000,
+    retry: 2,
   });
   const [saving, setSaving] = useState(false);
+  const [deviceMessage, setDeviceMessage] = useState<string | null>(null);
   const frame = (content: ReactNode) => (
     <section
       ref={sectionRef}
@@ -60,12 +61,33 @@ export default function ReminderSettings({ sectionRef }: { sectionRef?: Ref<HTML
 
   const toggle = async (key: keyof PushPreferences, enabled: boolean) => {
     setSaving(true);
+    setDeviceMessage(null);
     try {
+      if (enabled && !(await enablePush(publicKey))) {
+        toast('Para recibir avisos en este dispositivo, permite las notificaciones.');
+        return;
+      }
       await setPushPreferences({ [key]: enabled });
       queryClient.setQueryData<PushConfig>(PUSH_CONFIG_QUERY_KEY, { ...config, [key]: enabled });
-      if (enabled && permission === 'default') await enablePush(publicKey);
     } catch (err) {
       toast.error(errorMessage(err, 'No se pudo guardar la preferencia'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const registerDevice = async () => {
+    setSaving(true);
+    setDeviceMessage(null);
+    try {
+      const registered = await enablePush(publicKey);
+      setDeviceMessage(
+        registered
+          ? 'Dispositivo registrado para recibir avisos. Revisa también los ajustes de notificaciones del móvil.'
+          : 'Para recibir avisos en este dispositivo, permite las notificaciones.',
+      );
+    } catch (err) {
+      setDeviceMessage(errorMessage(err, 'No se pudo registrar este dispositivo'));
     } finally {
       setSaving(false);
     }
@@ -110,6 +132,25 @@ export default function ReminderSettings({ sectionRef }: { sectionRef?: Ref<HTML
         </span>
       </label>
       <span className="text-[0.74rem] text-muted">{hint}</span>
+      {!needsIosInstall() &&
+        (permission === 'default' || permission === 'granted') &&
+        (config.remindersEnabled ||
+          config.memberJoinedEnabled ||
+          config.matchdayFinishedEnabled) && (
+          <button
+            type="button"
+            className="glass-btn px-3 py-2 text-[0.85rem] font-bold"
+            disabled={saving}
+            onClick={() => void registerDevice()}
+          >
+            Activar avisos en este dispositivo
+          </button>
+        )}
+      {deviceMessage && (
+        <p role="status" className="m-0 text-[0.8rem] text-muted">
+          {deviceMessage}
+        </p>
+      )}
     </>,
   );
 }

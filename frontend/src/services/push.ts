@@ -91,7 +91,22 @@ async function subscribe(
 
 /** Suscribe este dispositivo (si hace falta) y lo registra en el servidor. Requiere permiso concedido. */
 export async function syncPushSubscription(publicKey: string): Promise<void> {
-  const registration = await navigator.serviceWorker.ready;
+  // ready no rechaza si el service worker no llega a activarse.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const registration = await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () =>
+          reject(
+            new Error(
+              'No se ha podido preparar las notificaciones. Recarga la app y vuelve a intentarlo.',
+            ),
+          ),
+        15_000,
+      );
+    }),
+  ]).finally(() => clearTimeout(timer));
   let subscription = await registration.pushManager.getSubscription();
   if (subscription && !sameKey(subscription, publicKey)) {
     await subscription.unsubscribe();

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { fetchPushConfig } from '../../services/api';
@@ -30,27 +30,69 @@ export default function PushReminderPrompt({ canPrompt }: { canPrompt: boolean }
   const { data: config } = useQuery({
     queryKey: PUSH_CONFIG_QUERY_KEY,
     queryFn: fetchPushConfig,
-    staleTime: Infinity,
-    retry: false,
+    staleTime: 60_000,
+    retry: 2,
   });
   const [dismissed, setDismissed] = useState(recentlyDismissed);
   const [busy, setBusy] = useState(false);
-  const synced = useRef(false);
+  const [permission, setPermission] = useState(notificationPermission);
 
   const publicKey = config?.publicKey ?? null;
   const enabled = Boolean(
     publicKey &&
     (config?.remindersEnabled || config?.memberJoinedEnabled || config?.matchdayFinishedEnabled),
   );
-  const permission = notificationPermission();
-
   useEffect(() => {
-    if (!enabled || !publicKey || permission !== 'granted' || synced.current) return;
-    synced.current = true;
-    syncPushSubscription(publicKey).catch(() => {
-      synced.current = false;
-    });
-  }, [enabled, publicKey, permission]);
+    if (!enabled || !publicKey) return;
+    let disposed = false;
+    let inFlight = false;
+    let lastSuccess: number | null = null;
+    let retryDelay = 30_000;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const sync = async () => {
+      const currentPermission = notificationPermission();
+      setPermission(currentPermission);
+      if (
+        disposed ||
+        inFlight ||
+        document.visibilityState === 'hidden' ||
+        !navigator.onLine ||
+        needsIosInstall() ||
+        currentPermission !== 'granted' ||
+        (lastSuccess !== null && Date.now() - lastSuccess < 300_000)
+      )
+        return;
+
+      clearTimeout(retryTimer);
+      inFlight = true;
+      try {
+        await syncPushSubscription(publicKey);
+        lastSuccess = Date.now();
+        retryDelay = 30_000;
+      } catch {
+        // Una caída de red no debe dejar el dispositivo sin registrar toda la sesión.
+        if (!disposed) {
+          retryTimer = setTimeout(() => void sync(), retryDelay);
+          retryDelay = Math.min(retryDelay * 2, 300_000);
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+    const resume = () => void sync();
+    resume();
+    window.addEventListener('online', resume);
+    window.addEventListener('focus', resume);
+    document.addEventListener('visibilitychange', resume);
+    return () => {
+      disposed = true;
+      clearTimeout(retryTimer);
+      window.removeEventListener('online', resume);
+      window.removeEventListener('focus', resume);
+      document.removeEventListener('visibilitychange', resume);
+    };
+  }, [enabled, publicKey]);
 
   if (!canPrompt || !enabled || !publicKey || dismissed) return null;
   // Sin soporte (p. ej. Safari de iOS fuera de la app instalada) el aviso de instalación ya lo explica.
@@ -65,6 +107,7 @@ export default function PushReminderPrompt({ canPrompt }: { canPrompt: boolean }
     setBusy(true);
     try {
       const ok = await enablePush(publicKey);
+      setPermission(notificationPermission());
       if (ok)
         toast.success(
           'Avisos activados: te avisaremos una hora antes de que cierre cada partido sin tu predicción.',

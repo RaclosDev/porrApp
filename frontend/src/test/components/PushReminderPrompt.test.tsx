@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import PushReminderPrompt from '../../components/layout/PushReminderPrompt';
 import { fetchPushConfig } from '../../services/api';
 import * as push from '../../services/push';
@@ -21,6 +21,11 @@ const renderPrompt = (canPrompt = true) =>
   );
 
 const prompt = () => screen.queryByRole('region', { name: 'Avisos de predicción' });
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 beforeEach(() => {
   localStorage.clear();
@@ -117,4 +122,72 @@ it('re-registers the device silently once permission was granted', async () => {
 
   await waitFor(() => expect(push.syncPushSubscription).toHaveBeenCalledWith('KEY'));
   expect(prompt()).toBeNull();
+});
+
+it('retries a failed registration when the connection returns', async () => {
+  vi.mocked(push.notificationPermission).mockReturnValue('granted');
+  vi.mocked(push.syncPushSubscription).mockRejectedValueOnce(new Error('offline'));
+  renderPrompt(false);
+  await waitFor(() => expect(push.syncPushSubscription).toHaveBeenCalledTimes(1));
+  fireEvent.online(window);
+  await waitFor(() => expect(push.syncPushSubscription).toHaveBeenCalledTimes(2));
+  fireEvent.focus(window);
+  expect(push.syncPushSubscription).toHaveBeenCalledTimes(2);
+});
+
+it('retries a transient failure after 30 seconds and cancels retries on unmount', async () => {
+  vi.useFakeTimers();
+  vi.mocked(push.notificationPermission).mockReturnValue('granted');
+  vi.mocked(push.syncPushSubscription)
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockRejectedValueOnce(new Error('offline'));
+  const { unmount } = renderPrompt();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
+  });
+  expect(push.syncPushSubscription).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  expect(push.syncPushSubscription).toHaveBeenCalledTimes(2);
+  unmount();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300_000);
+  });
+  fireEvent.online(window);
+  expect(push.syncPushSubscription).toHaveBeenCalledTimes(2);
+});
+
+it('registers after permission is granted in browser settings without reloading', async () => {
+  renderPrompt();
+  await screen.findByRole('button', { name: 'Activar avisos' });
+  vi.mocked(push.notificationPermission).mockReturnValue('granted');
+  fireEvent.focus(window);
+  await waitFor(() => expect(push.syncPushSubscription).toHaveBeenCalledWith('KEY'));
+  expect(prompt()).toBeNull();
+});
+
+it('refreshes the subscription when returning to the app after five minutes', async () => {
+  vi.mocked(push.notificationPermission).mockReturnValue('granted');
+  renderPrompt();
+  await waitFor(() => expect(push.syncPushSubscription).toHaveBeenCalledTimes(1));
+  vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 300_001);
+  fireEvent(document, new Event('visibilitychange'));
+  await waitFor(() => expect(push.syncPushSubscription).toHaveBeenCalledTimes(2));
+});
+
+it('does not start another registration while one is pending', async () => {
+  vi.mocked(push.notificationPermission).mockReturnValue('granted');
+  let finish: () => void = () => {};
+  vi.mocked(push.syncPushSubscription).mockReturnValueOnce(
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  renderPrompt();
+  await waitFor(() => expect(push.syncPushSubscription).toHaveBeenCalledTimes(1));
+  fireEvent.online(window);
+  fireEvent.focus(window);
+  expect(push.syncPushSubscription).toHaveBeenCalledTimes(1);
+  await act(async () => finish());
 });
