@@ -85,6 +85,27 @@ const renderHome = (tracker: Tracker) => {
 };
 
 describe('Inicio de una liga de juegos de mesa', () => {
+  it('ordena el último día por la fecha corregida y muestra esa fecha', async () => {
+    renderHome({
+      ...base,
+      days: [
+        { ...base.days![0], playedOn: '2026-11-01' },
+        {
+          ...base.days![0],
+          id: 2,
+          startedAt: '2026-11-03T18:00:00Z',
+          playedOn: '2026-11-04',
+          sessionIds: [2],
+        },
+      ],
+      sessions: [...base.sessions, session({ id: 2, number: 2, dayId: 2 })],
+    });
+    const lastDay = await screen.findByRole('region', { name: 'Último día de juego' });
+    expect(lastDay).toHaveTextContent('4 de noviembre');
+    expect(lastDay).toHaveTextContent('Catán · partida 2');
+    expect(lastDay).not.toHaveTextContent('Catán · partida 1');
+  });
+
   it('sin día en curso: botón para empezarlo, podio y último día', async () => {
     renderHome(base);
 

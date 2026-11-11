@@ -11,7 +11,7 @@ interface Props {
   myPlayerId: number | null;
   busy: boolean;
   onAnother: () => void;
-  onReopen: () => void;
+  onReopen?: () => void;
   onCloseDay: () => void;
 }
 
@@ -66,9 +66,11 @@ export default function TrackerResult({
         >
           Compartir resultado
         </button>
-        <button type="button" className="create-league-link" disabled={busy} onClick={onReopen}>
-          Reabrir para corregir
-        </button>
+        {onReopen && (
+          <button type="button" className="create-league-link" disabled={busy} onClick={onReopen}>
+            Reabrir para corregir
+          </button>
+        )}
       </div>
     </div>
   );

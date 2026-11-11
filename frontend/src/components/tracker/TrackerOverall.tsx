@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Tracker } from '../../services/endpoints/trackers';
 import TrackerStandings from './TrackerStandings';
 import { standingsFrom, yearOf } from './seasonStandings';
@@ -107,6 +108,11 @@ export default function TrackerOverall({ tracker }: Props) {
         }
         myPlayerId={tracker.myPlayerId}
       />
+      {tracker.rounds.length === 0 && (
+        <Link to="/partida" className="glass-btn primary-btn tracker-submit">
+          {tracker.currentDayId ? 'Ir a la partida' : 'Empezar día de juego'}
+        </Link>
+      )}
     </>
   );
 }

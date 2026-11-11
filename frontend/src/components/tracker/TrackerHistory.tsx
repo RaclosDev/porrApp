@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type {
   Tracker,
   TrackerDay,
@@ -85,6 +86,13 @@ export default function TrackerHistory({
         : viewing.standings.map((row) => row.playerId);
     return (
       <div className="tracker-history-sheet">
+        <button
+          type="button"
+          className="glass-btn create-league-small-btn"
+          onClick={() => setViewingId(null)}
+        >
+          Volver al histórico
+        </button>
         <p className="tracker-result-label">
           {game?.name ?? tracker.name} · partida {viewing.number}
           {' · '}
@@ -118,19 +126,19 @@ export default function TrackerHistory({
             rounds={rounds}
           />
         )}
-        <button
-          type="button"
-          className="glass-btn create-league-small-btn tracker-end"
-          onClick={() => setViewingId(null)}
-        >
-          Volver al histórico
-        </button>
       </div>
     );
   }
 
   if (groups.length === 0) {
-    return <p className="tracker-note">Aquí quedarán los días de juego y sus partidas.</p>;
+    return (
+      <div>
+        <p className="tracker-note">Aquí quedarán los días de juego y sus partidas.</p>
+        <Link to="/partida" className="glass-btn primary-btn tracker-submit">
+          {tracker.currentDayId ? 'Ir a la partida' : 'Empezar día de juego'}
+        </Link>
+      </div>
+    );
   }
 
   return (

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type {
   TrackerGame,
   TrackerPlayer,
@@ -42,7 +42,18 @@ export default function TrackerSheet({
   const [editing, setEditing] = useState<TrackerRound | null>(null);
   const [selectedWinners, setSelectedWinners] = useState<number[]>([]);
   const [error, setError] = useState('');
+  const entryTitle = useRef<HTMLHeadingElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
   const wins = game.mode === 'WINS' || game.mode === 'DIRECT';
+
+  useEffect(() => {
+    if (editing) entryTitle.current?.focus();
+    else if (returnFocus.current) {
+      if (returnFocus.current.isConnected) returnFocus.current.focus();
+      else entryTitle.current?.focus();
+      returnFocus.current = null;
+    }
+  }, [editing]);
 
   const reset = () => {
     setValues({});
@@ -52,6 +63,8 @@ export default function TrackerSheet({
   };
 
   const startEditing = (round: TrackerRound) => {
+    returnFocus.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setEditing(round);
     setSelectedWinners(
       players.filter((player) => round.scores[player.id] > 0).map((player) => player.id),
@@ -118,7 +131,7 @@ export default function TrackerSheet({
 
       {(!closed || editing) && (
         <section className="tracker-entry" aria-labelledby="tracker-entry-title">
-          <h3 id="tracker-entry-title" className="tracker-heading">
+          <h3 ref={entryTitle} tabIndex={-1} id="tracker-entry-title" className="tracker-heading">
             {editing
               ? `Corregir la ronda ${editing.number}`
               : game.mode === 'DIRECT'
@@ -186,6 +199,7 @@ export default function TrackerSheet({
                       autoComplete="off"
                       placeholder="–"
                       value={values[player.id] ?? ''}
+                      readOnly={busy}
                       onChange={(event) =>
                         setValues((prev) => ({ ...prev, [player.id]: event.target.value }))
                       }
@@ -220,7 +234,7 @@ export default function TrackerSheet({
                   Borrar la ronda
                 </button>
               )}
-              <button type="button" className="create-league-link" onClick={reset}>
+              <button type="button" className="create-league-link" disabled={busy} onClick={reset}>
                 Cancelar
               </button>
             </div>

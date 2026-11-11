@@ -142,8 +142,8 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
         open.rounds === 0
           ? 'No hay rondas apuntadas. Esta partida no sumará resultados y podrás elegir otro juego.'
           : gameOf(open.gameId).targetWins && open.winners.length === 0
-            ? 'Aún no se ha alcanzado el objetivo de rondas ganadas. Se guardará sin ganador. Puedes reabrirla para continuar.'
-            : 'Se cierra la hoja y se ve quién ha ganado. Se puede reabrir para corregirla.',
+            ? 'Aún no se ha alcanzado el objetivo de rondas ganadas. Se guardará sin ganador. El administrador puede reabrirla para continuar.'
+            : 'Se cierra la hoja y se ve quién ha ganado. El administrador puede reabrirla para corregirla.',
       confirmLabel: 'Terminar partida',
     });
     if (confirmed) {
@@ -382,11 +382,14 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
             myPlayerId={tracker.myPlayerId}
             busy={busy || pendingRounds}
             onAnother={() => setPicking(true)}
-            onReopen={() =>
-              void change(
-                () => reopenTrackerSession(tracker.id, lastEnded.id),
-                'No se pudo reabrir',
-              )
+            onReopen={
+              tracker.owner
+                ? () =>
+                    void change(
+                      () => reopenTrackerSession(tracker.id, lastEnded.id),
+                      'No se pudo reabrir',
+                    )
+                : undefined
             }
             onCloseDay={() => void closeDay()}
           />

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import TrackerHistory from '../../components/tracker/TrackerHistory';
 import TrackerOverall from '../../components/tracker/TrackerOverall';
 import TrackerManage from '../../components/tracker/TrackerManage';
@@ -179,13 +180,33 @@ describe('TrackerHistory', () => {
   });
 
   it('sin partidas avisa de lo que saldrá', () => {
-    render(<TrackerHistory tracker={{ ...tracker, days: [], sessions: [] }} />);
+    render(
+      <MemoryRouter>
+        <TrackerHistory tracker={{ ...tracker, days: [], sessions: [] }} />
+      </MemoryRouter>,
+    );
 
     expect(screen.getByText(/Aquí quedarán los días de juego/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Empezar día de juego' })).toHaveAttribute(
+      'href',
+      '/partida',
+    );
   });
 });
 
 describe('TrackerOverall', () => {
+  it('ofrece volver a la partida cuando aún no hay resultados', () => {
+    render(
+      <MemoryRouter>
+        <TrackerOverall tracker={{ ...tracker, rounds: [], currentDayId: 2 }} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Ir a la partida' })).toHaveAttribute(
+      'href',
+      '/partida',
+    );
+  });
+
   it('filtra la clasificación por juego y dice quién lo gana más', () => {
     render(<TrackerOverall tracker={tracker} />);
 

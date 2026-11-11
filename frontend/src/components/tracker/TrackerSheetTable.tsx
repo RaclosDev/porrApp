@@ -102,7 +102,8 @@ export default function TrackerSheetTable({
                         disabled={busy}
                         onClick={() => onPickRound(round)}
                       >
-                        {round.number}
+                        <span>{round.number}</span>
+                        <span className="tracker-round-edit">Editar</span>
                       </button>
                     ) : (
                       round.number
