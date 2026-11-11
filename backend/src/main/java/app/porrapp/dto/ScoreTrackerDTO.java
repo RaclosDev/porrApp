@@ -20,7 +20,8 @@ public record ScoreTrackerDTO(Long id, String name, String unit, boolean lowerWi
     }
 
     /** Un juego de la liga con su forma de puntuar ({@code POINTS} o {@code WINS}) y cuántas partidas y rondas lleva. */
-    public record Game(Long id, String name, String unit, boolean lowerWins, int sessions, int rounds, String mode) {
+    public record Game(Long id, String name, String unit, boolean lowerWins, int sessions, int rounds, String mode,
+                       Integer targetWins) {
     }
 
     /** Día de juego: cuándo empezó, si ya se cerró, quién vino y sus partidas en orden. */

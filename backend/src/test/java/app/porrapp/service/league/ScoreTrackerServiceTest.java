@@ -39,6 +39,8 @@ import org.mockito.ArgumentCaptor;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -155,7 +158,7 @@ class ScoreTrackerServiceTest {
         verify(games, never()).delete(any());
         verify(leagues, never()).delete(any());
 
-        service.addGame("miembro@x.com", 10L, new ScoreGameRequest("Tute", "puntos", false, null));
+        service.addGame("miembro@x.com", 10L, new ScoreGameRequest("Tute", "puntos", false, null, null));
         verify(games).save(any());
     }
 
@@ -256,25 +259,24 @@ class ScoreTrackerServiceTest {
     }
 
     @Test
-    void theFirstGameTakesTheLeagueNameWhenNoneIsGiven() {
-        when(leagues.findByAdminUserId(1L)).thenReturn(List.of());
+    void creatingAGroupWithJustItsNameDoesNotInventAGameOrAnAttendanceDay() {
         when(leagues.save(any())).thenAnswer(call -> {
             League given = call.getArgument(0);
             given.setId(11L);
             return given;
         });
-        when(games.save(any())).thenAnswer(call -> {
-            ScoreGame given = call.getArgument(0);
-            given.setId(60L);
-            return given;
-        });
 
-        service.create("dueno@x.com", new ScoreTrackerRequest("Mus", null, null, false, null, null));
+        ScoreTrackerDTO result = service.create("dueno@x.com",
+                new ScoreTrackerRequest("Gym", null, null, false, null, null));
 
-        ArgumentCaptor<ScoreGame> savedGame = ArgumentCaptor.forClass(ScoreGame.class);
-        verify(games).save(savedGame.capture());
-        assertThat(savedGame.getValue().getName()).isEqualTo("Mus");
-        assertThat(savedGame.getValue().getUnit()).isEqualTo("puntos");
+        assertThat(result.name()).isEqualTo("Gym");
+        assertThat(result.games()).isEmpty();
+        assertThat(result.days()).isEmpty();
+        assertThat(result.currentSessionId()).isNull();
+        assertThat(savedPlayer().getUserId()).isEqualTo(1L);
+        verify(games, never()).save(any());
+        verify(sessions, never()).save(any());
+        verify(days, never()).save(any());
     }
 
     @Test
@@ -380,7 +382,7 @@ class ScoreTrackerServiceTest {
 
     @Test
     void gamesCannotRepeatNameInTheSameLeague() {
-        assertThatThrownBy(() -> service.addGame("dueno@x.com", 10L, new ScoreGameRequest("parchís", "puntos", false, null)))
+        assertThatThrownBy(() -> service.addGame("dueno@x.com", 10L, new ScoreGameRequest("parchís", "puntos", false, null, null)))
                 .isInstanceOf(BusinessException.class).hasMessage("Ya hay un juego con ese nombre");
         assertThatThrownBy(() -> service.renameGame("dueno@x.com", 10L, 50L, new ScoreGameNameRequest(" PARCHÍS ")))
                 .isInstanceOf(BusinessException.class).hasMessage("Ya hay un juego con ese nombre");
@@ -389,7 +391,7 @@ class ScoreTrackerServiceTest {
 
     @Test
     void anOwnerAddsAndRenamesGames() {
-        service.addGame("dueno@x.com", 10L, new ScoreGameRequest("Tute", "bazas", true, null));
+        service.addGame("dueno@x.com", 10L, new ScoreGameRequest("Tute", "bazas", true, null, null));
         service.renameGame("dueno@x.com", 10L, 50L, new ScoreGameNameRequest("Mus a 30"));
 
         ArgumentCaptor<ScoreGame> saved = ArgumentCaptor.forClass(ScoreGame.class);
@@ -412,16 +414,8 @@ class ScoreTrackerServiceTest {
     }
 
     @Test
-    void theOnlyGameCannotBeDeletedButAnEmptyOneCan() {
-        when(games.countByLeagueId(10L)).thenReturn(1L);
-        assertThatThrownBy(() -> service.deleteGame("dueno@x.com", 10L, 51L)).isInstanceOf(BusinessException.class);
-
-        when(games.countByLeagueId(10L)).thenReturn(2L);
-        when(sessions.findByLeagueIdOrderByIdAsc(10L)).thenReturn(List.of());
-        when(rounds.findByLeagueIdOrderByIdAsc(10L)).thenReturn(List.of());
-
+    void theOnlyGameCanBeDeletedIfItHasNoResults() {
         service.deleteGame("dueno@x.com", 10L, 51L);
-
         verify(games).delete(parchis);
     }
 
@@ -458,6 +452,131 @@ class ScoreTrackerServiceTest {
         ArgumentCaptor<ScoreTrackerScore> saved = ArgumentCaptor.forClass(ScoreTrackerScore.class);
         verify(scores, atLeast(0)).save(saved.capture());
         return saved.getAllValues();
+    }
+
+    /** Mutable repository state lets the result assertions cover saves and subsequent corrections. */
+    private List<ScoreTrackerRound> storedMatch(ScoreTrackerSession session, List<Map<Long, Integer>> initial) {
+        List<ScoreTrackerRound> storedRounds = new ArrayList<>();
+        List<ScoreTrackerScore> storedScores = new ArrayList<>();
+        for (Map<Long, Integer> points : initial) {
+            long id = 80L + storedRounds.size();
+            storedRounds.add(ScoreTrackerRound.builder().id(id).leagueId(10L).sessionId(session.getId()).build());
+            points.forEach((player, value) -> storedScores.add(ScoreTrackerScore.builder()
+                    .roundId(id).playerId(player).points(value).build()));
+        }
+        when(sessions.findByLeagueIdOrderByIdAsc(10L)).thenReturn(List.of(session));
+        when(rounds.findByLeagueIdOrderByIdAsc(10L)).thenReturn(storedRounds);
+        when(rounds.findBySessionIdOrderByIdAsc(session.getId())).thenReturn(storedRounds);
+        doAnswer(call -> {
+            ScoreTrackerRound round = call.getArgument(0);
+            if (round.getId() == null) {
+                round.setId(80L + storedRounds.size());
+                storedRounds.add(round);
+            }
+            when(rounds.findById(round.getId())).thenReturn(Optional.of(round));
+            return round;
+        }).when(rounds).save(any());
+        storedRounds.forEach(round -> when(rounds.findById(round.getId())).thenReturn(Optional.of(round)));
+        when(scores.findByRoundIdIn(any())).thenAnswer(call -> {
+            Collection<Long> ids = call.getArgument(0);
+            return storedScores.stream().filter(score -> ids.contains(score.getRoundId())).toList();
+        });
+        when(scores.save(any())).thenAnswer(call -> {
+            ScoreTrackerScore score = call.getArgument(0);
+            storedScores.removeIf(old -> old.getRoundId().equals(score.getRoundId())
+                    && old.getPlayerId().equals(score.getPlayerId()));
+            storedScores.add(score);
+            return score;
+        });
+        return storedRounds;
+    }
+
+    @Test
+    void reachingTheRoundTargetClosesAndCountsOneGameWinAndCorrectionsRecalculateIt() {
+        mus.setMode(ScoreGame.MODE_ROUNDS);
+        mus.setTargetWins(2);
+        threePlayers();
+        ScoreDay day = openDay();
+        when(days.findById(90L)).thenReturn(Optional.of(day));
+        ScoreTrackerSession session = openSession(50L, 100L, 101L);
+        storedMatch(session, List.of(Map.of(100L, 3, 101L, 2)));
+        assertThat(service.get("dueno@x.com", 10L).sessions().getFirst().winners()).isEmpty();
+
+        ScoreTrackerDTO result = service.addRound("dueno@x.com", 10L,
+                new ScoreTrackerRoundRequest(null, Map.of(100L, 4, 101L, 3), 70L, null));
+
+        assertThat(session.isOpen()).isFalse();
+        assertThat(result.sessions().getFirst().winners()).containsExactly(100L);
+        assertThat(result.overall().getFirst().sessionsWon()).isEqualTo(1);
+        assertThat(result.overall().getFirst().roundsWon()).isEqualTo(2);
+        assertThat(result.rounds().getLast().scores()).containsEntry(100L, 4).containsEntry(101L, 3);
+        assertThatThrownBy(() -> service.addRound("dueno@x.com", 10L,
+                new ScoreTrackerRoundRequest(null, Map.of(100L, 5), 70L, null)))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("terminada");
+
+        ScoreTrackerDTO corrected = service.editRound("dueno@x.com", 10L, 81L,
+                new ScoreTrackerRoundRequest(null, Map.of(100L, 1, 101L, 100), 70L, null, null, 0));
+        assertThat(corrected.sessions().getFirst().winners()).isEmpty();
+        assertThat(corrected.overall()).allMatch(row -> row.sessionsWon() == 0);
+        service.reopenSession("dueno@x.com", 10L, 70L);
+        ScoreTrackerDTO continued = service.addRound("dueno@x.com", 10L,
+                new ScoreTrackerRoundRequest(null, Map.of(100L, 5, 101L, 2), 70L, null));
+        assertThat(continued.sessions().getFirst().winners()).containsExactly(100L);
+        assertThat(continued.overall().getFirst().sessionsWon()).isEqualTo(1);
+        assertThat(session.isOpen()).isFalse();
+    }
+
+    @Test
+    void editingAnOpenRoundCanReachTheTargetWithLowestPointsWinning() {
+        mus.setMode(ScoreGame.MODE_ROUNDS);
+        mus.setLowerWins(true);
+        mus.setTargetWins(2);
+        threePlayers();
+        ScoreTrackerSession session = openSession(50L, 100L, 101L);
+        storedMatch(session, List.of(Map.of(100L, 1, 101L, 3), Map.of(100L, 5, 101L, 2)));
+
+        ScoreTrackerDTO result = service.editRound("dueno@x.com", 10L, 81L,
+                new ScoreTrackerRoundRequest(null, Map.of(100L, -1, 101L, 2), 70L, null, null, 0));
+
+        assertThat(session.isOpen()).isFalse();
+        assertThat(result.sessions().getFirst().winners()).containsExactly(100L);
+    }
+
+    @Test
+    void aWinsGameClosesAtItsTargetAndAllowsJointWinners() {
+        mus.setMode(ScoreGame.MODE_WINS);
+        mus.setTargetWins(2);
+        threePlayers();
+        ScoreDay day = openDay();
+        when(days.findById(90L)).thenReturn(Optional.of(day));
+        ScoreTrackerSession session = openSession(50L, 100L, 101L);
+        storedMatch(session, List.of(Map.of(100L, 1, 101L, 1)));
+
+        ScoreTrackerDTO result = service.addRound("dueno@x.com", 10L,
+                new ScoreTrackerRoundRequest(null, null, 70L, List.of(100L, 101L)));
+
+        assertThat(session.isOpen()).isFalse();
+        assertThat(result.sessions().getFirst().winners()).containsExactly(100L, 101L);
+        assertThat(result.overall()).filteredOn(row -> row.playerId() != 102L)
+                .allMatch(row -> row.sessionsWon() == 1);
+    }
+
+    @Test
+    void aTargetRequiresARoundModeAndABoundedPositiveInteger() {
+        for (ScoreGameRequest request : List.of(
+                new ScoreGameRequest("Inventado", "puntos", false, "POINTS", 5),
+                new ScoreGameRequest("Inventado", "puntos", false, "DIRECT", 5),
+                new ScoreGameRequest("Inventado", "puntos", false, "ROUNDS", 0),
+                new ScoreGameRequest("Inventado", "puntos", false, "WINS", 501))) {
+            assertThatThrownBy(() -> service.addGame("dueno@x.com", 10L, request))
+                    .isInstanceOf(BusinessException.class).hasMessageContaining("objetivo");
+        }
+        service.addGame("dueno@x.com", 10L, new ScoreGameRequest("Inventado", "fichas", true, "ROUNDS", 5));
+        ArgumentCaptor<ScoreGame> saved = ArgumentCaptor.forClass(ScoreGame.class);
+        verify(games).save(saved.capture());
+        assertThat(saved.getValue().getTargetWins()).isEqualTo(5);
+        assertThat(saved.getValue().getMode()).isEqualTo("ROUNDS");
+        assertThat(saved.getValue().isLowerWins()).isTrue();
     }
 
     @Test

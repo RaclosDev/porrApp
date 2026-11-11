@@ -79,6 +79,18 @@ const sheet = (overrides: Partial<Parameters<typeof TrackerSheet>[0]> = {}) => {
 };
 
 describe('TrackerSheet', () => {
+  it('conserva los puntos y muestra las rondas ganadas y el objetivo', () => {
+    const { onAdd } = sheet({ game: { ...points, mode: 'ROUNDS', targetWins: 5 } });
+
+    expect(screen.getAllByRole('row')[1]).toHaveTextContent('Ganadas10');
+    expect(screen.getAllByRole('row')[2]).toHaveTextContent('Total puntos72');
+    expect(screen.getByRole('status')).toHaveTextContent('Objetivo: ganar 5 rondas');
+    fireEvent.change(screen.getByLabelText('Ana'), { target: { value: '15' } });
+    fireEvent.change(screen.getByLabelText('Berto'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apuntar ronda' }));
+    expect(onAdd).toHaveBeenCalledWith({ scores: { 11: 15, 12: 4 }, sessionId: 5 });
+  });
+
   it('pone los totales arriba y una fila por ronda', () => {
     sheet();
 
@@ -158,6 +170,67 @@ describe('TrackerGamePicker', () => {
     },
   ];
 
+  it('crea un juego libre con puntos por ronda y objetivo de cinco victorias', async () => {
+    const onCreate = vi.fn().mockResolvedValue(true);
+    render(<TrackerGamePicker games={[]} busy={false} onPick={vi.fn()} onCreate={onCreate} />);
+    fireEvent.change(screen.getByLabelText('Nombre del juego'), {
+      target: { value: ' El juego del gimnasio ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Puntos por ronda' }));
+    fireEvent.change(screen.getByLabelText('Rondas que hay que ganar (opcional)'), {
+      target: { value: '5' },
+    });
+    fireEvent.click(screen.getByLabelText('Gana la ronda quien menos puntos tiene'));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear y jugar' }));
+
+    await waitFor(() =>
+      expect(onCreate).toHaveBeenCalledWith({
+        name: 'El juego del gimnasio',
+        mode: 'ROUNDS',
+        unit: 'puntos',
+        lowerWins: true,
+        targetWins: 5,
+      }),
+    );
+  });
+
+  it('las plantillas se pueden cambiar y no arrastran el objetivo a un ganador directo', async () => {
+    const onCreate = vi.fn().mockResolvedValue(true);
+    render(<TrackerGamePicker games={[]} busy={false} onPick={vi.fn()} onCreate={onCreate} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mus' }));
+    fireEvent.change(screen.getByLabelText('Rondas que hay que ganar (opcional)'), {
+      target: { value: '5' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Polilla tramposa' }));
+    fireEvent.change(screen.getByLabelText('Nombre del juego'), {
+      target: { value: 'Polilla del Gym' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Crear y jugar' }));
+
+    await waitFor(() =>
+      expect(onCreate).toHaveBeenCalledWith({
+        name: 'Polilla del Gym',
+        mode: 'DIRECT',
+        unit: 'victorias',
+        lowerWins: false,
+      }),
+    );
+  });
+
+  it('rechaza objetivos fraccionarios o fuera de rango', () => {
+    const onCreate = vi.fn();
+    render(<TrackerGamePicker games={[]} busy={false} onPick={vi.fn()} onCreate={onCreate} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mus' }));
+    for (const value of ['0', '2.5', '501']) {
+      fireEvent.change(screen.getByLabelText('Rondas que hay que ganar (opcional)'), {
+        target: { value },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Crear y jugar' }));
+      expect(screen.getByRole('alert')).toHaveTextContent('de 1 a 500');
+    }
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
   it('elige un juego de la liga con un toque', () => {
     const onPick = vi.fn();
     render(<TrackerGamePicker games={games} busy={false} onPick={onPick} onCreate={vi.fn()} />);
@@ -233,7 +306,7 @@ describe('TrackerStandings', () => {
     );
 
     expect(screen.getAllByRole('row')).toHaveLength(4);
-    expect(screen.getByRole('columnheader', { name: 'Ganadas' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Partidas ganadas' })).toBeInTheDocument();
     expect(screen.getByRole('row', { name: /Carla/ })).toHaveTextContent('3');
     expect(screen.getByText('10')).toBeInTheDocument();
   });

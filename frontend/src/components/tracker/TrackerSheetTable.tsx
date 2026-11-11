@@ -32,7 +32,8 @@ export default function TrackerSheetTable({
   busy,
   onPickRound,
 }: Props) {
-  const wins = game.mode !== 'POINTS';
+  const wins = game.mode === 'WINS' || game.mode === 'DIRECT';
+  const byRounds = wins || game.mode === 'ROUNDS';
   const totals = new Map(session.standings.map((row) => [row.playerId, row]));
 
   const cell = (round: TrackerRound, playerId: number) => {
@@ -58,17 +59,27 @@ export default function TrackerSheetTable({
             ))}
           </tr>
           <tr className="tracker-sheet-total">
-            <th scope="row">{wins ? 'Ganadas' : 'Total'}</th>
+            <th scope="row">{byRounds ? 'Ganadas' : 'Total'}</th>
             {players.map((player) => {
               const row = totals.get(player.id);
               const leads = session.rounds > 0 && row?.rank === 1;
               return (
                 <td key={player.id} className={`is-num${leads ? ' is-lead' : ''}`}>
-                  {wins ? (row?.roundsWon ?? 0) : (row?.total ?? 0)}
+                  {byRounds ? (row?.roundsWon ?? 0) : (row?.total ?? 0)}
                 </td>
               );
             })}
           </tr>
+          {game.mode === 'ROUNDS' && (
+            <tr>
+              <th scope="row">Total puntos</th>
+              {players.map((player) => (
+                <td key={player.id} className="is-num">
+                  {totals.get(player.id)?.total ?? 0}
+                </td>
+              ))}
+            </tr>
+          )}
         </thead>
         <tbody>
           {rounds.length === 0 ? (

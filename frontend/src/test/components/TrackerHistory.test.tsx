@@ -198,7 +198,7 @@ describe('TrackerOverall', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Catán' }));
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Catán: 2 partidas y 3 rondas. Quien más lo gana: Ana (2).',
+      'Catán: 2 partidas y 2 rondas. Quien más lo gana: Ana (2).',
     );
     expect(screen.getByRole('table', { name: 'Clasificación de Catán' })).toBeInTheDocument();
 

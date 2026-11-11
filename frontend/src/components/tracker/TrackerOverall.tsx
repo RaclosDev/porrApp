@@ -35,6 +35,10 @@ export default function TrackerOverall({ tracker }: Props) {
 
   const best = Math.max(0, ...standings.map((row) => row.sessionsWon));
   const leaders = standings.filter((row) => best > 0 && row.sessionsWon === best);
+  const filteredSessions = tracker.sessions.filter(
+    (item) => (!game || item.gameId === game.id) && (season == null || gameYear(item) === season),
+  );
+  const roundCount = filteredSessions.reduce((total, item) => total + item.rounds, 0);
 
   return (
     <>
@@ -53,7 +57,7 @@ export default function TrackerOverall({ tracker }: Props) {
           ))}
         </div>
       )}
-      {played.length > 1 && (
+      {played.length > 0 && (
         <div
           className="tracker-chips tracker-filter"
           role="group"
@@ -74,14 +78,18 @@ export default function TrackerOverall({ tracker }: Props) {
       )}
       {game && (
         <p className="tracker-game-card" role="status">
-          <strong>{game.name}</strong>: {game.sessions}{' '}
-          {game.sessions === 1 ? 'partida' : 'partidas'} y {game.rounds}{' '}
-          {game.rounds === 1 ? 'ronda' : 'rondas'}.{' '}
+          <strong>{game.name}</strong>: {filteredSessions.length}{' '}
+          {filteredSessions.length === 1 ? 'partida' : 'partidas'} y {roundCount}{' '}
+          {roundCount === 1 ? 'ronda' : 'rondas'}.{' '}
           {leaders.length === 0
             ? 'Todavía nadie ha ganado una partida.'
             : `Quien más lo gana: ${leaders.map((row) => row.name).join(' y ')} (${best}).`}
         </p>
       )}
+      <p className="tracker-note">
+        Ordenado por partidas ganadas. Las rondas ganadas se cuentan por separado; las partidas
+        abiertas aún no suman victorias.
+      </p>
       <TrackerStandings
         caption={`${game ? `Clasificación de ${game.name}` : 'Clasificación general'}${
           season != null ? ` en ${season}` : ''
