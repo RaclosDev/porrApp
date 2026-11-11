@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../frontend/package.json', import.meta.url));
-const { chromium } = require('@playwright/test');
+const { chromium, expect } = require('@playwright/test');
 
 const base = process.argv[2] ?? 'https://porrapp.app';
 const out = fileURLToPath(new URL('./', import.meta.url));
@@ -13,7 +13,7 @@ const out = fileURLToPath(new URL('./', import.meta.url));
 const browser = await chromium.launch();
 try {
   const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
+    viewport: { width: 430, height: 932 },
     deviceScaleFactor: 2,
     isMobile: true,
     hasTouch: true,
@@ -25,14 +25,20 @@ try {
 
   const settle = async () => {
     await page.waitForLoadState('load');
-    await page
-      .waitForFunction(
-        () => ![...document.querySelectorAll('[class*="skeleton"]')].some((el) => el.getClientRects().length),
-        null,
-        { timeout: 15000 },
-      )
-      .catch(() => console.warn('  (sigue habiendo un esqueleto visible)'));
+    const rejectCookies = page.getByRole('button', { name: 'Rechazar', exact: true });
+    if (await rejectCookies.isVisible()) await rejectCookies.click();
+    await page.waitForFunction(
+      () =>
+        ![...document.querySelectorAll('[class*="skeleton"]')].some(
+          (el) => el.getClientRects().length,
+        ),
+      null,
+      { timeout: 15000 },
+    );
     await page.evaluate(async () => {
+      await Promise.all(
+        ['Inter', 'Anton', 'Permanent Marker'].map((font) => document.fonts.load(`16px "${font}"`)),
+      );
       await document.fonts.ready;
       // Solo las imágenes visibles: las diferidas fuera de pantalla nunca llegan a cargar.
       const visible = [...document.images].filter((img) => {
@@ -40,10 +46,13 @@ try {
         return !img.complete && r.bottom > 0 && r.top < innerHeight;
       });
       const loaded = Promise.all(
-        visible.map((img) => new Promise((r) => {
-          img.addEventListener('load', r, { once: true });
-          img.addEventListener('error', r, { once: true });
-        })),
+        visible.map(
+          (img) =>
+            new Promise((r) => {
+              img.addEventListener('load', r, { once: true });
+              img.addEventListener('error', r, { once: true });
+            }),
+        ),
       );
       await Promise.race([loaded, new Promise((r) => setTimeout(r, 5000))]);
       // El aviso del modo demo no forma parte de la app real.
@@ -52,6 +61,14 @@ try {
       });
       window.scrollTo(0, 0);
     });
+    for (const font of ['Inter', 'Anton', 'Permanent Marker']) {
+      expect(await page.evaluate((family) => document.fonts.check(`16px "${family}"`), font)).toBe(
+        true,
+      );
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
     await page.waitForTimeout(1200);
   };
   const shot = async (name) => {
@@ -65,7 +82,7 @@ try {
   await shot('landing');
 
   await page.goto(base + '/demo');
-  await page.getByText(/últimos resultados/i).first().waitFor();
+  await page.getByRole('heading', { name: 'Porra Mundial', exact: true }).waitFor();
   await shot('home');
 
   await tab('Ranking');

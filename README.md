@@ -1,106 +1,96 @@
 <div align="center">
 
-<img src="docs/screenshots/hero.jpg" alt="PorrApp, la porra de toda la vida, pero bien hecha: capturas móviles del inicio, la clasificación y el cuadro" width="100%">
+<img src="docs/screenshots/hero.jpg" alt="PorrApp: jornadas deportivas, clasificación y marcador de juegos en la interfaz móvil actual" width="100%">
 
 # PorrApp
 
-**Porras de deportes con amigos: eliges la competición y el formato, los resultados llegan solos y la clasificación se mueve en directo.**
+**Tu liga con amigos. Del pronóstico del domingo a la partida del jueves.**
 
-[![Demo en vivo](https://img.shields.io/badge/Demo_en_vivo-porrapp.app-2fc4c4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://porrapp.app/demo)
+Porras multideporte y marcadores de juegos de mesa, en una PWA con Java y React.
+
+[![Demo en vivo](https://img.shields.io/badge/Probar_la_demo-porrapp.app-2fc4c4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://porrapp.app/demo)
 [![CI](https://img.shields.io/github/actions/workflow/status/RaclosDev/porrApp/ci.yml?branch=main&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml)
 
-![Java](https://img.shields.io/badge/Java_21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot_4.1-6DB33F?style=flat-square&logo=springboot&logoColor=white)
-![React](https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
-![License](https://img.shields.io/badge/licencia-MIT-lightgrey?style=flat-square)
+Java 21 · Spring Boot 4.1 · React 19 · TypeScript · PostgreSQL
 
 </div>
 
-> **Pruébala en 10 segundos:** abre la [demo](https://porrapp.app/demo) desde el móvil. Es una liga real de 21 personas del Mundial 2026 en modo de solo lectura, sin registro.
+Proyecto personal de **Carlos Sanz Tomero**, desarrollador full-stack. PorrApp reúne invitaciones, predicciones, resultados y clasificación para que un grupo pueda llevar su liga desde el móvil. Las competiciones oficiales compatibles sincronizan sus resultados; los torneos propios y las partidas tienen gestión manual.
 
-## 📱 La app
+**Para conocer el proyecto:** [abre la demo sin registro](https://porrapp.app/demo), consulta las decisiones técnicas de abajo o entra en la [arquitectura](docs/architecture.md). La demo pública muestra una liga del Mundial en modo de solo lectura; las capturas también enseñan las modalidades incorporadas después.
+
+## La app actual
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src="docs/screenshots/landing.png" alt="Portada pública" width="240"><br><sub><b>Portada</b> · entrar con Google o ver la demo</sub></td>
-    <td align="center" width="33%"><img src="docs/screenshots/home.png" alt="Inicio de la liga con los últimos resultados" width="240"><br><sub><b>Inicio</b> · últimos resultados sincronizados</sub></td>
-    <td align="center" width="33%"><img src="docs/screenshots/ranking.png" alt="Podio y clasificación de la liga" width="240"><br><sub><b>Ranking</b> · podio y desglose por fase</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/league-home.png" alt="Inicio de una liga por jornadas con calendario y clasificación" width="240"><br><sub><b>Tu liga</b> · calendario y ranking</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/matchday.png" alt="Predicciones 1X2 de la jornada con elecciones guardadas" width="240"><br><sub><b>Jornadas</b> · cada partido tiene su cierre</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/scoreboard.png" alt="Marcador de Catán con rondas, totales y participantes" width="240"><br><sub><b>Juegos de mesa</b> · rondas y partidas</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/prediction.png" alt="Cuadro pronosticado por un participante, con los puntos de cada acierto" width="240"><br><sub><b>Mi porra</b> · cuadro completo y puntos por acierto</sub></td>
-    <td align="center"><img src="docs/screenshots/bracket.png" alt="Cuadro oficial de semifinales y final" width="240"><br><sub><b>Resultados</b> · cuadro oficial en vivo</sub></td>
-    <td align="center"><img src="docs/screenshots/groups.png" alt="Clasificación de los grupos con criterios de desempate" width="240"><br><sub><b>Grupos</b> · tablas con desempates FIFA</sub></td>
+    <td align="center"><img src="docs/screenshots/ranking.png" alt="Podio y clasificación de la demo pública" width="240"><br><sub><b>Ranking</b> · puntos y desglose</sub></td>
+    <td align="center"><img src="docs/screenshots/prediction.png" alt="Predicción de eliminatorias en la demo pública" width="240"><br><sub><b>Cuadro</b> · camino hasta la final</sub></td>
+    <td align="center"><img src="docs/screenshots/groups.png" alt="Clasificación de los grupos del torneo" width="240"><br><sub><b>Grupos</b> · clasificación y desempates</sub></td>
   </tr>
 </table>
 
-## ✨ Qué hace
+Capturas de la interfaz real, renovadas en noviembre de 2026. La primera fila usa datos ficticios en una ejecución local; la segunda procede de la demo pública. [Origen y reproducción de las capturas](docs/screenshots/README.md).
 
-- **Ligas privadas** con código de invitación, control de pagos y normas propias.
-- **Multideporte:** fútbol, baloncesto, tenis, League of Legends, fútbol americano, Fórmula 1 y MMA, además de competiciones personalizadas.
-- **Cuatro formatos de porra:** cuadro completo (grupos y eliminatorias), solo eliminatorias, jornada a jornada con 1X2 y marcador exacto, o superviviente.
-- **Resultados automáticos:** los partidos se sincronizan desde ESPN y la puntuación se recalcula sola en el backend. Las competiciones personalizadas admiten resultados manuales.
-- **En directo:** cada gol llega por WebSocket y actualiza clasificación, cuadro y jornadas sin recargar.
-- **Cuadro oficial calculado:** cruces resueltos con los mejores terceros y desempates del reglamento del torneo (en el Mundial 2026, su artículo 13).
-- **Estadísticas:** favoritos de la liga, buscador por equipo, evolución de la clasificación y reparto de pronósticos por partido.
-- **PWA instalable**, con inicio de sesión de Google y sesiones seguras.
+## Qué permite hacer
 
-## 🧠 Lo interesante por dentro
+- **Organizar ligas privadas:** invitaciones, miembros, reglas y puntuación propias. Una misma cuenta puede participar en varias ligas.
+- **Elegir cómo competir:** cuadro completo, solo eliminatorias, jornadas, superviviente o Grandes Premios. Las opciones dependen del deporte y la competición.
+- **Predecir según el deporte:** 1X2 y marcador en fútbol, series de LoL, sets de tenis, ganador y resolución de una pelea de UFC, o podio, pole y vuelta rápida en F1. También hay competiciones de baloncesto y fútbol americano.
+- **Crear competiciones propias:** equipos, calendario, resultados y cierres de predicciones configurables.
+- **Llevar juegos de mesa:** jugadores, días de juego, partidas, rondas y clasificación; puntuación por puntos o victorias, con histórico y corrección de resultados.
+- **Seguir la liga:** sincronización de resultados oficiales, recálculo de puntos en el servidor y avisos por WebSocket para refrescar las vistas. Estadísticas y reparto de predicciones en los partidos ya cerrados.
+- **Usarla desde el móvil:** PWA instalable, acceso con Google, email y contraseña o llaves de acceso WebAuthn.
 
-| | |
-| --- | --- |
-| **Dominio extensible** | La puntuación sigue el patrón *Strategy* (`ScoringStrategy`). Un torneo nuevo no toca el resto del dominio, y cada liga ajusta sus propios valores. |
-| **Proveedores intercambiables** | `SportsDataProvider` aísla la fuente de datos; ESPN es solo una implementación. Un *circuit breaker* de Resilience4j protege la app cuando ESPN falla. |
-| **Tiempo real fiable** | WebSockets para los marcadores y ShedLock para que la sincronización programada corra una sola vez aunque haya varias instancias. |
-| **Seguridad** | Access token JWT de 15 minutos en memoria y refresh token rotatorio en cookie `HttpOnly`. Validación de OAuth de Google en el backend. |
-| **Contrato tipado** | Los controladores devuelven DTOs/records, y el frontend tiene un único cliente tipado (`services/api.ts`) con esos contratos. |
-| **Lógica testeable** | El cuadro oficial, la normalización de pronósticos y la evolución de la clasificación son funciones puras con tests propios. |
-| **Observabilidad** | Spring Boot Actuator con métricas Prometheus, caché Caffeine y documentación OpenAPI/Swagger. |
+## Decisiones técnicas que puedes revisar
+
+| Problema                            | Implementación                                                                                                                                                                                                                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reglas distintas por modalidad      | [Estrategias de puntuación](backend/src/main/java/app/porrapp/scoring) y servicios de dominio separan predicciones, cierres, superviviente y carreras. El marcador de juegos tiene su [servicio propio](backend/src/main/java/app/porrapp/service/league/ScoreTrackerService.java). |
+| Datos deportivos externos           | La [capa de proveedores](backend/src/main/java/app/porrapp/sports) integra ESPN y LoL Esports. La sincronización programada tiene exclusión mutua con ShedLock y protección frente a fallos externos con Resilience4j.                                                              |
+| Pantallas actualizadas sin recargar | El servidor publica cambios por WebSocket y el cliente invalida las consultas afectadas de TanStack Query. La puntuación se calcula en el backend.                                                                                                                                  |
+| Sesiones entre navegador y PWA      | Access token en memoria, refresh token rotatorio en cookie `HttpOnly`, detección de reutilización y coordinación entre pestañas. [Servicios de cuenta](backend/src/main/java/app/porrapp/service/account) para autenticación y WebAuthn.                                            |
+| Persistencia y despliegue           | PostgreSQL con migraciones Flyway. Una imagen Docker compila React y lo sirve desde Spring Boot; GitHub Actions valida los cambios antes del despliegue en Railway.                                                                                                                 |
 
 ```mermaid
 flowchart LR
-    PWA[React 19 PWA] -- REST + JWT --> API[Spring Boot 4.1]
-    PWA <-- WebSocket --> API
-    API --> DB[(PostgreSQL + Flyway)]
-    API -- sincronización programada --> ESPN[ESPN API]
-    API --> G[Google OAuth]
+    PWA[React · PWA] -- REST + JWT --> API[Spring Boot]
+    API -- WebSocket --> PWA
+    API --> DB[(PostgreSQL · Flyway)]
+    API -- sincronización --> Sports[ESPN · LoL Esports]
 ```
 
-## ✅ Calidad
+El despliegue actual utiliza **una instancia de backend**: las conexiones WebSocket y las cachés están en memoria. La [guía de arquitectura](docs/architecture.md#despliegue) detalla qué habría que compartir antes de escalar horizontalmente.
 
-- **Más de 1.000 tests automatizados:** unos 470 de frontend (Vitest y Testing Library) y unos 600 de backend (JUnit 5, Mockito y **Testcontainers** con PostgreSQL real).
-- **E2E con Playwright** sobre la build de producción, en escritorio y móvil.
-- **Cobertura mínima obligatoria en CI:** 80 % de líneas en backend (JaCoCo) y umbrales propios en frontend.
-- **TypeScript `strict`**, ESLint, Prettier y hooks de pre-commit.
-- **CI/CD en GitHub Actions** que solo ejecuta los jobs de la parte modificada. Railway despliega únicamente si la CI pasa.
+## Calidad y stack
 
-## 🛠️ Stack
+| Área     | Herramientas y comprobaciones                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Frontend | React 19, TypeScript `strict`, Vite, TanStack Query, Zustand y Tailwind CSS 4. Vitest y Testing Library para lógica y componentes; Playwright para recorridos en móvil y escritorio. |
+| Backend  | Java 21, Spring Boot 4.1, Spring Security y JPA. JUnit, Mockito y Testcontainers con PostgreSQL; JaCoCo exige al menos un 80 % de cobertura de líneas.                               |
+| Entrega  | GitHub Actions selecciona los jobs según el área modificada. ESLint, Prettier, comprobación de tipos, tests y construcción Docker forman parte del flujo de validación.              |
 
-| Capa | Tecnologías |
-| --- | --- |
-| Frontend | React 19, TypeScript, Vite, TanStack Query, Zustand, Tailwind CSS 4, PWA |
-| Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA, WebSockets, Resilience4j, ShedLock |
-| Datos | PostgreSQL, migraciones Flyway, caché Caffeine |
-| Calidad | Vitest, Testing Library, Playwright, JUnit 5, Mockito, Testcontainers, JaCoCo |
-| Infraestructura | Docker multi-etapa, GitHub Actions, Railway |
+Los comandos y requisitos están en la [guía de desarrollo](docs/development.md); la [CI](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml) permite comprobar su estado actual.
 
-## 🚀 Ejecutarla en local
+## Ejecutarla en local
+
+Requiere Docker y Docker Compose. Crea el archivo de configuración y completa sus variables, incluidos `JWT_SECRET` y `GOOGLE_CLIENT_ID`:
 
 ```bash
-cp .env.example .env   # rellena JWT_SECRET y GOOGLE_CLIENT_ID
+cp .env.example .env
 docker compose up --build -d
 ```
 
-La app queda en [localhost:8080](http://localhost:8080). La guía completa (desarrollo sin Docker, variables de entorno, tests y CI) está en [docs/development.md](docs/development.md), y la arquitectura del backend en [docs/architecture.md](docs/architecture.md).
+La aplicación se sirve en [localhost:8080](http://localhost:8080). Para trabajar con Java y Node por separado, configurar proveedores o ejecutar tests, consulta [docs/development.md](docs/development.md).
 
-## 👤 Autor
+## Autor
 
-**Carlos Sanz Tomero**: desarrollador full-stack Java y React.
+**Carlos Sanz Tomero** · Desarrollo full-stack con Java y React.
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-carlos--sanz--tomero-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/carlos-sanz-tomero/)
-[![Portfolio](https://img.shields.io/badge/Portfolio-raclosdev.github.io-181717?style=for-the-badge&logo=github&logoColor=white)](https://raclosdev.github.io)
+[Portfolio](https://raclosdev.github.io/) · [LinkedIn](https://www.linkedin.com/in/carlos-sanz-tomero/) · [GitHub](https://github.com/RaclosDev)
 
 Código publicado bajo [licencia MIT](LICENSE).
