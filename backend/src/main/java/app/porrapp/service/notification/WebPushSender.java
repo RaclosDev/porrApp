@@ -93,6 +93,14 @@ public class WebPushSender {
 
     public Result send(String endpoint, String p256dh, String auth, String payload, int ttlSeconds, Long userId) {
         Instant startedAt = Instant.now();
+        if (isEnabled() && retryQueue != null && payload.getBytes(StandardCharsets.UTF_8).length <= 3993) {
+            var tracked = retryQueue.prepare(endpoint, userId, payload, startedAt, ttlSeconds);
+            if (tracked != null) {
+                Result result = send(endpoint, p256dh, auth, PushRetryQueue.wirePayload(tracked), ttlSeconds);
+                retryQueue.sent(tracked.getId(), result);
+                return result == Result.FAILED ? Result.QUEUED : result;
+            }
+        }
         Result result = send(endpoint, p256dh, auth, payload, ttlSeconds);
         if (result == Result.FAILED && isEnabled() && retryQueue != null
                 && payload.getBytes(StandardCharsets.UTF_8).length <= 3993

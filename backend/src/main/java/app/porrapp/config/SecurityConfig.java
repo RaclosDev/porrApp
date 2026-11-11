@@ -81,6 +81,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/session/**").permitAll()
                 // Errores del navegador, también de visitantes sin sesión; con límite por IP.
                 .requestMatchers(HttpMethod.POST, "/api/client-errors").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/push/receipts").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/info").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ws").permitAll()
                 .requestMatchers("/api/predictions/mine", "/api/groups/mine", "/api/groups/mine/summary").authenticated()

@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "push_delivery_retries")
 @Getter @Setter @NoArgsConstructor
 public class PushDeliveryRetry {
@@ -20,4 +21,9 @@ public class PushDeliveryRetry {
     private Instant expiresAt;
     private Instant nextAttemptAt;
     private int attempts;
+    private java.util.UUID receiptToken;
+    private boolean receiptExpected;
+    private Instant acceptedAt;
+    private Instant receivedAt;
+    private Instant finishedAt;
 }

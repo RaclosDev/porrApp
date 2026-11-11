@@ -37,9 +37,11 @@ public class PushRetryWorker {
     @Scheduled(initialDelay = 60_000, fixedDelay = 60_000)
     @SchedulerLock(name = "pushDeliveryRetries", lockAtMostFor = "PT10M")
     public void retryPending() {
-        if (!sender.isEnabled()) return;
         Instant now = Instant.now();
-        for (var pending : retries.findTop20ByNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(now)) {
+        new TransactionTemplate(transactionManager).executeWithoutResult(
+                status -> retries.deleteExpiredBefore(now.minusSeconds(7 * 86400)));
+        if (!sender.isEnabled()) return;
+        for (var pending : retries.findTop20ByFinishedAtIsNullAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(now)) {
             try {
                 TransactionTemplate transaction = new TransactionTemplate(transactionManager);
                 transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -52,44 +54,66 @@ public class PushRetryWorker {
 
     void retry(Long id, Instant now) {
         var pending = retries.findById(id).orElse(null);
-        if (pending == null) return;
+        if (pending == null || pending.getReceivedAt() != null || pending.getFinishedAt() != null) return;
         var device = subscriptions.findById(pending.getSubscriptionId()).orElse(null);
         if (!pending.getExpiresAt().isAfter(now) || device == null
                 || !device.getUser().getId().equals(pending.getUserId())) {
-            retries.delete(pending);
+            finish(pending, now);
             return;
         }
         PushMessage message = mapper.readValue(pending.getPayload(), PushMessage.class);
         if (!stillWants(device.getUser(), message)) {
-            retries.delete(pending);
+            finish(pending, now);
             return;
         }
         int ttl = (int) Duration.between(now, pending.getExpiresAt()).toSeconds();
-        if (ttl < 1) {
-            retries.delete(pending);
+        boolean tracked = pending.getReceiptToken() != null;
+        if (ttl < 1 || (tracked && pending.getAttempts() >= PushRetryQueue.MAX_TRACKED_ATTEMPTS)) {
+            finish(pending, now);
             return;
         }
-        var result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(), pending.getPayload(), ttl);
+        var result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(), PushRetryQueue.wirePayload(pending), ttl);
+        pending.setAttempts(pending.getAttempts() + 1);
         if (result == WebPushSender.Result.SENT) {
-            if (!logs.existsByUserIdAndTitleAndBodyAndUrlAndSentAtGreaterThanEqual(
+            if (!"push-test".equals(message.tag()) && !logs.existsByUserIdAndTitleAndBodyAndUrlAndSentAtGreaterThanEqual(
                     pending.getUserId(), message.title(), message.body(), message.url(), pending.getCreatedAt().minusSeconds(300))) {
                 notificationLog.record(pending.getUserId(), message, now);
             }
-            retries.delete(pending);
+            if (tracked) {
+                PushRetryQueue.accepted(pending, now);
+                schedule(pending, now);
+            } else {
+                retries.delete(pending);
+            }
         } else if (result == WebPushSender.Result.GONE) {
             retries.delete(pending);
             subscriptions.deleteByEndpointAndUserId(device.getEndpoint(), pending.getUserId());
         } else {
-            pending.setAttempts(pending.getAttempts() + 1);
-            long delay = Math.min(1800, 60L << Math.min(pending.getAttempts(), 5));
-            Instant next = now.plusSeconds(delay);
-            pending.setNextAttemptAt(next.isBefore(pending.getExpiresAt()) ? next : pending.getExpiresAt());
+            schedule(pending, now);
+        }
+    }
+
+    private void finish(app.porrapp.model.PushDeliveryRetry pending, Instant now) {
+        if (pending.getReceiptToken() == null) retries.delete(pending);
+        else {
+            pending.setFinishedAt(now);
             retries.save(pending);
         }
     }
 
+    private void schedule(app.porrapp.model.PushDeliveryRetry pending, Instant now) {
+        if (pending.getReceiptToken() != null && pending.getAttempts() >= PushRetryQueue.MAX_TRACKED_ATTEMPTS) {
+            pending.setFinishedAt(now);
+        }
+        long delay = Math.min(1800, 60L << Math.min(pending.getAttempts(), 5));
+        Instant next = now.plusSeconds(delay);
+        pending.setNextAttemptAt(next.isBefore(pending.getExpiresAt()) ? next : pending.getExpiresAt());
+        retries.save(pending);
+    }
+
     boolean stillWants(UserAccount user, PushMessage message) {
         String tag = message.tag() == null ? "" : message.tag();
+        if (tag.equals("push-test")) return true;
         boolean enabled;
         if (tag.startsWith("member-joined-") || tag.startsWith("league-repeated-") || tag.startsWith("score-day-")) {
             enabled = user.isMemberJoinedAlertsEnabled();

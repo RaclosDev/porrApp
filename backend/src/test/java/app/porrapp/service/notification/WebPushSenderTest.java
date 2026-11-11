@@ -31,6 +31,33 @@ import static org.mockito.ArgumentMatchers.*;
 
 class WebPushSenderTest {
 
+    @ParameterizedTest
+    @ValueSource(ints = {201, 503, 410})
+    void persistsBeforeSendingAndUsesTheSameReceiptTokenForEveryOutcome(int status) throws Exception {
+        HttpClient http = mock(HttpClient.class);
+        when(http.send(any(HttpRequest.class), org.mockito.ArgumentMatchers.<HttpResponse.BodyHandler<Void>>any()))
+                .thenReturn(response(status));
+        PushRetryQueue queue = mock(PushRetryQueue.class);
+        var tracked = new app.porrapp.model.PushDeliveryRetry();
+        tracked.setId(9L);
+        tracked.setPayload("{\"title\":\"Aviso\"}");
+        tracked.setReceiptToken(java.util.UUID.randomUUID());
+        tracked.setExpiresAt(java.time.Instant.now().plusSeconds(300));
+        when(queue.prepare(anyString(), eq(7L), anyString(), any(), eq(300))).thenReturn(tracked);
+        KeyPair vapid = newKey();
+        WebPushSender sender = spy(new WebPushSender(b64(WebPushSender.encodePublicKey((ECPublicKey) vapid.getPublic())),
+                privateScalar(vapid), "https://porrapp.app", queue, http));
+        String browserKey = b64(WebPushSender.encodePublicKey((ECPublicKey) newKey().getPublic()));
+        var result = sender.send("https://web.push.apple.com/test", browserKey, b64(new byte[16]), tracked.getPayload(), 300, 7L);
+        assertThat(result).isEqualTo(status == 201 ? WebPushSender.Result.SENT : status == 410 ? WebPushSender.Result.GONE : WebPushSender.Result.QUEUED);
+        var order = inOrder(queue, http);
+        order.verify(queue).prepare(anyString(), eq(7L), anyString(), any(), eq(300));
+        order.verify(http).send(any(HttpRequest.class), org.mockito.ArgumentMatchers.<HttpResponse.BodyHandler<Void>>any());
+        order.verify(queue).sent(eq(9L), eq(status == 201 ? WebPushSender.Result.SENT : status == 410 ? WebPushSender.Result.GONE : WebPushSender.Result.FAILED));
+        verify(sender).send(anyString(), anyString(), anyString(), contains(tracked.getReceiptToken().toString()), eq(300));
+        verify(queue, never()).enqueue(anyString(), anyLong(), anyString(), any(), anyInt());
+    }
+
     @Test
     void matchesTheIndependentRfc8291AppendixAVector() throws Exception {
         byte[] uaPublic = WebPushSender.b64("BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4");
@@ -59,7 +86,7 @@ class WebPushSenderTest {
         var result = sender.send("https://web.push.apple.com/test", browserKey, b64(new byte[16]), "{}", 300, 7L);
         assertThat(result).isEqualTo(status == 201 ? WebPushSender.Result.SENT
                 : status == 404 || status == 410 ? WebPushSender.Result.GONE : WebPushSender.Result.QUEUED);
-        if (status < 429) verifyNoInteractions(queue);
+        if (status < 429) verify(queue, never()).enqueue(anyString(), anyLong(), anyString(), any(), anyInt());
         else verify(queue).enqueue(eq("https://web.push.apple.com/test"), eq(7L), eq("{}"), any(), eq(300));
     }
 

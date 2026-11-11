@@ -131,9 +131,59 @@ class PushRetryWorkerTest {
         when(sender.isEnabled()).thenReturn(true);
         var second = new PushDeliveryRetry();
         second.setId(2L);
-        when(retries.findTop20ByNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(any())).thenReturn(List.of(pending, second));
+        when(retries.findTop20ByFinishedAtIsNullAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(any())).thenReturn(List.of(pending, second));
         when(retries.findById(1L)).thenThrow(new IllegalStateException("failure"));
         worker.retryPending();
         verify(retries).findById(2L);
+    }
+
+    @Test
+    void acceptedButUnconfirmedDeliveryKeepsTheSameTokenAndStopsAfterThreeAttempts() {
+        pending.setReceiptToken(java.util.UUID.randomUUID());
+        pending.setReceiptExpected(true);
+        pending.setAttempts(1);
+        pending.setAcceptedAt(now.minusSeconds(60));
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt())).thenReturn(WebPushSender.Result.SENT);
+        worker.retry(1L, now);
+        assertThat(pending.getAttempts()).isEqualTo(2);
+        assertThat(pending.getFinishedAt()).isNull();
+        verify(sender).send(eq(device.getEndpoint()), eq("key"), eq("auth"),
+                contains(pending.getReceiptToken().toString()), eq(300));
+        worker.retry(1L, now.plusSeconds(240));
+        assertThat(pending.getAttempts()).isEqualTo(3);
+        assertThat(pending.getFinishedAt()).isNotNull();
+        worker.retry(1L, now.plusSeconds(250));
+        verify(sender, times(2)).send(anyString(), anyString(), anyString(), anyString(), anyInt());
+        verify(retries, never()).delete(any());
+    }
+
+    @Test
+    void confirmedNotificationsNeverResendEvenIfAlreadySelectedByTheScheduler() {
+        pending.setReceivedAt(now);
+        worker.retry(1L, now);
+        verifyNoInteractions(sender);
+    }
+
+    @Test
+    void olderWorkersStopAtProviderAcceptanceAndTrackedFailuresAreBounded() {
+        pending.setReceiptToken(java.util.UUID.randomUUID());
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt())).thenReturn(WebPushSender.Result.SENT);
+        worker.retry(1L, now);
+        assertThat(pending.getAcceptedAt()).isEqualTo(now);
+        assertThat(pending.getFinishedAt()).isEqualTo(now);
+        pending.setFinishedAt(null);
+        pending.setAttempts(3);
+        clearInvocations(sender);
+        worker.retry(1L, now);
+        verifyNoInteractions(sender);
+    }
+
+    @Test
+    void expiredTrackedDeliveryIsKeptForDiagnosisAndNeverResent() {
+        pending.setReceiptToken(java.util.UUID.randomUUID());
+        worker.retry(1L, now.plusSeconds(301));
+        assertThat(pending.getFinishedAt()).isNotNull();
+        verify(retries, never()).delete(any());
+        verifyNoInteractions(sender);
     }
 }

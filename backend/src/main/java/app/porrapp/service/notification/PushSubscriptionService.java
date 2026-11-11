@@ -55,6 +55,7 @@ public class PushSubscriptionService {
             if (!sameBrowser && !subscription.getUser().getId().equals(user.getId())) {
                 throw BusinessException.conflict("Este dispositivo ya está suscrito con otra cuenta.");
             }
+            if (!sameBrowser || !subscription.getUser().getId().equals(user.getId())) subscription.setReceiptsEnabled(false);
             subscription.setUser(user);
             subscription.setP256dh(p256dh);
             subscription.setAuth(auth);
@@ -91,7 +92,7 @@ public class PushSubscriptionService {
                 {"title":"Prueba de notificaciones","body":"Este dispositivo puede recibir los avisos de porrApp.",
                  "url":"/","tag":"push-test"}
                 """;
-        WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(), payload, 60);
+        WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(), payload, 60, user.getId());
         if (result == WebPushSender.Result.GONE) {
             subscriptionRepository.deleteByEndpointAndUserId(device.getEndpoint(), user.getId());
             throw new BusinessException(org.springframework.http.HttpStatus.GONE,

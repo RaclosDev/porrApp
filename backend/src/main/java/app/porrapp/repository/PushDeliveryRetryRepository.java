@@ -9,7 +9,13 @@ import java.time.Instant;
 import java.util.List;
 
 public interface PushDeliveryRetryRepository extends JpaRepository<PushDeliveryRetry, Long> {
-    List<PushDeliveryRetry> findTop20ByNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(Instant now);
+    List<PushDeliveryRetry> findTop20ByFinishedAtIsNullAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(Instant now);
+
+    java.util.Optional<PushDeliveryRetry> findByReceiptToken(java.util.UUID token);
+
+    @Modifying
+    @Query("delete from PushDeliveryRetry p where p.expiresAt < :before")
+    int deleteExpiredBefore(Instant before);
 
     @Modifying
     @Query(value = """

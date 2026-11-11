@@ -62,7 +62,7 @@ class PushSubscriptionServiceTest {
         when(subscriptions.findByEndpoint(ENDPOINT)).thenReturn(Optional.of(stored(ana, P256DH, AUTH)));
         when(sender.send(org.mockito.ArgumentMatchers.eq(ENDPOINT), org.mockito.ArgumentMatchers.eq(P256DH),
                 org.mockito.ArgumentMatchers.eq(AUTH), org.mockito.ArgumentMatchers.contains("Prueba de notificaciones"),
-                org.mockito.ArgumentMatchers.eq(60))).thenReturn(WebPushSender.Result.SENT);
+                org.mockito.ArgumentMatchers.eq(60), org.mockito.ArgumentMatchers.eq(ana.getId()))).thenReturn(WebPushSender.Result.SENT);
         service.testNotification("ana@test.com", ENDPOINT);
         verify(users, never()).save(any());
         verify(subscriptions, never()).deleteByEndpointAndUserId(any(), any());
@@ -71,7 +71,7 @@ class PushSubscriptionServiceTest {
     @Test
     void testNotificationRemovesOnlyAnExpiredDeviceAndReportsFailure() {
         when(subscriptions.findByEndpoint(ENDPOINT)).thenReturn(Optional.of(stored(ana, P256DH, AUTH)));
-        when(sender.send(any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt())).thenReturn(WebPushSender.Result.GONE);
+        when(sender.send(any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt(), any())).thenReturn(WebPushSender.Result.GONE);
         assertThatThrownBy(() -> service.testNotification("ana@test.com", ENDPOINT))
                 .isInstanceOf(BusinessException.class).hasMessageContaining("caducado");
         verify(subscriptions).deleteByEndpointAndUserId(ENDPOINT, ana.getId());
@@ -80,7 +80,7 @@ class PushSubscriptionServiceTest {
     @Test
     void failedTestNeverClaimsAcceptance() {
         when(subscriptions.findByEndpoint(ENDPOINT)).thenReturn(Optional.of(stored(ana, P256DH, AUTH)));
-        when(sender.send(any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt())).thenReturn(WebPushSender.Result.FAILED);
+        when(sender.send(any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt(), any())).thenReturn(WebPushSender.Result.FAILED);
         assertThatThrownBy(() -> service.testNotification("ana@test.com", ENDPOINT))
                 .isInstanceOf(BusinessException.class).hasMessageContaining("no ha aceptado");
         verify(subscriptions, never()).deleteByEndpointAndUserId(any(), any());
