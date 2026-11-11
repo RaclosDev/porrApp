@@ -179,6 +179,13 @@ export const endTrackerSession = (id: number, sessionId: number) =>
     fallbackError: 'No se pudo terminar la partida',
   });
 
+export const setTrackerSessionPlayers = (id: number, sessionId: number, playerIds: number[]) =>
+  request<Tracker>(`/trackers/${id}/sessions/${sessionId}/players`, {
+    method: 'PUT',
+    json: { playerIds },
+    fallbackError: 'No se pudieron cambiar los jugadores',
+  });
+
 export const reopenTrackerSession = (id: number, sessionId: number) =>
   request<Tracker>(`/trackers/${id}/sessions/${sessionId}/reopen`, {
     method: 'POST',

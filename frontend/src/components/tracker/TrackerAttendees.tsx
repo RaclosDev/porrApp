@@ -6,6 +6,7 @@ interface Props {
   label: string;
   players: TrackerPlayer[];
   selected: number[];
+  locked?: number[];
   busy: boolean;
   onToggle: (playerId: number) => void;
   onAddPlayer: (name: string) => Promise<boolean>;
@@ -16,6 +17,7 @@ export default function TrackerAttendees({
   label,
   players,
   selected,
+  locked = [],
   busy,
   onToggle,
   onAddPlayer,
@@ -34,7 +36,7 @@ export default function TrackerAttendees({
                 type="button"
                 className={`tracker-chip${on ? ' is-on' : ''}`}
                 aria-pressed={on}
-                disabled={busy}
+                disabled={busy || locked.includes(player.id)}
                 onClick={() => onToggle(player.id)}
               >
                 <span aria-hidden="true">{on ? '✓' : '+'}</span> {player.name}
