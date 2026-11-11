@@ -23,6 +23,7 @@ import { dropFromMyGroups, forgetLeague } from '../context/leagueFallback';
 import { confirmAction } from '../utils/confirmAction';
 import { isMatchBasedFormat } from '../utils/poolFormat';
 import { copyWithToast, joinLink, shareJoinLinkOnWhatsApp } from '../utils/leagueInvite';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 
 type GroupId = number | string;
 
@@ -125,6 +126,7 @@ export function useGroupsDashboard() {
     setError('');
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.trackers() }),
       queryClient.invalidateQueries({ queryKey: queryKeys.group() }),
     ]);
   }, [queryClient]);
@@ -238,6 +240,7 @@ export function useGroupsDashboard() {
       // El alta afecta a la tarjeta, al listado de miembros y al ranking de esta liga.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.trackers() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) }),
@@ -256,7 +259,7 @@ export function useGroupsDashboard() {
   const handleEnterGroup = (groupId: GroupId) => {
     changeGroup(groupId.toString());
     const g = groups.find((item) => item.id.toString() === groupId.toString());
-    if (g && isMatchBasedFormat(g.poolFormat)) {
+    if (g && !isScoreboardLeague(g) && isMatchBasedFormat(g.poolFormat)) {
       navigate('/jornadas');
     } else {
       navigate('/');
@@ -331,6 +334,7 @@ export function useGroupsDashboard() {
     handleShareWhatsApp,
     userName,
     userId,
+    isAuthenticated,
     activeGroupId,
     navigate,
   };

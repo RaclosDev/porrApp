@@ -12,6 +12,7 @@ import FixtureCard from '../components/matchday/FixtureCard';
 import FightCard from '../components/matchday/FightCard';
 import SurvivorStatusBar from '../components/matchday/SurvivorStatusBar';
 import ScorerPickCard from '../components/matchday/ScorerPickCard';
+import GrandPrixPage from '../components/grandPrix/GrandPrixPage';
 import { useMatchdayPredictor } from '../hooks/useMatchdayPredictor';
 import { useMatchVoters } from '../hooks/useMatchVoters';
 import { useRequestedGroup } from '../hooks/useRequestedGroup';
@@ -43,6 +44,8 @@ function MatchdayPredictor() {
     error: <LeagueLoadState error={context.groupError} />,
     none: <NoLeagueState title="Mi porra" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
+    // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
+    scoreboard: <Navigate to="/" replace />,
     matchday: league,
     fightCard: league,
     tennisDraw: league,
@@ -50,8 +53,8 @@ function MatchdayPredictor() {
     customBracket: <Navigate to="/prediction" replace />,
     ownBracket: <Navigate to="/prediction" replace />,
     knockoutDraw: <Navigate to="/prediction" replace />,
-    // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
-    grandPrix: <Navigate to="/" replace />,
+    // Carreras: la predicción de cada Gran Premio (podio, pole y vuelta rápida).
+    grandPrix: <GrandPrixPage />,
   };
   return views[context.leagueKind];
 }

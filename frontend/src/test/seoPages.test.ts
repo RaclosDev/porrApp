@@ -30,7 +30,14 @@ describe('seo pages', () => {
     const known = new Set([...INDEXABLE_PATHS, ...APP_PATHS]);
     const routes = [...appSource.matchAll(/path="([^"]+)"/g)]
       .map(([, path]) => path)
-      .filter((path) => path !== '*' && !path.startsWith('/join/'));
+      .filter(
+        (path) =>
+          path !== '*' &&
+          !path.startsWith('/join/') &&
+          // Redirecciones de enlaces antiguos de los marcadores.
+          !path.startsWith('/marcador/:') &&
+          !path.startsWith('/marcador/unirse/'),
+      );
     expect(routes.filter((path) => !known.has(path))).toEqual([]);
   });
 

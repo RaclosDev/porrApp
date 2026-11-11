@@ -224,6 +224,24 @@ public class WebSocketService {
         }
     }
 
+    /**
+     * Ha cambiado un marcador de juegos: se avisa al momento, solo a las sesiones identificadas de
+     * quienes lo ven, para que recarguen su clasificación.
+     */
+    public void notifyTrackerChanged(Long trackerId, Set<Long> userIds) {
+        if (trackerId == null || userIds == null || userIds.isEmpty()) return;
+        try {
+            TextMessage message = new TextMessage(
+                    objectMapper.writeValueAsString(Map.of("type", "TRACKER_UPDATED", "trackerId", trackerId)));
+            for (Map.Entry<String, WebSocketSession> entry : List.copyOf(sessions.entrySet())) {
+                Long userId = sessionUsers.get(entry.getKey());
+                if (userId != null && userIds.contains(userId)) send(entry.getValue(), message);
+            }
+        } catch (Exception e) {
+            log.warn("Error enviando el aviso del marcador {} por WebSocket: {}", trackerId, e.getMessage());
+        }
+    }
+
     @PreDestroy
     void shutdown() {
         noticeExecutor.shutdownNow();

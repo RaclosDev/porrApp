@@ -4,10 +4,22 @@ import ActiveLeagueDropdown from '../../components/ActiveLeagueDropdown';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useUnsavedChangesStore } from '../../utils/unsavedChanges';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 
 const mockChangeGroup = vi.fn();
 const mockNavigate = vi.fn();
-const mockState = vi.hoisted(() => ({ userGroupsLoaded: true }));
+const MUS = { id: 3, name: 'Mus de los jueves', poolFormat: 'MATCH_DAY', kind: 'SCOREBOARD' };
+const mockState = vi.hoisted(() => ({
+  userGroupsLoaded: true,
+  extraGroups: [] as Record<string, unknown>[],
+}));
+
+const Providers = ({ children }: { children: ReactNode }) => (
+  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <MemoryRouter>{children}</MemoryRouter>
+  </QueryClientProvider>
+);
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -36,6 +48,7 @@ vi.mock('../../context/AppContext', () => ({
         competitionName: 'FIFA World Cup 2026',
         poolFormat: 'TOURNAMENT',
       },
+      ...mockState.extraGroups,
     ],
     changeGroup: mockChangeGroup,
     isAuthenticated: true,
@@ -47,15 +60,33 @@ describe('ActiveLeagueDropdown Component', () => {
   beforeEach(() => {
     mockChangeGroup.mockClear();
     mockNavigate.mockClear();
+    mockState.extraGroups = [];
     useUnsavedChangesStore.setState({ pending: new Map() });
+  });
+
+  it('una liga de juegos de mesa se elige como cualquier otra', async () => {
+    mockState.extraGroups = [MUS];
+    render(
+      <Providers>
+        <ActiveLeagueDropdown />
+      </Providers>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Peña Madridista/i }));
+    expect(await screen.findByText('3 ligas')).toBeInTheDocument();
+    expect(screen.getByText('Juego de mesa')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Mus de los jueves/ }));
+
+    await waitFor(() => expect(mockChangeGroup).toHaveBeenCalledWith('3'));
+    expect(mockNavigate).toHaveBeenCalledWith('/');
   });
 
   it('reserva el hueco mientras llegan las ligas en vez de enseñar «Crear o unirse»', () => {
     mockState.userGroupsLoaded = false;
     const { container } = render(
-      <MemoryRouter>
+      <Providers>
         <ActiveLeagueDropdown />
-      </MemoryRouter>,
+      </Providers>,
     );
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
@@ -66,9 +97,9 @@ describe('ActiveLeagueDropdown Component', () => {
 
   it('Despliega el menú al pulsar y ejecuta changeGroup con navegación al inicio y accesibilidad Escape', () => {
     render(
-      <MemoryRouter>
+      <Providers>
         <ActiveLeagueDropdown />
-      </MemoryRouter>,
+      </Providers>,
     );
 
     const button = screen.getByRole('button', { name: /Peña Madridista/i });
@@ -93,9 +124,9 @@ describe('ActiveLeagueDropdown Component', () => {
 
   it('separa crear liga de unirse con código', () => {
     render(
-      <MemoryRouter>
+      <Providers>
         <ActiveLeagueDropdown />
-      </MemoryRouter>,
+      </Providers>,
     );
     const toggle = screen.getByRole('button', { name: /Peña Madridista/i });
 
@@ -111,10 +142,10 @@ describe('ActiveLeagueDropdown Component', () => {
   describe('con cambios de predicción sin guardar', () => {
     const openMenuAndPickOtherLeague = () => {
       render(
-        <MemoryRouter>
+        <Providers>
           <ConfirmDialog />
           <ActiveLeagueDropdown />
-        </MemoryRouter>,
+        </Providers>,
       );
       useUnsavedChangesStore.setState({
         pending: new Map([[Symbol('unsaved'), 'Tu predicción tiene cambios sin guardar.']]),

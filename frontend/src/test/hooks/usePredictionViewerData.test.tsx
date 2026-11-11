@@ -182,7 +182,7 @@ describe('usePredictionViewerData: cuadro oficial y fase', () => {
 
     await act(async () => deliverOfficial({ sf: [['España', 'Italia']] }));
 
-    expect(result.current.loading).toBe(false);
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.initialSection).toBe('knockout');
   });
 

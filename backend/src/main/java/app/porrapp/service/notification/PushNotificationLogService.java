@@ -17,8 +17,8 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Historial de avisos push entregados, para que el usuario vea en la app los últimos que recibió.
- * Solo se guarda lo que ya se le mostró en el aviso y se borra pasados {@link #RETENTION}.
+ * Historial de avisos aceptados por el proveedor push. No confirma que el sistema del móvil los mostrara.
+ * Solo guarda el contenido del aviso y lo borra pasados {@link #RETENTION}.
  */
 @Slf4j
 @Service

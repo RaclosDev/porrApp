@@ -355,6 +355,8 @@ export interface LeagueCompetition {
 export interface Group {
   id: number;
   name: string;
+  /** Clase de liga: porra de predicciones o marcador de juegos de mesa. Sin dato, una porra. */
+  kind?: 'POOL' | 'SCOREBOARD';
   joinCode: string | null;
   /** Liga pública: cualquiera puede consultarla sin ser miembro. */
   publicLeague?: boolean;
@@ -564,6 +566,8 @@ export interface RaceDriver {
   /** Hexadecimal sin almohadilla. */
   teamColor: string | null;
   number: string | null;
+  /** Foto en el CDN de ESPN; puede dar 404 con un piloto nuevo. */
+  headshotUrl?: string | null;
 }
 
 type GrandPrixStatus = 'SCHEDULED' | 'LIVE' | 'FINISHED' | 'CANCELLED' | 'POSTPONED';
@@ -608,6 +612,7 @@ export interface FormulaOneStandings {
     /** Hexadecimal sin almohadilla. */
     teamColor: string | null;
     points: number;
+    headshotUrl?: string | null;
   }[];
   constructors: { rank: number; name: string; color: string | null; points: number }[];
 }

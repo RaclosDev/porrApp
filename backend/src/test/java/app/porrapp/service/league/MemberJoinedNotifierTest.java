@@ -65,7 +65,7 @@ class MemberJoinedNotifierTest {
                     .filter(d -> ids.contains(d.getUser().getId()))
                     .toList();
         });
-        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.SENT);
     }
 
@@ -73,9 +73,9 @@ class MemberJoinedNotifierTest {
     void notifiesTheOtherMembersButNotTheNewcomer() {
         assertThat(notifier.notifyMembers(joined)).isEqualTo(2);
 
-        verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt());
-        verify(sender).send(eq("https://push.test/l"), anyString(), anyString(), anyString(), anyInt());
-        verify(sender, never()).send(eq("https://push.test/n"), anyString(), anyString(), anyString(), anyInt());
+        verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
+        verify(sender).send(eq("https://push.test/l"), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
+        verify(sender, never()).send(eq("https://push.test/n"), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
         verify(notificationLog).record(eq(1L), argThat(m -> m.body().startsWith("Pepe se ha unido a Los del barrio")), any());
         verify(notificationLog).record(eq(2L), any(), any());
         verify(notificationLog, never()).record(eq(4L), any(), any());
@@ -85,8 +85,8 @@ class MemberJoinedNotifierTest {
     void aRepeatedLeagueIsAnnouncedToItsMembersButNotToWhoRepeatedIt() {
         assertThat(notifier.notifyRepeated(new LeagueRepeatedEvent(5L, 1L, "2026/27"))).isEqualTo(2);
 
-        verify(sender, never()).send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt());
-        verify(sender, never()).send(eq("https://push.test/m"), anyString(), anyString(), anyString(), anyInt());
+        verify(sender, never()).send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
+        verify(sender, never()).send(eq("https://push.test/m"), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
         verify(notificationLog).record(eq(2L), argThat(m -> m.title().equals("Nueva temporada de tu liga")
                 && m.body().equals("Los del barrio sigue en la temporada 2026/27. Ya puedes hacer tus predicciones.")
                 && m.url().equals("/?group=5")), any());
@@ -103,7 +103,7 @@ class MemberJoinedNotifierTest {
 
     @Test
     void aRepeatedLeaguePushFailureIsSwallowed() {
-        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenThrow(new IllegalStateException("push caído"));
 
         assertThatCode(() -> notifier.onLeagueRepeated(new LeagueRepeatedEvent(5L, 1L, "2026")))
@@ -114,7 +114,7 @@ class MemberJoinedNotifierTest {
     void respectsTheMemberJoinedPreference() {
         notifier.notifyMembers(joined);
 
-        verify(sender, never()).send(eq("https://push.test/m"), anyString(), anyString(), anyString(), anyInt());
+        verify(sender, never()).send(eq("https://push.test/m"), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test
@@ -124,7 +124,7 @@ class MemberJoinedNotifierTest {
         when(leagues.findById(50L)).thenReturn(Optional.of(global));
 
         assertThat(notifier.notifyMembers(new MemberJoinedLeagueEvent(50L, 4L))).isZero();
-        verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt());
+        verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test
@@ -132,12 +132,12 @@ class MemberJoinedNotifierTest {
         when(sender.isEnabled()).thenReturn(false);
 
         assertThat(notifier.notifyMembers(joined)).isZero();
-        verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt());
+        verify(sender, never()).send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test
     void forgetsDevicesThatNoLongerExist() {
-        when(sender.send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(eq("https://push.test/a"), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.GONE);
 
         assertThat(notifier.notifyMembers(joined)).isEqualTo(1);
@@ -146,7 +146,7 @@ class MemberJoinedNotifierTest {
 
     @Test
     void aPushFailureIsSwallowed() {
-        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenThrow(new IllegalStateException("push caído"));
 
         assertThatCode(() -> notifier.onMemberJoined(joined)).doesNotThrowAnyException();
@@ -157,7 +157,7 @@ class MemberJoinedNotifierTest {
         notifier.notifyMembers(joined);
 
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-        verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), payload.capture(), anyInt());
+        verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), payload.capture(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
         @SuppressWarnings("unchecked")
         Map<String, Object> message = json.readValue(payload.getValue(), Map.class);
         assertThat(message).containsEntry("title", "Nuevo miembro en tu liga")
@@ -178,5 +178,14 @@ class MemberJoinedNotifierTest {
 
     private static PushSubscription device(UserAccount user, String key) {
         return PushSubscription.builder().user(user).endpoint("https://push.test/" + key).p256dh("p").auth("x").build();
+    }
+
+    @Test
+    void aStartedGameDayNotifiesTheOtherMembersWithAlertsOn() {
+        assertThat(notifier.notifyDayStarted(new ScoreDayStartedEvent(5L, 4L))).isEqualTo(2);
+
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(sender, org.mockito.Mockito.times(2)).send(anyString(), anyString(), anyString(), payload.capture(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
+        assertThat(payload.getValue()).contains("Ha empezado un día de juego").contains("Pepe").contains("Los del barrio");
     }
 }

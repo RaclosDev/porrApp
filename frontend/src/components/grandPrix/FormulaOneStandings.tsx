@@ -5,6 +5,7 @@ import { useAppContext } from '../../context/AppContext';
 import { fetchFormulaOneStandings } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import PaperLoading from '../PaperLoading';
+import { DriverFace, TeamCrest } from './DriverFace';
 
 type Table = 'drivers' | 'constructors';
 
@@ -106,6 +107,12 @@ export default function FormulaOneStandings() {
                     <th scope="row">{driver.rank}</th>
                     <td style={stripe(driver.teamColor)}>
                       <span className="gp-standings-name">
+                        <DriverFace
+                          name={driver.name}
+                          url={driver.headshotUrl}
+                          color={driver.teamColor}
+                          size={34}
+                        />
                         {driver.flagUrl && (
                           <img src={driver.flagUrl} alt="" width={18} height={12} loading="lazy" />
                         )}
@@ -125,7 +132,23 @@ export default function FormulaOneStandings() {
                   <tr key={`${team.rank}-${team.name}`}>
                     <th scope="row">{team.rank}</th>
                     <td style={stripe(team.color)}>
-                      <strong>{team.name}</strong>
+                      <span className="gp-standings-name">
+                        <TeamCrest name={team.name} color={team.color} size={32} />
+                        <strong>{team.name}</strong>
+                        <span className="gp-face-stack">
+                          {drivers
+                            .filter((driver) => driver.team === team.name)
+                            .map((driver) => (
+                              <DriverFace
+                                key={driver.name}
+                                name={driver.name}
+                                url={driver.headshotUrl}
+                                color={team.color}
+                                size={28}
+                              />
+                            ))}
+                        </span>
+                      </span>
                     </td>
                     <td className="gp-num">
                       <strong>{team.points}</strong>

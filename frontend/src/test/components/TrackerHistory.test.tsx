@@ -1,0 +1,433 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import TrackerHistory from '../../components/tracker/TrackerHistory';
+import TrackerOverall from '../../components/tracker/TrackerOverall';
+import TrackerManage from '../../components/tracker/TrackerManage';
+import TrackerProfile from '../../components/tracker/TrackerProfile';
+import { playerProfile } from '../../components/tracker/playerProfile';
+import { dayCard, sessionCard, shareResult } from '../../components/tracker/shareResult';
+import { confirmAction } from '../../utils/confirmAction';
+vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
+vi.mock('../../components/tracker/shareResult', async (original) => ({
+  ...(await original<typeof import('../../components/tracker/shareResult')>()),
+  shareResult: vi.fn(),
+}));
+
+import type { Tracker, TrackerSession, TrackerStanding } from '../../services/endpoints/trackers';
+
+const row = (
+  playerId: number,
+  name: string,
+  total: number,
+  rank: number,
+  sessionsWon = 0,
+): TrackerStanding => ({ playerId, name, total, rank, roundsWon: 0, sessionsWon });
+
+const ended = (overrides: Partial<TrackerSession>): TrackerSession => ({
+  id: 1,
+  number: 1,
+  gameId: 3,
+  startedAt: '2026-11-05T18:00:00Z',
+  rounds: 1,
+  standings: [row(11, 'Ana', 9, 1), row(12, 'Berto', 4, 2)],
+  winners: [11],
+  dayId: 1,
+  playerIds: [11, 12],
+  endedAt: '2026-11-05T19:00:00Z',
+  plannedRounds: null,
+  ...overrides,
+});
+
+const tracker: Tracker = {
+  id: 9,
+  name: 'Jueves',
+  unit: 'puntos',
+  lowerWins: false,
+  owner: true,
+  joinCode: 'ABCDEFGH',
+  myPlayerId: 11,
+  claimedPlayerIds: [11],
+  currentSessionId: null,
+  players: [
+    { id: 11, name: 'Ana' },
+    { id: 12, name: 'Berto' },
+    { id: 13, name: 'Carla' },
+  ],
+  games: [
+    {
+      id: 3,
+      name: 'Catán',
+      unit: 'puntos',
+      lowerWins: false,
+      sessions: 2,
+      rounds: 3,
+      mode: 'POINTS',
+    },
+    {
+      id: 4,
+      name: 'Mus',
+      unit: 'victorias',
+      lowerWins: false,
+      sessions: 1,
+      rounds: 2,
+      mode: 'WINS',
+    },
+    {
+      id: 5,
+      name: 'Dixit',
+      unit: 'puntos',
+      lowerWins: false,
+      sessions: 0,
+      rounds: 0,
+      mode: 'POINTS',
+    },
+  ],
+  days: [
+    {
+      id: 1,
+      startedAt: '2026-11-05T18:00:00Z',
+      closedAt: '2026-11-05T23:00:00Z',
+      playerIds: [11, 12],
+      sessionIds: [1],
+    },
+    {
+      id: 2,
+      startedAt: '2026-11-12T18:00:00Z',
+      closedAt: null,
+      playerIds: [11, 12, 13],
+      sessionIds: [2, 3],
+    },
+  ],
+  sessions: [
+    ended({}),
+    ended({
+      id: 2,
+      number: 2,
+      dayId: 2,
+      startedAt: '2026-11-12T18:00:00Z',
+      playerIds: [11, 12, 13],
+      standings: [row(12, 'Berto', 8, 1), row(11, 'Ana', 8, 1), row(13, 'Carla', 1, 3)],
+      winners: [12, 11],
+    }),
+    ended({ id: 3, number: 3, gameId: 4, dayId: 2, endedAt: null, winners: [] }),
+  ],
+  rounds: [
+    {
+      id: 40,
+      sessionId: 1,
+      number: 1,
+      note: null,
+      createdAt: '2026-11-05T18:10:00Z',
+      scores: { 11: 9, 12: 4 },
+      recordedBy: 'Ana',
+      revision: 0,
+    },
+  ],
+  overall: [row(11, 'Ana', 17, 1, 2), row(12, 'Berto', 12, 2, 1)],
+  byGame: [
+    { gameId: 3, standings: [row(11, 'Ana', 17, 1, 2), row(12, 'Berto', 12, 2, 1)] },
+    { gameId: 4, standings: [row(11, 'Ana', 0, 1), row(12, 'Berto', 0, 1)] },
+  ],
+};
+
+describe('TrackerHistory', () => {
+  it('lista los días del más reciente al más antiguo, con quién vino y quién ganó', () => {
+    render(<TrackerHistory tracker={tracker} />);
+
+    const days = screen.getAllByRole('heading', { level: 3 });
+    expect(days[0]).toHaveTextContent(/12 de noviembre/);
+    expect(days[1]).toHaveTextContent(/5 de noviembre/);
+    expect(screen.getByText('Vinieron Ana, Berto, Carla')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Catán · partida 2/ })).toHaveTextContent(
+      'Ganan Berto y Ana',
+    );
+    expect(screen.getByRole('button', { name: /Mus · partida 3/ })).toHaveTextContent('En juego');
+  });
+
+  it('abre la hoja de una partida antigua sin poder tocarla', () => {
+    render(<TrackerHistory tracker={tracker} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Catán · partida 1/ }));
+
+    const table = screen.getByRole('table', { name: 'Hoja de la partida 1 de Catán' });
+    expect(within(table).getAllByRole('row')[2]).toHaveTextContent('194');
+    expect(screen.queryByRole('button', { name: /Corregir/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Ana')).not.toBeInTheDocument();
+    expect(screen.getByText('Gana Ana')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Volver al histórico' }));
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(2);
+  });
+
+  it('permite al administrador corregir una ronda de un día cerrado', async () => {
+    const onEditRound = vi.fn().mockResolvedValue(true);
+    render(<TrackerHistory tracker={tracker} onEditRound={onEditRound} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Catán · partida 1/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Corregir la ronda 1' }));
+    fireEvent.change(screen.getByLabelText('Ana'), { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar la ronda' }));
+
+    await waitFor(() =>
+      expect(onEditRound).toHaveBeenCalledWith(40, {
+        scores: { 11: 10, 12: 4 },
+        sessionId: 1,
+        expectedRevision: 0,
+      }),
+    );
+    expect(screen.queryByRole('button', { name: 'Borrar la ronda' })).not.toBeInTheDocument();
+  });
+
+  it('sin partidas avisa de lo que saldrá', () => {
+    render(
+      <MemoryRouter>
+        <TrackerHistory tracker={{ ...tracker, days: [], sessions: [] }} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Aquí quedarán los días de juego/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Empezar día de juego' })).toHaveAttribute(
+      'href',
+      '/partida',
+    );
+  });
+});
+
+describe('TrackerOverall', () => {
+  it('ofrece volver a la partida cuando aún no hay resultados', () => {
+    render(
+      <MemoryRouter>
+        <TrackerOverall tracker={{ ...tracker, rounds: [], currentDayId: 2 }} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Ir a la partida' })).toHaveAttribute(
+      'href',
+      '/partida',
+    );
+  });
+
+  it('filtra la clasificación por juego y dice quién lo gana más', () => {
+    render(<TrackerOverall tracker={tracker} />);
+
+    // Dixit no se ha jugado: no sale en el filtro.
+    expect(screen.queryByRole('button', { name: 'Dixit' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Todos los juegos' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Catán' }));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Catán: 2 partidas y 2 rondas. Quien más lo gana: Ana (2).',
+    );
+    expect(screen.getByRole('table', { name: 'Clasificación de Catán' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mus' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Todavía nadie ha ganado una partida.');
+    expect(screen.getByRole('columnheader', { name: 'victorias' })).toBeInTheDocument();
+  });
+});
+
+describe('Ranking por temporada', () => {
+  const twoYears: Tracker = {
+    ...tracker,
+    sessions: [
+      ...tracker.sessions,
+      ended({
+        id: 4,
+        number: 4,
+        dayId: null,
+        startedAt: '2025-12-30T18:00:00Z',
+        endedAt: '2025-12-30T20:00:00Z',
+        standings: [row(13, 'Carla', 10, 1), row(12, 'Berto', 2, 2)],
+        playerIds: [13, 12],
+        winners: [13],
+      }),
+    ],
+  };
+
+  it('sin varios años no enseña el filtro', () => {
+    render(<TrackerOverall tracker={tracker} />);
+    expect(screen.queryByRole('group', { name: 'Temporada' })).not.toBeInTheDocument();
+  });
+
+  it('cuenta solo las partidas del año elegido', () => {
+    render(<TrackerOverall tracker={twoYears} />);
+
+    const seasons = screen.getByRole('group', { name: 'Temporada' });
+    expect(
+      within(seasons)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Siempre', '2026', '2025']);
+
+    fireEvent.click(within(seasons).getByRole('button', { name: '2025' }));
+    const table = screen.getByRole('table', { name: 'Clasificación general en 2025' });
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows.map((item) => item.querySelector('th')?.textContent)).toEqual(['Carla', 'Berto']);
+
+    // En 2026 Ana gana dos (una empatada con Berto) y Berto una.
+    fireEvent.click(within(seasons).getByRole('button', { name: '2026' }));
+    const current = screen.getByRole('table', { name: 'Clasificación general en 2026' });
+    expect(within(current).getAllByRole('row')[1]).toHaveTextContent(/1Ana.*2$/);
+  });
+});
+
+describe('Gestión de días, jugadores y juegos', () => {
+  it('el administrador cambia la fecha de un día cerrado y lo borra; el abierto no se toca', async () => {
+    vi.mocked(confirmAction).mockResolvedValue(true);
+    const onMoveDay = vi.fn().mockResolvedValue(true);
+    const onDeleteDay = vi.fn().mockResolvedValue(true);
+    render(<TrackerHistory tracker={tracker} onMoveDay={onMoveDay} onDeleteDay={onDeleteDay} />);
+
+    expect(screen.getAllByRole('button', { name: 'Cambiar fecha' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar fecha' }));
+    fireEvent.change(screen.getByLabelText('Se jugó el'), { target: { value: '2026-11-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(onMoveDay).toHaveBeenCalledWith(1, '2026-11-01'));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Borrar día' }));
+    await waitFor(() => expect(onDeleteDay).toHaveBeenCalledWith(1));
+  });
+
+  it('quien no administra no ve las acciones de los días', () => {
+    render(
+      <TrackerHistory
+        tracker={{ ...tracker, owner: false }}
+        onMoveDay={vi.fn()}
+        onDeleteDay={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Cambiar fecha' })).not.toBeInTheDocument();
+  });
+
+  const managed: Tracker = {
+    ...tracker,
+    players: [...tracker.players, { id: 14, name: 'Dani' }],
+  };
+  const handlers = () => ({
+    onRenamePlayer: vi.fn().mockResolvedValue(true),
+    onDeletePlayer: vi.fn().mockResolvedValue(true),
+    onMergePlayer: vi.fn().mockResolvedValue(true),
+    onEditGame: vi.fn().mockResolvedValue(true),
+    onDeleteGame: vi.fn().mockResolvedValue(true),
+  });
+
+  it('renombra, junta y quita solo a quien no ha jugado ni tiene cuenta', async () => {
+    vi.mocked(confirmAction).mockResolvedValue(true);
+    const on = handlers();
+    render(<TrackerManage tracker={managed} busy={false} {...on} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar a Carla' }));
+    expect(screen.queryByRole('button', { name: 'Quitar a Carla' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Nombre de Carla'), { target: { value: 'Carlota' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(on.onRenamePlayer).toHaveBeenCalledWith(13, 'Carlota'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar a Dani' }));
+    fireEvent.change(screen.getByLabelText('Juntar a Dani con'), { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Juntar' }));
+    await waitFor(() => expect(on.onMergePlayer).toHaveBeenCalledWith(14, 12));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar a Dani' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar a Dani' }));
+    await waitFor(() => expect(on.onDeletePlayer).toHaveBeenCalledWith(14));
+  });
+
+  it('edita un juego y solo deja borrar el que no tiene rondas', async () => {
+    vi.mocked(confirmAction).mockResolvedValue(true);
+    const on = handlers();
+    render(<TrackerManage tracker={managed} busy={false} {...on} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Catán' }));
+    expect(screen.queryByRole('button', { name: 'Borrar Catán' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Qué se cuenta'), {
+      target: { value: 'puntos de victoria' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() =>
+      expect(on.onEditGame).toHaveBeenCalledWith(3, { name: 'Catán', unit: 'puntos de victoria' }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Dixit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar Dixit' }));
+    await waitFor(() => expect(on.onDeleteGame).toHaveBeenCalledWith(5));
+  });
+
+  it('un miembro solo puede cambiar su propio nombre y no ve los juegos', () => {
+    render(<TrackerManage tracker={{ ...managed, owner: false }} busy={false} {...handlers()} />);
+
+    expect(screen.getByRole('button', { name: 'Editar a Ana' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Editar a Berto' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Juegos' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Ficha de jugador', () => {
+  it('cuenta solo partidas terminadas, rachas, juegos y cara a cara con empates', () => {
+    const ana = playerProfile(tracker, 11);
+    expect(ana).toMatchObject({ played: 2, won: 2, streak: 2, bestStreak: 2 });
+    expect(ana.games).toEqual([{ gameId: 3, name: 'Catán', played: 2, won: 2 }]);
+    expect(ana.rivals).toEqual([
+      { playerId: 12, name: 'Berto', together: 2, won: 1, lost: 0 },
+      { playerId: 13, name: 'Carla', together: 1, won: 1, lost: 0 },
+    ]);
+    expect(playerProfile(tracker, 12)).toMatchObject({ played: 2, won: 1, streak: 1 });
+    expect(playerProfile(tracker, 12).rivals[0]).toMatchObject({ name: 'Ana', won: 0, lost: 1 });
+  });
+
+  it('abre la ficha propia y deja cambiar de jugador', () => {
+    render(<TrackerProfile tracker={tracker} />);
+
+    expect(screen.getByLabelText('Jugador')).toHaveValue('11');
+    expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
+      '2 (100 %)',
+    );
+    fireEvent.change(screen.getByLabelText('Jugador'), { target: { value: '12' } });
+    expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
+      '1 (50 %)',
+    );
+    expect(screen.getByRole('columnheader', { name: 'Gana Berto' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Jugador'), { target: { value: '13' } });
+    expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
+      '0 (0 %)',
+    );
+  });
+
+  it('avisa si el jugador aún no ha terminado ninguna partida', () => {
+    render(<TrackerProfile tracker={{ ...tracker, sessions: [] }} />);
+    expect(screen.getByText('Ana aún no ha terminado ninguna partida.')).toBeInTheDocument();
+  });
+});
+
+describe('Compartir el resultado', () => {
+  it('la tarjeta de una partida lleva ganador y puntos; la del día, partidas ganadas', () => {
+    expect(sessionCard('Jueves', 'Catán', 'puntos', tracker.sessions[0])).toEqual({
+      title: 'Jueves',
+      subtitle: 'Catán · partida 1',
+      headline: 'Gana Ana',
+      rows: [
+        { rank: 1, name: 'Ana', value: '9 puntos' },
+        { rank: 2, name: 'Berto', value: '4 puntos' },
+      ],
+    });
+    const day = dayCard('Jueves', '12 de noviembre', tracker.sessions.slice(1));
+    expect(day.headline).toBe('Gana Ana y Berto');
+    expect(day.rows[0]).toEqual({ rank: 1, name: 'Ana', value: '1 de 1 ganadas' });
+  });
+
+  it('solo los días cerrados se pueden compartir', () => {
+    render(<TrackerHistory tracker={tracker} />);
+    const share = screen.getAllByRole('button', { name: /Compartir el día/ });
+    expect(share).toHaveLength(1);
+    fireEvent.click(share[0]);
+    expect(shareResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headline: 'Gana Ana',
+        subtitle: expect.stringMatching(/^Día de juego/),
+      }),
+    );
+  });
+});

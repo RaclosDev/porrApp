@@ -12,12 +12,26 @@ import {
   fetchPredictionScore,
 } from './api';
 import { isApiError } from './apiError';
+import { fetchTrackers } from './endpoints/trackers';
 import { queryKeys } from './queryKeys';
 
+/**
+ * Las ligas del usuario, también las de juegos de mesa (`kind: 'SCOREBOARD'`): cualquiera puede ser
+ * la liga activa, y su clase (`leagueKindOf`) decide qué enseña cada pantalla.
+ */
 export const myGroupsQuery = (isAuthenticated: boolean) =>
   queryOptions({
     queryKey: queryKeys.myGroups(isAuthenticated),
-    queryFn: () => (isAuthenticated ? fetchMyGroups() : Promise.resolve([])),
+    queryFn: async () => (isAuthenticated ? fetchMyGroups() : []),
+    staleTime: 60_000,
+  });
+
+/** Las ligas de juegos de mesa del usuario, para Mis ligas y el selector de la cabecera. */
+export const myTrackersQuery = (isAuthenticated: boolean) =>
+  queryOptions({
+    queryKey: queryKeys.trackers(),
+    queryFn: fetchTrackers,
+    enabled: isAuthenticated,
     staleTime: 60_000,
   });
 

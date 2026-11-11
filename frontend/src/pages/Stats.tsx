@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import LeagueLoadState from '../components/LeagueLoadState';
 import { useGrandPrixInsights } from '../hooks/useGrandPrixInsights';
@@ -31,6 +32,8 @@ function Stats() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Estadísticas" what="las estadísticas" />,
     unknown: <UnsupportedLeagueState />,
+    // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
+    scoreboard: <Navigate to="/" replace />,
     // El Mundial es un cuadro más, con la fase de grupos y el pichichi aparte.
     groupStage: <GroupStageStatsPage />,
     matchday: <MatchdayStatsPage />,

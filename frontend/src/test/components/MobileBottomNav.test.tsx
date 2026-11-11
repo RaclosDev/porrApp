@@ -31,7 +31,8 @@ const EXPECTED: Record<LeagueKind, string[] | null> = {
   matchday: ['Inicio', 'Jornadas', 'Ranking', 'Tabla', 'Mis Ligas'],
   fightCard: ['Inicio', 'Jornadas', 'Ranking', 'Cartelera', 'Mis Ligas'],
   tennisDraw: ['Inicio', 'Jornadas', 'Ranking', 'Cuadro', 'Mis Ligas'],
-  grandPrix: ['Carreras', 'Ranking', 'Mundial', 'Mis Ligas'],
+  grandPrix: ['Inicio', 'Predicciones', 'Ranking', 'Mundial', 'Mis Ligas'],
+  scoreboard: ['Inicio', 'Partida', 'Ranking', 'Histórico', 'Mis Ligas'],
 };
 
 const renderMobile = () =>
@@ -67,9 +68,7 @@ describe('Navegación por clase de liga', () => {
         <MainNav items={leagueNavItems(kind, false)} isNavLocked={false} />
       </MemoryRouter>,
     );
-    const expected = EXPECTED[kind]?.map((label) =>
-      label === 'Carreras' ? 'Grandes Premios' : label,
-    );
+    const expected = EXPECTED[kind];
     if (!expected) {
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
       expect(container.querySelectorAll('.chrome-placeholder')).toHaveLength(5);

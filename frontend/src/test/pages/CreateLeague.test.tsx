@@ -53,6 +53,15 @@ const renderAt = (path = '/crear-liga') =>
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
+it('ofrece el marcador de juegos de mesa junto a los deportes, sin ser un deporte más', async () => {
+  renderAt();
+
+  await screen.findByRole('radio', { name: 'Fútbol' });
+  const marcador = screen.getByRole('link', { name: /Juego de mesa o de cartas/ });
+  expect(marcador).toHaveAttribute('href', '/marcador/nuevo');
+  expect(screen.queryByRole('radio', { name: /Juego de mesa/ })).not.toBeInTheDocument();
+});
+
 it('crea una liga por jornadas paso a paso y deja el código para invitar', async () => {
   vi.mocked(createGroup).mockResolvedValue(
     group({ id: 7, name: 'Amigos', joinCode: 'AMIGOS7', poolFormat: 'MATCH_DAY' }),

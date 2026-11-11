@@ -3,16 +3,20 @@ import { useState, useEffect } from 'react';
 import GroupMembersModal from '../components/GroupMembersModal';
 import LeagueRulesModal from '../components/LeagueRulesModal';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import type { CredentialResponse } from '@react-oauth/google';
 import AuthPanel from '../components/AuthPanel';
 import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
 import { useGroupsDashboard } from '../hooks/useGroupsDashboard';
 import GroupCard from '../components/groups/GroupCard';
+import TrackerCard from '../components/tracker/TrackerCard';
 import JoinGroupPanel from '../components/groups/JoinGroupPanel';
 import CustomCompetitionEditor from '../components/groups/CustomCompetitionEditor';
 import LeagueLockSection, { hasLeagueLockSetting } from '../components/groups/LeagueLockSection';
 import LeagueMatchesSection, { hasMatchSelection } from '../components/groups/LeagueMatchesSection';
+import { myTrackersQuery } from '../services/queries';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 import type { Group } from '../types/api';
 import { sortGroupsByRecent } from '../utils/groupOrder';
 
@@ -48,8 +52,13 @@ export default function GroupsDashboard() {
     handleShareWhatsApp,
     userName,
     userId,
+    isAuthenticated,
     activeGroupId,
   } = useGroupsDashboard();
+
+  // Los marcadores de juegos de mesa van en la misma lista que las ligas.
+  const trackers = useQuery(myTrackersQuery(isAuthenticated));
+  const trackerList = trackers.data ?? [];
 
   // ?unirse se consume al abrir el modal, para que el selector pueda volver a abrirlo estando ya aquí.
   useEffect(() => {
@@ -180,7 +189,8 @@ export default function GroupsDashboard() {
 
       {loading ? (
         <PaperLoading label="Cargando tus ligas" />
-      ) : groupsError && groups.length === 0 ? null : groups.length === 0 ? (
+      ) : groupsError && groups.length === 0 ? null : groups.length === 0 &&
+        trackerList.length === 0 ? (
         <div className="paper-panel album-sheet text-center py-12 px-6 max-w-140 mt-5 mb-10 mx-auto">
           <h3 className="poster-title mt-0 mb-2 mx-0 text-[1.5rem]">
             Aún no te has unido a ninguna liga privada
@@ -207,7 +217,11 @@ export default function GroupsDashboard() {
         </div>
       ) : (
         <ul className="grid gap-2.5 md:grid-cols-2 max-w-240 mx-auto my-0 p-0 list-none">
-          {sortGroupsByRecent(groups, activeGroupId).map((group) => {
+          {sortGroupsByRecent(
+            // Las de juegos de mesa tienen su tarjeta, con jugadores y partidas.
+            groups.filter((group) => !isScoreboardLeague(group)),
+            activeGroupId,
+          ).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
             const isCreator = isGroupAdmin(group);
             return (
@@ -229,8 +243,20 @@ export default function GroupsDashboard() {
               />
             );
           })}
+          {trackerList.map((tracker) => (
+            <TrackerCard
+              key={`tracker-${tracker.id}`}
+              tracker={tracker}
+              isSelected={activeGroupId === String(tracker.id)}
+              group={groups.find((group) => String(group.id) === String(tracker.id))}
+              onShare={handleShareWhatsApp}
+              onRules={setSelectedGroupForRules}
+              onMembers={setSelectedGroupForMembers}
+            />
+          ))}
         </ul>
       )}
+
       {selectedGroupForMembers && (
         <GroupMembersModal
           key={selectedGroupForMembers.id}

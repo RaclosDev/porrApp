@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../../context/AppContext';
@@ -23,6 +23,74 @@ import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult
 
 const RANKING_SIZE = 5;
 
+function usePreviewRows(
+  settling: boolean,
+  rankingTotal: number,
+  tableTotal: number,
+  tablePreviewLimit: number,
+) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [desktop, setDesktop] = useState<{
+    panelHeight: number;
+    rankingLimit: number;
+    tableLimit: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (settling || !grid || typeof ResizeObserver === 'undefined') return;
+    const [matches, sidebar] = grid.children;
+    if (!matches || !sidebar) return;
+
+    const observer = new ResizeObserver(() => {
+      const matchBounds = matches.getBoundingClientRect();
+      if (matchBounds.width >= grid.getBoundingClientRect().width) {
+        setDesktop(null);
+        return;
+      }
+
+      const gap = Number.parseFloat(getComputedStyle(sidebar).rowGap) || 0;
+      const panelCount = sidebar.children.length;
+      const panelHeight = Math.max(0, (matchBounds.height - gap * (panelCount - 1)) / panelCount);
+      const rowsThatFit = (panel: Element | undefined, total: number) => {
+        const list = panel?.querySelector('ol');
+        const row = list?.firstElementChild;
+        if (!panel || !list || !row) return 0;
+
+        const listGap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
+        const rowHeight = row.getBoundingClientRect().height + listGap;
+        if (rowHeight <= 0) return 0;
+
+        const headerAndPadding =
+          panel.getBoundingClientRect().height - list.getBoundingClientRect().height;
+        const capacity = Math.floor((panelHeight - headerAndPadding + listGap) / rowHeight);
+        return Math.min(total, capacity);
+      };
+
+      const rankingLimit = rowsThatFit(sidebar.children[0], rankingTotal);
+      const tableLimit = rowsThatFit(sidebar.children[1], tableTotal);
+      setDesktop((current) =>
+        current?.panelHeight === panelHeight &&
+        current.rankingLimit === rankingLimit &&
+        current.tableLimit === tableLimit
+          ? current
+          : { panelHeight, rankingLimit, tableLimit },
+      );
+    });
+    observer.observe(grid);
+    observer.observe(matches);
+    observer.observe(sidebar);
+    return () => observer.disconnect();
+  }, [settling, rankingTotal, tableTotal]);
+
+  return {
+    gridRef,
+    panelHeight: desktop?.panelHeight,
+    rankingLimit: Math.max(1, desktop?.rankingLimit ?? RANKING_SIZE),
+    tableLimit: Math.max(1, desktop?.tableLimit ?? tablePreviewLimit),
+  };
+}
+
 function formatKickOff(date: string | null) {
   if (!date) return 'VS';
   const d = new Date(date);
@@ -30,7 +98,7 @@ function formatKickOff(date: string | null) {
   return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
-function PanelHeader({
+export function PanelHeader({
   title,
   icon,
   onSeeAll,
@@ -62,7 +130,7 @@ function PanelHeader({
 }
 
 /** Fila compacta con posición, nombre y valor; la usan el ranking y la tabla de equipos. */
-function MiniRow({
+export function MiniRow({
   rank,
   name,
   crest,
@@ -227,7 +295,7 @@ function SkeletonRows({ count, height }: { count: number; height: number }) {
 function DashboardSkeleton() {
   return (
     <div
-      className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5"
+      className="home-dashboard-grid"
       role="status"
       aria-label="Cargando la liga"
       aria-busy="true"
@@ -236,7 +304,7 @@ function DashboardSkeleton() {
         <Skeleton width="40%" height={20} />
         <SkeletonRows count={5} height={74} />
       </div>
-      <div className="flex flex-col gap-4.5 min-w-0">
+      <div className="home-dashboard-sidebar">
         <div className="paper-panel album-sheet p-4 flex flex-col gap-2.5">
           <Skeleton width="30%" height={20} />
           <SkeletonRows count={5} height={32} />
@@ -298,7 +366,14 @@ export default function LeagueHomeDashboard() {
     (activeCompetitionName ?? '').trim().toLowerCase() !==
       (activeGroupName || '').trim().toLowerCase();
   const participantCount = leaderboardData?.length || 0;
-  const topParticipants = (leaderboardData ?? []).slice(0, RANKING_SIZE);
+  const tableTotal = standings?.rows.length ?? 0;
+  const { gridRef, panelHeight, rankingLimit, tableLimit } = usePreviewRows(
+    settling,
+    participantCount,
+    tableTotal,
+    standings?.previewLimit ?? tableTotal,
+  );
+  const topParticipants = (leaderboardData ?? []).slice(0, rankingLimit);
   // Mismo puesto para los empatados, como en la clasificación completa.
   const topTotals = [...new Set(topParticipants.map((p) => p.total || 0))];
 
@@ -384,7 +459,7 @@ export default function LeagueHomeDashboard() {
             </button>
           )}
 
-          <div className="grid grid-cols-[repeat(auto-fit,_minmax(300px,_1fr))] gap-4.5">
+          <div className="home-dashboard-grid" ref={gridRef}>
             <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
               <PanelHeader
                 title={matches.title}
@@ -418,8 +493,15 @@ export default function LeagueHomeDashboard() {
               )}
             </div>
 
-            <div className="flex flex-col gap-4.5 min-w-0">
-              <div className="paper-panel album-sheet p-4">
+            <div
+              className="home-dashboard-sidebar"
+              style={
+                panelHeight === undefined
+                  ? undefined
+                  : { gridAutoRows: `minmax(${panelHeight}px, auto)` }
+              }
+            >
+              <div className="home-summary-panel paper-panel album-sheet p-4">
                 <PanelHeader title="Ranking" onSeeAll={() => navigate('/ranking')} />
                 {topParticipants.length > 0 ? (
                   <ol
@@ -448,13 +530,13 @@ export default function LeagueHomeDashboard() {
               </div>
 
               {standings && standings.rows.length > 0 && (
-                <div className="paper-panel album-sheet p-4">
+                <div className="home-summary-panel paper-panel album-sheet p-4">
                   <PanelHeader title={standings.title} onSeeAll={() => navigate(standings.to)} />
                   <ol
                     className="flex flex-col gap-1.5 m-0 p-0 list-none"
                     aria-label={standings.title}
                   >
-                    {standings.rows.map((row) => (
+                    {standings.rows.slice(0, tableLimit).map((row) => (
                       <MiniRow
                         key={row.team}
                         {...row}

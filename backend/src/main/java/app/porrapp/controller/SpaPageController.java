@@ -33,12 +33,15 @@ public class SpaPageController {
             "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
             "/plantilla-porra-excel", "/alternativa-laporra", "/mejores-apps-porra",
             "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey",
+            "/apuntar-puntos-juegos-de-mesa",
             "/privacidad", "/aviso-legal");
 
     /** Pantallas de la app: existen, pero no tienen sentido en un buscador. */
     public static final Set<String> APP = Set.of(
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
-            "/mis-ligas", "/crear-liga", "/bracket", "/tabla", "/prediction", "/jornadas", "/restablecer-contrasena");
+            "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/bracket", "/tabla", "/prediction", "/jornadas",
+            "/partida", "/historico",
+            "/restablecer-contrasena");
 
     private static final String NOINDEX = "noindex";
     private static final MediaType MANIFEST = MediaType.valueOf("application/manifest+json");
@@ -48,10 +51,12 @@ public class SpaPageController {
             "/", "/como-funciona", "/porra-laliga", "/porra-champions", "/porra-premier-league",
             "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
             "/plantilla-porra-excel", "/alternativa-laporra", "/mejores-apps-porra",
-            "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey",
+            "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey", "/apuntar-puntos-juegos-de-mesa",
             "/privacidad", "/aviso-legal",
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
-            "/mis-ligas", "/crear-liga", "/bracket", "/tabla", "/prediction", "/jornadas", "/restablecer-contrasena"})
+            "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/bracket", "/tabla", "/prediction", "/jornadas",
+            "/partida", "/historico",
+            "/restablecer-contrasena"})
     public ResponseEntity<Resource> page(HttpServletRequest request) {
         String path = request.getRequestURI();
         ResponseEntity.BodyBuilder response = html(HttpStatus.OK);

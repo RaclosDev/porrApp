@@ -29,6 +29,8 @@ function Bracket() {
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Mi porra" what="las predicciones" />,
     unknown: <UnsupportedLeagueState />,
+    // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
+    scoreboard: <Navigate to="/" replace />,
     groupStage: <GroupStageBracket />,
     // Los cuadros propios (personalizadas, Worlds de LoL…) se pronostican sobre sus cruces.
     customBracket: <CustomBracket />,
@@ -39,7 +41,7 @@ function Bracket() {
     fightCard: <Navigate to="/jornadas" replace />,
     tennisDraw: <Navigate to="/jornadas" replace />,
     // Fórmula 1: las predicciones de cada Gran Premio están en el inicio.
-    grandPrix: <Navigate to="/" replace />,
+    grandPrix: <Navigate to="/jornadas" replace />,
   };
   return views[leagueKind];
 }

@@ -11,6 +11,7 @@ import {
 } from '../utils/unsavedChanges';
 import { LeagueAvatar } from './Avatar';
 import { competitionLabel, poolFormatShortLabel } from '../utils/poolFormat';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
 
 /** Bandera del país de la competición; sin país conocido, la liga muestra su monograma. */
 function getCompetitionBadge(competitionName: string | null | undefined) {
@@ -41,6 +42,8 @@ export default function ActiveLeagueDropdown() {
     userGroupsLoaded,
     choosingLeague,
   } = useAppContext();
+
+  const leagueCount = userGroups?.length || 0;
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -100,7 +103,7 @@ export default function ActiveLeagueDropdown() {
   }
 
   // Sin ligas va a Mis ligas, que ofrece crear y unirse; el asistente de crear liga solo crea.
-  if (isAuthenticated && (!userGroups || userGroups.length === 0)) {
+  if (isAuthenticated && leagueCount === 0) {
     return (
       <button
         type="button"
@@ -116,16 +119,20 @@ export default function ActiveLeagueDropdown() {
     );
   }
 
-  const currentBadge = getCompetitionBadge(activeCompetitionName);
   const activeGroup = (userGroups || []).find((g) => String(g.id) === String(activeGroupId));
+  const currentBadge = isScoreboardLeague(activeGroup)
+    ? '🎲'
+    : getCompetitionBadge(activeCompetitionName);
   const activeImageUrl = activeGroup?.imageUrl || null;
   const displayLeagueName = activeGroupName || 'Liga';
   // Solo la competición real de la liga: sin liga (o sin dato) no se supone ninguna.
   const displayCompName = !activeGroupId
     ? 'Elige una de tus ligas'
-    : activeGroupMultiCompetition
-      ? 'Varias competiciones'
-      : activeCompetitionName || '';
+    : isScoreboardLeague(activeGroup)
+      ? 'Juego de mesa'
+      : activeGroupMultiCompetition
+        ? 'Varias competiciones'
+        : activeCompetitionName || '';
 
   return (
     <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
@@ -166,7 +173,7 @@ export default function ActiveLeagueDropdown() {
           <div className="poster-title py-1.5 px-2.5 text-[0.8rem] text-muted border-b border-b-line mb-1 flex justify-between items-center">
             <span>Mis Ligas</span>
             <span className="text-[0.7rem] text-muted normal-case font-[Inter,sans-serif] tracking-normal">
-              {userGroups?.length || 0} {userGroups?.length === 1 ? 'liga' : 'ligas'}
+              {leagueCount} {leagueCount === 1 ? 'liga' : 'ligas'}
             </span>
           </div>
 
@@ -174,7 +181,11 @@ export default function ActiveLeagueDropdown() {
             {sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
-                const gBadge = g.multiCompetition ? null : getCompetitionBadge(g.competitionName);
+                const gBadge = isScoreboardLeague(g)
+                  ? '🎲'
+                  : g.multiCompetition
+                    ? null
+                    : getCompetitionBadge(g.competitionName);
                 return (
                   <button
                     className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(17,_24,_39,_0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)]'} text-main`}
@@ -194,12 +205,15 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {[
-                            competitionLabel(g),
-                            // Terminada, la temporada la distingue de la liga que la repite.
-                            g.seasonEnded ? `${g.season ?? 'Temporada'} terminada` : null,
-                            poolFormatShortLabel(g.poolFormat),
-                          ]
+                          {(isScoreboardLeague(g)
+                            ? ['Juego de mesa']
+                            : [
+                                competitionLabel(g),
+                                // Terminada, la temporada la distingue de la liga que la repite.
+                                g.seasonEnded ? `${g.season ?? 'Temporada'} terminada` : null,
+                                poolFormatShortLabel(g.poolFormat),
+                              ]
+                          )
                             .filter(Boolean)
                             .join(' · ')}
                         </span>

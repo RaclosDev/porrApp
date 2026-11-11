@@ -59,6 +59,9 @@ vi.mock('../../components/Home/LeagueHomeDashboard', () => ({
 vi.mock('../../components/grandPrix/GrandPrixPage', () => ({
   default: () => <p>Grandes Premios</p>,
 }));
+vi.mock('../../components/grandPrix/GrandPrixHome', () => ({
+  default: () => <p>Portada de carreras</p>,
+}));
 vi.mock('../../components/grandPrix/FormulaOneStandings', () => ({
   default: () => <p>Mundial de F1</p>,
 }));
@@ -99,6 +102,8 @@ vi.mock('../../components/insights/KnockoutSearch', () => ({
 vi.mock('../../components/insights/TennisSearch', () => ({
   default: () => <p>Buscador de jugadores</p>,
 }));
+vi.mock('../../pages/TrackerHome', () => ({ default: () => <p>Marcador de la liga</p> }));
+vi.mock('../../pages/TrackerRanking', () => ({ default: () => <p>Ranking del marcador</p> }));
 vi.mock('../../components/CustomPredictionViewer', () => ({
   default: () => <p>Visor del cuadro propio</p>,
 }));
@@ -186,7 +191,8 @@ const SCREENS: ScreenCase[] = [
       matchday: ROUTES['/jornadas'],
       fightCard: ROUTES['/jornadas'],
       tennisDraw: ROUTES['/jornadas'],
-      grandPrix: ROUTES['/'],
+      grandPrix: ROUTES['/jornadas'],
+      scoreboard: ROUTES['/'],
     },
   },
   {
@@ -206,6 +212,7 @@ const SCREENS: ScreenCase[] = [
       fightCard: 'Estadísticas por partido',
       tennisDraw: 'Estadísticas por partido',
       grandPrix: 'Más elegidos de la Fórmula 1',
+      scoreboard: ROUTES['/'],
     },
   },
   {
@@ -225,6 +232,7 @@ const SCREENS: ScreenCase[] = [
       fightCard: ROUTES['/stats'],
       tennisDraw: 'Buscador de jugadores',
       grandPrix: 'Buscador de pilotos',
+      scoreboard: ROUTES['/'],
     },
   },
   {
@@ -244,6 +252,7 @@ const SCREENS: ScreenCase[] = [
       fightCard: ROUTES['/tabla'],
       tennisDraw: ROUTES['/tabla'],
       grandPrix: ROUTES['/'],
+      scoreboard: ROUTES['/'],
     },
   },
   {
@@ -262,7 +271,8 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Portada de la liga',
       fightCard: 'Portada de la liga',
       tennisDraw: 'Portada de la liga',
-      grandPrix: 'Grandes Premios',
+      grandPrix: 'Portada de carreras',
+      scoreboard: 'Marcador de la liga',
     },
   },
   {
@@ -281,7 +291,8 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Portada de la liga',
       fightCard: 'Portada de la liga',
       tennisDraw: 'Portada de la liga',
-      grandPrix: 'Grandes Premios',
+      grandPrix: 'Portada de carreras',
+      scoreboard: 'Marcador de la liga',
     },
   },
   {
@@ -301,6 +312,7 @@ const SCREENS: ScreenCase[] = [
       fightCard: 'Cartelera',
       tennisDraw: 'Cuadro del torneo',
       grandPrix: 'Mundial de F1',
+      scoreboard: ROUTES['/'],
     },
   },
   {
@@ -319,7 +331,8 @@ const SCREENS: ScreenCase[] = [
       matchday: 'Jornadas de la liga',
       fightCard: 'Jornadas de la liga',
       tennisDraw: 'Jornadas de la liga',
-      grandPrix: ROUTES['/'],
+      grandPrix: 'Grandes Premios',
+      scoreboard: ROUTES['/'],
     },
   },
 ];
@@ -361,6 +374,7 @@ describe('Visor de porras para cada clase de liga', () => {
     error: null,
     none: null,
     unknown: null,
+    scoreboard: null,
   };
 
   it.each(LEAGUE_KINDS)('%s', (kind) => {
@@ -386,6 +400,8 @@ describe('Ranking para cada clase de liga', () => {
     error: null,
     none: null,
     unknown: null,
+    // Sin ranking de predicciones: su ranking son las partidas ganadas.
+    scoreboard: null,
   };
 
   it.each(LEAGUE_KINDS)('%s', (kind) => {
@@ -410,6 +426,10 @@ describe('Ranking para cada clase de liga', () => {
         </Routes>
       </MemoryRouter>,
     );
+    if (kind === 'scoreboard') {
+      expect(screen.getByText('Ranking del marcador')).toBeInTheDocument();
+      return;
+    }
     // Cada enlace sale solo donde su pantalla existe.
     const { stats, search } = LEAGUE_INSIGHTS[kind];
     expect(

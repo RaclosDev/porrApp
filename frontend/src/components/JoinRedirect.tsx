@@ -1,8 +1,8 @@
 import PaperLoading from './PaperLoading';
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AuthPanel from './AuthPanel';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
@@ -13,12 +13,39 @@ import { LeagueAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
 import type { Group } from '../types/api';
 import { isMatchBasedFormat } from '../utils/poolFormat';
+import { isScoreboardLeague } from '../utils/scoreboardLeague';
+import { claimTrackerPlayer } from '../services/endpoints/trackers';
+
+/** Dónde empieza la liga recién abierta: las de jornadas en sus jornadas; el resto, en el inicio. */
+const landingOf = (scoreboard: boolean, poolFormat?: string | null) =>
+  !scoreboard && isMatchBasedFormat(poolFormat) ? '/jornadas' : '/';
+
+/**
+ * Quien entra con el enlace «este eres tú» de una liga de juegos de mesa hereda el histórico de ese
+ * jugador; si no se puede (otro ya lo es o ya no existe), entra igual y lo elige en el inicio.
+ */
+async function claimInvited(
+  queryClient: QueryClient,
+  playerId: number | null,
+  groupId: number | string,
+) {
+  if (!playerId) return;
+  try {
+    await claimTrackerPlayer(Number(groupId), playerId);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.tracker(groupId) });
+  } catch {
+    // Se sigue sin reclamar.
+  }
+}
 
 /** La invitación conserva su contexto durante el acceso y abre la liga al aceptar. */
 export default function JoinRedirect() {
   const { code = '' } = useParams();
   const normalizedCode = code.trim().toUpperCase();
   const navigate = useNavigate();
+  // En una liga de juegos de mesa, el jugador apuntado a mano que es quien abre el enlace.
+  const [searchParams] = useSearchParams();
+  const invitedPlayer = Number(searchParams.get('jugador')) || null;
   const queryClient = useQueryClient();
   const { isAuthenticated, userName, changeGroup } = useAppContext();
   const signedIn = isAuthenticated && Boolean(userName);
@@ -40,16 +67,30 @@ export default function JoinRedirect() {
     if (normalizedCode) localStorage.setItem('pendingJoinCode', normalizedCode);
   }, [normalizedCode]);
 
+  // Una liga de juegos de mesa no tiene jornadas: su inicio es el marcador.
+  const scoreboard = isScoreboardLeague(preview);
+
   useEffect(() => {
     if (!signedIn || !preview || joining.current) return;
     const existing = membership.data?.find((group) => String(group.id) === String(preview.id));
     if (!existing) return;
     localStorage.removeItem('pendingJoinCode');
-    changeGroup(String(existing.id));
-    navigate(isMatchBasedFormat(preview.poolFormat || existing.poolFormat) ? '/jornadas' : '/', {
-      replace: true,
+    joining.current = true;
+    void claimInvited(queryClient, scoreboard ? invitedPlayer : null, existing.id).finally(() => {
+      joining.current = false;
+      changeGroup(String(existing.id));
+      navigate(landingOf(scoreboard, preview.poolFormat || existing.poolFormat), { replace: true });
     });
-  }, [signedIn, preview, membership.data, changeGroup, navigate]);
+  }, [
+    signedIn,
+    preview,
+    scoreboard,
+    membership.data,
+    changeGroup,
+    navigate,
+    queryClient,
+    invitedPlayer,
+  ]);
 
   /** @param signInFirst inicio de sesión que hacer antes de unirse; si falla, no se une */
   const accept = async (signInFirst?: () => Promise<boolean>) => {
@@ -67,10 +108,9 @@ export default function JoinRedirect() {
       ]);
       queryClient.setQueryData(queryKeys.group(String(group.id)), group);
       localStorage.removeItem('pendingJoinCode');
+      await claimInvited(queryClient, scoreboard ? invitedPlayer : null, group.id);
       changeGroup(String(group.id));
-      navigate(isMatchBasedFormat(group.poolFormat || preview.poolFormat) ? '/jornadas' : '/', {
-        replace: true,
-      });
+      navigate(landingOf(scoreboard, group.poolFormat || preview.poolFormat), { replace: true });
     } catch (cause) {
       setError(errorMessage(cause, 'No se ha podido entrar en la liga. Inténtalo de nuevo.'));
     } finally {
@@ -98,12 +138,15 @@ export default function JoinRedirect() {
               <h1 className="poster-title text-2xl m-0 break-words min-w-0">{preview.name}</h1>
             </div>
             <p className="m-0 text-muted">
-              {preview.competitionName || 'Fútbol'} ·{' '}
-              {preview.poolFormat === 'SURVIVOR'
-                ? 'Superviviente'
-                : preview.poolFormat === 'MATCH_DAY'
-                  ? 'Por jornadas'
-                  : 'Cuadro del torneo'}
+              {scoreboard
+                ? 'Juego de mesa'
+                : `${preview.competitionName || 'Fútbol'} · ${
+                    preview.poolFormat === 'SURVIVOR'
+                      ? 'Superviviente'
+                      : preview.poolFormat === 'MATCH_DAY'
+                        ? 'Por jornadas'
+                        : 'Cuadro del torneo'
+                  }`}
             </p>
             {busy ? (
               <p role="status">Preparando tu entrada en la liga…</p>
@@ -120,7 +163,7 @@ export default function JoinRedirect() {
               <AuthPanel
                 intent="signup"
                 hideHeading
-                lede="Crea tu cuenta o entra para unirte a esta liga. Después te llevaremos directamente a tu porra."
+                lede={`Crea tu cuenta o entra para unirte a esta liga. Después te llevaremos directamente ${scoreboard ? 'al marcador' : 'a tu porra'}.`}
                 onGoogleSuccess={(response) => accept(() => signIn(response))}
                 onApple={() => accept(appleSignIn)}
                 signInOptions={{ navigateAfterLogin: false }}

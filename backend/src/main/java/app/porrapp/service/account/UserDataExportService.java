@@ -4,6 +4,8 @@ import app.porrapp.dto.UserDataExport;
 import app.porrapp.exception.BusinessException;
 import app.porrapp.model.MatchPrediction;
 import app.porrapp.model.Prediction;
+import app.porrapp.model.ScoreTrackerPlayer;
+import app.porrapp.model.ScoreTrackerScore;
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.MatchPredictionRepository;
 import app.porrapp.repository.MembershipRepository;
@@ -11,6 +13,8 @@ import app.porrapp.repository.PasskeyRepository;
 import app.porrapp.repository.PredictionRepository;
 import app.porrapp.repository.PushNotificationLogRepository;
 import app.porrapp.repository.PushSubscriptionRepository;
+import app.porrapp.repository.ScoreTrackerPlayerRepository;
+import app.porrapp.repository.ScoreTrackerScoreRepository;
 import app.porrapp.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +38,8 @@ public class UserDataExportService {
     private final PushSubscriptionRepository pushSubscriptionRepository;
     private final PushNotificationLogRepository pushNotificationLogRepository;
     private final PasskeyRepository passkeyRepository;
+    private final ScoreTrackerPlayerRepository scoreTrackerPlayerRepository;
+    private final ScoreTrackerScoreRepository scoreTrackerScoreRepository;
 
     @Transactional(readOnly = true)
     public UserDataExport export(String email) {
@@ -81,6 +87,20 @@ public class UserDataExportService {
                 .map(p -> new UserDataExport.PasskeyExport(p.getName(), p.getCreatedAt(), p.getLastUsedAt()))
                 .toList();
 
-        return new UserDataExport(Instant.now(), profile, leagues, predictionExports, devices, notifications, passkeys);
+        var boardGamePlayers = scoreTrackerPlayerRepository.findByUserIdOrderByLeagueIdAsc(user.getId());
+        Map<Long, List<ScoreTrackerScore>> scoresByPlayer = boardGamePlayers.isEmpty() ? Map.of()
+                : scoreTrackerScoreRepository.findByPlayerIdIn(
+                                boardGamePlayers.stream().map(ScoreTrackerPlayer::getId).toList()).stream()
+                        .collect(Collectors.groupingBy(ScoreTrackerScore::getPlayerId));
+        var boardGames = boardGamePlayers.stream()
+                .map(p -> {
+                    List<ScoreTrackerScore> scores = scoresByPlayer.getOrDefault(p.getId(), List.of());
+                    return new UserDataExport.BoardGamePlayer(p.getLeagueId(), p.getName(), scores.size(),
+                            scores.stream().mapToInt(ScoreTrackerScore::getPoints).sum());
+                })
+                .toList();
+
+        return new UserDataExport(Instant.now(), profile, leagues, predictionExports, devices, notifications, passkeys,
+                boardGames);
     }
 }

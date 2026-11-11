@@ -117,6 +117,44 @@ public class MemberJoinedNotifier {
                 "/?group=" + league.getId(), "league-repeated-" + league.getId()));
     }
 
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onDayStarted(ScoreDayStartedEvent event) {
+        try {
+            int sent = notifyDayStarted(event);
+            if (sent > 0) log.info("Aviso de día de juego de la liga {} enviado a {} usuarios", event.leagueId(), sent);
+        } catch (RuntimeException e) {
+            log.warn("No se pudo avisar del día de juego de la liga {}: {}", event.leagueId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Avisa a los demás miembros de una liga de juegos de mesa de que ha empezado un día de juego, para que
+     * sigan la partida desde el móvil.
+     *
+     * @return usuarios a los que ha llegado el aviso en al menos un dispositivo
+     */
+    int notifyDayStarted(ScoreDayStartedEvent event) {
+        if (!sender.isEnabled()) return 0;
+        League league = leagueRepository.findById(event.leagueId()).orElse(null);
+        if (league == null) return 0;
+        UserAccount starter = userAccountRepository.findById(event.userId()).orElse(null);
+        Set<Long> recipients = membershipRepository.findByLeagueId(league.getId()).stream()
+                .map(Membership::getUser)
+                .filter(user -> user != null && !user.getId().equals(event.userId())
+                        && user.isMemberJoinedAlertsEnabled())
+                .map(UserAccount::getId)
+                .collect(Collectors.toSet());
+        if (recipients.isEmpty()) return 0;
+
+        String who = starter == null || starter.getParticipantName() == null || starter.getParticipantName().isBlank()
+                ? "Alguien" : starter.getParticipantName().trim();
+        return deliver(recipients, new PushMessage("Ha empezado un día de juego",
+                who + " ha empezado un día de juego en " + league.getName() + ". Sigue las partidas en directo.",
+                "/?group=" + league.getId(), "score-day-" + league.getId()));
+    }
+
     /** @return usuarios a los que ha llegado el aviso en al menos un dispositivo */
     private int deliver(Set<Long> recipients, PushMessage message) {
         String payload = message.toJson(objectMapper);
@@ -125,7 +163,7 @@ public class MemberJoinedNotifier {
             Long userId = device.getUser().getId();
             if (!recipients.contains(userId)) continue;
             WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(),
-                    payload, TTL_SECONDS);
+                    payload, TTL_SECONDS, device.getUser().getId());
             if (result == WebPushSender.Result.SENT) delivered.put(userId, true);
             if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
         }

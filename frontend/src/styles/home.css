@@ -1,4 +1,18 @@
 @layer components {
+  .home-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+
+  .home-dashboard-sidebar {
+    display: grid;
+    align-items: start;
+    gap: 18px;
+    min-width: 0;
+  }
+
   /* Inicio: cabecera de liga y lista de partidos */
   .home-hero {
     display: flex;

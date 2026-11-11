@@ -46,6 +46,7 @@ class FormulaOneStandingsServiceTest {
         assertThat(first.points()).isEqualTo(380);
         assertThat(first.team()).isEqualTo("Mercedes");
         assertThat(first.country()).isEqualTo("Italia");
+        assertThat(first.headshotUrl()).contains("/i/headshots/rpm/players/full/5829.png");
         FormulaOneStandingsDTO.DriverRow second = result.drivers().get(1);
         assertThat(second.team()).isNull();
         assertThat(second.flagUrl()).isNull();

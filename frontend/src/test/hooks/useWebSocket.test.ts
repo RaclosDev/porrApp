@@ -147,6 +147,13 @@ describe('useWebSocket', () => {
     expect(invalidated).not.toContainEqual(['myPredictions']);
   });
 
+  it('TRACKER_UPDATED recarga los marcadores al instante, sin el retraso aleatorio', () => {
+    renderHook(() => useWebSocket(client));
+    send({ type: 'TRACKER_UPDATED', trackerId: 7 });
+
+    expect(invalidated).toEqual([['trackers']]);
+  });
+
   it('CLOCK_UPDATED solo vuelve a pedir partidos y radar, y no al instante', () => {
     renderHook(() => useWebSocket(client));
     send({ type: 'CLOCK_UPDATED' });

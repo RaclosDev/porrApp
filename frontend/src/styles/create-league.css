@@ -246,6 +246,17 @@
     align-items: center;
   }
 
+  /* Opción que lleva a otra página (el marcador) en vez de elegir algo del formulario. */
+  .create-league-option.is-link {
+    text-decoration: none;
+    border-style: dashed;
+  }
+
+  .create-league-option.is-link:focus-visible {
+    outline: 2px solid var(--marker-ink);
+    outline-offset: 2px;
+  }
+
   .create-league-option.is-compact input {
     margin-top: 0;
   }
