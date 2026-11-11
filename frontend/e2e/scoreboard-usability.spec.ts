@@ -146,6 +146,34 @@ function prepareDay(tracker: Tracker, rounds: number | null) {
 }
 
 for (const width of [390, 1440]) {
+  test(`corregir una hoja larga lleva al formulario y permite volver a ${width}px`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    const { tracker } = await mockLeague(page, true);
+    prepareDay(tracker, 20);
+    tracker.rounds = Array.from({ length: 20 }, (_, index) => ({
+      ...tracker.rounds[0],
+      id: index + 1,
+      number: index + 1,
+    }));
+    await page.goto('/partida');
+    const edit = page.getByRole('button', { name: 'Corregir la ronda 1', exact: true });
+    await expect(edit).toContainText('Editar');
+    await edit.click();
+    const title = page.getByRole('heading', { name: 'Corregir la ronda 1', exact: true });
+    await expect(title).toBeFocused();
+    await expect(title).toBeInViewport();
+    await expect(page.getByLabel('Ana', { exact: true })).toHaveValue('7');
+    await page.screenshot({ path: testInfo.outputPath('corregir-ronda.png'), fullPage: false });
+    await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await expect(edit).toBeFocused();
+    await expect(edit).toBeInViewport();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  });
+
   test(`cambiar jugadores conserva los resultados y añade a quien llega después a ${width}px`, async ({
     page,
   }, testInfo) => {
@@ -244,6 +272,40 @@ for (const width of [390, 1440]) {
     });
   }
 }
+
+for (const owner of [true, false]) {
+  test(`reabrir una partida respeta los permisos de ${owner ? 'administrador' : 'miembro'}`, async ({
+    page,
+  }) => {
+    const { tracker } = await mockLeague(page, owner);
+    prepareDay(tracker, 1);
+    tracker.sessions[0].endedAt = '2026-11-11T18:00:00Z';
+    tracker.currentSessionId = null;
+    await page.goto('/partida');
+    await expect(page.getByRole('button', { name: 'Otra partida', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Reabrir para corregir' })).toHaveCount(
+      owner ? 1 : 0,
+    );
+    await page.goto('/historico');
+    await page.getByRole('button', { name: /Catán · partida 1/ }).click();
+    await expect(page.getByRole('button', { name: 'Volver al histórico' })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Corregir la ronda 1' })).toHaveCount(
+      owner ? 1 : 0,
+    );
+    await page.getByRole('button', { name: 'Volver al histórico' }).click();
+    await expect(page.getByRole('button', { name: /Catán · partida 1/ })).toBeVisible();
+  });
+}
+
+test('histórico y ranking sin resultados permiten empezar a jugar', async ({ page }) => {
+  await mockLeague(page, false);
+  for (const path of ['/historico', '/ranking']) {
+    await page.goto(path);
+    await page.getByRole('link', { name: 'Empezar día de juego' }).click();
+    await expect(page).toHaveURL(/\/partida$/);
+    await expect(page.getByRole('button', { name: 'Empezar día de juego' })).toBeVisible();
+  }
+});
 
 test('una ronda pendiente impide cambiar jugadores, terminar o cerrar una partida vacía', async ({
   page,

@@ -266,7 +266,7 @@ function TrackerPodium({ tracker }: { tracker: Tracker }) {
 function TrackerLastDay({ tracker }: { tracker: Tracker }) {
   const day = [...(tracker.days ?? [])]
     .filter((item) => item.closedAt && item.sessionIds.length > 0)
-    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+    .sort((a, b) => (b.playedOn ?? b.startedAt).localeCompare(a.playedOn ?? a.startedAt))[0];
   if (!day) return null;
   const nameOf = (playerId: number) =>
     tracker.players.find((player) => player.id === playerId)?.name;
@@ -281,7 +281,9 @@ function TrackerLastDay({ tracker }: { tracker: Tracker }) {
           Ver histórico
         </Link>
       </div>
-      <p className="tracker-history-date">{formatDay(day.startedAt)}</p>
+      <p className="tracker-history-date">
+        {formatDay(day.playedOn ? `${day.playedOn}T12:00:00` : day.startedAt)}
+      </p>
       <p className="tracker-note">
         Vinieron {day.playerIds.map(nameOf).filter(Boolean).join(', ')}
       </p>

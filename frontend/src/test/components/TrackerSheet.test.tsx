@@ -96,7 +96,18 @@ describe('TrackerSheet', () => {
 
     const rows = screen.getAllByRole('row');
     expect(rows[1]).toHaveTextContent('Total72');
-    expect(rows[2]).toHaveTextContent('172');
+    expect(rows[2]).toHaveTextContent('1Editar72');
+  });
+
+  it('muestra cómo corregir y devuelve el foco al cancelar', () => {
+    sheet();
+    const edit = screen.getByRole('button', { name: 'Corregir la ronda 1' });
+    expect(edit).toHaveTextContent('Editar');
+    edit.focus();
+    fireEvent.click(edit);
+    expect(screen.getByRole('heading', { name: 'Corregir la ronda 1' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(edit).toHaveFocus();
   });
 
   it('manda solo quienes tienen puntos escritos: en blanco es que no jugó', async () => {
