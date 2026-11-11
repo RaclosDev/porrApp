@@ -145,7 +145,7 @@ describe('Inicio de una liga de juegos de mesa', () => {
     expect(screen.queryByRole('region', { name: 'Quién va ganando' })).not.toBeInTheDocument();
     addPlayer.mockResolvedValue({ ...base, players: [{ id: 15, name: 'Luis' }] });
     fireEvent.change(screen.getByLabelText('Nombre del jugador'), { target: { value: 'Luis' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Añadir', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Luis ya está en la liga.');
     expect(screen.getByLabelText('Nombre del jugador')).toHaveValue('');
   });
