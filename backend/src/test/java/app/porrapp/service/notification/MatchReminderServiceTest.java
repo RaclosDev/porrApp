@@ -150,17 +150,17 @@ class MatchReminderServiceTest {
         PushSubscription oldPhone = device(ana, "https://fcm.googleapis.com/fcm/send/old");
         PushSubscription luisPhone = device(luis, "https://web.push.apple.com/luis");
         when(subscriptions.findByUserIdIn(any())).thenReturn(List.of(phone, oldPhone, luisPhone));
-        when(sender.send(eq(phone.getEndpoint()), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(eq(phone.getEndpoint()), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.SENT);
-        when(sender.send(eq(oldPhone.getEndpoint()), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(eq(oldPhone.getEndpoint()), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.GONE);
-        when(sender.send(eq(luisPhone.getEndpoint()), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(eq(luisPhone.getEndpoint()), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(WebPushSender.Result.FAILED);
 
         assertThat(service.sendReminders(NOW)).isEqualTo(1);
 
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-        verify(sender).send(eq(phone.getEndpoint()), anyString(), anyString(), payload.capture(), eq(1800));
+        verify(sender).send(eq(phone.getEndpoint()), anyString(), anyString(), payload.capture(), eq(1800), org.mockito.ArgumentMatchers.anyLong());
         Map<?, ?> message = json.readValue(payload.getValue(), Map.class);
         assertThat(message.get("title")).isEqualTo("Te faltan 2 predicciones");
         assertThat(message.get("body")).isEqualTo("Los del barrio · la primera cierra a las 17:30");

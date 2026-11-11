@@ -4,6 +4,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import PushReminderPrompt from '../../components/layout/PushReminderPrompt';
 import { fetchPushConfig } from '../../services/api';
 import * as push from '../../services/push';
+import { reportPushDeviceState } from '../../services/pushPrompt';
+
+vi.mock('../../services/pushPrompt', async (original) => ({
+  ...(await original<typeof import('../../services/pushPrompt')>()),
+  reportPushDeviceState: vi.fn(() => Promise.resolve()),
+}));
 
 vi.mock('../../services/api', () => ({ fetchPushConfig: vi.fn() }));
 vi.mock('../../services/push', () => ({
@@ -13,14 +19,14 @@ vi.mock('../../services/push', () => ({
   syncPushSubscription: vi.fn(() => Promise.resolve()),
 }));
 
-const renderPrompt = (canPrompt = true) =>
+const renderPrompt = (canPrompt = true, userId = '1') =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <PushReminderPrompt canPrompt={canPrompt} />
+      <PushReminderPrompt canPrompt={canPrompt} userId={userId} />
     </QueryClientProvider>,
   );
 
-const prompt = () => screen.queryByRole('region', { name: 'Avisos de predicción' });
+const prompt = () => screen.queryByRole('region', { name: 'Notificaciones de PorrApp' });
 
 afterEach(() => {
   vi.useRealTimers();
@@ -50,9 +56,9 @@ it('asks for permission and subscribes the device', async () => {
   await waitFor(() => expect(prompt()).toBeNull());
 });
 
-it('remembers "Ahora no" for a while', async () => {
+it('remembers the weekly reminder for the same account', async () => {
   const { unmount } = renderPrompt();
-  fireEvent.click(await screen.findByRole('button', { name: 'Ahora no' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Recordármelo en una semana' }));
   expect(prompt()).toBeNull();
   unmount();
 
@@ -74,28 +80,6 @@ it.each([
     true,
   ],
   [
-    'with every alert off',
-    {
-      publicKey: 'KEY',
-      remindersEnabled: false,
-      memberJoinedEnabled: false,
-      matchdayFinishedEnabled: false,
-    },
-    false,
-    true,
-  ],
-  [
-    'on iOS outside the installed app',
-    {
-      publicKey: 'KEY',
-      remindersEnabled: true,
-      memberJoinedEnabled: true,
-      matchdayFinishedEnabled: true,
-    },
-    true,
-    true,
-  ],
-  [
     'while another banner is shown',
     {
       publicKey: 'KEY',
@@ -114,6 +98,77 @@ it.each([
   await waitFor(() => expect(fetchPushConfig).toHaveBeenCalled());
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(prompt()).toBeNull();
+});
+
+it('offers the new prompt at the next visit despite the previous campaign dismissal', async () => {
+  localStorage.setItem('push_prompt_dismissed_at', String(Date.now()));
+  renderPrompt();
+  expect(await screen.findByRole('button', { name: 'Activar avisos' })).toBeVisible();
+  expect(reportPushDeviceState).toHaveBeenCalledWith(true);
+});
+
+it('waits seven days after showing the prompt, even if the user leaves without answering', async () => {
+  const now = Date.now();
+  const first = renderPrompt();
+  await screen.findByRole('button', { name: 'Activar avisos' });
+  first.unmount();
+  vi.spyOn(Date, 'now').mockReturnValue(now + 6 * 86400000);
+  const second = renderPrompt();
+  await waitFor(() => expect(fetchPushConfig).toHaveBeenCalledTimes(2));
+  expect(prompt()).toBeNull();
+  second.unmount();
+  vi.spyOn(Date, 'now').mockReturnValue(now + 7 * 86400000 + 1000);
+  renderPrompt();
+  expect(await screen.findByRole('button', { name: 'Activar avisos' })).toBeVisible();
+});
+
+it('does not inherit the previous account dismissal', async () => {
+  localStorage.setItem('push_prompt_v2:1', String(Date.now()));
+  renderPrompt(true, '2');
+  expect(await screen.findByRole('button', { name: 'Activar avisos' })).toBeVisible();
+});
+
+it('explains blocked permissions without calling the native prompt again', async () => {
+  vi.mocked(push.notificationPermission).mockReturnValue('denied');
+  renderPrompt();
+  expect(
+    await screen.findByText('Tienes las notificaciones bloqueadas en este dispositivo'),
+  ).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Activar avisos' })).toBeNull();
+  expect(push.enablePush).not.toHaveBeenCalled();
+  expect(reportPushDeviceState).toHaveBeenCalled();
+});
+
+it('explains installation on iPhone even when push is unsupported in the browser', async () => {
+  vi.mocked(push.needsIosInstall).mockReturnValue(true);
+  vi.mocked(push.notificationPermission).mockReturnValue('unsupported');
+  renderPrompt();
+  expect(await screen.findByText(/Abre PorrApp en Safari/)).toBeVisible();
+  expect(push.enablePush).not.toHaveBeenCalled();
+});
+
+it('offers browser permission even when account preferences are off without changing them', async () => {
+  vi.mocked(fetchPushConfig).mockResolvedValue({
+    publicKey: 'KEY',
+    remindersEnabled: false,
+    memberJoinedEnabled: false,
+    matchdayFinishedEnabled: false,
+  });
+  renderPrompt();
+  expect(await screen.findByRole('button', { name: 'Activar avisos' })).toBeVisible();
+});
+
+it('reports revoked permission on returning to the app', async () => {
+  vi.mocked(push.notificationPermission).mockReturnValue('granted');
+  renderPrompt();
+  await waitFor(() => expect(reportPushDeviceState).toHaveBeenCalled());
+  vi.mocked(reportPushDeviceState).mockClear();
+  vi.mocked(push.notificationPermission).mockReturnValue('denied');
+  fireEvent.focus(window);
+  await waitFor(() => expect(reportPushDeviceState).toHaveBeenCalled());
+  expect(
+    await screen.findByText('Tienes las notificaciones bloqueadas en este dispositivo'),
+  ).toBeVisible();
 });
 
 it('re-registers the device silently once permission was granted', async () => {

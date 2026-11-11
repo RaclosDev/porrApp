@@ -25,6 +25,7 @@ async function signedIn(page: Page, extra: Record<string, unknown> = {}) {
     localStorage.setItem('activeCompetitionId', '2');
     // El aviso de la llave de acceso, ya contestado: no es de estas pruebas y tapa los botones.
     localStorage.setItem('passkey_prompt_answered:7', '1');
+    localStorage.setItem('push_prompt_v2:7', String(Date.now()));
   });
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url());
@@ -132,6 +133,7 @@ test('recupera los avisos desde ajustes tras fallar el registro del dispositivo'
   await page.addInitScript(() => {
     Object.defineProperty(Notification, 'permission', { get: () => 'granted' });
     const subscription = {
+      endpoint: 'https://fcm.googleapis.com/fcm/send/test-device',
       options: {},
       toJSON: () => ({
         endpoint: 'https://fcm.googleapis.com/fcm/send/test-device',
@@ -161,6 +163,14 @@ test('recupera los avisos desde ajustes tras fallar el registro del dispositivo'
   await reminders.getByRole('button', { name: 'Activar avisos en este dispositivo' }).click();
   await expect(reminders.getByRole('status')).toContainText('Dispositivo registrado');
   await expect.poll(() => registrations).toBe(2);
+  let testedEndpoint: unknown;
+  await page.route('**/api/push/test', (route) => {
+    testedEndpoint = route.request().postDataJSON().endpoint;
+    return route.fulfill({ json: { success: true } });
+  });
+  await reminders.getByRole('button', { name: 'Probar notificaciones' }).click();
+  await expect(reminders.getByRole('status')).toContainText('Prueba aceptada');
+  expect(testedEndpoint).toBe('https://fcm.googleapis.com/fcm/send/test-device');
   await expect(
     reminders.getByRole('checkbox', { name: 'Avisarme cuando alguien se una a mis ligas' }),
   ).toBeChecked();

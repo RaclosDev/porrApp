@@ -62,7 +62,7 @@ class MemberJoinedPushIntegrationTest {
     @Test
     void joiningSucceedsAndNotifiesTheOthersEvenIfPushFails() {
         when(sender.isEnabled()).thenReturn(true);
-        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt()))
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong()))
                 .thenThrow(new IllegalStateException("push caído"));
 
         UserAccount owner = userAccountRepository.save(UserAccount.builder()
@@ -83,8 +83,8 @@ class MemberJoinedPushIntegrationTest {
         assertThat(membershipRepository.existsById(new Membership.MembershipId(newcomer.getId(), league.getId())))
                 .isTrue();
         verify(sender, timeout(10_000)).send(eq("https://fcm.googleapis.com/fcm/send/owner"), anyString(),
-                anyString(), contains("Pepe se ha unido a Los del barrio"), anyInt());
+                anyString(), contains("Pepe se ha unido a Los del barrio"), anyInt(), org.mockito.ArgumentMatchers.anyLong());
         verify(sender, never()).send(eq("https://fcm.googleapis.com/fcm/send/newcomer"), anyString(), anyString(),
-                anyString(), anyInt());
+                anyString(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
     }
 }

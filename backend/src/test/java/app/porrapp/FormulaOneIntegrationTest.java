@@ -19,9 +19,11 @@ import app.porrapp.repository.CompetitionRepository;
 import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.RaceDriverRepository;
+import app.porrapp.repository.RaceWeekendRepository;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.scoring.ScoringRuleSet;
 import app.porrapp.service.formulaone.FormulaOneSyncService;
+import app.porrapp.service.formulaone.GrandPrixResultNotifier;
 import app.porrapp.service.formulaone.GrandPrixService;
 import app.porrapp.service.league.LeagueScoringService;
 import app.porrapp.service.league.LeagueSetupService;
@@ -82,6 +84,8 @@ class FormulaOneIntegrationTest {
     @MockitoBean private TopScorerService topScorerService;
     @MockitoBean private SyncService syncService;
     @MockitoBean private EspnFormulaOneClient espn;
+    @MockitoBean private GrandPrixResultNotifier resultNotifier;
+    @Autowired private RaceWeekendRepository raceWeekends;
 
     @Autowired private FormulaOneSyncService formulaOneSyncService;
     @Autowired private GrandPrixService grandPrixService;
@@ -109,6 +113,22 @@ class FormulaOneIntegrationTest {
         when(espn.sessionCompetitors(anyString(), anyString())).thenReturn(json.readTree("[]"));
         when(espn.seasonEvents(anyInt())).thenReturn(json.readTree("[]"));
         cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).clear());
+    }
+
+    @Test
+    void retriesResultNotificationWithoutAChangedPodium() throws Exception {
+        when(espn.currentEvents()).thenReturn(events(true));
+        when(resultNotifier.notifyResult(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new IllegalStateException("Temporary push failure")).thenReturn(1);
+
+        formulaOneSyncService.syncCurrent(f1);
+        Match gp = matches.findByExternalId("f1:" + eventId).orElseThrow();
+        assertThat(raceWeekends.findById(gp.getId()).orElseThrow().getResultsNotifiedAt()).isNull();
+
+        formulaOneSyncService.syncCurrent(f1);
+        assertThat(raceWeekends.findById(gp.getId()).orElseThrow().getResultsNotifiedAt()).isNotNull();
+        verify(resultNotifier, org.mockito.Mockito.times(2))
+                .notifyResult(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test

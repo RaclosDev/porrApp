@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 
 /**
  * Aviso push del resultado de un Gran Premio a los miembros de las ligas de Fórmula 1 con los avisos de
- * predicción activados: el podio y, si lo predijeron, los puntos que han sumado. Uno por usuario.
+ * resultados activados: el podio y, si lo predijeron, los puntos que han sumado. Uno por usuario.
  */
 @Slf4j
 @Component
@@ -74,8 +74,9 @@ public class GrandPrixResultNotifier {
             if (recipient == null) continue;
             PushMessage message = messages.computeIfAbsent(userId, id -> message(match, recipient, podium));
             WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(),
-                    message.toJson(objectMapper), TTL_SECONDS);
+                    message.toJson(objectMapper), TTL_SECONDS, device.getUser().getId());
             if (result == WebPushSender.Result.SENT) delivered.put(userId, true);
+            if (result == WebPushSender.Result.FAILED) throw new IllegalStateException("No se pudo conservar el resultado de F1");
             if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
         }
         delivered.keySet().forEach(userId -> notificationLog.record(userId, messages.get(userId), now));
@@ -99,7 +100,7 @@ public class GrandPrixResultNotifier {
             League league = edition.getLeague();
             for (Membership membership : membershipRepository.findByLeagueId(league.getId())) {
                 UserAccount user = membership.getUser();
-                if (user == null || user.getId() == null || !user.isMatchRemindersEnabled()) continue;
+                if (user == null || user.getId() == null || !user.isMatchdayFinishedAlertsEnabled()) continue;
                 Integer userPoints = points.get(user.getId() + ":" + league.getId());
                 Recipient current = recipients.get(user.getId());
                 if (current == null || (current.points() == null && userPoints != null)) {

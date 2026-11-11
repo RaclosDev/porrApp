@@ -112,6 +112,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                path.startsWith("/api/auth/") ||
                path.startsWith("/api/client-errors") ||
                path.startsWith("/api/users/me") ||
+               path.startsWith("/api/push/") ||
                // Invitaciones: sin límite se podrían probar códigos por fuerza bruta.
                path.startsWith("/api/groups/preview/") ||
                path.startsWith("/join/") ||

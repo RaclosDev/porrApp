@@ -163,7 +163,7 @@ public class MemberJoinedNotifier {
             Long userId = device.getUser().getId();
             if (!recipients.contains(userId)) continue;
             WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(),
-                    payload, TTL_SECONDS);
+                    payload, TTL_SECONDS, device.getUser().getId());
             if (result == WebPushSender.Result.SENT) delivered.put(userId, true);
             if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
         }

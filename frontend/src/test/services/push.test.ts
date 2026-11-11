@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { savePushSubscription } from '../../services/api';
+import { savePushSubscription, sendTestPush } from '../../services/api';
+import { ApiError } from '../../services/apiError';
 import {
   bellAction,
   enablePush,
   PUSH_SERVICE_UNAVAILABLE,
   syncPushSubscription,
   unsubscribeThisDevice,
+  testPush,
 } from '../../services/push';
 
-vi.mock('../../services/api', () => ({ savePushSubscription: vi.fn(() => Promise.resolve()) }));
+vi.mock('../../services/api', () => ({
+  savePushSubscription: vi.fn(() => Promise.resolve()),
+  sendTestPush: vi.fn(() => Promise.resolve()),
+}));
 
 // Clave pública P-256 de ejemplo (65 bytes en base64url).
 const KEY =
@@ -39,6 +44,26 @@ const pushManager = {
   }),
 };
 const requestPermission = vi.fn(() => Promise.resolve<NotificationPermission>('granted'));
+
+it('tests the current browser endpoint after registering it', async () => {
+  await testPush(KEY);
+  expect(savePushSubscription).toHaveBeenCalled();
+  expect(sendTestPush).toHaveBeenCalledWith('https://fcm.googleapis.com/fcm/send/new');
+});
+
+it('does not send a test when notification permission is denied', async () => {
+  vi.stubGlobal('Notification', { permission: 'denied', requestPermission });
+  await expect(testPush(KEY)).rejects.toThrow('permite las notificaciones');
+  expect(sendTestPush).not.toHaveBeenCalled();
+});
+
+it('removes an expired browser subscription so the next activation can replace it', async () => {
+  const expired = fakeSubscription('https://web.push.apple.com/expired');
+  current = expired;
+  vi.mocked(sendTestPush).mockRejectedValueOnce(new ApiError(410, 'Suscripción caducada'));
+  await expect(testPush(KEY)).rejects.toThrow('Suscripción caducada');
+  expect(expired.unsubscribe).toHaveBeenCalledOnce();
+});
 
 beforeEach(() => {
   current = null;
