@@ -264,7 +264,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       {!isLanding && !isInviteAuthScreen && <MobileBottomNav />}
 
       {passkeyPrompt.show && <PasskeyPrompt userId={userId} onDone={passkeyPrompt.done} />}
-      {isUserLoggedIn && !isDemo && (
+      {isUserLoggedIn && userId && !isDemo && (
         <PushReminderPrompt
           key={userId}
           userId={userId}

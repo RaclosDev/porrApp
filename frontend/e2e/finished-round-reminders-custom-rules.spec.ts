@@ -25,6 +25,7 @@ async function signedIn(page: Page, extra: Record<string, unknown> = {}) {
     localStorage.setItem('activeCompetitionId', '2');
     // El aviso de la llave de acceso, ya contestado: no es de estas pruebas y tapa los botones.
     localStorage.setItem('passkey_prompt_answered:7', '1');
+    localStorage.setItem('push_prompt_v2:7', String(Date.now()));
   });
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url());
