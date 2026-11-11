@@ -3,6 +3,7 @@ package app.porrapp.service.notification;
 import io.jsonwebtoken.Jwts;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
@@ -47,8 +48,8 @@ import java.util.Date;
 @Component
 public class WebPushSender {
 
-    /** Resultado de un envío: entregado, dispositivo dado de baja (hay que borrarlo) o fallo temporal. */
-    public enum Result { SENT, GONE, FAILED }
+    /** SENT significa aceptado por el proveedor, no confirma que el móvil lo haya mostrado. */
+    public enum Result { SENT, QUEUED, GONE, FAILED }
 
     private static final int RECORD_SIZE = 4096;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -57,11 +58,19 @@ public class WebPushSender {
     private final String publicKeyB64;
     private final ECPrivateKey privateKey;
     private final String subject;
-    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+    private final PushRetryQueue retryQueue;
+    private final HttpClient http;
 
+    @Autowired
     public WebPushSender(@Value("${app.push.vapid-public-key:}") String publicKey,
                          @Value("${app.push.vapid-private-key:}") String privateKey,
-                         @Value("${app.push.vapid-subject:https://porrapp.app}") String subject) {
+                         @Value("${app.push.vapid-subject:https://porrapp.app}") String subject,
+                         PushRetryQueue retryQueue) {
+        this(publicKey, privateKey, subject, retryQueue,
+                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build());
+    }
+
+    WebPushSender(String publicKey, String privateKey, String subject, PushRetryQueue retryQueue, HttpClient http) {
         ECPrivateKey parsed = null;
         if (!publicKey.isBlank() && !privateKey.isBlank()) {
             try {
@@ -74,6 +83,21 @@ public class WebPushSender {
         this.privateKey = parsed;
         this.publicKeyB64 = parsed == null ? null : publicKey.trim();
         this.subject = subject;
+        this.retryQueue = retryQueue;
+        this.http = http;
+    }
+
+    WebPushSender(String publicKey, String privateKey, String subject) {
+        this(publicKey, privateKey, subject, null);
+    }
+
+    public Result send(String endpoint, String p256dh, String auth, String payload, int ttlSeconds, Long userId) {
+        Instant startedAt = Instant.now();
+        Result result = send(endpoint, p256dh, auth, payload, ttlSeconds);
+        if (result == Result.FAILED && isEnabled() && retryQueue != null
+                && payload.getBytes(StandardCharsets.UTF_8).length <= 3993
+                && retryQueue.enqueue(endpoint, userId, payload, startedAt, ttlSeconds)) return Result.QUEUED;
+        return result;
     }
 
     public boolean isEnabled() {
@@ -88,6 +112,10 @@ public class WebPushSender {
     /** Envía {@code payload} a un dispositivo. {@code ttlSeconds}: cuánto puede esperar si está apagado. */
     public Result send(String endpoint, String p256dh, String auth, String payload, int ttlSeconds) {
         if (!isEnabled()) return Result.FAILED;
+        if (payload.getBytes(StandardCharsets.UTF_8).length > 3993) {
+            log.warn("Aviso push demasiado largo; se conserva la suscripción");
+            return Result.FAILED;
+        }
         try {
             URI uri = URI.create(endpoint);
             if (!"https".equalsIgnoreCase(uri.getScheme())
@@ -145,7 +173,7 @@ public class WebPushSender {
     static byte[] encrypt(byte[] plaintext, byte[] uaPublic, byte[] authSecret, KeyPair ephemeral, byte[] salt)
             throws GeneralSecurityException {
         if (authSecret.length != 16) throw new InvalidKeyException("auth debe tener 16 bytes");
-        if (plaintext.length + 17 > RECORD_SIZE) throw new IllegalArgumentException("Aviso demasiado largo");
+        if (plaintext.length > 3993) throw new IllegalArgumentException("Aviso demasiado largo");
         byte[] asPublic = encodePublicKey((ECPublicKey) ephemeral.getPublic());
 
         KeyAgreement agreement = KeyAgreement.getInstance("ECDH");

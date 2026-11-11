@@ -55,6 +55,20 @@ Set-Location backend
 
 El backend escucha en el puerto 8080. Mantén estable `JWT_SECRET` entre arranques si quieres conservar la validez de los tokens emitidos.
 
+## Diagnóstico de notificaciones
+
+En **Cuenta → Avisos**, «Activar avisos en este dispositivo» vuelve a registrar el navegador sin cambiar las preferencias. «Probar notificaciones» registra y prueba únicamente ese dispositivo. Si el proveedor devuelve 404/410, se elimina la suscripción caducada y la siguiente activación crea otra.
+
+Un HTTP 2xx de Apple, FCM u otro proveedor confirma la aceptación del envío, no que el móvil lo haya mostrado. El historial guarda esa aceptación. Para confirmar la recepción hay que observar la notificación en el dispositivo; en iPhone/iPad se necesita la app añadida a la pantalla de inicio y permiso de notificaciones. Los modos de concentración y el resumen de notificaciones pueden afectar a su presentación.
+
+| Preferencia | Flujos |
+| --- | --- |
+| Predicciones pendientes | Partidos y F1, series NBA, Survivor, cambios de cartelera |
+| Nuevos miembros | Incorporaciones, nueva temporada, inicio de día de juego |
+| Jornada terminada | Fin de jornada y resultados de F1 |
+
+Los fallos de envío se conservan por dispositivo en `push_delivery_retries` (migración V55), aunque otro dispositivo del usuario acepte el aviso. El trabajador procesa hasta 20 entradas cada minuto, con espera creciente hasta 30 minutos y sin ampliar la caducidad original. Antes de reintentar comprueba la cuenta, su preferencia y la pertenencia a la liga enlazada. Las suscripciones caducadas y los avisos vencidos se eliminan. Una interrupción justo después de que el proveedor acepte un envío puede ocasionar un duplicado.
+
 ## Variables de entorno
 
 | Variable | Uso |

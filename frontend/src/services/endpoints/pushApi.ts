@@ -22,7 +22,7 @@ interface PushSubscriptionPayload {
   auth: string;
 }
 
-/** Un aviso push que ya le ha llegado al usuario. */
+/** Un aviso push aceptado por el proveedor; no confirma su presentación en el dispositivo. */
 export interface RecentPushNotification {
   title: string;
   body: string;
@@ -44,6 +44,13 @@ export const savePushSubscription = (subscription: PushSubscriptionPayload) =>
     method: 'POST',
     json: subscription,
     fallbackError: 'No se pudieron activar los avisos',
+  });
+
+export const sendTestPush = (endpoint: string) =>
+  request<void>('/push/test', {
+    method: 'POST',
+    json: { endpoint },
+    fallbackError: 'No se pudo enviar la prueba',
   });
 
 /** Solo cambia las preferencias que se envían. */

@@ -8,6 +8,11 @@ import app.porrapp.model.MatchStatusNormalized;
 import app.porrapp.model.PoolFormat;
 import app.porrapp.model.PredictionLockMode;
 import app.porrapp.model.Team;
+import app.porrapp.model.PushSubscription;
+import app.porrapp.model.UserAccount;
+import app.porrapp.repository.MatchReminderSentRepository;
+import app.porrapp.repository.PushSubscriptionRepository;
+import tools.jackson.databind.ObjectMapper;
 import app.porrapp.service.prediction.DrawnKnockout;
 import app.porrapp.util.AppTime;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 /** Avisos de series de la NBA a punto de cerrar. */
 class SeriesReminderServiceTest {
@@ -44,6 +50,34 @@ class SeriesReminderServiceTest {
     private Edition edition(PredictionLockMode mode, int offset) {
         return Edition.builder().id(1L).competition(nba).poolFormat(PoolFormat.KNOCKOUTS_ONLY).lockMode(mode)
                 .lockOffsetMinutes(offset).createdAt(START.minus(30, ChronoUnit.DAYS)).build();
+    }
+
+    @Test
+    void retainsQueuedDeviceWhenAnotherDeviceAcceptedTheSeriesReminder() {
+        series("Cavaliers", "Heat", START);
+        var edition = edition(PredictionLockMode.PER_MATCH, 0);
+        var tie = DrawnKnockout.rounds(edition, fixtures).get(0).ties().get(0);
+        var reminders = mock(MatchReminderSentRepository.class);
+        var subscriptions = mock(PushSubscriptionRepository.class);
+        var sender = mock(WebPushSender.class);
+        var history = mock(PushNotificationLogService.class);
+        var service = spy(new SeriesReminderService(null, null, null, null, reminders, subscriptions,
+                sender, new ObjectMapper(), history));
+        var league = League.builder().id(7L).name("NBA").build();
+        var user = UserAccount.builder().id(1L).build();
+        doReturn(List.of(new SeriesReminderService.Pending(1L, league, tie, START)))
+                .when(service).findPending(START.minusSeconds(600));
+        when(subscriptions.findByUserIdIn(any())).thenReturn(List.of(
+                PushSubscription.builder().user(user).endpoint("apple").p256dh("key").auth("auth").build(),
+                PushSubscription.builder().user(user).endpoint("android").p256dh("key").auth("auth").build()));
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), eq(600), eq(1L)))
+                .thenReturn(WebPushSender.Result.QUEUED, WebPushSender.Result.SENT);
+
+        assertEquals(1, service.sendReminders(START.minusSeconds(600)));
+        verify(sender, times(2)).send(anyString(), anyString(), anyString(), anyString(), eq(600), eq(1L));
+        verify(reminders).saveAll(any());
+        verify(history).record(eq(1L), any(), eq(START.minusSeconds(600)));
+        verify(subscriptions, never()).deleteByEndpoint(anyString());
     }
 
     @Test

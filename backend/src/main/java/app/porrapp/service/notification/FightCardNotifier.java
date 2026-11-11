@@ -69,15 +69,17 @@ public class FightCardNotifier {
             PushMessage message = message(byUser.get(userId));
             String payload = message.toJson(objectMapper);
             boolean any = false;
+            boolean queued = false;
             for (PushSubscription device : devices.getOrDefault(userId, List.of())) {
                 WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(),
-                        payload, TTL_SECONDS);
+                        payload, TTL_SECONDS, device.getUser().getId());
                 if (result == WebPushSender.Result.SENT) any = true;
+                if (result == WebPushSender.Result.QUEUED) queued = true;
                 if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
             }
-            if (any) {
+            if (any || queued) {
                 delivered++;
-                notificationLog.record(userId, message, now);
+                if (any) notificationLog.record(userId, message, now);
             }
         }
         return delivered;

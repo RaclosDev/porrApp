@@ -3,11 +3,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, expect, it, vi } from 'vitest';
 import ReminderSettings from '../../components/ReminderSettings';
 import { fetchPushConfig, setPushPreferences } from '../../services/api';
-import { enablePush, needsIosInstall, notificationPermission } from '../../services/push';
+import { enablePush, needsIosInstall, notificationPermission, testPush } from '../../services/push';
 
 vi.mock('../../services/api', () => ({ fetchPushConfig: vi.fn(), setPushPreferences: vi.fn() }));
 vi.mock('../../services/push', () => ({
   enablePush: vi.fn(),
+  testPush: vi.fn(),
   needsIosInstall: vi.fn(() => false),
   notificationPermission: vi.fn(() => 'granted'),
 }));
@@ -15,6 +16,7 @@ vi.mock('../../services/push', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(enablePush).mockResolvedValue(true);
+  vi.mocked(testPush).mockResolvedValue(undefined);
   vi.mocked(needsIosInstall).mockReturnValue(false);
   vi.mocked(notificationPermission).mockReturnValue('granted');
   vi.mocked(fetchPushConfig).mockResolvedValue({
@@ -24,6 +26,30 @@ beforeEach(() => {
     matchdayFinishedEnabled: true,
   });
   vi.mocked(setPushPreferences).mockResolvedValue(undefined);
+});
+
+it('tests only this device and distinguishes acceptance from display', async () => {
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ReminderSettings />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Probar notificaciones' }));
+  expect(testPush).toHaveBeenCalledWith('KEY');
+  expect(await screen.findByRole('status')).toHaveTextContent('Prueba aceptada');
+  expect(screen.getByRole('status')).toHaveTextContent('Comprueba si aparece');
+  expect(setPushPreferences).not.toHaveBeenCalled();
+});
+
+it('shows a test failure without claiming success', async () => {
+  vi.mocked(testPush).mockRejectedValueOnce(new Error('El proveedor no ha aceptado la prueba'));
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ReminderSettings />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Probar notificaciones' }));
+  expect(await screen.findByRole('status')).toHaveTextContent('El proveedor no ha aceptado');
 });
 
 it.each(['default', 'granted'] as const)(

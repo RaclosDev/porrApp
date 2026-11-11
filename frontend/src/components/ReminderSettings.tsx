@@ -7,7 +7,7 @@ import {
   type PushConfig,
   type PushPreferences,
 } from '../services/api';
-import { enablePush, needsIosInstall, notificationPermission } from '../services/push';
+import { enablePush, needsIosInstall, notificationPermission, testPush } from '../services/push';
 import { PUSH_CONFIG_QUERY_KEY } from './layout/PushReminderPrompt';
 import { errorMessage } from '../utils/errors';
 
@@ -93,6 +93,21 @@ export default function ReminderSettings({ sectionRef }: { sectionRef?: Ref<HTML
     }
   };
 
+  const testDevice = async () => {
+    setSaving(true);
+    setDeviceMessage(null);
+    try {
+      await testPush(publicKey);
+      setDeviceMessage(
+        'Prueba aceptada por el servicio de notificaciones. Comprueba si aparece en el móvil; si no, revisa los permisos de porrApp, los modos de concentración y el resumen de notificaciones.',
+      );
+    } catch (err) {
+      setDeviceMessage(errorMessage(err, 'No se pudo enviar la prueba'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return frame(
     <>
       <label className="flex items-center gap-2.5 cursor-pointer">
@@ -150,6 +165,16 @@ export default function ReminderSettings({ sectionRef }: { sectionRef?: Ref<HTML
         <p role="status" className="m-0 text-[0.8rem] text-muted">
           {deviceMessage}
         </p>
+      )}
+      {!needsIosInstall() && (permission === 'default' || permission === 'granted') && (
+        <button
+          type="button"
+          className="glass-btn px-3 py-2 text-[0.85rem] font-bold"
+          disabled={saving}
+          onClick={() => void testDevice()}
+        >
+          Probar notificaciones
+        </button>
       )}
     </>,
   );

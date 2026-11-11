@@ -81,6 +81,27 @@ public class PushSubscriptionService {
         subscriptionRepository.deleteByEndpointAndUserId(endpoint.trim(), findUser(email).getId());
     }
 
+    @Transactional(noRollbackFor = BusinessException.class)
+    public void testNotification(String email, String endpoint) {
+        UserAccount user = findUser(email);
+        PushSubscription device = subscriptionRepository.findByEndpoint(validEndpoint(endpoint))
+                .filter(subscription -> subscription.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> BusinessException.badRequest("Activa primero los avisos en este dispositivo."));
+        String payload = """
+                {"title":"Prueba de notificaciones","body":"Este dispositivo puede recibir los avisos de porrApp.",
+                 "url":"/","tag":"push-test"}
+                """;
+        WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(), payload, 60);
+        if (result == WebPushSender.Result.GONE) {
+            subscriptionRepository.deleteByEndpointAndUserId(device.getEndpoint(), user.getId());
+            throw new BusinessException(org.springframework.http.HttpStatus.GONE,
+                    "El registro de este dispositivo ha caducado. Vuelve a activar los avisos.");
+        }
+        if (result != WebPushSender.Result.SENT) {
+            throw BusinessException.conflict("El servicio de notificaciones no ha aceptado la prueba. Inténtalo de nuevo más tarde.");
+        }
+    }
+
     @Transactional
     public void setPreferences(String email, Boolean remindersEnabled, Boolean memberJoinedEnabled,
                                Boolean matchdayFinishedEnabled) {
