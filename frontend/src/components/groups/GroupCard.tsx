@@ -45,7 +45,11 @@ export default function GroupCard({
   // Terminada desde que se juega su último partido, antes de que se archive la temporada.
   const ended = Boolean(group.seasonEnded || summary?.finished);
   const meta = [
-    group.kind === 'POKER' ? 'Póker' : competitionLabel(group),
+    group.kind === 'TOURNAMENT'
+      ? 'Torneo de seguimiento'
+      : group.kind === 'POKER'
+        ? 'Póker'
+        : competitionLabel(group),
     // Terminada, la temporada la distingue de la liga que la repite, que se llama igual.
     ended ? group.season : null,
     group.poolFormat ? poolFormatShortLabel(group.poolFormat) : null,

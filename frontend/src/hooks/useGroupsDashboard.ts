@@ -1,3 +1,4 @@
+import { tournamentKey } from '../services/endpoints/organizedTournaments';
 import toast from 'react-hot-toast';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
@@ -143,6 +144,7 @@ export function useGroupsDashboard() {
   const handleSaveGroupConfig = async (groupId: GroupId, name: string, rules: string) => {
     try {
       await updateGroup(groupId, name?.trim(), rules);
+      void queryClient.invalidateQueries({ queryKey: tournamentKey(String(groupId), false) });
       refreshGroups();
       return true;
     } catch (e) {
@@ -186,6 +188,7 @@ export function useGroupsDashboard() {
 
     try {
       await deleteGroup(groupId);
+      queryClient.removeQueries({ queryKey: tournamentKey(String(groupId), false) });
       forgetKnownGroups([groupId]);
       // Fuera de la lista ya: si era la activa, se abre sola la más reciente (useLeagueDataEffects).
       dropFromMyGroups(queryClient, groupId);
@@ -246,19 +249,23 @@ export function useGroupsDashboard() {
         queryClient.invalidateQueries({ queryKey: queryKeys.leaderboard(groupId) }),
       ]);
       setJoinCode('');
-      changeGroup(groupId);
+      if (fullGroup.kind !== 'TOURNAMENT') changeGroup(groupId);
       setError('');
       toast.success(`¡Te has unido a "${fullGroup.name || group.name}"!`);
       // La portada adapta automáticamente el contenido al formato de esta liga.
-      navigate('/', { replace: true });
+      navigate(fullGroup.kind === 'TOURNAMENT' ? `/torneos/${groupId}` : '/', { replace: true });
     } catch (e) {
       setError(errorMessage(e, 'No se pudo unir a la liga'));
     }
   };
 
   const handleEnterGroup = (groupId: GroupId) => {
-    changeGroup(groupId.toString());
     const g = groups.find((item) => item.id.toString() === groupId.toString());
+    if (g?.kind === 'TOURNAMENT') {
+      navigate(`/torneos/${groupId}`);
+      return;
+    }
+    changeGroup(groupId.toString());
     if (g && !isScoreboardLeague(g) && g.kind !== 'POKER' && isMatchBasedFormat(g.poolFormat)) {
       navigate('/jornadas');
     } else {
@@ -272,7 +279,7 @@ export function useGroupsDashboard() {
       !(await confirmAction({
         title: `¿Salir de «${groupName}»?`,
         message:
-          group?.kind === 'POKER'
+          group?.kind === 'POKER' || group?.kind === 'TOURNAMENT'
             ? 'Puedes volver a entrar con el enlace de invitación.'
             : 'Perderás tus porras en esta liga.',
         confirmLabel: 'Salir de la liga',
@@ -281,6 +288,7 @@ export function useGroupsDashboard() {
       return;
     try {
       await leaveGroup(groupId);
+      queryClient.removeQueries({ queryKey: tournamentKey(String(groupId), false) });
       forgetKnownGroups([groupId]);
       // Fuera de la lista ya: si era la activa, se abre sola la más reciente (useLeagueDataEffects).
       dropFromMyGroups(queryClient, groupId);

@@ -38,6 +38,7 @@ import { queryKeys } from '../services/queryKeys';
 export default function GroupMembersModal({
   groupId,
   groupName,
+  isTournament = false,
   currentJoinCode,
   isAdmin,
   currentUserId = null,
@@ -55,6 +56,7 @@ export default function GroupMembersModal({
 }: {
   groupId: number;
   groupName: string;
+  isTournament?: boolean;
   currentJoinCode: string | null | undefined;
   isAdmin: boolean;
   currentUserId?: string | number | null;
@@ -86,7 +88,7 @@ export default function GroupMembersModal({
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const scoringEditor = useScoringEditor(groupId, isAdmin);
+  const scoringEditor = useScoringEditor(groupId, isAdmin && !isTournament);
   const membersAdmin = useLeagueMembersAdmin(groupId, setActionError);
   const { members } = membersAdmin;
   const invite = useInviteCode({
@@ -251,9 +253,10 @@ export default function GroupMembersModal({
       extra: rulesDirty && <UnsavedDot />,
     },
   ];
+  const visibleTabs = isTournament ? adminTabs.filter(({ id }) => id !== 'scoring') : adminTabs;
 
   const handleTabKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    const ids = adminTabs.map((item) => item.id);
+    const ids = visibleTabs.map((item) => item.id);
     const index = ids.indexOf(tab);
     const keys: Record<string, number> = {
       ArrowRight: (index + 1) % ids.length,
@@ -287,14 +290,18 @@ export default function GroupMembersModal({
               ) : (
                 <Users size={12} aria-hidden="true" />
               )}
-              {isAdmin ? 'Administrar liga' : 'Participantes'}
+              {isAdmin
+                ? isTournament
+                  ? 'Administrar torneo'
+                  : 'Administrar liga'
+                : 'Participantes'}
             </span>
             <h2 id="league-admin-title" className="league-admin-title">
               {groupName}
             </h2>
             <p className="league-admin-subtitle">
               {members.length} {members.length === 1 ? 'participante' : 'participantes'}
-              {isAdmin ? ' · Pagos e invitaciones' : ''}
+              {isAdmin && (isTournament ? ' · Invitaciones' : ' · Pagos e invitaciones')}
             </p>
           </div>
           <button
@@ -309,7 +316,7 @@ export default function GroupMembersModal({
 
         {isAdmin && (
           <div className="league-admin-tabs" role="tablist" aria-label="Secciones de la liga">
-            {adminTabs.map((item) => (
+            {visibleTabs.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -357,6 +364,7 @@ export default function GroupMembersModal({
           {currentTab !== 'members' && (
             <LeagueSettingsTab
               section={currentTab}
+              isTournament={isTournament}
               deleteConfirmName={deleteConfirmName}
               deleteOpen={deleteOpen}
               deleting={deleting}

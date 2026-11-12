@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
 import GroupsDashboard from '../../pages/GroupsDashboard';
 import { useAppContext } from '../../context/AppContext';
@@ -34,26 +34,52 @@ it('does not offer administration of another user league with the same public na
   expect(screen.queryByRole('button', { name: 'Administrar Liga de Ana' })).not.toBeInTheDocument();
 });
 
-it('offers direct tournament management only to its creator', async () => {
-  vi.mocked(useAppContext).mockReturnValue(
-    appContext({ isAuthenticated: true, userId: '7', userName: 'Ana' }),
-  );
+it('uses the league card for tracking tournaments and opens them for members', async () => {
+  const ctx = appContext({
+    isAuthenticated: true,
+    userId: '7',
+    userName: 'Ana',
+    changeGroup: vi.fn(),
+  });
+  vi.mocked(useAppContext).mockReturnValue(ctx);
   vi.mocked(fetchMyGroups).mockResolvedValue([
-    group({ id: 30, name: 'Poker Sábados', kind: 'TOURNAMENT', adminUserId: 7 }),
+    group({
+      id: 30,
+      name: 'Poker Sábados',
+      kind: 'TOURNAMENT',
+      adminUserId: 7,
+      joinCode: 'POKER30',
+    }),
     group({ id: 31, name: 'Otro torneo', kind: 'TOURNAMENT', adminUserId: 8 }),
   ]);
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
-        <GroupsDashboard />
+        <Routes>
+          <Route path="/" element={<GroupsDashboard />} />
+          <Route path="/torneos/31" element={<h1>Seguimiento del torneo</h1>} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 
+  const options = await screen.findByRole('button', { name: 'Más opciones de Poker Sábados' });
+  const ownerCard = within(options.closest('li')!);
+  fireEvent.click(options);
   expect(
-    await screen.findByRole('link', { name: 'Administrar torneo: Poker Sábados' }),
-  ).toHaveAttribute('href', '/torneos/30');
-  expect(screen.queryByRole('link', { name: 'Administrar torneo: Otro torneo' })).toBeNull();
+    ownerCard.getByRole('button', { name: 'Invitar a Poker Sábados por WhatsApp' }),
+  ).toBeVisible();
+  expect(
+    ownerCard.getByRole('button', { name: 'Copiar enlace de invitación de Poker Sábados' }),
+  ).toBeVisible();
+  expect(ownerCard.getByRole('button', { name: 'Ver las reglas de esta liga' })).toBeVisible();
+  expect(ownerCard.getByRole('button', { name: 'Administrar Poker Sábados' })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Más opciones de Otro torneo' }));
+  expect(screen.getByRole('button', { name: 'Miembros de Otro torneo' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Administrar Otro torneo' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Abrir Otro torneo' }));
+  expect(screen.getByRole('heading', { name: 'Seguimiento del torneo' })).toBeVisible();
+  expect(ctx.changeGroup).not.toHaveBeenCalled();
 });
 
 it('lista primero la liga activa, luego las abiertas hace menos y al final las nunca abiertas', async () => {

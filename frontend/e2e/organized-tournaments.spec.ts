@@ -11,6 +11,7 @@ function tournament(): OrganizedTournament {
     participantType: 'TEAM',
     format: 'MANUAL',
     published: false,
+    canEdit: true,
     publicId: '742048c5-c4b6-4bcc-ab10-2ebcc48e91cf',
     revision: 0,
     winPoints: 3,

@@ -48,12 +48,21 @@ public class OrganizedTournamentService {
     }
 
     @Transactional(readOnly = true)
-    public OrganizedTournamentDTO get(String email, Long id) { return view(owned(email, id, false)); }
+    public OrganizedTournamentDTO get(String email, Long id) {
+        OrganizedTournament tournament = find(id, false);
+        if (canOrganize(tournament, email)) return view(tournament);
+
+        UserAccount member = email == null ? null : users.findByGoogleEmail(email).orElse(null);
+        if (member == null || !memberships.existsById(new Membership.MembershipId(member.getId(), id))) {
+            throw BusinessException.forbidden("No perteneces a este torneo.");
+        }
+        return view(tournament, false);
+    }
 
     @Transactional(readOnly = true)
     public OrganizedTournamentDTO publicView(UUID publicId) {
         return view(tournaments.findByPublicIdAndPublishedTrue(publicId)
-                .orElseThrow(() -> BusinessException.notFound("Este torneo no está publicado o el enlace ya no está disponible.")));
+                .orElseThrow(() -> BusinessException.notFound("Este torneo no está publicado o el enlace ya no está disponible.")), false);
     }
 
     @Transactional
@@ -211,12 +220,20 @@ public class OrganizedTournamentService {
     }
 
     private OrganizedTournament owned(String email, Long id, boolean lock) {
-        OrganizedTournament tournament = (lock ? tournaments.findLocked(id) : tournaments.findById(id))
-                .orElseThrow(() -> BusinessException.notFound("Torneo no encontrado."));
-        if (email == null || !tournament.getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
-            throw BusinessException.forbidden("Solo quien administra el torneo puede acceder aquí.");
+        OrganizedTournament tournament = find(id, lock);
+        if (!canOrganize(tournament, email)) {
+            throw BusinessException.forbidden("Solo quien administra el torneo puede editarlo.");
         }
         return tournament;
+    }
+
+    private OrganizedTournament find(Long id, boolean lock) {
+        return (lock ? tournaments.findLocked(id) : tournaments.findById(id))
+                .orElseThrow(() -> BusinessException.notFound("Torneo no encontrado."));
+    }
+
+    private static boolean canOrganize(OrganizedTournament tournament, String email) {
+        return email != null && tournament.getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(email);
     }
 
     private static void requireNoSchedule(OrganizedTournament tournament) {
@@ -245,8 +262,13 @@ public class OrganizedTournamentService {
     private static String clean(String value) { return value == null || value.isBlank() ? null : value.strip(); }
 
     private static OrganizedTournamentDTO view(OrganizedTournament tournament) {
+        return view(tournament, true);
+    }
+
+    private static OrganizedTournamentDTO view(OrganizedTournament tournament, boolean canEdit) {
+        String publicId = canEdit || tournament.isPublished() ? tournament.getPublicId().toString() : null;
         return new OrganizedTournamentDTO(tournament.getId(), tournament.getLeague().getName(), tournament.getActivity(),
-                tournament.getParticipantType(), tournament.getFormat(), tournament.isPublished(), tournament.getPublicId().toString(),
+                tournament.getParticipantType(), tournament.getFormat(), tournament.isPublished(), publicId, canEdit,
                 tournament.getRevision(), tournament.getWinPoints(), tournament.getDrawPoints(), tournament.getLossPoints(),
                 tournament.getParticipants(), tournament.getMatches(), "KNOCKOUT".equals(tournament.getFormat()) ? List.of()
                 : TournamentSchedule.standings(tournament.getParticipants(), tournament.getMatches(), tournament.getWinPoints(),

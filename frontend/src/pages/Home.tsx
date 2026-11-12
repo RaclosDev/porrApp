@@ -61,7 +61,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
       <section className="paper-panel album-sheet p-6">
         <h1>Torneo de seguimiento</h1>
         <Link className="glass-btn p-3" to={`/torneos/${activeGroupId}`}>
-          Administrar torneo
+          Abrir torneo
         </Link>
       </section>
     ),
