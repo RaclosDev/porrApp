@@ -135,6 +135,22 @@ it('publishes using the loaded revision and shows a shareable link', async () =>
   );
 });
 
+it('opens an empty tournament directly in setup', async () => {
+  vi.mocked(fetchOrganizedTournament).mockResolvedValue({
+    ...fixture(),
+    participants: [],
+    matches: [],
+    standings: [],
+  });
+  renderPage();
+
+  expect(await screen.findByRole('button', { name: 'Participantes y formato' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(screen.getByRole('textbox', { name: 'Nombre del participante' })).toBeVisible();
+});
+
 it('keeps a rejected result visible and reloads after a conflict', async () => {
   vi.mocked(fetchOrganizedTournament).mockResolvedValue(fixture());
   vi.mocked(changeTournament).mockRejectedValue(new Error('El torneo ha cambiado.'));

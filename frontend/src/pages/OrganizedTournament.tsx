@@ -30,7 +30,7 @@ export default function OrganizedTournament({ publicView = false }: { publicView
   const [notice, setNotice] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
   const [round, setRound] = useState(1);
-  const [tab, setTab] = useState<'results' | 'setup'>('results');
+  const [tab, setTab] = useState<'results' | 'setup' | null>(null);
   const t = query.data;
   const update: TournamentUpdate = async (path, method, data) => {
     if (!t || saving.current || publicView) return false;
@@ -69,6 +69,7 @@ export default function OrganizedTournament({ publicView = false }: { publicView
       </section>
     );
   const link = `${window.location.origin}/t/${t.publicId}`;
+  const activeTab = tab ?? (t.matches.length ? 'results' : 'setup');
   const name = (participantId: string | null) =>
     t.participants.find((p) => p.id === participantId)?.name ?? 'Por decidir';
   const rounds = [...new Set(t.matches.map((m) => m.round))].sort((a, b) => a - b);
@@ -167,7 +168,7 @@ export default function OrganizedTournament({ publicView = false }: { publicView
           <p>
             {t.published
               ? 'Publicado: cualquiera con el enlace puede consultarlo.'
-              : 'Borrador: solo tú puedes verlo.'}
+              : 'Borrador. La página pública estará disponible cuando lo publiques.'}
           </p>
         )}
       </header>
@@ -252,21 +253,21 @@ export default function OrganizedTournament({ publicView = false }: { publicView
         <nav className="tournament-actions" aria-label="Secciones del torneo">
           <button
             className="glass-btn"
-            aria-pressed={tab === 'results'}
+            aria-pressed={activeTab === 'results'}
             onClick={() => setTab('results')}
           >
             Resultados y cuadro
           </button>
           <button
             className="glass-btn"
-            aria-pressed={tab === 'setup'}
+            aria-pressed={activeTab === 'setup'}
             onClick={() => setTab('setup')}
           >
             Participantes y formato
           </button>
         </nav>
       )}
-      {!publicView && tab === 'setup' ? (
+      {!publicView && activeTab === 'setup' ? (
         <TournamentSetup tournament={t} update={update} busy={busy} />
       ) : (
         <>

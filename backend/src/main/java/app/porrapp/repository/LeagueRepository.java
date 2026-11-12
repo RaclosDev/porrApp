@@ -44,6 +44,14 @@ public interface LeagueRepository extends JpaRepository<League, Long> {
     @Query("SELECT l FROM League l WHERE l.adminUser.id = :adminUserId")
     List<League> findByAdminUserId(@Param("adminUserId") Long adminUserId);
 
+    @EntityGraph(attributePaths = "adminUser")
+    @Query("""
+            SELECT l FROM League l
+            WHERE (l.adminUser.id = :userId AND l.kind = 'TOURNAMENT')
+               OR EXISTS (SELECT 1 FROM Membership m WHERE m.league = l AND m.user.id = :userId)
+            """)
+    List<League> findAllForUserDashboard(@Param("userId") Long userId);
+
     /** La liga que repite a esa para la temporada siguiente; como mucho hay una. */
     @EntityGraph(attributePaths = "adminUser")
     Optional<League> findByPreviousLeagueId(Long previousLeagueId);
