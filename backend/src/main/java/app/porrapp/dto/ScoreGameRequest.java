@@ -15,7 +15,11 @@ import jakarta.validation.constraints.Max;
 public record ScoreGameRequest(
         @NotBlank @Size(max = 60) String name,
         @Size(max = 30) String unit,
-        boolean lowerWins,
+        Boolean lowerWins,
         @Pattern(regexp = "POINTS|WINS|DIRECT|ROUNDS") String mode,
         @Min(1) @Max(500) Integer targetWins) {
+    /** La web no envía {@code lowerWins} cuando no aplica: ausente equivale a {@code false}. */
+    public ScoreGameRequest {
+        lowerWins = Boolean.TRUE.equals(lowerWins);
+    }
 }
