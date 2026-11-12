@@ -4,7 +4,7 @@ import { copyWithToast, joinLink } from '../../utils/leagueInvite';
 import TrackerQr from './TrackerQr';
 
 interface Props {
-  tracker: Tracker;
+  tracker: Pick<Tracker, 'name' | 'joinCode'>;
 }
 
 /**

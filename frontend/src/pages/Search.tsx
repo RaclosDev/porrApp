@@ -71,6 +71,7 @@ function Search() {
     // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
     scoreboard: <Navigate to="/" replace />,
     tournament: <Navigate to="/" replace />,
+    poker: <Navigate to="/" replace />,
     // El Mundial es un cuadro más, con los puestos de la fase de grupos aparte.
     groupStage: <GroupStageSearchPage />,
     matchday: <Navigate to="/stats" replace />,

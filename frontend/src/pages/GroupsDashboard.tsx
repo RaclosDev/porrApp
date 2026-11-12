@@ -237,9 +237,26 @@ export default function GroupsDashboard() {
                 </Link>
               </li>
             ))}
+          {groups
+            .filter((group) => group.kind === 'POKER')
+            .map((group) => (
+              <li key={group.id} className="paper-panel album-sheet p-5">
+                <h3 className="poster-title break-words">{group.name}</h3>
+                <p>Liga de póker</p>
+                <Link
+                  className="glass-btn inline-flex items-center min-h-11 px-4"
+                  to={`/?group=${group.id}`}
+                >
+                  Abrir liga
+                </Link>
+              </li>
+            ))}
           {sortGroupsByRecent(
             // Las de juegos de mesa tienen su tarjeta, con jugadores y partidas.
-            groups.filter((group) => !isScoreboardLeague(group) && group.kind !== 'TOURNAMENT'),
+            groups.filter(
+              (group) =>
+                !isScoreboardLeague(group) && group.kind !== 'TOURNAMENT' && group.kind !== 'POKER',
+            ),
             activeGroupId,
           ).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();

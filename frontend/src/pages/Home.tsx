@@ -20,6 +20,7 @@ import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueSta
 import { useTournamentData } from '../context/leagueData';
 import type { LeagueKind } from '../context/leagueKind';
 import TrackerHome from './TrackerHome';
+import PokerLeague from './PokerLeague';
 import { Link } from 'react-router-dom';
 
 type HomeMode = 'home' | 'groups';
@@ -53,6 +54,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     grandPrix: <GrandPrixHome />,
     // Juegos de mesa: el inicio es el resumen de la liga (hoy, podio y último día).
     scoreboard: <TrackerHome leagueId={activeGroupId} />,
+    poker: activeGroupId && <PokerLeague key={activeGroupId} leagueId={activeGroupId} />,
     tournament: (
       <section className="paper-panel album-sheet p-6">
         <h1>Torneo de seguimiento</h1>
@@ -65,7 +67,10 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
   return (
     <>
       {/* Una liga terminada abre su inicio con el cierre: campeón, podio y compartir. */}
-      {home && leagueKind !== 'scoreboard' && leagueKind !== 'tournament' && <LeagueClosing />}
+      {home &&
+        leagueKind !== 'scoreboard' &&
+        leagueKind !== 'tournament' &&
+        leagueKind !== 'poker' && <LeagueClosing />}
       {views[leagueKind]}
     </>
   );

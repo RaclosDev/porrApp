@@ -41,6 +41,7 @@ const Stats = lazyPage(() => import('./pages/Stats'));
 const Search = lazyPage(() => import('./pages/Search'));
 const GroupsDashboard = lazyPage(() => import('./pages/GroupsDashboard'));
 const CreateLeague = lazyPage(() => import('./pages/CreateLeague'));
+const CreatePokerLeague = lazyPage(() => import('./pages/CreatePokerLeague'));
 const CreateTracker = lazyPage(() => import('./pages/CreateTracker'));
 const CreateTournament = lazyPage(() => import('./pages/CreateTournament'));
 const OrganizedTournament = lazyPage(() => import('./pages/OrganizedTournament'));
@@ -292,6 +293,14 @@ function AppShell() {
               element={
                 <ProtectedRoute>
                   <CreateTracker />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/poker/nueva"
+              element={
+                <ProtectedRoute>
+                  <CreatePokerLeague />
                 </ProtectedRoute>
               }
             />

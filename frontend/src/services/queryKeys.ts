@@ -23,6 +23,8 @@ export const queryKeys = {
   competitions: () => key('competitions'),
   /** Marcadores de juegos; cada marcador cuelga del prefijo, así que invalidarlo refresca todos. */
   trackers: () => key('trackers'),
+  poker: (id: Id) => key('poker', asText(id)),
+  pokerHistory: (id: Id) => key('poker', asText(id), 'history'),
   tracker: (id: Id) => key('trackers', asText(id)),
   myGroups: (isAuthenticated?: boolean) => key('myGroups', isAuthenticated),
   /** Cuelga de `myGroups`: invalidar las ligas también refresca el resumen. */

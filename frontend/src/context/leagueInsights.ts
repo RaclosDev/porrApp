@@ -37,4 +37,5 @@ export const LEAGUE_INSIGHTS: Record<LeagueKind, LeagueInsights> = {
   unknown: NO_INSIGHTS,
   scoreboard: NO_INSIGHTS,
   tournament: NO_INSIGHTS,
+  poker: NO_INSIGHTS,
 };
