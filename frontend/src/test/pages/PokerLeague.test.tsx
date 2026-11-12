@@ -119,6 +119,8 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   const rebuy = within(screen.getByRole('group', { name: 'Permitir recompras' }));
   set('Importe (€)', '9.50', rebuy);
   set('Fichas', '6000', rebuy);
+  expect(rebuy.getByLabelText('Sin límite por jugador')).toBeChecked();
+  fireEvent.click(rebuy.getByLabelText('Sin límite por jugador'));
   set('Máximo por jugador', '2', rebuy);
   set('Hasta el final de', '3', rebuy);
   click('Quitar nivel 2');
@@ -233,15 +235,16 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   );
   const { rerender } = render(live(active));
   expect(screen.getByRole('timer')).toHaveTextContent('00:01');
+  expect(screen.getByLabelText('Recompras y add-on: quedan 00:01')).toBeInTheDocument();
   click('Pausar');
   click('Siguiente nivel');
   click('Recompra de Ana');
   click('Add-on para Ana');
   expect(screen.queryByRole('button', { name: 'Recompra de Luis' })).toBeNull();
   click('Eliminar a Paz');
-  fireEvent.click(screen.getByText('Corregir recompras y add-ons'));
-  click('Quitar recompra (1)');
-  click('Quitar add-on (1)');
+  fireEvent.click(screen.getByText('Corregir'));
+  click('Quitar una recompra a Luis (1)');
+  click('Quitar un add-on a Luis (1)');
   expect(onCommand.mock.calls).toEqual([
     ['PAUSE'],
     ['NEXT_LEVEL'],
@@ -260,9 +263,13 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   expect(onCommand).toHaveBeenLastCalledWith('RESUME');
 
   rerender(live({ ...active, eliminations: [3, 2] }));
-  fireEvent.click(screen.getByText('Eliminados (2)'));
-  click('Deshacer eliminación de Luis');
-  expect(onCommand).toHaveBeenLastCalledWith('UNDO_ELIMINATION');
+  const names = within(screen.getByRole('heading', { name: 'Jugadores' }).parentElement!)
+    .getAllByRole('listitem')
+    .map((item) => item.querySelector('strong')?.textContent)
+    .filter(Boolean);
+  expect(names.slice(0, 3)).toEqual(['Ana', 'Luis', 'Paz']);
+  click('Quitar la eliminación de Paz');
+  expect(onCommand).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
   click('Cerrar torneo');
   vi.useRealTimers();
   await waitFor(() => expect(onCommand).toHaveBeenLastCalledWith('CLOSE'));
@@ -451,19 +458,26 @@ it('abre las acciones desde la foto y respeta permisos y extras disponibles', ()
     onCommand: command,
   };
   const { rerender } = render(<PokerLive {...props} />);
-  expect(screen.queryByRole('button', { name: 'Acciones de Paz' })).not.toBeInTheDocument();
   click('Acciones de Ana');
   const actions = within(screen.getByRole('region', { name: 'Acciones de Ana' }));
-  fireEvent.click(actions.getByRole('button', { name: 'Recompra' }));
+  fireEvent.click(actions.getByRole('button', { name: 'Recompra de Ana' }));
   expect(command).toHaveBeenLastCalledWith('REBUY', 1);
-  fireEvent.click(actions.getByRole('button', { name: 'Add-on' }));
+  fireEvent.click(actions.getByRole('button', { name: 'Add-on para Ana' }));
   expect(command).toHaveBeenLastCalledWith('ADD_ON', 1);
-  fireEvent.click(actions.getByRole('button', { name: 'Eliminar' }));
+  fireEvent.click(actions.getByRole('button', { name: 'Eliminar a Ana' }));
   expect(command).toHaveBeenLastCalledWith('ELIMINATE', 1);
   click('Acciones de Luis');
   const limited = within(screen.getByRole('region', { name: 'Acciones de Luis' }));
-  expect(limited.queryByRole('button', { name: 'Recompra' })).not.toBeInTheDocument();
-  expect(limited.queryByRole('button', { name: 'Add-on' })).not.toBeInTheDocument();
+  expect(limited.queryByRole('button', { name: 'Recompra de Luis' })).not.toBeInTheDocument();
+  expect(limited.queryByRole('button', { name: 'Add-on para Luis' })).not.toBeInTheDocument();
+  click('Acciones de Paz');
+  const out = within(screen.getByRole('region', { name: 'Acciones de Paz' }));
+  expect(out.queryByRole('button', { name: 'Eliminar a Paz' })).not.toBeInTheDocument();
+  expect(out.queryByRole('button', { name: 'Add-on para Paz' })).not.toBeInTheDocument();
+  fireEvent.click(out.getByRole('button', { name: 'Recompra de Paz' }));
+  expect(command).toHaveBeenLastCalledWith('REBUY', 3);
+  fireEvent.click(out.getByRole('button', { name: 'Quitar la eliminación de Paz' }));
+  expect(command).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
   rerender(<PokerLive {...props} owner={false} />);
   expect(screen.queryByRole('button', { name: 'Acciones de Ana' })).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Acciones de Luis' })).not.toBeInTheDocument();
@@ -499,7 +513,7 @@ it('desactiva el ante de todos los niveles al guardar y permite recuperarlo ante
   ]);
 });
 
-it('acumula recompras y add-ons por jugador entre torneos cerrados', () => {
+it('acumula recompras, add-ons y aplausos por jugador entre torneos cerrados', () => {
   const first = {
     ...session,
     closedAt: 5000,
@@ -517,6 +531,9 @@ it('acumula recompras y add-ons por jugador entre torneos cerrados', () => {
   expect(ana[headers.indexOf('Add-ons') - 1]).toHaveTextContent(/^2$/);
   expect(luis[headers.indexOf('Recompras') - 1]).toHaveTextContent(/^0$/);
   expect(luis[headers.indexOf('Add-ons') - 1]).toHaveTextContent(/^0$/);
+  // Solo cobra el primero: el segundo se lleva el aplauso.
+  expect(luis[headers.indexOf('Aplausos') - 1]).toHaveTextContent(/^1$/);
+  expect(ana[headers.indexOf('Aplausos') - 1]).toHaveTextContent(/^0$/);
 });
 
 it('ordena cada columna por su valor y alterna el sentido sin cambiar el podio', () => {

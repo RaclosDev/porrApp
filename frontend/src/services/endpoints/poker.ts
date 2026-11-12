@@ -10,7 +10,8 @@ export interface BlindLevel {
 export interface PokerExtra {
   costCents: number;
   chips: number;
-  limit: number;
+  /** Máximo por jugador; null si no tiene límite. */
+  limit: number | null;
   throughLevel: number;
 }
 

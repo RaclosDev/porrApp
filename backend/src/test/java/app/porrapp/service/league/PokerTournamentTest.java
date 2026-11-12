@@ -52,6 +52,42 @@ class PokerTournamentTest {
         }
     }
 
+    @Test
+    void rebuysWithoutLimitKeepGoingAndLimitedOnesStop() {
+        var unlimited = activeSession();
+        unlimited.setSettings(new Settings(101, 100, new Extra(100, 100, null, 1), null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0))));
+        for (int i = 0; i < 25; i++) {
+            PokerTournament.apply(unlimited, new Command(Action.REBUY, 0L, 1L), 1000);
+        }
+        assertThat(unlimited.getEntries().getFirst().rebuys()).isEqualTo(25);
+
+        var limited = activeSession();
+        limited.setSettings(new Settings(101, 100, new Extra(100, 100, 2, 1), null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0))));
+        PokerTournament.apply(limited, new Command(Action.REBUY, 0L, 1L), 1000);
+        PokerTournament.apply(limited, new Command(Action.REBUY, 0L, 1L), 1000);
+        assertThatThrownBy(() -> PokerTournament.apply(limited, new Command(Action.REBUY, 0L, 1L), 1000))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void anyEliminationCanBeUndoneAndARebuyBringsThePlayerBack() {
+        var session = activeSession();
+        session.setSettings(new Settings(101, 100, new Extra(100, 100, null, 1), null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0))));
+        PokerTournament.apply(session, new Command(Action.ELIMINATE, 0L, 1L), 1000);
+
+        PokerTournament.apply(session, new Command(Action.UNDO_ELIMINATION, 0L, 3L), 1000);
+        assertThat(session.getEliminations()).containsExactly(1L);
+        assertThatThrownBy(() -> PokerTournament.apply(session, new Command(Action.UNDO_ELIMINATION, 0L, 3L), 1000))
+                .isInstanceOf(BusinessException.class);
+
+        PokerTournament.apply(session, new Command(Action.REBUY, 0L, 1L), 1000);
+        assertThat(session.getEliminations()).isEmpty();
+        assertThat(session.getEntries().getFirst().rebuys()).isEqualTo(1);
+    }
+
     private PokerSession activeSession() {
         var session = new PokerSession();
         session.setId(1L);

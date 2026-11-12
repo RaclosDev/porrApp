@@ -371,7 +371,7 @@ function ExtraFields({
                 ? {
                     costCents: settings.buyInCents,
                     chips: settings.startingChips,
-                    limit: 1,
+                    limit: multiple ? null : 1,
                     throughLevel: Math.min(settings.levels.length, multiple ? 4 : 5),
                   }
                 : null,
@@ -395,6 +395,16 @@ function ExtraFields({
             onChange={(value) => onChange({ ...extra, chips: value })}
           />
           {multiple && (
+            <label className="poker-check">
+              <input
+                type="checkbox"
+                checked={extra.limit === null}
+                onChange={(event) => onChange({ ...extra, limit: event.target.checked ? null : 1 })}
+              />
+              Sin límite por jugador
+            </label>
+          )}
+          {multiple && extra.limit !== null && (
             <NumberField
               label="Máximo por jugador"
               min={1}

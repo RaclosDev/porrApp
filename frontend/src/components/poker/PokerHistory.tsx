@@ -166,6 +166,7 @@ const statisticColumns: { label: string; value: (row: Standing) => number | stri
   { label: 'Victorias', value: (row) => row.wins },
   { label: '% victorias', value: (row) => row.wins / row.played },
   { label: 'Podios', value: (row) => row.podiums },
+  { label: 'Aplausos', value: (row) => row.applause },
   { label: '% con premio', value: (row) => row.cashes / row.played },
   { label: 'Puesto medio', value: (row) => row.places / row.played },
   { label: 'Premios', value: (row) => row.prizes },
@@ -265,6 +266,7 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                     <td>{row.wins}</td>
                     <td>{percent(row.wins / row.played)}</td>
                     <td>{row.podiums}</td>
+                    <td>{row.applause}</td>
                     <td>{percent(row.cashes / row.played)}</td>
                     <td>{formatPlace.format(row.places / row.played)}.º</td>
                     <td>{euros(row.prizes)}</td>
@@ -276,8 +278,9 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
           </div>
           <p className="poker-note">
             Los porcentajes se calculan sobre los torneos jugados por cada persona. El neto
-            descuenta entradas, recompras y add-ons. Las recompras y los add-ons acumulan las
-            compras de cada jugador en los torneos cerrados.
+            descuenta entradas, recompras y add-ons. Un aplauso es quedar en el primer puesto sin
+            premio. Las recompras y los add-ons acumulan las compras de cada jugador en los torneos
+            cerrados.
           </p>
         </>
       )}
