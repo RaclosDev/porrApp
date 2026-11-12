@@ -120,6 +120,14 @@ class OrganizedTournamentIntegrationTest {
                 .isEqualTo(403);
         assertThat(send("DELETE", group, guest, null).statusCode()).isEqualTo(403);
 
+        Map<String, String> settings = Map.of("name", "Copa del sábado", "rules", "Tres rondas");
+        assertThat(send("PUT", group, guest, settings).statusCode()).isEqualTo(403);
+        assertThat(send("PUT", group, owner, settings).statusCode()).isEqualTo(200);
+        assertThat(json.readTree(send("GET", group, guest, null).body()).path("rules").asText())
+                .isEqualTo("Tres rondas");
+        assertThat(json.readTree(send("GET", detail, guest, null).body()).path("name").asText())
+                .isEqualTo("Copa del sábado");
+
         service.publish(owner.getGoogleEmail(), id, new Publication(0, true));
         assertThat(send("GET", publicPath, null, null).statusCode()).isEqualTo(200);
         assertThat(send("DELETE", group, owner, null).statusCode()).isEqualTo(200);

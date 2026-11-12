@@ -14,7 +14,10 @@ import java.nio.file.Path;
 import java.awt.Color;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -45,6 +48,22 @@ class JoinPreviewControllerTest {
         assertThat(new Color(image.getRGB(1100, 420), true)).isEqualTo(new Color(243, 236, 220));
         Files.createDirectories(Path.of("target", "invitation-preview"));
         Files.write(Path.of("target", "invitation-preview", "paper.png"), png);
+    }
+
+    @Test
+    void tournamentInvitationDescribesTheTournamentInTheLinkAndImage() throws Exception {
+        LeagueService leagues = mock(LeagueService.class);
+        InvitationImageRenderer images = mock(InvitationImageRenderer.class);
+        League tournament = League.builder().id(7L).name("Póker del sábado")
+                .kind(League.KIND_TOURNAMENT).build();
+        when(leagues.getLeagueByJoinCode("TOURNEY")).thenReturn(Optional.of(tournament));
+        JoinPreviewController controller = new JoinPreviewController(leagues, mock(ProfileImageService.class), images);
+
+        assertThat(controller.preview("TOURNEY"))
+                .contains("property=\"og:description\" content=\"Torneo de seguimiento\"");
+        controller.invitationImage("TOURNEY");
+        verify(images).render(anyString(), eq(new InvitationImageRenderer.Card(
+                "Póker del sábado", "Torneo de seguimiento", "Invitación")), any());
     }
 
     @Test
