@@ -12,6 +12,7 @@ interface GroupCardProps {
   summary?: LeagueSummary;
   isSelected: boolean;
   isCreator: boolean;
+  canAdminister?: boolean;
   handleEnterGroup: GroupsDashboardState['handleEnterGroup'];
   handleRepeatGroup: GroupsDashboardState['handleRepeatGroup'];
   handleLeaveGroup: GroupsDashboardState['handleLeaveGroup'];
@@ -29,6 +30,7 @@ export default function GroupCard({
   summary,
   isSelected,
   isCreator,
+  canAdminister = isCreator,
   handleEnterGroup,
   handleRepeatGroup,
   handleLeaveGroup,
@@ -86,7 +88,9 @@ export default function GroupCard({
               {group.name}
             </span>
             <span className="block text-muted text-[0.78rem] mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
-              {isCreator ? 'Administras' : `Admin: ${group.adminParticipantName ?? 'sin asignar'}`}
+              {canAdminister
+                ? 'Administras'
+                : `Admin: ${group.adminParticipantName ?? 'sin asignar'}`}
               {meta.length > 0 && ` · ${meta.join(' · ')}`}
             </span>
             {summary && (summary.rank != null || pending > 0) && (
@@ -141,7 +145,7 @@ export default function GroupCard({
             Ir a la liga de la temporada nueva
           </button>
         </div>
-      ) : group.canRepeat && isCreator ? (
+      ) : group.canRepeat && canAdminister ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 pb-3">
           <p className="m-0 flex-1 min-w-[12rem] text-[0.85rem]">
             Ya hay temporada {nextSeason}: repite la liga con los mismos miembros y ajustes.
@@ -163,7 +167,7 @@ export default function GroupCard({
 
       {expanded && (
         <div id={actionsId} className="flex flex-col gap-2 px-3 pb-3 pt-1">
-          {isCreator && group.customCompetition && (
+          {canAdminister && group.customCompetition && (
             <button
               type="button"
               className="glass-btn w-full py-2"
@@ -229,10 +233,10 @@ export default function GroupCard({
               type="button"
               onClick={() => setSelectedGroupForMembers(group)}
               className="glass-btn flex-1 py-2 px-3 text-[0.85rem] flex items-center justify-center gap-1.5 whitespace-nowrap"
-              title={isCreator ? 'Administrar liga' : 'Miembros'}
-              aria-label={isCreator ? `Administrar ${group.name}` : `Miembros de ${group.name}`}
+              title={canAdminister ? 'Administrar liga' : 'Miembros'}
+              aria-label={canAdminister ? `Administrar ${group.name}` : `Miembros de ${group.name}`}
             >
-              {isCreator ? 'Administrar' : 'Miembros'}
+              {canAdminister ? 'Administrar' : 'Miembros'}
             </button>
           </div>
 

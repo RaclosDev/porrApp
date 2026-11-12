@@ -249,13 +249,16 @@ public class LeagueService {
             throw BusinessException.badRequest("No hay cambios que guardar");
         }
 
-        return leagueRepository.save(group);
+        return withAdminLoaded(leagueRepository.save(group));
     }
 
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void deleteLeague(Long groupId, String email) {
-        LeagueAdmins.require(leagueRepository, groupId, email);
+        League group = LeagueAdmins.require(leagueRepository, groupId, email);
+        if (!group.isCreator(email)) {
+            throw BusinessException.forbidden("Solo el creador puede borrar la liga.");
+        }
         
         predictionRepository.deleteByLeagueId(groupId);
         
@@ -281,6 +284,7 @@ public class LeagueService {
 
     // Solo se cachean los aciertos: un código inexistente no debe quedarse en memoria
     // (ni hacer crecer la caché con cada intento) ni ocultar una liga creada después.
+    @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "groupByCode", key = "#joinCode", unless = "#result == null")
     public Optional<League> getLeagueByJoinCode(String joinCode) {
         return leagueRepository.findByJoinCode(joinCode).map(LeagueService::withAdminLoaded);
@@ -421,6 +425,7 @@ public class LeagueService {
                 league, editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null)));
     }
 
+    @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
     public Optional<League> getLeagueById(Long id) {
         return leagueRepository.findById(id).map(LeagueService::withAdminLoaded);
@@ -432,6 +437,7 @@ public class LeagueService {
      */
     private static League withAdminLoaded(League league) {
         org.hibernate.Hibernate.initialize(league.getAdminUser());
+        org.hibernate.Hibernate.initialize(league.getMemberships());
         return league;
     }
 

@@ -73,6 +73,49 @@ public class League {
         return KIND_SCOREBOARD.equals(kind);
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @OneToMany(mappedBy = "league", fetch = FetchType.LAZY)
+    @org.hibernate.annotations.BatchSize(size = 50)
+    @Builder.Default
+    private java.util.List<Membership> memberships = new java.util.ArrayList<>();
+
+    public boolean isCreator(String email) {
+        return email != null && adminUser != null && email.equalsIgnoreCase(adminUser.getGoogleEmail());
+    }
+
+    public boolean isAdmin(String email) {
+        return isCreator(email) || email != null && memberships.stream().anyMatch(m ->
+                "ADMIN".equals(m.getRole()) && email.equalsIgnoreCase(m.getUser().getGoogleEmail()));
+    }
+
+    public boolean isAdmin(Long userId) {
+        return userId != null && (userId.equals(getAdminUserId()) || memberships.stream().anyMatch(m ->
+                "ADMIN".equals(m.getRole()) && userId.equals(m.getUser().getId())));
+    }
+
+    public boolean canOrganize(Long userId) {
+        return isAdmin(userId) || userId != null && memberships.stream().anyMatch(m ->
+                "ORGANIZER".equals(m.getRole()) && userId.equals(m.getUser().getId()));
+    }
+
+    public boolean canOrganize(String email) {
+        return isAdmin(email) || email != null && memberships.stream().anyMatch(m ->
+                "ORGANIZER".equals(m.getRole()) && email.equalsIgnoreCase(m.getUser().getGoogleEmail()));
+    }
+
+    @Transient
+    public java.util.List<Long> getAdminUserIds() {
+        return java.util.stream.Stream.concat(java.util.stream.Stream.of(getAdminUserId()),
+                memberships.stream().filter(m -> "ADMIN".equals(m.getRole())).map(m -> m.getUser().getId()))
+                .filter(java.util.Objects::nonNull).distinct().toList();
+    }
+
+    @Transient
+    public java.util.List<Long> getOrganizerUserIds() {
+        return memberships.stream().filter(m -> "ORGANIZER".equals(m.getRole()))
+                .map(m -> m.getUser().getId()).toList();
+    }
+
     @Builder.Default
     private Instant createdAt = Instant.now();
 

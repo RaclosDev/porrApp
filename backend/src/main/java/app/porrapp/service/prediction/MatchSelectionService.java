@@ -769,8 +769,7 @@ public class MatchSelectionService {
     private Edition adminEdition(Long leagueId, String email) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        if (edition.getLeague().getAdminUser() == null || email == null
-                || !email.equalsIgnoreCase(edition.getLeague().getAdminUser().getGoogleEmail())) {
+        if (!edition.getLeague().isAdmin(email)) {
             throw BusinessException.forbidden("Solo el administrador puede elegir los partidos");
         }
         requireSelectable(edition);

@@ -31,11 +31,12 @@ public class LeagueMembershipService {
     private final ScoreboardRoster scoreboardRoster;
 
     @Transactional
-    // Un alta o baja solo cambia el ranking de esa liga y la lista de ligas de ese usuario: la liga
-    // en sí no cambia, y vaciar la caché de todas las ligas en cada alta dispararía recálculos.
+    // Las listas cacheadas también incluyen los permisos de sus miembros.
     @org.springframework.cache.annotation.Caching(evict = {
             @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
-            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", key = "#email")})
+            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", allEntries = true),
+            @org.springframework.cache.annotation.CacheEvict(value = "groupById", allEntries = true),
+            @org.springframework.cache.annotation.CacheEvict(value = "groupByCode", allEntries = true)})
     public void join(Long groupId, String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user == null) return;
@@ -60,11 +61,12 @@ public class LeagueMembershipService {
     }
 
     @Transactional
-    // Una baja solo cambia el ranking de esa liga y la lista de ligas de ese usuario: la liga
-    // en sí no cambia, y vaciar la caché de todas las ligas en cada baja dispararía recálculos.
+    // Una baja también puede retirar permisos de administración u organización.
     @org.springframework.cache.annotation.Caching(evict = {
             @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
-            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", key = "#email")})
+            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", allEntries = true),
+            @org.springframework.cache.annotation.CacheEvict(value = "groupById", allEntries = true),
+            @org.springframework.cache.annotation.CacheEvict(value = "groupByCode", allEntries = true)})
     public void leave(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
             .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
@@ -97,7 +99,7 @@ public class LeagueMembershipService {
         boolean callerIsAdmin = false;
 
         if (email != null && !email.isBlank()) {
-            boolean isLeagueAdmin = group.getAdminUser() != null && group.getAdminUser().getGoogleEmail() != null && group.getAdminUser().getGoogleEmail().equalsIgnoreCase(email);
+            boolean isLeagueAdmin = group.isAdmin(email);
             callerIsAdmin = isLeagueAdmin;
             if (!callerIsAdmin && !isPublic) {
                 UserAccount caller = userAccountRepository.findByGoogleEmail(email).orElse(null);
@@ -125,7 +127,8 @@ public class LeagueMembershipService {
             list.add(LeagueMemberDTO.builder()
                     .userId(u.getId())
                     .participantName(u.getParticipantName())
-                    .role(m.getRole())
+                    .role(isAdmin ? "ADMIN" : m.getRole())
+                    .creator(u.getId().equals(group.getAdminUserId()))
                     .paymentStatus(paymentStatus)
                     .joinedAt(m.getJoinedAt())
                     .admin(isAdmin)
@@ -161,7 +164,9 @@ public class LeagueMembershipService {
     // La lista de ligas del expulsado se indexa por su email, que no llega aquí; las expulsiones son raras.
     @org.springframework.cache.annotation.Caching(evict = {
             @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
-            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", allEntries = true)})
+            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", allEntries = true),
+            @org.springframework.cache.annotation.CacheEvict(value = "groupById", allEntries = true),
+            @org.springframework.cache.annotation.CacheEvict(value = "groupByCode", allEntries = true)})
     public void kick(Long groupId, Long targetUserId, String email) {
         League group = LeagueAdmins.require(leagueRepository, groupId, email);
 
@@ -169,6 +174,11 @@ public class LeagueMembershipService {
             throw BusinessException.badRequest("No puedes expulsar al administrador creador de la liga.");
         }
 
+        Membership target = membershipRepository.findById(new Membership.MembershipId(targetUserId, groupId))
+                .orElseThrow(() -> BusinessException.notFound("Miembro no encontrado"));
+        if (!group.isCreator(email) && !"MEMBER".equals(target.getRole())) {
+            throw BusinessException.forbidden("Solo el creador puede expulsar a un administrador u organizador.");
+        }
         predictionRepository.deleteByUserIdAndLeagueId(targetUserId, groupId);
         if (group.isScoreboard()) scoreboardRoster.memberLeft(groupId, targetUserId);
 
@@ -177,12 +187,16 @@ public class LeagueMembershipService {
     }
 
     /**
-     * Cede la administración de la liga a otro miembro. El administrador anterior sigue como miembro.
+     * Cede la propiedad de la liga a otro miembro. El titular anterior sigue como miembro.
      */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
     public void transferAdmin(Long groupId, Long targetUserId, String email) {
-        League group = LeagueAdmins.require(leagueRepository, groupId, email);
+        League group = leagueRepository.findWithLockById(groupId)
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
+        if (!group.isCreator(email)) {
+            throw BusinessException.forbidden("Solo el creador puede ceder la liga.");
+        }
         UserAccount currentAdmin = group.getAdminUser();
         if (currentAdmin.getId().equals(targetUserId)) {
             throw BusinessException.badRequest("Ya administras esta liga.");
@@ -194,5 +208,26 @@ public class LeagueMembershipService {
         membershipRepository.findById(new Membership.MembershipId(currentAdmin.getId(), groupId))
                 .ifPresent(m -> m.setRole("MEMBER"));
         group.setAdminUser(target.getUser());
+    }
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"userGroups", "groupById", "groupByCode", "leaderboard"}, allEntries = true)
+    public void setRole(Long groupId, Long targetUserId, String email, String role) {
+        League group = leagueRepository.findWithLockById(groupId)
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
+        if (!group.isCreator(email)) {
+            throw BusinessException.forbidden("Solo el creador puede asignar o retirar permisos.");
+        }
+        if (role == null || !java.util.Set.of("ADMIN", "MEMBER", "ORGANIZER").contains(role)) {
+            throw BusinessException.badRequest("Rol no válido.");
+        }
+        if (targetUserId.equals(group.getAdminUserId())) {
+            throw BusinessException.badRequest("El creador conserva siempre la administración.");
+        }
+        if ("ORGANIZER".equals(role) && !group.isPoker() && !group.isTournament()) {
+            throw BusinessException.badRequest("Los organizadores solo se asignan en ligas de póker o torneos.");
+        }
+        Membership target = membershipRepository.findById(new Membership.MembershipId(targetUserId, groupId))
+                .orElseThrow(() -> BusinessException.badRequest("El usuario debe unirse antes a la liga."));
+        target.setRole(role);
     }
 }

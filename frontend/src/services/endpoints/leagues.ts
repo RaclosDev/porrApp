@@ -299,9 +299,22 @@ export const uploadGroupImage = (groupId: number | string, blob: Blob) =>
 export const deleteGroupImage = (groupId: number | string) =>
   request<LeagueImageResponse>(`/groups/${groupId}/image`, { method: 'DELETE' });
 
-/** Cede la administración de la liga a otro miembro. */
+/** Cede la propiedad de la liga a otro miembro. */
 export const transferGroupAdmin = (groupId: number | string, userId: number) =>
   request<StatusResponse>(`/groups/${groupId}/members/${userId}/admin`, {
     method: 'PUT',
-    fallbackError: 'No se pudo ceder la administración',
+    fallbackError: 'No se pudo ceder la liga',
+  });
+
+export type LeagueMemberRole = 'MEMBER' | 'ADMIN' | 'ORGANIZER';
+
+export const setGroupMemberRole = (
+  groupId: number | string,
+  userId: number,
+  role: LeagueMemberRole,
+) =>
+  request<StatusResponse>(`/groups/${groupId}/members/${userId}/role`, {
+    method: 'PUT',
+    json: { role },
+    fallbackError: 'No se pudieron actualizar los permisos',
   });

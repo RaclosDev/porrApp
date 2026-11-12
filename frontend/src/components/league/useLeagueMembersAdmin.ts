@@ -1,3 +1,4 @@
+import type { LeagueMemberRole } from '../../services/endpoints/leagues';
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -6,6 +7,7 @@ import {
   kickGroupMember,
   toggleGroupMemberPayment,
   transferGroupAdmin,
+  setGroupMemberRole,
 } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import type { GroupMember, PaymentStatus } from '../../types/api';
@@ -13,7 +15,7 @@ import { errorMessage } from '../../utils/errors';
 
 export type PaymentFilter = 'ALL' | 'PAID' | 'PENDING';
 
-/** Miembros de una liga para su administración: pagos (optimistas), expulsión, cesión y filtros. */
+/** Miembros de una liga para su administración: pagos (optimistas), expulsión, permisos y filtros. */
 export function useLeagueMembersAdmin(groupId: number, setActionError: (message: string) => void) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -108,18 +110,36 @@ export function useLeagueMembersAdmin(groupId: number, setActionError: (message:
     },
   });
 
+  const roleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: number; role: LeagueMemberRole }) =>
+      setGroupMemberRole(groupId, userId, role),
+    onMutate: () => setActionError(''),
+    onSuccess: () => {
+      toast.success('Permisos actualizados');
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.poker(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
+    },
+    onError: (err) => {
+      const message = errorMessage(err, 'No se pudieron actualizar los permisos.');
+      setActionError(message);
+      toast.error(message);
+    },
+  });
+
   const transferMutation = useMutation({
     mutationFn: (userId: number) => transferGroupAdmin(groupId, userId),
     onMutate: () => setActionError(''),
     onSuccess: () => {
-      toast.success('Has cedido la administración de la liga');
-      // Quien cede deja de ser admin: se recargan la liga y sus permisos.
+      toast.success('Has cedido la liga');
       queryClient.invalidateQueries({ queryKey: queryKeys.groupMembers(groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.myGroups() });
     },
     onError: (err) => {
-      const message = errorMessage(err, 'No se pudo ceder la administración.');
+      const message = errorMessage(err, 'No se pudo ceder la liga.');
       setActionError(message);
       toast.error(message);
     },
@@ -151,6 +171,7 @@ export function useLeagueMembersAdmin(groupId: number, setActionError: (message:
     kickMutation,
     kickTargetId,
     setKickTargetId,
+    roleMutation,
     transferMutation,
     search,
     setSearch,

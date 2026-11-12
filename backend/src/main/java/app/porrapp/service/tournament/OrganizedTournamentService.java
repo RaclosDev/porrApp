@@ -207,7 +207,7 @@ public class OrganizedTournamentService {
         if ("KNOCKOUT".equals(tournament.getFormat())) tournament.setMatches(TournamentSchedule.advance(tournament.getMatches()));
         TournamentResultChange change = new TournamentResultChange();
         change.setTournamentId(id); change.setRevision(tournament.getRevision());
-        change.setActorId(tournament.getLeague().getAdminUserId()); change.setBeforeResult(before); change.setAfterResult(after);
+        change.setActorId(users.findByGoogleEmail(email).orElseThrow().getId()); change.setBeforeResult(before); change.setAfterResult(after);
         changes.save(change);
         return view(tournament);
     }
@@ -233,7 +233,7 @@ public class OrganizedTournamentService {
     }
 
     private static boolean canOrganize(OrganizedTournament tournament, String email) {
-        return email != null && tournament.getLeague().getAdminUser().getGoogleEmail().equalsIgnoreCase(email);
+        return tournament.getLeague().canOrganize(email);
     }
 
     private static void requireNoSchedule(OrganizedTournament tournament) {

@@ -179,7 +179,19 @@ public class LeagueController {
         return StatusResponse.success("Miembro expulsado");
     }
 
-    /** Cede la administración de la liga a otro miembro. Solo el administrador. */
+    public record MemberRoleRequest(
+            @jakarta.validation.constraints.NotNull
+            @jakarta.validation.constraints.Pattern(regexp = "ADMIN|MEMBER|ORGANIZER") String role) {}
+
+    @PutMapping("/{id}/members/{userId}/role")
+    public StatusResponse setMemberRole(@PathVariable Long id, @PathVariable Long userId,
+            @Valid @RequestBody MemberRoleRequest request, Principal principal) {
+        membershipService.setRole(id, userId, principal.getName(), request.role());
+        webSocketService.notifyLeagueChanged(id);
+        return StatusResponse.success("Permisos actualizados");
+    }
+
+    /** Cede la propiedad de la liga a otro miembro. Solo el creador. */
     @PutMapping("/{id}/members/{userId}/admin")
     public StatusResponse transferAdmin(@PathVariable Long id, @PathVariable Long userId, Principal principal) {
         membershipService.transferAdmin(id, userId, principal.getName());

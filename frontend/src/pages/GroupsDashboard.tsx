@@ -81,7 +81,11 @@ export default function GroupsDashboard() {
 
   /** El nombre público puede repetirse; la administración pertenece al id de usuario. */
   const isGroupAdmin = (group: Group) =>
-    Boolean(group.adminUserId != null && userId && String(group.adminUserId) === String(userId));
+    Boolean(
+      userId &&
+      (String(group.adminUserId) === String(userId) ||
+        group.adminUserIds?.some((id) => String(id) === String(userId))),
+    );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -229,7 +233,7 @@ export default function GroupsDashboard() {
             activeGroupId,
           ).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
-            const isCreator = isGroupAdmin(group);
+            const isCreator = String(group.adminUserId) === String(userId);
             return (
               <GroupCard
                 key={group.id}
@@ -241,6 +245,7 @@ export default function GroupsDashboard() {
                 }
                 isSelected={isSelected}
                 isCreator={isCreator}
+                canAdminister={isGroupAdmin(group)}
                 handleEnterGroup={handleEnterGroup}
                 handleRepeatGroup={handleRepeatGroup}
                 handleLeaveGroup={handleLeaveGroup}
@@ -289,6 +294,8 @@ export default function GroupsDashboard() {
             );
           }}
           isAdmin={isGroupAdmin(selectedGroupForMembers)}
+          leagueKind={selectedGroupForMembers.kind}
+          creatorUserId={selectedGroupForMembers.adminUserId}
           lockSection={
             <>
               {hasLeagueLockSetting(selectedGroupForMembers) && (

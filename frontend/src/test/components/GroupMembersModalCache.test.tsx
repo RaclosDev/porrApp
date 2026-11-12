@@ -15,8 +15,22 @@ const api = vi.hoisted(() => ({
 vi.mock('../../services/api', () => api);
 
 const MEMBERS = [
-  { userId: 1, participantName: 'Ana', paymentStatus: 'PAID', isAdmin: true },
-  { userId: 2, participantName: 'Bruno', paymentStatus: 'PENDING', isAdmin: false },
+  {
+    userId: 1,
+    participantName: 'Ana',
+    paymentStatus: 'PAID',
+    isAdmin: true,
+    creator: true,
+    role: 'ADMIN',
+  },
+  {
+    userId: 2,
+    participantName: 'Bruno',
+    paymentStatus: 'PENDING',
+    isAdmin: false,
+    creator: false,
+    role: 'MEMBER',
+  },
 ];
 
 describe('GroupMembersModal: invalidación de la caché', () => {
@@ -97,7 +111,14 @@ describe('GroupMembersModal: invalidación de la caché', () => {
   it('keeps both rows locked and rolls back only the failed member', async () => {
     const members = [
       ...MEMBERS,
-      { userId: 3, participantName: 'Carla', paymentStatus: 'PENDING', isAdmin: false },
+      {
+        userId: 3,
+        participantName: 'Carla',
+        paymentStatus: 'PENDING',
+        isAdmin: false,
+        creator: false,
+        role: 'MEMBER',
+      },
     ];
     api.fetchGroupMembers.mockResolvedValue(members);
     let failBruno!: (error: Error) => void;

@@ -13,6 +13,7 @@ interface LeagueSettingsTabProps {
   /** Pestaña de ajustes que se muestra. */
   isTournament?: boolean;
   section: LeagueSettingsSection;
+  canDelete: boolean;
   deleteConfirmName: string;
   deleteOpen: boolean;
   deleting: boolean;
@@ -40,6 +41,7 @@ interface LeagueSettingsTabProps {
 export default function LeagueSettingsTab({
   section,
   isTournament = false,
+  canDelete,
   deleteConfirmName,
   deleteOpen,
   deleting,
@@ -195,7 +197,7 @@ export default function LeagueSettingsTab({
 
       {section === 'general' && lockSection}
 
-      {section === 'general' && (
+      {section === 'general' && canDelete && (
         <section className="league-admin-card is-danger">
           <div className="league-admin-card-head">
             <h3>

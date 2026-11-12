@@ -367,8 +367,7 @@ public class ScorerPickService {
     }
 
     private static boolean isAdmin(League league, String email) {
-        String adminEmail = league != null && league.getAdminUser() != null ? league.getAdminUser().getGoogleEmail() : null;
-        return email != null && adminEmail != null && adminEmail.equalsIgnoreCase(email);
+        return league != null && league.isAdmin(email);
     }
 
     /** Sin espacios de más ni caracteres de control. */

@@ -52,8 +52,7 @@ public class OfficialCompetitionLinkService {
     public Edition link(Long leagueId, String email, Long competitionId) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        if (edition.getLeague().getAdminUser() == null
-                || !email.equalsIgnoreCase(edition.getLeague().getAdminUser().getGoogleEmail())) {
+        if (!edition.getLeague().isAdmin(email)) {
             throw BusinessException.forbidden("Solo el administrador puede cambiar la competición");
         }
         Competition custom = edition.getCompetition();
