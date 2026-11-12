@@ -71,7 +71,9 @@ final class PokerTournament {
                 }
             }
             case CLOSE -> {
-                if (remaining(session) != 1) {
+                if (command.finalStacks() != null) {
+                    finishStacks(session, command.finalStacks());
+                } else if (remaining(session) != 1) {
                     throw BusinessException.conflict("Para cerrar, tiene que quedar un solo jugador");
                 }
                 session.setBlindClock(new BlindClock(clock.level(), null, clock.remainingMs()));
@@ -79,6 +81,27 @@ final class PokerTournament {
             }
             default -> throw new IllegalArgumentException("Acción inesperada: " + command.action());
         }
+    }
+
+    private static void finishStacks(PokerSession session, List<FinalStack> stacks) {
+        var active = session.getEntries().stream()
+                .filter(entry -> !session.getEliminations().contains(entry.playerId())).toList();
+        var ids = stacks.stream().map(FinalStack::playerId).collect(java.util.stream.Collectors.toSet());
+        if (stacks.size() != active.size() || ids.size() != stacks.size()
+                || !ids.equals(active.stream().map(Entry::playerId).collect(java.util.stream.Collectors.toSet()))
+                || stacks.stream().anyMatch(stack -> stack.chips() < 0)) {
+            throw BusinessException.badRequest("Indica las fichas de todos los jugadores que siguen en la mesa");
+        }
+        Settings settings = session.getSettings();
+        long total = session.getEntries().stream().mapToLong(entry -> settings.startingChips()
+                + (settings.rebuy() == null ? 0L : (long) settings.rebuy().chips() * entry.rebuys())
+                + (settings.addOn() == null ? 0L : (long) settings.addOn().chips() * entry.addOns())).sum();
+        if (stacks.stream().mapToLong(FinalStack::chips).sum() != total) {
+            throw BusinessException.badRequest("La suma debe coincidir con las fichas en juego: " + total);
+        }
+        session.setEntries(session.getEntries().stream().map(entry -> new Entry(entry.playerId(), entry.name(),
+                entry.rebuys(), entry.addOns(), stacks.stream().filter(stack -> stack.playerId() == entry.playerId())
+                        .map(FinalStack::chips).findFirst().orElse(0L))).toList());
     }
 
     private static void start(PokerSession session, long now) {
@@ -179,8 +202,19 @@ final class PokerTournament {
                 .map(entry -> {
                     int index = order.indexOf(entry.playerId());
                     int place = index < 0 ? 1 : entries.size() - index;
+                    long prize;
+                    if (index < 0 && entry.finalChips() != null) {
+                        var survivors = entries.stream().filter(other -> !order.contains(other.playerId())).toList();
+                        place = 1 + (int) survivors.stream().filter(other -> other.finalChips() > entry.finalChips()).count();
+                        var tied = survivors.stream().filter(other -> other.finalChips().equals(entry.finalChips()))
+                                .sorted(Comparator.comparingLong(Entry::playerId)).toList();
+                        long shared = prizes.stream().skip(place - 1).limit(tied.size()).mapToLong(Long::longValue).sum();
+                        prize = shared / tied.size() + (tied.indexOf(entry) < shared % tied.size() ? 1 : 0);
+                    } else {
+                        prize = place <= prizes.size() ? prizes.get(place - 1) : 0;
+                    }
                     return new Result(entry.playerId(), entry.name(), place, paid(entry, settings),
-                            place <= prizes.size() ? prizes.get(place - 1) : 0, entry.rebuys(), entry.addOns());
+                            prize, entry.rebuys(), entry.addOns(), entry.finalChips());
                 })
                 .sorted(Comparator.comparingInt(Result::place)).toList();
         return new Session(session.getId(), session.getRevision(), session.getScheduledOn(),

@@ -178,7 +178,7 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
   await page.getByLabel('Fecha').fill('2026-11-14');
   await page.getByLabel('Entrada (€)').fill('10');
   await page.getByRole('button', { name: 'Abrir inscripciones' }).click();
-  await page.getByRole('button', { name: 'Juego hoy' }).click();
+  await page.getByRole('button', { name: 'Apuntarme', exact: true }).click();
   await expect(page.getByText('Asistencia confirmada')).toBeVisible();
   await page.getByRole('button', { name: 'Añadir invitado sin cuenta' }).click();
   const guest = page.getByRole('textbox', { name: 'Nombre del jugador' });
@@ -264,10 +264,10 @@ test('un miembro confirma su asistencia desde la liga sin controles de organizad
     'aria-current',
     'page',
   );
-  await page.getByRole('button', { name: 'Juego hoy' }).click();
+  await page.getByRole('button', { name: 'Apuntarme', exact: true }).click();
   await expect(page.getByText('Asistencia confirmada')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Empezar torneo' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Ya no juego' }).click();
+  await page.getByRole('button', { name: 'Desapuntarme', exact: true }).click();
   await expect(page.getByText('Aún no hay confirmaciones.')).toBeVisible();
 });
 

@@ -1,15 +1,70 @@
 
 package app.porrapp.service.league;
 
-import app.porrapp.dto.PokerDTO.BlindClock;
-import app.porrapp.dto.PokerDTO.BlindLevel;
+import app.porrapp.dto.PokerDTO.*;
+import app.porrapp.model.PokerSession;
+import app.porrapp.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PokerTournamentTest {
+    @Test
+    void closesWithStacksAndSharesTiedPrizesWithoutLosingCents() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(
+                Action.CLOSE, 0L, null, List.of(
+                new FinalStack(1, 150),
+                new FinalStack(2, 150))), 1000);
+        var result = PokerTournament.view(session, 1000);
+        assertThat(result.closedAt()).isEqualTo(1000);
+        assertThat(result.clock().endsAt()).isNull();
+        assertThat(result.results()).extracting(Result::place).containsExactly(1, 1, 3);
+        assertThat(result.results()).extracting(Result::finalChips).containsExactly(150L, 150L, 0L);
+        assertThat(result.results().stream().mapToLong(Result::prizeCents).sum()).isEqualTo(303);
+    }
+
+    @Test
+    void ranksSurvivorsByChipsAndKeepsEliminatedPlaces() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(
+                Action.CLOSE, 0L, null, List.of(
+                new FinalStack(1, 100),
+                new FinalStack(2, 200))), 1000);
+        assertThat(PokerTournament.view(session, 1000).results())
+                .extracting(Result::playerId).containsExactly(2L, 1L, 3L);
+    }
+
+    @Test
+    void rejectsMissingDuplicateAndIncorrectStackTotals() {
+        for (var stacks : List.of(
+                List.of(new FinalStack(1, 300)),
+                List.of(new FinalStack(1, 150), new FinalStack(1, 150)),
+                List.of(new FinalStack(1, 100), new FinalStack(2, 100)))) {
+            var session = activeSession();
+            assertThatThrownBy(() -> PokerTournament.apply(session,
+                    new Command(Action.CLOSE, 0L, null, stacks), 1000))
+                    .isInstanceOf(BusinessException.class);
+            assertThat(session.getClosedAt()).isNull();
+        }
+    }
+
+    private PokerSession activeSession() {
+        var session = new PokerSession();
+        session.setId(1L);
+        session.setStartedAt(1L);
+        session.setSettings(new Settings(101, 100, null, null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0))));
+        session.setEntries(List.of(new Entry(1, "Ana", 0, 0),
+                new Entry(2, "Luis", 0, 0), new Entry(3, "Paz", 0, 0)));
+        session.setEliminations(List.of(3L));
+        session.setBlindClock(new BlindClock(0, 600001L, 600000));
+        return session;
+    }
+
     @Test
     void clockAdvancesAcrossBreaksEvenWithNoClientConnected() {
         var levels = List.of(new BlindLevel(1, 25, 50, 0), new BlindLevel(2, 0, 0, 0),

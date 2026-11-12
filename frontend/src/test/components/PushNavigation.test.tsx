@@ -38,6 +38,11 @@ describe('PushNavigation', () => {
     expect(screen.getByTestId('path')).toHaveTextContent('/ranking?group=6&jornada=Jornada%2012');
   });
 
+  it('abre la mesa y conserva la liga del aviso de inicio', () => {
+    post({ type: PUSH_NAVIGATE, url: '/poker/mesa?group=38' });
+    expect(screen.getByTestId('path')).toHaveTextContent('/poker/mesa?group=38');
+  });
+
   it('recupera acuses al abrir la app y recuperar conexión', () => {
     expect(postMessage).toHaveBeenCalledWith({ type: 'porrapp:flush-push-receipts' });
     postMessage.mockClear();
