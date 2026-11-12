@@ -139,6 +139,8 @@ function useLeagueState() {
           lockDate: fromList.lockDate,
           adminParticipantName: fromList.adminParticipantName,
           adminUserId: fromList.adminUserId,
+          adminUserIds: fromList.adminUserIds,
+          organizerUserIds: fromList.organizerUserIds,
           rules: fromList.rules,
         };
       }
@@ -172,6 +174,8 @@ function useLeagueState() {
     activeGroupName: groupInfo?.name || NO_GROUP_NAME,
     activeGroupAdmin: groupInfo?.adminParticipantName || null,
     activeGroupAdminId: groupInfo?.adminUserId || null,
+    activeGroupAdminIds:
+      groupInfo?.adminUserIds ?? (groupInfo?.adminUserId ? [groupInfo.adminUserId] : []),
     activeGroupPoolFormat,
     activeGroupCustomCompetition: Boolean(groupInfo?.customCompetition),
     // NFL, NBA y LoL: se predice quién gana, sin empate, así que los votos van en dos columnas.

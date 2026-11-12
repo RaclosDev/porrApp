@@ -8,7 +8,7 @@ const api = vi.hoisted(() => ({
   fetchGroupMembers: vi.fn(),
   toggleGroupMemberPayment: vi.fn(),
   kickGroupMember: vi.fn(),
-  transferGroupAdmin: vi.fn(),
+  setGroupMemberRole: vi.fn(),
   regenerateGroupJoinCode: vi.fn(),
   fetchLeagueScoring: vi.fn(),
   updateLeagueScoring: vi.fn(),
@@ -23,6 +23,8 @@ const MEMBERS = [
     participantName: 'Ana',
     paymentStatus: 'PAID',
     isAdmin: true,
+    creator: true,
+    role: 'ADMIN',
     avatarUrl: null,
   },
   {
@@ -30,6 +32,8 @@ const MEMBERS = [
     participantName: 'Bruno',
     paymentStatus: 'PENDING',
     isAdmin: false,
+    creator: false,
+    role: 'MEMBER',
     avatarUrl: null,
   },
 ];
@@ -42,7 +46,7 @@ describe('GroupMembersModal', () => {
     api.fetchGroupMembers.mockReset().mockResolvedValue(MEMBERS);
     api.toggleGroupMemberPayment.mockReset().mockResolvedValue({ paymentStatus: 'PAID' });
     api.kickGroupMember.mockReset().mockResolvedValue({ status: 'success' });
-    api.transferGroupAdmin.mockReset().mockResolvedValue({ status: 'success' });
+    api.setGroupMemberRole.mockReset().mockResolvedValue({ status: 'success' });
     api.regenerateGroupJoinCode.mockReset().mockResolvedValue({ joinCode: 'NEW123' });
     api.fetchLeagueScoring.mockReset().mockResolvedValue(leagueScoring());
     api.updateLeagueScoring.mockReset();
@@ -255,16 +259,28 @@ describe('GroupMembersModal', () => {
     await waitFor(() => expect(api.kickGroupMember).toHaveBeenCalledWith(1, 2));
   });
 
-  it('pide confirmación antes de ceder la administración', async () => {
-    setup();
+  it('el creador añade administradores sin ceder la liga y puede revocar sus permisos', async () => {
+    setup({ leagueKind: 'POKER' });
+    const select = await screen.findByRole('combobox', { name: 'Permisos de Bruno' });
+    expect(screen.getByText('Creador · Admin')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Permisos de Ana' })).not.toBeInTheDocument();
+    fireEvent.change(select, { target: { value: 'ADMIN' } });
+    await waitFor(() => expect(api.setGroupMemberRole).toHaveBeenCalledWith(1, 2, 'ADMIN'));
+    fireEvent.change(select, { target: { value: 'ORGANIZER' } });
+    await waitFor(() => expect(api.setGroupMemberRole).toHaveBeenCalledWith(1, 2, 'ORGANIZER'));
+    fireEvent.change(select, { target: { value: 'MEMBER' } });
+    await waitFor(() => expect(api.setGroupMemberRole).toHaveBeenCalledWith(1, 2, 'MEMBER'));
+  });
+
+  it('un administrador secundario no puede cambiar permisos ni borrar la liga', async () => {
+    vi.mocked(api.fetchGroupMembers).mockResolvedValue(
+      MEMBERS.map((member) => (member.userId === 2 ? { ...member, role: 'ADMIN' } : member)),
+    );
+    setup({ currentUserId: 2 });
     await screen.findByText('Bruno');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Hacer admin a Bruno' }));
-    expect(screen.getByText('¿Hacer admin? Dejarás de serlo.')).toBeInTheDocument();
-    expect(api.transferGroupAdmin).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
-    await waitFor(() => expect(api.transferGroupAdmin).toHaveBeenCalledWith(1, 2));
+    expect(screen.queryByRole('combobox', { name: /Permisos de/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }));
+    expect(screen.queryByText('Eliminar liga')).not.toBeInTheDocument();
   });
 
   it('solo elimina la liga al escribir su nombre exacto', async () => {

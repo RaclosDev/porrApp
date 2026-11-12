@@ -25,6 +25,8 @@ public class LeagueResponseDTO {
     /** Nombre del participante que es administrador de este grupo. */
     private String adminParticipantName;
     private Long adminUserId;
+    private List<Long> adminUserIds;
+    private List<Long> organizerUserIds;
     private Instant createdAt;
     /** Cuándo se unió el usuario (solo en sus ligas): elige su liga más reciente si sale de la activa. */
     private Instant joinedAt;
@@ -102,6 +104,8 @@ public class LeagueResponseDTO {
                 .joinCode(includeJoinCode ? league.getJoinCode() : null)
                 .adminParticipantName(league.getAdminParticipantName())
                 .adminUserId(league.getAdminUserId())
+                .adminUserIds(league.getAdminUserIds())
+                .organizerUserIds(league.getOrganizerUserIds())
                 .createdAt(league.getCreatedAt())
                 .rules(league.getRules())
                 .imageUrl(league.getImageUrl())

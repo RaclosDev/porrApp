@@ -60,8 +60,7 @@ public class CustomCompetitionService {
                                  Instant lockDate) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        if (edition.getLeague().getAdminUser() == null
-                || !email.equalsIgnoreCase(edition.getLeague().getAdminUser().getGoogleEmail())) {
+        if (!edition.getLeague().isAdmin(email)) {
             throw BusinessException.forbidden("Solo el administrador puede cambiar el cierre");
         }
         if (mode == null) throw BusinessException.badRequest("Elige cómo se cierran las predicciones");
@@ -214,8 +213,7 @@ public class CustomCompetitionService {
     private Edition memberEdition(Long leagueId, String email) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        boolean admin = edition.getLeague().getAdminUser() != null
-                && email.equalsIgnoreCase(edition.getLeague().getAdminUser().getGoogleEmail());
+        boolean admin = edition.getLeague().isAdmin(email);
         boolean member = userAccountRepository.findByGoogleEmail(email)
                 .map(user -> membershipRepository.existsById(new Membership.MembershipId(user.getId(), leagueId)))
                 .orElse(false);
@@ -481,8 +479,7 @@ public class CustomCompetitionService {
     private Competition ownedCompetition(Long leagueId, String email) {
         Edition edition = editionRepository.findByLeagueIdAndStatus(leagueId, "ACTIVE")
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        if (edition.getLeague().getAdminUser() == null
-                || !email.equalsIgnoreCase(edition.getLeague().getAdminUser().getGoogleEmail())) {
+        if (!edition.getLeague().isAdmin(email)) {
             throw BusinessException.forbidden("Solo el administrador puede editar esta competición");
         }
         Competition competition = edition.getCompetition();

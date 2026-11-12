@@ -86,7 +86,7 @@ public class LeagueRepeatService {
         Competition next = leagueSeasons.currentSeason(played).orElseThrow(() -> BusinessException.badRequest(
                 "La temporada nueva de " + played.getName() + " aún no está disponible"));
 
-        League created = leagueSetupService.create(new NewLeague(old.getName(), email, next.getId(),
+        League created = leagueSetupService.create(new NewLeague(old.getName(), admin.getGoogleEmail(), next.getId(),
                 edition.getPoolFormat(), edition.isPichichi(), null, null), setup(old, edition, next));
         created.setPreviousLeagueId(old.getId());
         created = leagueRepository.save(created);
@@ -112,7 +112,7 @@ public class LeagueRepeatService {
                     .id(new Membership.MembershipId(user.getId(), created.getId()))
                     .user(user)
                     .league(created)
-                    .role("MEMBER")
+                    .role(member.getRole())
                     .build());
         }
         membershipRepository.saveAll(members);

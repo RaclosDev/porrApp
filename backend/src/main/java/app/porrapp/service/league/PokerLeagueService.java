@@ -190,7 +190,7 @@ public class PokerLeagueService {
     }
 
     private static void requireOwner(League league, Long userId) {
-        if (!userId.equals(league.getAdminUserId())) {
+        if (!league.canOrganize(userId)) {
             throw BusinessException.forbidden("Solo el organizador puede hacer ese cambio");
         }
     }
@@ -229,7 +229,7 @@ public class PokerLeagueService {
         Map<Long, String> avatars = new HashMap<>();
         users.findAllById(rosterEntries.stream().map(ScoreTrackerPlayer::getUserId).filter(Objects::nonNull).toList())
                 .forEach(user -> avatars.put(user.getId(), user.getAvatarUrl()));
-        return new LeagueView(id, league.getName(), league.getJoinCode(), userId.equals(league.getAdminUserId()),
+        return new LeagueView(id, league.getName(), league.getJoinCode(), league.canOrganize(userId),
                 myPlayerId, rosterEntries.stream()
                 .map(player -> new Player(player.getId(), player.getName(), player.getUserId() == null,
                         player.getUserId(), avatars.get(player.getUserId()))).toList(),
