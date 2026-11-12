@@ -82,6 +82,8 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
               playerId: result.playerId,
               place: result.place,
               name: result.name,
+              rebuys: result.rebuys,
+              addOns: result.addOns,
               value: result.prizeCents > 0 ? euros(result.prizeCents) : 'Sin premio',
             }))}
           />
