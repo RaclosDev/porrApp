@@ -88,7 +88,7 @@ export function useLeaderboard() {
     activeGroupPichichi,
     activeGroupScorerPick,
     activeGroupPoolFormat,
-    activeGroupAdminId,
+    activeGroupAdminIds,
     userId,
     userName,
   } = state;
@@ -99,7 +99,7 @@ export function useLeaderboard() {
   const loading = loadingData || loadingLeaderboard;
 
   const isLeagueAdmin = Boolean(
-    activeGroupAdminId != null && userId && String(activeGroupAdminId) === String(userId),
+    userId && activeGroupAdminIds?.some((id) => String(id) === String(userId)),
   );
 
   const matchdays = Array.isArray(leaderboardMatchdays) ? leaderboardMatchdays : EMPTY_MATCHDAYS;

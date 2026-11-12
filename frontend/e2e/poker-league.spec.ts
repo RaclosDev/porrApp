@@ -270,3 +270,38 @@ test('un miembro confirma su asistencia desde la liga sin controles de organizad
   await page.getByRole('button', { name: 'Ya no juego' }).click();
   await expect(page.getByText('Aún no hay confirmaciones.')).toBeVisible();
 });
+
+test('el creador asigna y retira permisos desde los miembros de la liga', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockLeague(page);
+  await page.route('**/api/groups/9/scoring', (route) =>
+    route.fulfill({ status: 404, json: { message: 'La liga no tiene una edición activa' } }),
+  );
+  const members = [
+    { userId: 7, participantName: 'Ana', role: 'ADMIN', creator: true, isAdmin: true },
+    { userId: 8, participantName: 'Bruno', role: 'MEMBER', creator: false, isAdmin: false },
+  ];
+  await page.route('**/api/groups/9/members**', async (route) => {
+    if (route.request().method() === 'PUT') {
+      members[1].role = (route.request().postDataJSON() as { role: string }).role;
+      return route.fulfill({ json: { message: 'Permisos actualizados' } });
+    }
+    return route.fulfill({ json: members });
+  });
+  await page.goto('/mis-ligas');
+  await page
+    .getByRole('button', { name: 'Más opciones de Póker de los sábados', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Administrar Póker de los sábados', exact: true }).click();
+  await expect(page.getByText('Creador · Admin', { exact: true })).toBeVisible();
+  const permissions = page.getByRole('combobox', { name: 'Permisos de Bruno' });
+  for (const role of ['ADMIN', 'ORGANIZER', 'MEMBER']) {
+    await permissions.selectOption(role);
+    await expect(permissions).toHaveValue(role);
+    await expect(permissions).toBeEnabled();
+  }
+  await expect(page.getByRole('combobox', { name: 'Permisos de Ana' })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});

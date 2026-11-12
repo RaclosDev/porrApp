@@ -75,10 +75,18 @@ class OrganizedTournamentIntegrationTest {
         assertThat(send("GET", "/api/tournaments/" + id, outsider, null).statusCode()).isEqualTo(403);
         assertThat(send("PUT", "/api/tournaments/" + id + "/publication", outsider, new Publication(0, true)).statusCode()).isEqualTo(403);
         assertThat(send("PUT", "/api/tournaments/" + id + "/publication", null, new Publication(0, true)).statusCode()).isEqualTo(401);
+        String joinCode = leagues.findById(id).orElseThrow().getJoinCode();
+        assertThat(send("POST", "/api/groups/join", outsider, Map.of("joinCode", joinCode)).statusCode()).isEqualTo(200);
+        assertThat(json.readTree(send("GET", "/api/tournaments/" + id, outsider, null).body())
+                .path("canEdit").asBoolean()).isFalse();
+        assertThat(send("PUT", "/api/groups/" + id + "/members/" + outsider.getId() + "/role",
+                owner, Map.of("role", "ORGANIZER")).statusCode()).isEqualTo(200);
+        assertThat(json.readTree(send("GET", "/api/tournaments/" + id, outsider, null).body())
+                .path("canEdit").asBoolean()).isTrue();
         t = service.addParticipant(owner.getGoogleEmail(), id, new ParticipantInput(t.revision(), "Pareja A"));
         t = service.addParticipant(owner.getGoogleEmail(), id, new ParticipantInput(t.revision(), "Pareja B"));
         t = service.generate(owner.getGoogleEmail(), id, new Schedule(t.revision(), "LEAGUE", "SEEDED", 1, 3, 1, 0));
-        t = service.result(owner.getGoogleEmail(), id, t.matches().getFirst().id(), new Result(t.revision(), 13, 8, "HOME"));
+        t = service.result(outsider.getGoogleEmail(), id, t.matches().getFirst().id(), new Result(t.revision(), 13, 8, "HOME"));
         t = service.publish(owner.getGoogleEmail(), id, new Publication(t.revision(), true));
         HttpResponse<String> publicResponse = send("GET", publicPath, null, null);
         assertThat(publicResponse.statusCode()).isEqualTo(200);
@@ -86,7 +94,8 @@ class OrganizedTournamentIntegrationTest {
         assertThat(publicResponse.body()).contains("Pareja A", "Pareja B", "Copa del pueblo")
                 .doesNotContain(owner.getGoogleEmail(), outsider.getGoogleEmail(), "adminUser", "joinCode", "creationKey", "actorId");
         assertThat(send("GET", "/api/predictions?groupId=" + id, owner, null).statusCode()).isEqualTo(400);
-        assertThat(changes.findAll().stream().filter(c -> c.getTournamentId().equals(id))).hasSize(1);
+        assertThat(changes.findAll().stream().filter(c -> c.getTournamentId().equals(id)))
+                .singleElement().satisfies(change -> assertThat(change.getActorId()).isEqualTo(outsider.getId()));
         assertThat(leagues.findById(id).orElseThrow().isPublicLeague()).isFalse();
         service.publish(owner.getGoogleEmail(), id, new Publication(t.revision(), false));
         assertThat(send("GET", publicPath, null, null).statusCode()).isEqualTo(404);

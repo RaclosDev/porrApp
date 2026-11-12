@@ -154,7 +154,7 @@ public class ScoreTrackerService {
     }
 
     private static boolean administers(League league, Long userId) {
-        return league.getAdminUserId() != null && league.getAdminUserId().equals(userId);
+        return league.isAdmin(userId);
     }
 
     private League owned(Long userId, Long leagueId) {
