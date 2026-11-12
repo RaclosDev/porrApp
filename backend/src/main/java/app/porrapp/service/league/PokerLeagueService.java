@@ -19,7 +19,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -223,9 +226,13 @@ public class PokerLeagueService {
                 .findFirst().map(ScoreTrackerPlayer::getId).orElse(null);
         Session current = sessions.findByLeagueIdAndClosedAtIsNull(id)
                 .map(session -> PokerTournament.view(session, now)).orElse(null);
+        Map<Long, String> avatars = new HashMap<>();
+        users.findAllById(rosterEntries.stream().map(ScoreTrackerPlayer::getUserId).filter(Objects::nonNull).toList())
+                .forEach(user -> avatars.put(user.getId(), user.getAvatarUrl()));
         return new LeagueView(id, league.getName(), league.getJoinCode(), userId.equals(league.getAdminUserId()),
                 myPlayerId, rosterEntries.stream()
-                .map(player -> new Player(player.getId(), player.getName(), player.getUserId() == null)).toList(),
+                .map(player -> new Player(player.getId(), player.getName(), player.getUserId() == null,
+                        player.getUserId(), avatars.get(player.getUserId()))).toList(),
                 current, now);
     }
 }

@@ -7,6 +7,7 @@ import type {
 
 const moneyFormat = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'full' });
+const shortDateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' });
 const numberFormat = new Intl.NumberFormat('es-ES');
 const percentFormat = new Intl.NumberFormat('es-ES', {
   style: 'percent',
@@ -24,6 +25,13 @@ export const signedEuros = (cents: number) => signedMoneyFormat.format(cents / 1
 export const chips = (count: number) => numberFormat.format(count);
 export const percent = (value: number) => percentFormat.format(value);
 export const tournamentDate = (date: string) => dateFormat.format(new Date(`${date}T12:00:00`));
+export const shortDate = (date: string) => shortDateFormat.format(new Date(`${date}T12:00:00`));
+
+// En el podio de la liga, quien aún no ha ganado se presenta por sus podios.
+export const standingLabel = ({ wins, podiums }: { wins: number; podiums: number }) =>
+  wins > 0
+    ? `${wins} ${wins === 1 ? 'victoria' : 'victorias'}`
+    : `${podiums} ${podiums === 1 ? 'podio' : 'podios'}`;
 
 export const today = () => {
   const date = new Date();

@@ -38,12 +38,12 @@
 
 .poker-panel h2 {
   margin: 0;
-  font-size: 1.28rem;
-  line-height: 1.2;
-}
-
-.poker-panel .home-list-header h2 {
-  font-size: 1rem;
+  font-family: 'Anton', 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  text-transform: uppercase;
 }
 
 .poker-panel h3 {
@@ -59,18 +59,10 @@
   margin-top: 0.5rem;
 }
 
-.poker-note,
-.poker-date {
+.poker-note {
   color: var(--text-muted);
   font-size: 0.875rem;
   line-height: 1.45;
-}
-
-.poker-attending {
-  margin-top: 0.65rem;
-  color: var(--accent-cyan);
-  font-size: 0.92rem;
-  font-weight: 700;
 }
 
 .poker-metrics,
@@ -160,11 +152,6 @@
   font-size: 0.76rem;
 }
 
-.poker-confirmed-name {
-  padding: 0.5rem 0;
-  overflow-wrap: anywhere;
-}
-
 .poker-guest-toggle {
   margin-block: 0.45rem;
 }
@@ -230,15 +217,8 @@
   margin-bottom: 0.45rem;
 }
 
-.poker-details summary .poker-note {
-  display: block;
-  margin-left: 1.15rem;
-  font-weight: 400;
-}
-
 .poker-clock p,
-.poker-next,
-.poker-winner span {
+.poker-next {
   color: var(--text-muted);
 }
 
@@ -262,8 +242,17 @@
 }
 
 .poker-winner strong {
-  margin-block: 0.35rem;
-  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+}
+
+.poker-winner .sticker {
+  width: min(100%, 16rem);
+  margin-inline: auto;
+  rotate: -2deg;
+}
+
+.poker-winner .marker-ink {
+  font-size: 1.15rem;
 }
 
 .poker-next {
@@ -543,7 +532,7 @@
 }
 
 .poker-pick-list {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
   gap: 0.4rem;
 }
 
@@ -614,6 +603,192 @@
 
 .poker-net.is-down {
   color: #9f1239;
+}
+
+/* Fecha de cartel y estado a rotulador, como los titulares del resto de la app. */
+.poker .poker-big-date {
+  margin: 0.5rem 0 0;
+  font-size: clamp(1.5rem, 5.5vw, 2.3rem);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.poker .poker-state {
+  margin: 0.2rem 0 0;
+  font-size: 1.15rem;
+  rotate: -1.5deg;
+  transform-origin: left center;
+}
+
+.poker-next-card > .glass-btn {
+  justify-content: center;
+}
+
+/* La peña: una cara por jugador con el nombre debajo. */
+.poker-faces {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.4rem, 1fr));
+  gap: 0.75rem 0.4rem;
+  margin: 0.9rem 0 0.2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-faces li {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.poker-player {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.poker-player > :first-child,
+.poker-check > input + *,
+.poker-places li > span + * {
+  flex-shrink: 0;
+}
+
+.poker-places li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding-block: 0.25rem;
+}
+
+.poker-places li > span:first-child {
+  min-width: 2rem;
+}
+
+.poker-champion {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.6rem;
+}
+
+.poker-champion > div {
+  min-width: 0;
+}
+
+.poker .poker-champion-name {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.poker-champion .poker-note {
+  margin-block: 0.15rem 0;
+}
+
+/* Podio de cromos en tamaño compacto: vive en columnas estrechas. */
+.poker-podium.ranking-podium {
+  max-width: 26rem;
+  margin: 0.4rem auto 0.6rem;
+  padding: 16px 10px 14px;
+}
+
+.poker-podium .ranking-podium-place {
+  flex-basis: 120px;
+}
+
+.poker-podium .ranking-podium-place-1 {
+  flex-basis: 144px;
+  margin-inline: -8px;
+}
+
+.poker-podium .sticker {
+  gap: 5px;
+  padding: 24px 6px 12px;
+  border-width: 4px;
+  border-radius: 6px;
+}
+
+.poker-podium-name {
+  max-width: 100%;
+  font-size: 0.95rem;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.poker-podium .sticker-featured .poker-podium-name {
+  font-size: 1.1rem;
+}
+
+.poker-podium .sticker-rank {
+  top: 3px;
+  left: 6px;
+  font-size: 0.9rem;
+}
+
+.poker-podium-value {
+  font-size: 0.85rem;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.poker-podium .sticker-featured .poker-podium-value {
+  font-size: 1rem;
+}
+
+/* Selector de torneo, igual que el de jornadas pero con pulsadores de 44 px. */
+.poker-round-bar {
+  margin: 0.7rem 0 0.9rem;
+}
+
+.poker-results-table thead th:nth-child(2) {
+  text-align: left;
+}
+
+.poker-results-table :is(th, td):first-child {
+  width: 1%;
+}
+
+.poker .poker-round-bar .md-round-step {
+  flex-basis: 44px;
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+}
+
+.poker-round-bar .md-round-select {
+  height: 44px;
+}
+
+/* Las caras alrededor del tapete; los eliminados se apagan. */
+.poker-seats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-seats li {
+  display: grid;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+}
+
+.poker-seats .is-out {
+  border-color: transparent;
+  filter: grayscale(1);
+  opacity: 0.4;
 }
 
 @media (prefers-reduced-motion: reduce) {

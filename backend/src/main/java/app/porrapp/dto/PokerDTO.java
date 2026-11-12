@@ -71,7 +71,7 @@ public final class PokerDTO {
         }
     }
 
-    public record Player(long id, String name, boolean guest) {
+    public record Player(long id, String name, boolean guest, Long userId, String avatarUrl) {
     }
 
     public record Result(long playerId, String name, int place, long paidCents, long prizeCents,

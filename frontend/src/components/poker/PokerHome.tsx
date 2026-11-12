@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import type { PokerLeagueData, PokerSession } from '../../services/endpoints/poker';
-import { euros, pokerStandings, tournamentDate } from './pokerFormat';
+import { PokerAvatar } from './PokerFaces';
+import PokerPodium from './PokerPodium';
+import { euros, pokerStandings, standingLabel, tournamentDate } from './pokerFormat';
 import { pokerRoutes } from './pokerRoutes';
 
 export default function PokerHome({
@@ -17,25 +19,38 @@ export default function PokerHome({
   const { current } = league;
   const live = Boolean(current && current.startedAt !== null);
   const attending = current?.entries.some((entry) => entry.playerId === league.myPlayerId);
+  const eliminated = new Set(current?.eliminations);
+  const seated = current?.entries.filter((entry) => !eliminated.has(entry.playerId)) ?? [];
   const latest = sessions?.[0];
+  const champion = latest?.results[0];
   const podium = pokerStandings(sessions ?? []).slice(0, 3);
 
   return (
     <div className="home-dashboard-grid">
-      <section className="paper-panel album-sheet poker-panel">
+      <section className="paper-panel album-sheet poker-panel poker-next-card">
         <header className="home-list-header">
           <h2>{live ? 'Torneo en juego' : 'Próximo torneo'}</h2>
         </header>
         {current ? (
           <>
-            <p className="font-bold first-letter:uppercase">{tournamentDate(current.date)}</p>
-            <p className="poker-note">
+            <p className="poster-title poker-big-date">{tournamentDate(current.date)}</p>
+            <p className="marker-ink poker-state">
               {live ? 'En juego' : attending ? 'Asistencia confirmada' : 'Inscripciones abiertas'}
             </p>
+            {seated.length > 0 && (
+              <ul className="poker-faces" aria-label={live ? 'En mesa' : 'Confirmados'}>
+                {seated.map((entry) => (
+                  <li key={entry.playerId}>
+                    <PokerAvatar playerId={entry.playerId} name={entry.name} size={48} />
+                    <span>{entry.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             <dl className="poker-metrics">
               <div>
                 <dt>{live ? 'Jugadores en mesa' : 'Jugadores confirmados'}</dt>
-                <dd>{current.entries.length - current.eliminations.length}</dd>
+                <dd>{seated.length}</dd>
               </div>
               <div>
                 <dt>{live ? 'Bote' : 'Entrada'}</dt>
@@ -65,17 +80,22 @@ export default function PokerHome({
               )}
             </header>
             {latest ? (
-              <>
-                <p className="poker-note first-letter:uppercase">{tournamentDate(latest.date)}</p>
-                {latest.results[0] && (
-                  <p>
-                    Ganó <strong>{latest.results[0].name}</strong>
-                  </p>
+              <div className="poker-champion">
+                {champion && (
+                  <PokerAvatar playerId={champion.playerId} name={champion.name} size={64} />
                 )}
-                <p className="poker-note">
-                  {latest.results.length} jugadores · {euros(latest.potCents)} de bote
-                </p>
-              </>
+                <div>
+                  {champion && (
+                    <p className="poker-champion-name">
+                      Ganó <strong>{champion.name}</strong>
+                    </p>
+                  )}
+                  <p className="poker-note first-letter:uppercase">{tournamentDate(latest.date)}</p>
+                  <p className="poker-note">
+                    {latest.results.length} jugadores · {euros(latest.potCents)} de bote
+                  </p>
+                </div>
+              </div>
             ) : (
               <p className="poker-note">Todavía no se ha cerrado ningún torneo.</p>
             )}
@@ -90,18 +110,14 @@ export default function PokerHome({
               )}
             </header>
             {podium.length > 0 ? (
-              <ol className="poker-prizes">
-                {podium.map(({ playerId, name, wins }, index) => (
-                  <li key={playerId}>
-                    <strong>
-                      {index + 1}.º {name}
-                    </strong>
-                    <span className="poker-note">
-                      {wins} {wins === 1 ? 'victoria' : 'victorias'}
-                    </span>
-                  </li>
-                ))}
-              </ol>
+              <PokerPodium
+                label="Podio de la liga por victorias"
+                places={podium.map((row) => ({
+                  playerId: row.playerId,
+                  name: row.name,
+                  value: standingLabel(row),
+                }))}
+              />
             ) : (
               <p className="poker-note">El podio se estrenará con los primeros resultados.</p>
             )}

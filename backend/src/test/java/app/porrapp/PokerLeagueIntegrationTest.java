@@ -67,6 +67,9 @@ class PokerLeagueIntegrationTest {
         var memberView = decode(send("GET", path, member, null), 200);
         long memberId = memberView.myPlayerId();
         assertThat(memberView.players()).hasSize(2);
+        assertThat(memberView.players()).extracting(Player::userId)
+                .containsExactlyInAnyOrder(organizer.getId(), member.getId());
+        assertThat(memberView.players()).extracting(Player::avatarUrl).containsOnlyNulls();
 
         var levels = List.of(new BlindLevel(15, 25, 50, 0), new BlindLevel(10, 0, 0, 0),
                 new BlindLevel(15, 50, 100, 10));
