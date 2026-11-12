@@ -14,6 +14,8 @@ import MatchEditor, { type TournamentUpdate } from '../components/tournament/Mat
 import { errorMessage } from '../utils/errors';
 import '../styles/organized-tournament.css';
 
+type TournamentTab = 'results' | 'setup';
+
 export default function OrganizedTournament({ publicView = false }: { publicView?: boolean }) {
   const params = useParams();
   const id = (publicView ? params.publicId : params.id) ?? '';
@@ -30,8 +32,11 @@ export default function OrganizedTournament({ publicView = false }: { publicView
   const [notice, setNotice] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
   const [round, setRound] = useState(1);
-  const [tab, setTab] = useState<'results' | 'setup' | null>(null);
+  const [selection, setSelection] = useState<{ id: string; tab: TournamentTab } | null>(null);
   const t = query.data;
+  if (t && selection?.id !== id) {
+    setSelection({ id, tab: t.matches.length ? 'results' : 'setup' });
+  }
   const update: TournamentUpdate = async (path, method, data) => {
     if (!t || saving.current || publicView) return false;
     saving.current = true;
@@ -69,7 +74,8 @@ export default function OrganizedTournament({ publicView = false }: { publicView
       </section>
     );
   const link = `${window.location.origin}/t/${t.publicId}`;
-  const activeTab = tab ?? (t.matches.length ? 'results' : 'setup');
+  const activeTab = selection?.tab;
+  const setTab = (tab: TournamentTab) => setSelection({ id, tab });
   const name = (participantId: string | null) =>
     t.participants.find((p) => p.id === participantId)?.name ?? 'Por decidir';
   const rounds = [...new Set(t.matches.map((m) => m.round))].sort((a, b) => a - b);
