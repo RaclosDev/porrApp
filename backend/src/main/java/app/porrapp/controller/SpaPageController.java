@@ -39,7 +39,7 @@ public class SpaPageController {
     /** Pantallas de la app: existen, pero no tienen sentido en un buscador. */
     public static final Set<String> APP = Set.of(
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
-            "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/bracket", "/tabla", "/prediction", "/jornadas",
+            "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
             "/partida", "/historico", "/torneos/nuevo",
             "/restablecer-contrasena");
 
@@ -54,7 +54,7 @@ public class SpaPageController {
             "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey", "/apuntar-puntos-juegos-de-mesa",
             "/privacidad", "/aviso-legal",
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
-            "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/bracket", "/tabla", "/prediction", "/jornadas",
+            "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
             "/partida", "/historico", "/torneos/nuevo", "/torneos/{id:[0-9]+}", "/t/{publicId}",
             "/restablecer-contrasena"})
     public ResponseEntity<Resource> page(HttpServletRequest request) {

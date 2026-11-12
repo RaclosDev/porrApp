@@ -8,7 +8,8 @@ import type {
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
 
-async function mockLeague(page: Page, owner = true) {
+async function mockLeague(page: Page, owner = true, existing = true) {
+  let created = existing;
   await page.addInitScript(() => {
     localStorage.setItem('has_session', '1');
     localStorage.setItem('my_prediction_name', 'Ana');
@@ -41,6 +42,14 @@ async function mockLeague(page: Page, owner = true) {
     const base = '/api/poker/9';
     const current = league.current;
     league.serverNow = Date.now();
+
+    if (path === '/api/poker' && method === 'POST') {
+      const { name } = request.postDataJSON() as { name: string };
+      group.name = name;
+      league.name = name;
+      created = true;
+      return route.fulfill({ json: league });
+    }
 
     if (path === `${base}/sessions` && method === 'POST') {
       const { date, settings } = request.postDataJSON() as {
@@ -121,7 +130,7 @@ async function mockLeague(page: Page, owner = true) {
         profileSetupCompleted: true,
         lastSelectedGroupId: 9,
       },
-      '/api/groups/mine': [group],
+      '/api/groups/mine': created ? [group] : [],
       '/api/groups/9': group,
       [base]: league,
       [`${base}/history`]: history,
@@ -137,8 +146,12 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await mockLeague(page);
-  await page.goto('/?group=9');
+  await mockLeague(page, true, false);
+  await page.goto('/crear-liga');
+  await page.getByRole('link', { name: /Liga de póker/ }).click();
+  await page.getByLabel('Nombre de la liga').fill('Póker de los sábados');
+  await page.getByRole('button', { name: 'Crear liga', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Póker de los sábados' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Preparar torneo' }).click();
   await page.getByLabel('Fecha').fill('2026-11-14');
