@@ -60,7 +60,10 @@ const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
 const ContentPage = lazyPage(() => import('./pages/ContentPage'));
 
 function PokerLeagueRoute({ view }: { view: PokerSection }) {
-  const { leagueKind, groupError, activeGroupId } = useAppContext();
+  const context = useAppContext();
+  const switchingGroup = useRequestedGroup(context);
+  const { leagueKind, groupError, activeGroupId } = context;
+  if (switchingGroup) return <PageSkeleton />;
   if (leagueKind === 'loading') return <LeagueLoadState />;
   if (leagueKind === 'error') return <LeagueLoadState error={groupError} />;
   if (leagueKind !== 'poker' || !activeGroupId) return <Navigate to="/" replace />;

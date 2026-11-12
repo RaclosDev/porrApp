@@ -28,7 +28,14 @@ public final class PokerDTO {
     public record Attendance(@Min(1) Long playerId, @NotNull Boolean attending) {
     }
 
-    public record Command(@NotNull Action action, @NotNull @Min(0) Long revision, @Min(1) Long playerId) {
+    public record Command(@NotNull Action action, @NotNull @Min(0) Long revision, @Min(1) Long playerId,
+                          @Size(max = 20) List<@NotNull @Valid FinalStack> finalStacks) {
+        public Command(Action action, Long revision, Long playerId) {
+            this(action, revision, playerId, null);
+        }
+    }
+
+    public record FinalStack(@Min(1) long playerId, @Min(0) @Max(9000000000L) long chips) {
     }
 
     public enum Action {
@@ -57,7 +64,11 @@ public final class PokerDTO {
     public record BlindClock(int level, Long endsAt, long remainingMs) {
     }
 
-    public record Entry(long playerId, String name, int rebuys, int addOns) {
+    public record Entry(long playerId, String name, int rebuys, int addOns, Long finalChips) {
+        public Entry(long playerId, String name, int rebuys, int addOns) {
+            this(playerId, name, rebuys, addOns, null);
+        }
+
         public Entry rebuy() {
             return new Entry(playerId, name, rebuys + 1, addOns);
         }
@@ -75,7 +86,7 @@ public final class PokerDTO {
     }
 
     public record Result(long playerId, String name, int place, long paidCents, long prizeCents,
-                         int rebuys, int addOns) {
+                         int rebuys, int addOns, Long finalChips) {
     }
 
     public record Session(long id, long revision, LocalDate date, Long startedAt, Long closedAt,

@@ -9,7 +9,7 @@ import {
 } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
 import { PokerAvatar } from './PokerFaces';
-import { chips, euros, tournamentDate } from './pokerFormat';
+import { chips, euros, upcomingTournamentDate } from './pokerFormat';
 
 interface Props {
   league: PokerLeagueData;
@@ -49,7 +49,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
       <div className="poker-section-head">
         <div>
           <h2>Inscripciones abiertas</h2>
-          <p className="poster-title poker-big-date">{tournamentDate(session.date)}</p>
+          <p className="poster-title poker-big-date">{upcomingTournamentDate(session.date)}</p>
         </div>
         {league.myPlayerId !== null && (
           <button
@@ -58,7 +58,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
             disabled={busy || (!playing && full)}
             onClick={() => void change(() => setPokerAttendance(league.id, session.id, !playing))}
           >
-            {playing ? 'Ya no juego' : 'Juego hoy'}
+            {playing ? 'Desapuntarme' : 'Apuntarme'}
           </button>
         )}
       </div>

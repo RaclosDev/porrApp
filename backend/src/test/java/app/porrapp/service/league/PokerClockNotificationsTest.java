@@ -25,6 +25,39 @@ class PokerClockNotificationsTest {
     @InjectMocks PokerLeagueService service;
 
     @Test
+    void startingNotifiesConfirmedMembersWithDirectTableLinkOnlyOnce() {
+        var admin = UserAccount.builder().id(7L).googleEmail("admin@example.invalid").build();
+        var member = UserAccount.builder().id(2L).build();
+        var league = League.builder().id(1L).name("Sábados").kind(League.KIND_POKER).adminUser(admin).build();
+        var session = new PokerSession();
+        session.setId(3L);
+        session.setLeagueId(1L);
+        session.setScheduledOn(java.time.LocalDate.now());
+        session.setSettings(new Settings(1000, 10000, null, null, List.of(100),
+                List.of(new BlindLevel(15, 25, 50, 0))));
+        session.setEntries(List.of(new Entry(4L, "Ana", 0, 0), new Entry(8L, "Invitado", 0, 0)));
+        when(users.findByGoogleEmail(admin.getGoogleEmail())).thenReturn(Optional.of(admin));
+        when(memberships.existsById(new Membership.MembershipId(7L, 1L))).thenReturn(true);
+        when(leagues.findWithLockById(1L)).thenReturn(Optional.of(league));
+        when(sessions.findByIdAndLeagueId(3L, 1L)).thenReturn(Optional.of(session));
+        when(sessions.findByLeagueIdAndClosedAtIsNull(1L)).thenReturn(Optional.of(session));
+        when(memberships.findByLeagueId(1L)).thenReturn(List.of(Membership.builder().user(member).build()));
+        when(players.findByLeagueIdOrderByPositionAsc(1L)).thenReturn(List.of(
+                ScoreTrackerPlayer.builder().id(4L).name("Ana").userId(2L).build(),
+                ScoreTrackerPlayer.builder().id(8L).name("Invitado").build(),
+                ScoreTrackerPlayer.builder().id(9L).name("Sin confirmar").userId(10L).build()));
+
+        service.command(admin.getGoogleEmail(), 1L, 3L, new Command(Action.START, 0L, null));
+        service.command(admin.getGoogleEmail(), 1L, 3L, new Command(Action.PAUSE, 1L, null));
+        var event = ArgumentCaptor.forClass(PokerNotificationEvent.class);
+        verify(events).publishEvent(event.capture());
+        assertThat(event.getValue().recipients()).containsExactly(2L);
+        assertThat(event.getValue().message().title()).isEqualTo("Ha empezado el torneo");
+        assertThat(event.getValue().message().body()).contains("Sábados", "Ciegas 25 / 50");
+        assertThat(event.getValue().message().url()).isEqualTo("/poker/mesa?group=1");
+    }
+
+    @Test
     void expiredLevelsNotifyParticipantsOnceIncludingBreaksAndNewBlinds() {
         var league = League.builder().id(1L).name("Sábados").kind(League.KIND_POKER).build();
         var user = UserAccount.builder().id(2L).build();
