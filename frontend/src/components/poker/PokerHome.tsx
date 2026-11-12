@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { PokerLeagueData, PokerSession } from '../../services/endpoints/poker';
+import { BadgedAvatar, lastWinnerIds } from './PokerBadges';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
 import {
@@ -30,6 +31,7 @@ export default function PokerHome({
   const latest = sessions?.[0];
   const champion = latest?.results[0];
   const podium = pokerStandings(sessions ?? []).slice(0, 3);
+  const crowned = lastWinnerIds(sessions);
 
   return (
     <div className="home-dashboard-grid">
@@ -47,7 +49,14 @@ export default function PokerHome({
               <ul className="poker-faces" aria-label={live ? 'En mesa' : 'Confirmados'}>
                 {seated.map((entry) => (
                   <li key={entry.playerId}>
-                    <PokerAvatar playerId={entry.playerId} name={entry.name} size={48} />
+                    <BadgedAvatar
+                      playerId={entry.playerId}
+                      name={entry.name}
+                      size={48}
+                      rebuys={live ? entry.rebuys : 0}
+                      addOns={live ? entry.addOns : 0}
+                      crowned={crowned.includes(entry.playerId)}
+                    />
                     <span>{entry.name}</span>
                   </li>
                 ))}

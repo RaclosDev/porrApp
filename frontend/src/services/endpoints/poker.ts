@@ -10,7 +10,8 @@ export interface BlindLevel {
 export interface PokerExtra {
   costCents: number;
   chips: number;
-  limit: number;
+  /** Máximo por jugador; null si no tiene límite. */
+  limit: number | null;
   throughLevel: number;
 }
 
@@ -36,7 +37,7 @@ export interface BlindClock {
   remainingMs: number;
 }
 
-export interface FinalStack {
+interface FinalStack {
   playerId: number;
   chips: number;
 }
@@ -93,8 +94,15 @@ export type PokerAction =
   | 'UNDO_ADD_ON'
   | 'ELIMINATE'
   | 'UNDO_ELIMINATION'
+  | 'SET_PRIZES'
   | 'CLOSE'
   | 'CANCEL';
+
+/** Datos opcionales de una orden: fichas al cerrar o el nuevo reparto de premios. */
+export interface PokerCommandExtra {
+  finalStacks?: FinalStack[];
+  prizeShares?: number[];
+}
 
 export const fetchPokerLeague = (id: string) => request<PokerLeagueData>(`/poker/${id}`);
 
@@ -139,9 +147,9 @@ export const pokerCommand = (
   session: PokerSession,
   action: PokerAction,
   playerId?: number,
-  finalStacks?: FinalStack[],
+  extra: PokerCommandExtra = {},
 ) =>
   request<PokerLeagueData>(`/poker/${id}/sessions/${session.id}/commands`, {
     method: 'POST',
-    json: { action, revision: session.revision, playerId, ...(finalStacks && { finalStacks }) },
+    json: { action, revision: session.revision, playerId, ...extra },
   });
