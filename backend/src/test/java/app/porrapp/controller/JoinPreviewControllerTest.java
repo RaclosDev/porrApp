@@ -7,6 +7,7 @@ import app.porrapp.service.account.ProfileImageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.Optional;
 import javax.imageio.ImageIO;
@@ -66,7 +67,7 @@ class JoinPreviewControllerTest {
         when(leagues.getLeagueByJoinCode("INVITATION")).thenReturn(Optional.of(league));
         JoinPreviewController controller = new JoinPreviewController(leagues, mock(ProfileImageService.class), images);
 
-        assertThat(controller.preview("INVITATION")).contains(
+        assertThat(HtmlUtils.htmlUnescape(controller.preview("INVITATION"))).contains(
                 "property=\"og:title\" content=\"" + name + "\"",
                 "property=\"og:description\" content=\"" + description + "\"",
                 "name=\"twitter:description\" content=\"" + description + "\"");
