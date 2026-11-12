@@ -29,9 +29,14 @@ public final class PokerDTO {
     }
 
     public record Command(@NotNull Action action, @NotNull @Min(0) Long revision, @Min(1) Long playerId,
-                          @Size(max = 20) List<@NotNull @Valid FinalStack> finalStacks) {
+                          @Size(max = 20) List<@NotNull @Valid FinalStack> finalStacks,
+                          @Size(min = 1, max = 20) List<@NotNull @Min(1) @Max(100) Integer> prizeShares) {
         public Command(Action action, Long revision, Long playerId) {
-            this(action, revision, playerId, null);
+            this(action, revision, playerId, null, null);
+        }
+
+        public Command(Action action, Long revision, Long playerId, List<FinalStack> finalStacks) {
+            this(action, revision, playerId, finalStacks, null);
         }
     }
 
@@ -39,7 +44,7 @@ public final class PokerDTO {
     }
 
     public enum Action {
-        START, PAUSE, RESUME, NEXT_LEVEL, REBUY, ADD_ON, UNDO_REBUY, UNDO_ADD_ON, ELIMINATE, UNDO_ELIMINATION, CLOSE, CANCEL
+        START, PAUSE, RESUME, NEXT_LEVEL, REBUY, ADD_ON, UNDO_REBUY, UNDO_ADD_ON, ELIMINATE, UNDO_ELIMINATION, SET_PRIZES, CLOSE, CANCEL
     }
 
     public record Settings(@Min(0) @Max(1000000) int buyInCents,

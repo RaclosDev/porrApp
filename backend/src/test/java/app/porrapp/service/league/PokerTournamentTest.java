@@ -88,6 +88,20 @@ class PokerTournamentTest {
         assertThat(session.getEntries().getFirst().rebuys()).isEqualTo(1);
     }
 
+    @Test
+    void prizesCanBeChangedDuringTheTournament() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.SET_PRIZES, 0L, null, null, List.of(50, 30, 20)), 1000);
+        assertThat(session.getSettings().prizeShares()).containsExactly(50, 30, 20);
+        assertThat(PokerTournament.view(session, 1000).prizes()).containsExactly(153L, 90L, 60L);
+        for (var shares : List.of(List.of(60, 30), List.of(40, 30, 20, 10))) {
+            assertThatThrownBy(() -> PokerTournament.apply(session,
+                    new Command(Action.SET_PRIZES, 0L, null, null, shares), 1000))
+                    .isInstanceOf(BusinessException.class);
+        }
+        assertThat(session.getSettings().prizeShares()).containsExactly(50, 30, 20);
+    }
+
     private PokerSession activeSession() {
         var session = new PokerSession();
         session.setId(1L);
