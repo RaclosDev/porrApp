@@ -16,7 +16,13 @@ export default function PokerPodium({ places, label }: { places: Place[]; label:
         <li key={playerId} className={`ranking-podium-place ranking-podium-place-${index + 1}`}>
           <div className={index === 0 ? 'sticker sticker-featured' : 'sticker'}>
             <PokerAvatar playerId={playerId} name={name} size={index === 0 ? 64 : 44} />
-            <span className="poster-title poker-podium-name">
+            <span
+              className={
+                name.split(/\s+/).some((word) => word.length > 8)
+                  ? 'poster-title poker-podium-name is-long'
+                  : 'poster-title poker-podium-name'
+              }
+            >
               <span className="sticker-rank">{place ?? index + 1}.º</span> {name}
             </span>
             <span className="marker-ink poker-podium-value">{value}</span>

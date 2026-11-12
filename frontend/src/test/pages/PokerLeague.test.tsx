@@ -102,7 +102,7 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   set('Puesto 1 (%)', '75');
   set('Puesto 2 (%)', '25');
 
-  fireEvent.click(screen.getByText('Ciegas, recompras y extra de fichas'));
+  fireEvent.click(screen.getByText('Ciegas, recompras y add-on'));
   click('Añadir descanso');
   click('Abrir inscripciones');
   expect(screen.getByRole('alert')).toHaveTextContent('al principio y al final');
@@ -114,7 +114,7 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   set('Ante', '10', level);
   set('Minutos', '20', level);
   fireEvent.click(screen.getByLabelText('Activar recompras'));
-  fireEvent.click(screen.getByLabelText('Activar extra de fichas'));
+  fireEvent.click(screen.getByLabelText('Activar add-on'));
   const rebuy = within(screen.getByRole('group', { name: 'Permitir recompras' }));
   set('Importe (€)', '9.50', rebuy);
   set('Fichas', '6000', rebuy);
@@ -167,12 +167,12 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   click('Pausar');
   click('Siguiente nivel');
   click('Recompra de Ana');
-  click('Extra de fichas para Ana');
+  click('Add-on para Ana');
   expect(screen.queryByRole('button', { name: 'Recompra de Luis' })).toBeNull();
   click('Eliminar a Paz');
-  fireEvent.click(screen.getByText('Corregir recompras y extras'));
+  fireEvent.click(screen.getByText('Corregir recompras y add-ons'));
   click('Quitar recompra (1)');
-  click('Quitar extra (1)');
+  click('Quitar add-on (1)');
   expect(onCommand.mock.calls).toEqual([
     ['PAUSE'],
     ['NEXT_LEVEL'],
@@ -412,7 +412,7 @@ it('desactiva el ante de todos los niveles al guardar y permite recuperarlo ante
       onSave={save}
     />,
   );
-  fireEvent.click(screen.getByText('Ciegas, recompras y extra de fichas'));
+  fireEvent.click(screen.getByText('Ciegas, recompras y add-on'));
   expect(screen.getByLabelText('Activar ante')).toBeChecked();
   fireEvent.click(screen.getByLabelText('Activar ante'));
   expect(screen.queryByLabelText('Ante')).not.toBeInTheDocument();

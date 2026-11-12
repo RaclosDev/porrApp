@@ -65,7 +65,7 @@ export default function PokerSettingsForm({
     `${draft.levels.length} ${draft.levels.length === 1 ? 'nivel' : 'niveles'}`,
     `${Math.floor(minutes / 60)} h ${minutes % 60} min`,
     draft.rebuy ? 'con recompras' : 'sin recompras',
-    ...(draft.addOn ? ['con extra de fichas'] : []),
+    ...(draft.addOn ? ['con add-on'] : []),
   ].join(' · ');
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -172,7 +172,7 @@ export default function PokerSettingsForm({
 
       <details className="poker-details">
         <summary>
-          <span>Ciegas, recompras y extra de fichas</span>
+          <span>Ciegas, recompras y add-on</span>
           <span className="poker-note">{structure}</span>
         </summary>
         <div className="poker-detail-content">
@@ -287,7 +287,7 @@ export default function PokerSettingsForm({
             onChange={(rebuy) => patch({ rebuy })}
           />
           <ExtraFields
-            label="Ofrecer un extra de fichas (add-on)"
+            label="Ofrecer un add-on (extra de fichas)"
             extra={draft.addOn}
             settings={draft}
             onChange={(addOn) => patch({ addOn })}
@@ -378,7 +378,7 @@ function ExtraFields({
             )
           }
         />
-        {multiple ? 'Activar recompras' : 'Activar extra de fichas'}
+        {multiple ? 'Activar recompras' : 'Activar add-on'}
       </label>
       {extra && (
         <div className="poker-fields">
