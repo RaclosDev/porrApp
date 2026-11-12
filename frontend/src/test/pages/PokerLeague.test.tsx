@@ -110,6 +110,7 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   const level = within(screen.getByRole('group', { name: 'Ciegas · nivel 4' }));
   set('Pequeña', '75', level);
   set('Grande', '150', level);
+  fireEvent.click(screen.getByLabelText('Activar ante'));
   set('Ante', '10', level);
   set('Minutos', '20', level);
   fireEvent.click(screen.getByLabelText('Activar recompras'));
@@ -128,7 +129,7 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
       startingChips: 8000,
       prizeShares: [75, 25],
       levels: [
-        settings.levels[0],
+        { ...settings.levels[0], ante: 50 },
         { small: 0, big: 0, ante: 0, minutes: 10 },
         { small: 75, big: 150, ante: 10, minutes: 20 },
       ],
@@ -203,7 +204,7 @@ it('guarda asistencia, edita con revisión y cancela un torneo abierto', async (
   vi.mocked(confirmAction).mockResolvedValue(true);
   renderLeague();
   await screen.findByRole('heading', { name: 'Inscripciones abiertas' });
-  click('Ya no juego');
+  click('Desapuntarme');
   await waitFor(() =>
     expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13/attendance', {
       method: 'PUT',
@@ -296,5 +297,207 @@ it('reutiliza las reglas del torneo anterior', async () => {
       method: 'POST',
       json: { date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), settings },
     }),
+  );
+});
+
+it('finaliza con las fichas de los supervivientes y exige cuadrar el total', async () => {
+  const command = vi.fn().mockResolvedValue(undefined);
+  vi.mocked(confirmAction).mockResolvedValue(true);
+  render(
+    <PokerLive
+      session={{
+        ...session,
+        startedAt: 1,
+        eliminations: [3],
+        clock: { level: 0, endsAt: null, remainingMs: 1000 },
+      }}
+      owner
+      busy={false}
+      serverNow={1000}
+      receivedAt={Date.now()}
+      onCommand={command}
+    />,
+  );
+  click('Finalizar torneo');
+  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  set('Fichas de Ana', '20000');
+  expect(screen.getByLabelText('Fichas de Luis', { exact: false })).toHaveValue(10000);
+  set('Fichas de Luis', '5000');
+  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  set('Fichas de Luis', '10000');
+  click('Finalizar y guardar');
+  await waitFor(() =>
+    expect(command).toHaveBeenCalledWith('CLOSE', undefined, [
+      { playerId: 1, chips: 20000 },
+      { playerId: 2, chips: 10000 },
+    ]),
+  );
+});
+
+it('calcula el ultimo jugador y recalcula al corregir los otros importes', () => {
+  render(
+    <PokerLive
+      session={{ ...session, startedAt: 1, clock: { level: 0, endsAt: null, remainingMs: 1000 } }}
+      owner
+      busy={false}
+      serverNow={1000}
+      receivedAt={Date.now()}
+      onCommand={vi.fn()}
+    />,
+  );
+  click('Finalizar torneo');
+  set('Fichas de Ana', '12000');
+  expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(null);
+  set('Fichas de Luis', '8000');
+  expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(10000);
+  set('Fichas de Ana', '15000');
+  expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(7000);
+  set('Fichas de Ana', '30000');
+  expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(null);
+  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  set('Fichas de Ana', '22000');
+  expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(0);
+  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeEnabled();
+});
+
+it('abre las acciones desde la foto y respeta permisos y extras disponibles', () => {
+  const command = vi.fn().mockResolvedValue(undefined);
+  const live = {
+    ...session,
+    startedAt: 1,
+    eliminations: [3],
+    settings: {
+      ...settings,
+      rebuy: { costCents: 1000, chips: 10000, limit: 1, throughLevel: 1 },
+      addOn: { costCents: 1000, chips: 10000, limit: 1, throughLevel: 1 },
+    },
+    clock: { level: 0, endsAt: null, remainingMs: 1000 },
+  };
+  const props = {
+    session: live,
+    owner: true,
+    busy: false,
+    serverNow: 1000,
+    receivedAt: Date.now(),
+    onCommand: command,
+  };
+  const { rerender } = render(<PokerLive {...props} />);
+  expect(screen.queryByRole('button', { name: 'Acciones de Paz' })).not.toBeInTheDocument();
+  click('Acciones de Ana');
+  const actions = within(screen.getByRole('region', { name: 'Acciones de Ana' }));
+  fireEvent.click(actions.getByRole('button', { name: 'Recompra' }));
+  expect(command).toHaveBeenLastCalledWith('REBUY', 1);
+  fireEvent.click(actions.getByRole('button', { name: 'Add-on' }));
+  expect(command).toHaveBeenLastCalledWith('ADD_ON', 1);
+  fireEvent.click(actions.getByRole('button', { name: 'Eliminar' }));
+  expect(command).toHaveBeenLastCalledWith('ELIMINATE', 1);
+  click('Acciones de Luis');
+  const limited = within(screen.getByRole('region', { name: 'Acciones de Luis' }));
+  expect(limited.queryByRole('button', { name: 'Recompra' })).not.toBeInTheDocument();
+  expect(limited.queryByRole('button', { name: 'Add-on' })).not.toBeInTheDocument();
+  rerender(<PokerLive {...props} owner={false} />);
+  expect(screen.queryByRole('button', { name: 'Acciones de Ana' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Acciones de Luis' })).not.toBeInTheDocument();
+});
+
+it('desactiva el ante de todos los niveles al guardar y permite recuperarlo antes de guardar', async () => {
+  const save = vi.fn().mockResolvedValue(true);
+  render(
+    <PokerSettingsForm
+      date={date}
+      settings={{ ...settings, levels: settings.levels.map((level) => ({ ...level, ante: 25 })) }}
+      editing
+      busy={false}
+      onCancel={() => {}}
+      onSave={save}
+    />,
+  );
+  fireEvent.click(screen.getByText('Ciegas, recompras y extra de fichas'));
+  expect(screen.getByLabelText('Activar ante')).toBeChecked();
+  fireEvent.click(screen.getByLabelText('Activar ante'));
+  expect(screen.queryByLabelText('Ante')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText('Activar ante'));
+  expect(
+    screen.getAllByLabelText('Ante').map((input) => (input as HTMLInputElement).value),
+  ).toEqual(['25', '25']);
+  fireEvent.click(screen.getByLabelText('Activar ante'));
+  click('Añadir descanso');
+  click('Añadir nivel');
+  click('Guardar cambios');
+  await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  expect(save.mock.calls[0][1].levels.map((level: { ante: number }) => level.ante)).toEqual([
+    0, 0, 0, 0,
+  ]);
+});
+
+it('acumula recompras y add-ons por jugador entre torneos cerrados', () => {
+  const first = {
+    ...session,
+    closedAt: 5000,
+    results: [
+      { ...entries[0], place: 1, paidCents: 1000, prizeCents: 2000, rebuys: 2, addOns: 1 },
+      { ...entries[1], place: 2, paidCents: 1000, prizeCents: 0, rebuys: 0, addOns: 0 },
+    ],
+  };
+  const second = { ...first, id: 14, results: [{ ...first.results[0], rebuys: 3, addOns: 1 }] };
+  render(<PokerStatistics sessions={[second, first]} />);
+  const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+  const ana = within(screen.getByRole('row', { name: /Ana/ })).getAllByRole('cell');
+  const luis = within(screen.getByRole('row', { name: /Luis/ })).getAllByRole('cell');
+  expect(ana[headers.indexOf('Recompras') - 1]).toHaveTextContent(/^5$/);
+  expect(ana[headers.indexOf('Add-ons') - 1]).toHaveTextContent(/^2$/);
+  expect(luis[headers.indexOf('Recompras') - 1]).toHaveTextContent(/^0$/);
+  expect(luis[headers.indexOf('Add-ons') - 1]).toHaveTextContent(/^0$/);
+});
+
+it('ordena cada columna por su valor y alterna el sentido sin cambiar el podio', () => {
+  const ana = { ...entries[0], place: 1, paidCents: 1000, prizeCents: 100, rebuys: 3, addOns: 2 };
+  const luis = { ...entries[1], place: 2, paidCents: 100, prizeCents: 900, rebuys: 10, addOns: 0 };
+  render(
+    <PokerStatistics
+      sessions={[
+        { ...session, closedAt: 5000, results: [ana, luis] },
+        {
+          ...session,
+          id: 14,
+          closedAt: 6000,
+          results: [{ ...ana, place: 4, prizeCents: 0, rebuys: 0, addOns: 0 }],
+        },
+      ]}
+    />,
+  );
+  const podium = screen.getByRole('list', { name: 'Podio de la liga por victorias' }).textContent;
+  const order = () =>
+    screen
+      .getAllByRole('rowheader')
+      .map((cell) => cell.querySelector('.poker-player')?.lastChild?.textContent);
+  const expected: [string, string[]][] = [
+    ['Jugador', ['Ana', 'Luis']],
+    ['Torneos', ['Ana', 'Luis']],
+    ['Recompras', ['Luis', 'Ana']],
+    ['Add-ons', ['Ana', 'Luis']],
+    ['Victorias', ['Ana', 'Luis']],
+    ['% victorias', ['Ana', 'Luis']],
+    ['% con premio', ['Luis', 'Ana']],
+    ['Puesto medio', ['Ana', 'Luis']],
+    ['Premios', ['Luis', 'Ana']],
+    ['Neto', ['Luis', 'Ana']],
+  ];
+  for (const [label, names] of expected) {
+    click(label);
+    expect(order()).toEqual(names);
+    expect(screen.getByRole('columnheader', { name: label })).toHaveAttribute(
+      'aria-sort',
+      label === 'Jugador' ? 'ascending' : 'descending',
+    );
+    click(label);
+    expect(order()).toEqual([...names].reverse());
+  }
+  click('Podios');
+  expect(order()).toEqual(['Ana', 'Luis']);
+  click('Podios');
+  expect(order()).toEqual(['Ana', 'Luis']);
+  expect(screen.getByRole('list', { name: 'Podio de la liga por victorias' }).textContent).toBe(
+    podium,
   );
 });

@@ -200,7 +200,11 @@ public class PokerLeagueService {
         BlindLevel level = session.getSettings().levels().get(current.level());
         String title;
         String body;
-        if (current.remainingMs() == 0) {
+        if (previous == null) {
+            title = "Ha empezado el torneo";
+            body = "Entra en la mesa. Ciegas " + level.small() + " / " + level.big()
+                    + (level.ante() > 0 ? " · Ante " + level.ante() : "") + ".";
+        } else if (current.remainingMs() == 0) {
             title = "Ha terminado el último nivel";
             body = "Se mantienen las ciegas " + level.small() + " / " + level.big() + " y el ante " + level.ante() + ".";
         } else if (level.big() == 0) {
@@ -219,7 +223,7 @@ public class PokerLeagueService {
                 .map(ScoreTrackerPlayer::getUserId).collect(java.util.stream.Collectors.toSet());
         events.publishEvent(new PokerNotificationEvent(recipients,
                 new app.porrapp.service.notification.PushMessage(title, league.getName() + ". " + body,
-                        "/?group=" + league.getId(), "poker-clock-" + session.getId()),
+                        "/poker/mesa?group=" + league.getId(), "poker-clock-" + session.getId()),
                 current.endsAt() == null ? System.currentTimeMillis() + 300_000 : current.endsAt()));
     }
 

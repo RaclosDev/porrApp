@@ -2,7 +2,13 @@ import { Link } from 'react-router-dom';
 import type { PokerLeagueData, PokerSession } from '../../services/endpoints/poker';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
-import { euros, pokerStandings, standingLabel, tournamentDate } from './pokerFormat';
+import {
+  euros,
+  pokerStandings,
+  standingLabel,
+  tournamentDate,
+  upcomingTournamentDate,
+} from './pokerFormat';
 import { pokerRoutes } from './pokerRoutes';
 
 export default function PokerHome({
@@ -33,7 +39,7 @@ export default function PokerHome({
         </header>
         {current ? (
           <>
-            <p className="poster-title poker-big-date">{tournamentDate(current.date)}</p>
+            <p className="poster-title poker-big-date">{upcomingTournamentDate(current.date)}</p>
             <p className="marker-ink poker-state">
               {live ? 'En juego' : attending ? 'Asistencia confirmada' : 'Inscripciones abiertas'}
             </p>

@@ -21,6 +21,7 @@ export default function PokerSettingsForm({
 }: Props) {
   const [day, setDay] = useState(date);
   const [draft, setDraft] = useState(settings);
+  const [anteEnabled, setAnteEnabled] = useState(settings.levels.some((level) => level.ante > 0));
   const [error, setError] = useState('');
   const patch = (changes: Partial<PokerSettings>) =>
     setDraft((previous) => ({ ...previous, ...changes }));
@@ -38,7 +39,7 @@ export default function PokerSettingsForm({
           : {
               small: previous?.small ?? 25,
               big: previous?.big ?? 50,
-              ante: previous?.ante ?? 0,
+              ante: anteEnabled ? previous?.ante || previous?.big || 50 : 0,
               minutes: previous?.minutes ?? 15,
             },
       ],
@@ -83,7 +84,13 @@ export default function PokerSettingsForm({
       );
     }
     setError('');
-    await onSave(day, draft);
+    await onSave(day, {
+      ...draft,
+      levels: draft.levels.map((level) => ({
+        ...level,
+        ante: anteEnabled && level.big > 0 ? level.ante : 0,
+      })),
+    });
   }
 
   return (
@@ -172,6 +179,29 @@ export default function PokerSettingsForm({
           <p className="poker-note">
             El reloj pasa al siguiente nivel o descanso al agotarse el tiempo.
           </p>
+          <label className="poker-check">
+            <input
+              type="checkbox"
+              checked={anteEnabled}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                setAnteEnabled(enabled);
+                if (enabled) {
+                  patch({
+                    levels: draft.levels.map((level) => ({
+                      ...level,
+                      ante: level.big > 0 ? level.ante || level.big : 0,
+                    })),
+                  });
+                }
+              }}
+            />
+            Activar ante
+          </label>
+          <p className="poker-note">
+            Al activarlo, los niveles sin ante toman el valor de la ciega grande. Puedes ajustar
+            cada importe. Al desactivarlo, todos los niveles se guardan sin ante.
+          </p>
           <div className="poker-level-list">
             {draft.levels.map((level, index) => {
               const rest = level.big === 0 && level.small === 0;
@@ -201,11 +231,13 @@ export default function PokerSettingsForm({
                           value={level.big}
                           onChange={(big) => updateLevel(index, { big })}
                         />
-                        <NumberField
-                          label="Ante"
-                          value={level.ante}
-                          onChange={(ante) => updateLevel(index, { ante })}
-                        />
+                        {anteEnabled && (
+                          <NumberField
+                            label="Ante"
+                            value={level.ante}
+                            onChange={(ante) => updateLevel(index, { ante })}
+                          />
+                        )}
                       </>
                     )}
                     <NumberField

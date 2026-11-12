@@ -111,11 +111,11 @@ export default function PokerLeague({
               onRetry={() => void history.refetch()}
             />
           </>
-        ) : (
+        ) : view !== 'table' ? (
           <h1 className="poster-title mt-0 mb-4 text-[1.8rem] text-white">
             {pokerRoutes[view].label}
           </h1>
-        )}
+        ) : null}
         {view === 'table' && (
           <>
             {league.owner &&
@@ -173,9 +173,9 @@ export default function PokerLeague({
                   busy={busy}
                   serverNow={league.serverNow}
                   receivedAt={query.dataUpdatedAt}
-                  onCommand={async (action, playerId) => {
+                  onCommand={async (action, playerId, finalStacks) => {
                     const saved = await change(() =>
-                      pokerCommand(league.id, current, action, playerId),
+                      pokerCommand(league.id, current, action, playerId, finalStacks),
                     );
                     if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
                   }}
