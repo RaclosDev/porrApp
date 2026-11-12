@@ -48,7 +48,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
       <div className="poker-section-head">
         <div>
           <h2>Inscripciones abiertas</h2>
-          <p className="poker-date">{tournamentDate(session.date)}</p>
+          <p className="poker-date first-letter:uppercase">{tournamentDate(session.date)}</p>
         </div>
         {league.myPlayerId !== null && (
           <button
@@ -91,7 +91,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
       <div className="poker-roster">
         <h3>{league.owner ? 'Jugadores de la liga' : 'Jugadores confirmados'}</h3>
         {league.owner ? (
-          <ul className="poker-player-list">
+          <ul className="poker-player-list poker-pick-list">
             {league.players.map((player) => (
               <li key={player.id}>
                 <label className="poker-check">
@@ -147,7 +147,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
                   : 'Reduce los puestos premiados o confirma a más jugadores para empezar.'}
               </p>
             )}
-            <div className="poker-actions">
+            <div className="poker-actions poker-host-actions">
               <button
                 type="button"
                 className="glass-btn primary-btn"
@@ -161,7 +161,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
               </button>
               <button
                 type="button"
-                className="glass-btn"
+                className="glass-btn poker-out-btn"
                 disabled={busy}
                 onClick={() => void cancel()}
               >

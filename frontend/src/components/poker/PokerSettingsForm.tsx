@@ -58,7 +58,14 @@ export default function PokerSettingsForm({
         : null;
     patch({ levels, rebuy: updateCutoff(draft.rebuy), addOn: updateCutoff(draft.addOn) });
   };
-  const shareTotal = draft.prizeShares.reduce((sum, share) => sum + share, 0);
+  const shareTotal = draft.prizeShares.reduce((sum, share) => sum + share, 0) || 0;
+  const minutes = draft.levels.reduce((sum, level) => sum + (level.minutes || 0), 0);
+  const structure = [
+    `${draft.levels.length} ${draft.levels.length === 1 ? 'nivel' : 'niveles'}`,
+    `${Math.floor(minutes / 60)} h ${minutes % 60} min`,
+    draft.rebuy ? 'con recompras' : 'sin recompras',
+    ...(draft.addOn ? ['con extra de fichas'] : []),
+  ].join(' · ');
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,7 +96,7 @@ export default function PokerSettingsForm({
       }}
     >
       <h2>{editing ? 'Editar torneo' : 'Preparar torneo'}</h2>
-      <div className="poker-fields">
+      <div className="poker-fields poker-basics">
         <label>
           Fecha
           <input
@@ -116,7 +123,7 @@ export default function PokerSettingsForm({
 
       <fieldset className="poker-fieldset">
         <legend>Reparto de premios</legend>
-        <div className="poker-fields">
+        <div className="poker-fields poker-share-fields">
           {draft.prizeShares.map((value, index) => (
             <NumberField
               key={index}
@@ -133,8 +140,9 @@ export default function PokerSettingsForm({
           ))}
         </div>
         <div className="poker-actions">
-          <span className="poker-note">
-            Reparto total {Number.isFinite(shareTotal) ? shareTotal : 0} %
+          <span className={shareTotal === 100 ? 'poker-total' : 'poker-total is-off'}>
+            Reparto total {shareTotal} %{shareTotal < 100 && ` · falta un ${100 - shareTotal} %`}
+            {shareTotal > 100 && ` · sobra un ${shareTotal - 100} %`}
           </span>
           <button
             type="button"
@@ -156,58 +164,70 @@ export default function PokerSettingsForm({
       </fieldset>
 
       <details className="poker-details">
-        <summary>Ciegas, recompras y extra de fichas</summary>
+        <summary>
+          <span>Ciegas, recompras y extra de fichas</span>
+          <span className="poker-note">{structure}</span>
+        </summary>
         <div className="poker-detail-content">
           <p className="poker-note">
             El reloj pasa al siguiente nivel o descanso al agotarse el tiempo.
           </p>
           <div className="poker-level-list">
-            {draft.levels.map((level, index) => (
-              <fieldset className="poker-fieldset" key={index}>
-                <legend>
-                  {level.big === 0 && level.small === 0 ? 'Descanso' : 'Ciegas'} · nivel {index + 1}
-                </legend>
-                <div className="poker-fields">
-                  {!(level.big === 0 && level.small === 0) && (
-                    <>
-                      <NumberField
-                        label="Pequeña"
-                        min={1}
-                        value={level.small}
-                        onChange={(small) => updateLevel(index, { small })}
-                      />
-                      <NumberField
-                        label="Grande"
-                        min={1}
-                        value={level.big}
-                        onChange={(big) => updateLevel(index, { big })}
-                      />
-                      <NumberField
-                        label="Ante"
-                        value={level.ante}
-                        onChange={(ante) => updateLevel(index, { ante })}
-                      />
-                    </>
-                  )}
-                  <NumberField
-                    label="Minutos"
-                    min={1}
-                    max={120}
-                    value={level.minutes}
-                    onChange={(minutes) => updateLevel(index, { minutes })}
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="glass-btn"
-                  disabled={draft.levels.length <= 1}
-                  onClick={() => removeLevel(index)}
-                  aria-label={`Quitar nivel ${index + 1}`}
+            {draft.levels.map((level, index) => {
+              const rest = level.big === 0 && level.small === 0;
+              return (
+                <div
+                  role="group"
+                  aria-label={`${rest ? 'Descanso' : 'Ciegas'} · nivel ${index + 1}`}
+                  className={rest ? 'poker-level is-break' : 'poker-level'}
+                  key={index}
                 >
-                  Quitar nivel
-                </button>
-              </fieldset>
-            ))}
+                  <p className="poker-level-name">
+                    <span>{index + 1}</span>
+                    {rest ? 'Descanso' : 'Ciegas'}
+                  </p>
+                  <div className="poker-fields poker-level-fields">
+                    {!rest && (
+                      <>
+                        <NumberField
+                          label="Pequeña"
+                          min={1}
+                          value={level.small}
+                          onChange={(small) => updateLevel(index, { small })}
+                        />
+                        <NumberField
+                          label="Grande"
+                          min={1}
+                          value={level.big}
+                          onChange={(big) => updateLevel(index, { big })}
+                        />
+                        <NumberField
+                          label="Ante"
+                          value={level.ante}
+                          onChange={(ante) => updateLevel(index, { ante })}
+                        />
+                      </>
+                    )}
+                    <NumberField
+                      label="Minutos"
+                      min={1}
+                      max={120}
+                      value={level.minutes}
+                      onChange={(minutes) => updateLevel(index, { minutes })}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="glass-btn poker-level-remove"
+                    disabled={draft.levels.length <= 1}
+                    onClick={() => removeLevel(index)}
+                    aria-label={`Quitar nivel ${index + 1}`}
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </div>
+              );
+            })}
           </div>
           <div className="poker-actions">
             <button

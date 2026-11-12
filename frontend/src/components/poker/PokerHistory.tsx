@@ -1,5 +1,13 @@
 import type { PokerSession } from '../../services/endpoints/poker';
-import { chips, euros, percent, pokerStandings, tournamentDate } from './pokerFormat';
+import { chips, euros, percent, pokerStandings, signedEuros, tournamentDate } from './pokerFormat';
+
+function Net({ cents }: { cents: number }) {
+  return (
+    <td className={cents > 0 ? 'poker-net is-up' : cents < 0 ? 'poker-net is-down' : 'poker-net'}>
+      {signedEuros(cents)}
+    </td>
+  );
+}
 
 export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
   return (
@@ -15,7 +23,9 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
           open={index === 0 || undefined}
         >
           <summary>
-            <span>{tournamentDate(session.date)}</span>
+            <span className="inline-block first-letter:uppercase">
+              {tournamentDate(session.date)}
+            </span>
             <span className="poker-note">
               Ganó {session.results[0]?.name} · {session.results.length} jugadores ·{' '}
               {euros(session.potCents)} de bote
@@ -32,13 +42,11 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
               aria-label={`Resultados del ${tournamentDate(session.date)}`}
               tabIndex={0}
             >
-              <table className="poker-table">
+              <table className="poker-table poker-results-table">
                 <thead>
                   <tr>
                     <th scope="col">Puesto</th>
                     <th scope="col">Jugador</th>
-                    <th scope="col">Recompras</th>
-                    <th scope="col">Extras</th>
                     <th scope="col">Aportado</th>
                     <th scope="col">Premio</th>
                     <th scope="col">Neto</th>
@@ -48,12 +56,24 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
                   {session.results.map((result) => (
                     <tr key={result.playerId}>
                       <td>{result.place}.º</td>
-                      <th scope="row">{result.name}</th>
-                      <td>{result.rebuys}</td>
-                      <td>{result.addOns}</td>
+                      <th scope="row">
+                        {result.name}
+                        {(result.rebuys > 0 || result.addOns > 0) && (
+                          <small>
+                            {[
+                              result.rebuys > 0 &&
+                                `${result.rebuys} ${result.rebuys === 1 ? 'recompra' : 'recompras'}`,
+                              result.addOns > 0 &&
+                                `${result.addOns} ${result.addOns === 1 ? 'extra' : 'extras'}`,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </small>
+                        )}
+                      </th>
                       <td>{euros(result.paidCents)}</td>
                       <td>{euros(result.prizeCents)}</td>
-                      <td>{euros(result.prizeCents - result.paidCents)}</td>
+                      <Net cents={result.prizeCents - result.paidCents} />
                     </tr>
                   ))}
                 </tbody>
@@ -111,7 +131,7 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                     <td>{percent(row.cashes / row.played)}</td>
                     <td>{formatPlace.format(row.places / row.played)}.º</td>
                     <td>{euros(row.prizes)}</td>
-                    <td>{euros(row.prizes - row.paid)}</td>
+                    <Net cents={row.prizes - row.paid} />
                   </tr>
                 ))}
               </tbody>

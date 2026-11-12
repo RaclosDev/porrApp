@@ -13,7 +13,14 @@ const percentFormat = new Intl.NumberFormat('es-ES', {
   maximumFractionDigits: 1,
 });
 
+const signedMoneyFormat = new Intl.NumberFormat('es-ES', {
+  style: 'currency',
+  currency: 'EUR',
+  signDisplay: 'exceptZero',
+});
+
 export const euros = (cents: number) => moneyFormat.format(cents / 100);
+export const signedEuros = (cents: number) => signedMoneyFormat.format(cents / 100);
 export const chips = (count: number) => numberFormat.format(count);
 export const percent = (value: number) => percentFormat.format(value);
 export const tournamentDate = (date: string) => dateFormat.format(new Date(`${date}T12:00:00`));
