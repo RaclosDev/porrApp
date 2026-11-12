@@ -65,7 +65,9 @@ final class PokerTournament {
             case UNDO_REBUY, UNDO_ADD_ON -> undoExtra(session, command);
             case ELIMINATE -> eliminate(session, command.playerId());
             case UNDO_ELIMINATION -> {
-                if (!session.getEliminations().isEmpty()) {
+                if (command.playerId() != null) {
+                    revive(session, command.playerId());
+                } else if (!session.getEliminations().isEmpty()) {
                     session.setEliminations(new ArrayList<>(
                             session.getEliminations().subList(0, session.getEliminations().size() - 1)));
                 }
@@ -123,15 +125,30 @@ final class PokerTournament {
         session.setEliminations(order);
     }
 
+    /** Quita la eliminación de un jugador concreto; los demás conservan su orden. */
+    private static void revive(PokerSession session, Long playerId) {
+        if (!session.getEliminations().contains(playerId)) {
+            throw BusinessException.conflict("Ese jugador no está eliminado");
+        }
+        session.setEliminations(session.getEliminations().stream()
+                .filter(id -> !id.equals(playerId)).toList());
+    }
+
     private static void extra(PokerSession session, Command command, BlindClock clock) {
-        Entry player = activeEntry(session, command.playerId());
         boolean rebuy = command.action() == Action.REBUY;
+        boolean comeback = rebuy && command.playerId() != null
+                && session.getEliminations().contains(command.playerId());
+        Entry player = comeback
+                ? session.getEntries().stream().filter(entry -> entry.playerId() == command.playerId())
+                        .findFirst().orElseThrow()
+                : activeEntry(session, command.playerId());
         Extra option = rebuy ? session.getSettings().rebuy() : session.getSettings().addOn();
         int count = rebuy ? player.rebuys() : player.addOns();
         if (option == null || (option.limit() != null && count >= option.limit()) || clock.level() >= option.throughLevel()
                 || clock.remainingMs() == 0) {
             throw BusinessException.conflict("Ese extra de fichas ya no está disponible para este jugador");
         }
+        if (comeback) revive(session, player.playerId());
         replaceEntry(session, rebuy ? player.rebuy() : player.addOn());
     }
 

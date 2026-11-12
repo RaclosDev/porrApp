@@ -303,21 +303,115 @@
 }
 
 .poker-extra-rules {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.poker-extra-rules > li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 0.6rem;
+}
+
+.poker-extra-rules .poker-icon {
+  flex-shrink: 0;
+  width: auto;
+  height: 1.6rem;
+}
+
+.poker-extra-rules small,
+.poker-prize-who small {
+  display: block;
   color: var(--text-muted);
-  font-size: 0.875rem;
-  line-height: 1.45;
+  font-size: 0.8rem;
 }
 
 .poker .poker-pot {
-  margin-block: 0.55rem;
-  font-size: 1.5rem;
-  font-weight: 750;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-block: 0.55rem 0.3rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.6rem;
+  background: radial-gradient(ellipse at 30% 20%, #1a5a41, #0f3d2e 80%);
+  color: #fff;
 }
 
 .poker-pot span {
-  color: var(--text-muted);
+  color: #c3d5c6;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.poker-pot strong {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker .poker-prizes > li {
+  justify-content: flex-start;
+}
+
+.poker-prize-place {
+  display: grid;
+  flex-shrink: 0;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  border: 2px solid var(--prize-ring, var(--border-color));
+  border-radius: 50%;
+  background: var(--prize-fill, transparent);
+  color: var(--prize-ink, inherit);
   font-size: 0.85rem;
-  font-weight: 400;
+  font-weight: 800;
+}
+
+.poker-prize.is-place-1 {
+  --prize-fill: #f6c445;
+  --prize-ring: #8a5a00;
+  --prize-ink: #3d2800;
+}
+
+.poker-prize.is-place-2 {
+  --prize-fill: #d7dde3;
+  --prize-ring: #6b7785;
+  --prize-ink: #27313b;
+}
+
+.poker-prize.is-place-3 {
+  --prize-fill: #d99a63;
+  --prize-ring: #7a4219;
+  --prize-ink: #3a1d08;
+}
+
+.poker-prize-who {
+  flex: 1;
+  min-width: 0;
+}
+
+.poker-prizes > li > strong {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-actions .poker-icon-btn {
+  min-width: 44px;
+  justify-content: center;
+  padding-inline: 0.6rem;
+}
+
+.poker-undo-icon {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .poker-table-scroll {

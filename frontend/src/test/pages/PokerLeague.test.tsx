@@ -263,9 +263,13 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   expect(onCommand).toHaveBeenLastCalledWith('RESUME');
 
   rerender(live({ ...active, eliminations: [3, 2] }));
-  expect(screen.getByText('Eliminados (2)')).toBeInTheDocument();
-  click('Deshacer eliminación de Luis');
-  expect(onCommand).toHaveBeenLastCalledWith('UNDO_ELIMINATION');
+  const names = within(screen.getByRole('heading', { name: 'Jugadores' }).parentElement!)
+    .getAllByRole('listitem')
+    .map((item) => item.querySelector('strong')?.textContent)
+    .filter(Boolean);
+  expect(names.slice(0, 3)).toEqual(['Ana', 'Luis', 'Paz']);
+  click('Quitar la eliminación de Paz');
+  expect(onCommand).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
   click('Cerrar torneo');
   vi.useRealTimers();
   await waitFor(() => expect(onCommand).toHaveBeenLastCalledWith('CLOSE'));
@@ -454,19 +458,26 @@ it('abre las acciones desde la foto y respeta permisos y extras disponibles', ()
     onCommand: command,
   };
   const { rerender } = render(<PokerLive {...props} />);
-  expect(screen.queryByRole('button', { name: 'Acciones de Paz' })).not.toBeInTheDocument();
   click('Acciones de Ana');
   const actions = within(screen.getByRole('region', { name: 'Acciones de Ana' }));
-  fireEvent.click(actions.getByRole('button', { name: 'Recompra' }));
+  fireEvent.click(actions.getByRole('button', { name: 'Recompra de Ana' }));
   expect(command).toHaveBeenLastCalledWith('REBUY', 1);
-  fireEvent.click(actions.getByRole('button', { name: 'Add-on' }));
+  fireEvent.click(actions.getByRole('button', { name: 'Add-on para Ana' }));
   expect(command).toHaveBeenLastCalledWith('ADD_ON', 1);
-  fireEvent.click(actions.getByRole('button', { name: 'Eliminar' }));
+  fireEvent.click(actions.getByRole('button', { name: 'Eliminar a Ana' }));
   expect(command).toHaveBeenLastCalledWith('ELIMINATE', 1);
   click('Acciones de Luis');
   const limited = within(screen.getByRole('region', { name: 'Acciones de Luis' }));
-  expect(limited.queryByRole('button', { name: 'Recompra' })).not.toBeInTheDocument();
-  expect(limited.queryByRole('button', { name: 'Add-on' })).not.toBeInTheDocument();
+  expect(limited.queryByRole('button', { name: 'Recompra de Luis' })).not.toBeInTheDocument();
+  expect(limited.queryByRole('button', { name: 'Add-on para Luis' })).not.toBeInTheDocument();
+  click('Acciones de Paz');
+  const out = within(screen.getByRole('region', { name: 'Acciones de Paz' }));
+  expect(out.queryByRole('button', { name: 'Eliminar a Paz' })).not.toBeInTheDocument();
+  expect(out.queryByRole('button', { name: 'Add-on para Paz' })).not.toBeInTheDocument();
+  fireEvent.click(out.getByRole('button', { name: 'Recompra de Paz' }));
+  expect(command).toHaveBeenLastCalledWith('REBUY', 3);
+  fireEvent.click(out.getByRole('button', { name: 'Quitar la eliminación de Paz' }));
+  expect(command).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
   rerender(<PokerLive {...props} owner={false} />);
   expect(screen.queryByRole('button', { name: 'Acciones de Ana' })).not.toBeInTheDocument();
   expect(screen.queryByRole('region', { name: 'Acciones de Luis' })).not.toBeInTheDocument();
