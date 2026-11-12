@@ -19,6 +19,7 @@ import {
   pokerCommand,
   savePokerSession,
   type PokerLeagueData,
+  type PokerSession,
 } from '../services/endpoints/poker';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
@@ -121,12 +122,30 @@ export default function PokerLeague({
             ((form === 'new' && !current) || (form === 'edit' && current?.startedAt === null)) ? (
               form === 'new' && history.isPending ? (
                 <PaperLoading label="Cargando la configuración" />
+              ) : form === 'new' && history.isError ? (
+                <section className="paper-panel album-sheet poker-panel">
+                  <p>No se pudo cargar la configuración del último torneo.</p>
+                  <button
+                    type="button"
+                    className="glass-btn"
+                    onClick={() => void history.refetch()}
+                  >
+                    Reintentar
+                  </button>
+                </section>
               ) : (
                 <PokerSettingsForm
                   key={form}
                   editing={form === 'edit'}
                   date={current?.date ?? today()}
-                  settings={current?.settings ?? history.data?.[0]?.settings ?? defaultSettings}
+                  settings={
+                    current?.settings ??
+                    history.data?.reduce<PokerSession | undefined>(
+                      (latest, session) => (!latest || session.id > latest.id ? session : latest),
+                      undefined,
+                    )?.settings ??
+                    defaultSettings
+                  }
                   busy={busy}
                   onCancel={() => setForm(null)}
                   onSave={async (date, settings) => {

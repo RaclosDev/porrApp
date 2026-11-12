@@ -277,7 +277,12 @@ it('recorre el histórico torneo a torneo', () => {
 
 it('reutiliza las reglas del torneo anterior', async () => {
   api.mockImplementation(async (path) =>
-    path.endsWith('/history') ? [{ ...session, closedAt: 5000 }] : { ...league, current: null },
+    path.endsWith('/history')
+      ? [
+          { ...session, id: 12, closedAt: 5000, settings: { ...settings, buyInCents: 2500 } },
+          { ...session, closedAt: 5000 },
+        ]
+      : { ...league, current: null },
   );
   renderLeague();
   await screen.findByRole('heading', { name: 'Próximo torneo' });

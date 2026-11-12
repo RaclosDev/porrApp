@@ -50,6 +50,22 @@ public class MemberJoinedNotifier {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onPokerNotification(PokerNotificationEvent event) {
+        try {
+            if (!sender.isEnabled()) return;
+            Set<Long> recipients = userAccountRepository.findAllById(event.recipients()).stream()
+                    .filter(user -> user.isMatchRemindersEnabled() || user.isMemberJoinedAlertsEnabled()
+                            || user.isMatchdayFinishedAlertsEnabled())
+                    .map(UserAccount::getId).collect(Collectors.toSet());
+            if (!recipients.isEmpty()) deliver(recipients, event.message());
+        } catch (RuntimeException e) {
+            log.warn("No se pudo enviar el aviso de póker: {}", e.getMessage());
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onAdminGranted(LeagueAdminGrantedEvent event) {
         try {
             if (!sender.isEnabled()) return;
