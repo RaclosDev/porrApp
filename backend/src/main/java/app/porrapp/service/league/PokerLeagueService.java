@@ -113,7 +113,8 @@ public class PokerLeagueService {
                 new app.porrapp.service.notification.PushMessage("Nuevo torneo de póker",
                         league.getName() + " · " + request.date().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                                 + ". Apúntate y confirma tu asistencia.",
-                        "/?group=" + leagueId, "poker-scheduled-" + session.getId())));
+                        "/?group=" + leagueId, "poker-scheduled-" + session.getId()),
+                System.currentTimeMillis() + 24 * 60 * 60 * 1000L));
         return view(league, userId);
     }
 
@@ -218,7 +219,8 @@ public class PokerLeagueService {
                 .map(ScoreTrackerPlayer::getUserId).collect(java.util.stream.Collectors.toSet());
         events.publishEvent(new PokerNotificationEvent(recipients,
                 new app.porrapp.service.notification.PushMessage(title, league.getName() + ". " + body,
-                        "/?group=" + league.getId(), "poker-clock-" + session.getId())));
+                        "/?group=" + league.getId(), "poker-clock-" + session.getId()),
+                current.endsAt() == null ? System.currentTimeMillis() + 300_000 : current.endsAt()));
     }
 
     private LeagueView changed(League league, Long userId, PokerSession session) {

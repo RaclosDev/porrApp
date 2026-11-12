@@ -53,11 +53,13 @@ public class MemberJoinedNotifier {
     public void onPokerNotification(PokerNotificationEvent event) {
         try {
             if (!sender.isEnabled()) return;
+            int ttl = (int) Math.min(TTL_SECONDS, (event.expiresAt() - System.currentTimeMillis()) / 1000);
+            if (ttl <= 0) return;
             Set<Long> recipients = userAccountRepository.findAllById(event.recipients()).stream()
                     .filter(user -> user.isMatchRemindersEnabled() || user.isMemberJoinedAlertsEnabled()
                             || user.isMatchdayFinishedAlertsEnabled())
                     .map(UserAccount::getId).collect(Collectors.toSet());
-            if (!recipients.isEmpty()) deliver(recipients, event.message());
+            if (!recipients.isEmpty()) deliver(recipients, event.message(), ttl);
         } catch (RuntimeException e) {
             log.warn("No se pudo enviar el aviso de póker: {}", e.getMessage());
         }
@@ -194,13 +196,17 @@ public class MemberJoinedNotifier {
 
     /** @return usuarios a los que ha llegado el aviso en al menos un dispositivo */
     private int deliver(Set<Long> recipients, PushMessage message) {
+        return deliver(recipients, message, TTL_SECONDS);
+    }
+
+    private int deliver(Set<Long> recipients, PushMessage message, int ttlSeconds) {
         String payload = message.toJson(objectMapper);
         Map<Long, Boolean> delivered = new LinkedHashMap<>();
         for (PushSubscription device : subscriptionRepository.findByUserIdIn(recipients)) {
             Long userId = device.getUser().getId();
             if (!recipients.contains(userId)) continue;
             WebPushSender.Result result = sender.send(device.getEndpoint(), device.getP256dh(), device.getAuth(),
-                    payload, TTL_SECONDS, device.getUser().getId());
+                    payload, ttlSeconds, device.getUser().getId());
             if (result == WebPushSender.Result.SENT) delivered.put(userId, true);
             if (result == WebPushSender.Result.GONE) subscriptionRepository.deleteByEndpoint(device.getEndpoint());
         }
