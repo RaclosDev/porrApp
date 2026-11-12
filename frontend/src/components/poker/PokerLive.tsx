@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import type {
   BlindLevel,
-  FinalStack,
   PokerAction,
+  PokerCommandExtra,
   PokerExtra,
   PokerSession,
 } from '../../services/endpoints/poker';
+
+type Entry = PokerSession['entries'][number];
 import { confirmAction } from '../../utils/confirmAction';
+import { BagIcon, BulletIcon, Purchases, SeatBadges, SkullIcon } from './PokerBadges';
 import { PokerAvatar } from './PokerFaces';
+import PokerPrizeShares, { sharesTotal } from './PokerPrizeShares';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
 
 interface Props {
@@ -16,18 +20,15 @@ interface Props {
   busy: boolean;
   serverNow: number;
   receivedAt: number;
-  onCommand: (action: PokerAction, playerId?: number, finalStacks?: FinalStack[]) => Promise<void>;
+  onCommand: (action: PokerAction, playerId?: number, extra?: PokerCommandExtra) => Promise<void>;
+  lastWinnerIds?: number[];
 }
 
-function purchases({ rebuys, addOns }: { rebuys: number; addOns: number }) {
-  return (
-    [
-      rebuys > 0 && `${rebuys} ${rebuys === 1 ? 'recompra' : 'recompras'}`,
-      addOns > 0 && `${addOns} ${addOns === 1 ? 'add-on' : 'add-ons'}`,
-    ]
-      .filter(Boolean)
-      .join(' · ') || 'Sin recompras ni add-ons'
-  );
+/** Mismo cálculo que el servidor: los céntimos que sobran van al primer puesto. */
+function splitPot(pot: number, shares: number[]) {
+  const prizes = shares.map((share) => Math.floor((pot * share) / 100));
+  if (prizes.length > 0) prizes[0] += pot - prizes.reduce((sum, prize) => sum + prize, 0);
+  return prizes;
 }
 
 function blinds(level: BlindLevel) {
@@ -43,18 +44,29 @@ export default function PokerLive({
   serverNow,
   receivedAt,
   onCommand,
+  lastWinnerIds = [],
 }: Props) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [stacks, setStacks] = useState<Record<number, string>>({});
+  const [prizeDraft, setPrizeDraft] = useState<number[] | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const { levels, rebuy, addOn, prizeShares, startingChips } = session.settings;
   const eliminated = new Set(session.eliminations);
   const active = session.entries.filter((entry) => !eliminated.has(entry.playerId));
-  const selectedPlayer = active.find((entry) => entry.playerId === selectedPlayerId);
+  const selectedPlayer = session.entries.find((entry) => entry.playerId === selectedPlayerId);
   const winner = active.length === 1 ? active[0] : null;
-  const lastOut = session.entries.find((entry) => entry.playerId === session.eliminations.at(-1));
-  const hasExtras = session.entries.some((entry) => entry.rebuys || entry.addOns);
+  /** Primero quien sigue en juego; los eliminados al fondo, del último en caer al primero. */
+  const players = [
+    ...active,
+    ...[...session.eliminations]
+      .reverse()
+      .map((id) => session.entries.find((entry) => entry.playerId === id))
+      .filter((entry): entry is Entry => entry !== undefined),
+  ];
+  const corrections = session.entries.filter(
+    (entry) => entry.rebuys || entry.addOns || eliminated.has(entry.playerId),
+  );
   const clock =
     session.clock && clockAt(session.clock, levels, serverNow + Math.max(0, now - receivedAt));
   const chipsInPlay = session.entries.reduce(
@@ -75,9 +87,80 @@ export default function PokerLive({
       extra &&
       clock.remainingMs > 0 &&
       clock.level < extra.throughLevel &&
-      used < extra.limit,
+      (extra.limit === null || used < extra.limit),
     );
   }
+
+  /** Tiempo que queda para comprar ese extra: el resto del nivel y los siguientes hasta su corte. */
+  function timeToBuy(extra: PokerExtra | null) {
+    if (!clock || !extra || clock.remainingMs === 0 || clock.level >= extra.throughLevel) {
+      return null;
+    }
+    return levels
+      .slice(clock.level + 1, extra.throughLevel)
+      .reduce((sum, level) => sum + level.minutes * 60_000, clock.remainingMs);
+  }
+  /** Recompra, add-on y eliminar (o quitar la eliminación); con `compact` solo se ven los iconos. */
+  function playerActions(entry: Entry, compact = false) {
+    const out = eliminated.has(entry.playerId);
+    const button = (
+      action: PokerAction,
+      label: string,
+      text: string,
+      icon: ReactNode,
+      className = 'glass-btn',
+    ) => (
+      <button
+        type="button"
+        className={compact ? `${className} poker-icon-btn` : className}
+        disabled={busy}
+        aria-label={label}
+        title={label}
+        onClick={() => void onCommand(action, entry.playerId)}
+      >
+        {icon}
+        {!compact && text}
+      </button>
+    );
+    return (
+      <>
+        {canBuy(rebuy, entry.rebuys) &&
+          button('REBUY', `Recompra de ${entry.name}`, 'Recompra', <BulletIcon />)}
+        {!out &&
+          canBuy(addOn, entry.addOns) &&
+          button('ADD_ON', `Add-on para ${entry.name}`, 'Add-on', <BagIcon />)}
+        {out
+          ? button(
+              'UNDO_ELIMINATION',
+              `Quitar la eliminación de ${entry.name}`,
+              'Quitar eliminación',
+              <span className="poker-undo-icon">↺</span>,
+            )
+          : button(
+              'ELIMINATE',
+              `Eliminar a ${entry.name}`,
+              'Eliminar',
+              <SkullIcon />,
+              'glass-btn poker-out-btn',
+            )}
+      </>
+    );
+  }
+
+  const rebuyLeft = timeToBuy(rebuy);
+  const addOnLeft = timeToBuy(addOn);
+  const buyTimers =
+    rebuyLeft !== null && rebuyLeft === addOnLeft
+      ? [{ key: 'both', label: 'Recompras y add-on', ms: rebuyLeft, icons: ['bullet', 'bag'] }]
+      : [
+          rebuyLeft !== null && {
+            key: 'rebuy',
+            label: 'Recompras',
+            ms: rebuyLeft,
+            icons: ['bullet'],
+          },
+          addOnLeft !== null && { key: 'addOn', label: 'Add-on', ms: addOnLeft, icons: ['bag'] },
+        ].filter((timer) => timer !== false);
 
   const emptyStacks = active.filter((entry) => !stacks[entry.playerId]?.trim());
   const enteredStacks = active
@@ -107,6 +190,37 @@ export default function PokerLive({
     finalStacks.every((stack) => Number.isSafeInteger(stack.chips) && stack.chips >= 0) &&
     totalFinal === chipsInPlay;
 
+  /** Reparto que quedará al cerrar: los que siguen por fichas (empates a partes iguales) y los eliminados por orden. */
+  function prizeLines(survivors: { entry: Entry; chips: number }[]) {
+    const rows = survivors.map(({ entry, chips: own }) => {
+      const place = 1 + survivors.filter((other) => other.chips > own).length;
+      const tied = survivors
+        .filter((other) => other.chips === own)
+        .map((other) => other.entry.playerId)
+        .sort((a, b) => a - b);
+      const shared = session.prizes
+        .slice(place - 1, place - 1 + tied.length)
+        .reduce((sum, prize) => sum + prize, 0);
+      const extraCent = tied.indexOf(entry.playerId) < shared % tied.length ? 1 : 0;
+      return { place, name: entry.name, prize: Math.floor(shared / tied.length) + extraCent };
+    });
+    session.eliminations.forEach((playerId, index) => {
+      const place = session.entries.length - index;
+      const entry = session.entries.find((candidate) => candidate.playerId === playerId);
+      if (entry) rows.push({ place, name: entry.name, prize: session.prizes[place - 1] ?? 0 });
+    });
+    return rows
+      .filter((row) => row.prize > 0)
+      .sort((a, b) => a.place - b.place)
+      .map((row) => `${row.place}.º ${row.name} · ${euros(row.prize)}`);
+  }
+
+  async function savePrizes() {
+    if (!prizeDraft || sharesTotal(prizeDraft) !== 100) return;
+    await onCommand('SET_PRIZES', undefined, { prizeShares: prizeDraft });
+    setPrizeDraft(null);
+  }
+
   async function finish() {
     if (!validStacks) return;
     if (
@@ -115,9 +229,12 @@ export default function PokerLive({
         message:
           'Se guardarán las fichas y la clasificación final. Los empates compartirán puesto y los premios correspondientes.',
         confirmLabel: 'Finalizar y guardar',
+        details: prizeLines(
+          active.map((entry, index) => ({ entry, chips: finalStacks[index].chips })),
+        ),
       })
     )
-      await onCommand('CLOSE', undefined, finalStacks);
+      await onCommand('CLOSE', undefined, { finalStacks });
   }
 
   async function close() {
@@ -127,6 +244,7 @@ export default function PokerLive({
         title: '¿Cerrar el torneo?',
         message: `${winner.name} quedará en primer puesto. Los resultados y premios se guardarán en el histórico.`,
         confirmLabel: 'Cerrar y guardar',
+        details: prizeLines([{ entry: winner, chips: 0 }]),
       }))
     ) {
       await onCommand('CLOSE');
@@ -139,6 +257,21 @@ export default function PokerLive({
         <h2 id="poker-table-title" className="poster-title">
           {winner ? 'Torneo listo para cerrar' : 'Torneo en juego'}
         </h2>
+        {!winner && buyTimers.length > 0 && (
+          <ul className="poker-buy-timers">
+            {buyTimers.map((timer) => (
+              <li
+                key={timer.key}
+                aria-label={`${timer.label}: quedan ${timeLabel(timer.ms)}`}
+                title={`${timer.label}: quedan ${timeLabel(timer.ms)}`}
+              >
+                {timer.icons.includes('bullet') && <BulletIcon />}
+                {timer.icons.includes('bag') && <BagIcon />}
+                <span aria-hidden="true">{timeLabel(timer.ms)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         {winner ? (
           <div className="poker-winner">
             <div className="sticker sticker-featured">
@@ -226,7 +359,7 @@ export default function PokerLive({
           <ul className="poker-seats" aria-label="Jugadores en la mesa">
             {session.entries.map((entry) => (
               <li key={entry.playerId} className={eliminated.has(entry.playerId) ? 'is-out' : ''}>
-                {owner && !eliminated.has(entry.playerId) ? (
+                {owner ? (
                   <button
                     type="button"
                     className="poker-seat-button"
@@ -249,6 +382,11 @@ export default function PokerLive({
                     <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
                   </span>
                 )}
+                <SeatBadges
+                  rebuys={entry.rebuys}
+                  addOns={entry.addOns}
+                  crowned={lastWinnerIds.includes(entry.playerId)}
+                />
               </li>
             ))}
           </ul>
@@ -267,38 +405,11 @@ export default function PokerLive({
               />
               <div>
                 <strong className="poster-title">{selectedPlayer.name}</strong>
-                <p className="poker-note">{purchases(selectedPlayer)}</p>
+                <Purchases rebuys={selectedPlayer.rebuys} addOns={selectedPlayer.addOns} />
               </div>
             </div>
             <div className="poker-actions">
-              {canBuy(rebuy, selectedPlayer.rebuys) && (
-                <button
-                  type="button"
-                  className="glass-btn"
-                  disabled={busy}
-                  onClick={() => void onCommand('REBUY', selectedPlayer.playerId)}
-                >
-                  Recompra
-                </button>
-              )}
-              {canBuy(addOn, selectedPlayer.addOns) && (
-                <button
-                  type="button"
-                  className="glass-btn"
-                  disabled={busy}
-                  onClick={() => void onCommand('ADD_ON', selectedPlayer.playerId)}
-                >
-                  Add-on
-                </button>
-              )}
-              <button
-                type="button"
-                className="glass-btn poker-out-btn"
-                disabled={busy}
-                onClick={() => void onCommand('ELIMINATE', selectedPlayer.playerId)}
-              >
-                Eliminar
-              </button>
+              {playerActions(selectedPlayer)}
               <button type="button" className="glass-btn" onClick={() => setSelectedPlayerId(null)}>
                 Cerrar
               </button>
@@ -396,102 +507,44 @@ export default function PokerLive({
         <section className="paper-panel album-sheet poker-panel">
           <h2>Jugadores</h2>
           <ul className="poker-active-list">
-            {active.map((entry) => (
+            {players.map((entry) => (
               <li key={entry.playerId}>
                 <div className="poker-player">
                   <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
                   <div>
                     <strong>{entry.name}</strong>
                     {(entry.rebuys > 0 || entry.addOns > 0) && (
-                      <p className="poker-note">{purchases(entry)}</p>
+                      <Purchases rebuys={entry.rebuys} addOns={entry.addOns} />
                     )}
                   </div>
                 </div>
                 {owner && !winner && (
-                  <div className="poker-actions">
-                    {canBuy(rebuy, entry.rebuys) && (
-                      <button
-                        type="button"
-                        className="glass-btn"
-                        disabled={busy}
-                        aria-label={`Recompra de ${entry.name}`}
-                        onClick={() => void onCommand('REBUY', entry.playerId)}
-                      >
-                        Recompra
-                      </button>
-                    )}
-                    {canBuy(addOn, entry.addOns) && (
-                      <button
-                        type="button"
-                        className="glass-btn"
-                        disabled={busy}
-                        aria-label={`Add-on para ${entry.name}`}
-                        onClick={() => void onCommand('ADD_ON', entry.playerId)}
-                      >
-                        Add-on
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="glass-btn poker-out-btn"
-                      disabled={busy}
-                      aria-label={`Eliminar a ${entry.name}`}
-                      onClick={() => void onCommand('ELIMINATE', entry.playerId)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
+                  <div className="poker-actions">{playerActions(entry, true)}</div>
                 )}
               </li>
             ))}
           </ul>
-          {lastOut && (
+          {owner && corrections.length > 0 && (
             <details className="poker-details">
-              <summary>Eliminados ({session.eliminations.length})</summary>
+              <summary>Corregir</summary>
               <div className="poker-detail-content">
-                <ul className="poker-places">
-                  {[...session.eliminations].reverse().map((id, index) => {
-                    const name = session.entries.find((entry) => entry.playerId === id)?.name ?? '';
-                    return (
-                      <li key={id}>
-                        <span>{active.length + index + 1}.º</span>
-                        <PokerAvatar playerId={id} name={name} size={28} />
-                        {name}
-                      </li>
-                    );
-                  })}
-                </ul>
-                {owner && (
-                  <button
-                    type="button"
-                    className="glass-btn"
-                    disabled={busy}
-                    onClick={() => void onCommand('UNDO_ELIMINATION')}
-                  >
-                    Deshacer eliminación de {lastOut.name}
-                  </button>
-                )}
-              </div>
-            </details>
-          )}
-          {owner && hasExtras && (
-            <details className="poker-details">
-              <summary>Corregir recompras y add-ons</summary>
-              <ul className="poker-active-list poker-detail-content">
-                {session.entries
-                  .filter((entry) => entry.rebuys || entry.addOns)
-                  .map((entry) => (
+                <ul className="poker-active-list poker-corrections">
+                  {corrections.map((entry) => (
                     <li key={entry.playerId}>
-                      <strong>{entry.name}</strong>
+                      <span className="poker-player">
+                        <PokerAvatar playerId={entry.playerId} name={entry.name} size={28} />
+                        <strong>{entry.name}</strong>
+                      </span>
                       <div className="poker-actions">
                         {entry.rebuys > 0 && (
                           <button
                             type="button"
                             className="glass-btn"
                             disabled={busy}
+                            aria-label={`Quitar una recompra a ${entry.name} (${entry.rebuys})`}
                             onClick={() => void onCommand('UNDO_REBUY', entry.playerId)}
                           >
-                            Quitar recompra ({entry.rebuys})
+                            − <BulletIcon />×{entry.rebuys}
                           </button>
                         )}
                         {entry.addOns > 0 && (
@@ -499,15 +552,28 @@ export default function PokerLive({
                             type="button"
                             className="glass-btn"
                             disabled={busy}
+                            aria-label={`Quitar un add-on a ${entry.name} (${entry.addOns})`}
                             onClick={() => void onCommand('UNDO_ADD_ON', entry.playerId)}
                           >
-                            Quitar add-on ({entry.addOns})
+                            − <BagIcon />×{entry.addOns}
+                          </button>
+                        )}
+                        {eliminated.has(entry.playerId) && (
+                          <button
+                            type="button"
+                            className="glass-btn"
+                            disabled={busy}
+                            aria-label={`Quitar la eliminación de ${entry.name}`}
+                            onClick={() => void onCommand('UNDO_ELIMINATION', entry.playerId)}
+                          >
+                            − <SkullIcon />
                           </button>
                         )}
                       </div>
                     </li>
                   ))}
-              </ul>
+                </ul>
+              </div>
             </details>
           )}
         </section>
@@ -515,7 +581,8 @@ export default function PokerLive({
         <section className="paper-panel album-sheet poker-panel">
           <h2>Premios</h2>
           <p className="poker-pot">
-            {euros(session.potCents)} <span>de bote</span>
+            <span>Bote</span>
+            <strong>{euros(session.potCents)}</strong>
           </p>
           <ol className="poker-prizes">
             {session.prizes.map((prize, index) => {
@@ -528,12 +595,18 @@ export default function PokerLive({
                         entry.playerId === session.eliminations[session.entries.length - place],
                     );
               return (
-                <li key={index}>
-                  <span className="poker-player">
-                    {player && (
-                      <PokerAvatar playerId={player.playerId} name={player.name} size={28} />
+                <li key={index} className={`poker-prize is-place-${Math.min(place, 4)}`}>
+                  <span className="poker-prize-place">{place}.º</span>
+                  <span className="poker-prize-who">
+                    {player ? (
+                      <span className="poker-player">
+                        <PokerAvatar playerId={player.playerId} name={player.name} size={28} />
+                        {player.name}
+                      </span>
+                    ) : (
+                      <span className="poker-note">Por decidir</span>
                     )}
-                    {place}.º {player?.name ?? `${prizeShares[index]} %`}
+                    <small>{prizeShares[index]} % del bote</small>
                   </span>
                   <strong>{euros(prize)}</strong>
                 </li>
@@ -544,18 +617,79 @@ export default function PokerLive({
             <ul className="poker-extra-rules">
               {rebuy && (
                 <li>
-                  Recompra · {euros(rebuy.costCents)} por {chips(rebuy.chips)} fichas, hasta el
-                  nivel {rebuy.throughLevel}.
+                  <BulletIcon />
+                  <span>
+                    <strong>Recompra</strong> {euros(rebuy.costCents)} → {chips(rebuy.chips)} fichas
+                    <small>
+                      Hasta el nivel {rebuy.throughLevel} ·{' '}
+                      {rebuy.limit === null ? 'sin límite' : `máx. ${rebuy.limit} por jugador`}
+                    </small>
+                  </span>
                 </li>
               )}
               {addOn && (
                 <li>
-                  Add-on · {euros(addOn.costCents)} por {chips(addOn.chips)} fichas, hasta el nivel{' '}
-                  {addOn.throughLevel}.
+                  <BagIcon />
+                  <span>
+                    <strong>Add-on</strong> {euros(addOn.costCents)} → {chips(addOn.chips)} fichas
+                    <small>Hasta el nivel {addOn.throughLevel} · uno por jugador</small>
+                  </span>
                 </li>
               )}
             </ul>
           )}
+          {owner &&
+            (prizeDraft ? (
+              <form
+                className="poker-form poker-prize-editor"
+                aria-label="Cambiar el reparto de premios"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void savePrizes();
+                }}
+              >
+                <PokerPrizeShares
+                  shares={prizeDraft}
+                  onChange={setPrizeDraft}
+                  maxPlaces={session.entries.length}
+                  disabled={busy}
+                />
+                {sharesTotal(prizeDraft) === 100 && (
+                  <p className="poker-note">
+                    Quedaría:{' '}
+                    {splitPot(session.potCents, prizeDraft)
+                      .map((prize, index) => `${index + 1}.º ${euros(prize)}`)
+                      .join(' · ')}
+                  </p>
+                )}
+                <div className="poker-actions">
+                  <button
+                    type="submit"
+                    className="glass-btn primary-btn"
+                    disabled={busy || sharesTotal(prizeDraft) !== 100}
+                  >
+                    Guardar reparto
+                  </button>
+                  <button
+                    type="button"
+                    className="glass-btn"
+                    disabled={busy}
+                    onClick={() => setPrizeDraft(null)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className="poker-link-btn poker-prize-edit"
+                disabled={busy}
+                onClick={() => setPrizeDraft(prizeShares)}
+              >
+                Cambiar reparto
+              </button>
+            ))}
         </section>
       </div>
     </>

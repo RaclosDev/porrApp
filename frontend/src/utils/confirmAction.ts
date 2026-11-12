@@ -5,6 +5,8 @@ export interface ConfirmOptions {
   message: string;
   /** Texto del botón que ejecuta la acción; nombra la acción, no un «Aceptar» genérico. */
   confirmLabel: string;
+  /** Líneas de detalle que se listan bajo el mensaje, p. ej. el reparto de premios. */
+  details?: string[];
   cancelLabel?: string;
 }
 

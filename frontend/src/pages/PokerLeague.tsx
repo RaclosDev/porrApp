@@ -9,6 +9,7 @@ import PokerRegistration from '../components/poker/PokerRegistration';
 import PokerSettingsForm from '../components/poker/PokerSettingsForm';
 import PokerLive from '../components/poker/PokerLive';
 import PokerHome from '../components/poker/PokerHome';
+import { lastWinnerIds } from '../components/poker/PokerBadges';
 import { PokerFaces } from '../components/poker/PokerFaces';
 import { PokerHistory, PokerStatistics } from '../components/poker/PokerHistory';
 import { defaultSettings, today } from '../components/poker/pokerFormat';
@@ -46,7 +47,9 @@ export default function PokerLeague({
   const history = useQuery({
     queryKey: historyKey,
     queryFn: () => fetchPokerHistory(leagueId),
-    enabled: Boolean(query.data) && (view !== 'table' || form === 'new'),
+    enabled:
+      Boolean(query.data) &&
+      (view !== 'table' || form === 'new' || Boolean(query.data?.current?.startedAt)),
     refetchInterval: view === 'table' ? false : 15000,
   });
   const mutation = useMutation({
@@ -173,9 +176,10 @@ export default function PokerLeague({
                   busy={busy}
                   serverNow={league.serverNow}
                   receivedAt={query.dataUpdatedAt}
-                  onCommand={async (action, playerId, finalStacks) => {
+                  lastWinnerIds={lastWinnerIds(history.data)}
+                  onCommand={async (action, playerId, extra) => {
                     const saved = await change(() =>
-                      pokerCommand(league.id, current, action, playerId, finalStacks),
+                      pokerCommand(league.id, current, action, playerId, extra),
                     );
                     if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
                   }}

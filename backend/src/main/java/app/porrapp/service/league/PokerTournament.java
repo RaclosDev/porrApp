@@ -15,9 +15,7 @@ final class PokerTournament {
     }
 
     static void validate(Settings settings) {
-        if (settings.prizeShares().stream().mapToInt(Integer::intValue).sum() != 100) {
-            throw BusinessException.badRequest("El reparto de premios debe sumar el 100 %");
-        }
+        validateShares(settings.prizeShares());
         var levels = settings.levels();
         if (levels.getFirst().big() == 0 || levels.getLast().big() == 0
                 || levels.stream().anyMatch(level -> level.big() == 0
@@ -27,8 +25,14 @@ final class PokerTournament {
         }
         if (settings.rebuy() != null && settings.rebuy().throughLevel() > levels.size()
                 || settings.addOn() != null && (settings.addOn().throughLevel() > levels.size()
-                || settings.addOn().limit() != 1)) {
+                || !Integer.valueOf(1).equals(settings.addOn().limit()))) {
             throw BusinessException.badRequest("Revisa hasta qué nivel se permiten las recompras y el extra de fichas");
+        }
+    }
+
+    private static void validateShares(List<Integer> shares) {
+        if (shares == null || shares.isEmpty() || shares.stream().mapToInt(Integer::intValue).sum() != 100) {
+            throw BusinessException.badRequest("El reparto de premios debe sumar el 100 %");
         }
     }
 
@@ -65,10 +69,21 @@ final class PokerTournament {
             case UNDO_REBUY, UNDO_ADD_ON -> undoExtra(session, command);
             case ELIMINATE -> eliminate(session, command.playerId());
             case UNDO_ELIMINATION -> {
-                if (!session.getEliminations().isEmpty()) {
+                if (command.playerId() != null) {
+                    revive(session, command.playerId());
+                } else if (!session.getEliminations().isEmpty()) {
                     session.setEliminations(new ArrayList<>(
                             session.getEliminations().subList(0, session.getEliminations().size() - 1)));
                 }
+            }
+            case SET_PRIZES -> {
+                validateShares(command.prizeShares());
+                if (command.prizeShares().size() > session.getEntries().size()) {
+                    throw BusinessException.badRequest("Hay más puestos premiados que jugadores. Ajusta el reparto");
+                }
+                Settings old = session.getSettings();
+                session.setSettings(new Settings(old.buyInCents(), old.startingChips(), old.rebuy(), old.addOn(),
+                        List.copyOf(command.prizeShares()), old.levels()));
             }
             case CLOSE -> {
                 if (command.finalStacks() != null) {
@@ -123,15 +138,30 @@ final class PokerTournament {
         session.setEliminations(order);
     }
 
+    /** Quita la eliminación de un jugador concreto; los demás conservan su orden. */
+    private static void revive(PokerSession session, Long playerId) {
+        if (!session.getEliminations().contains(playerId)) {
+            throw BusinessException.conflict("Ese jugador no está eliminado");
+        }
+        session.setEliminations(session.getEliminations().stream()
+                .filter(id -> !id.equals(playerId)).toList());
+    }
+
     private static void extra(PokerSession session, Command command, BlindClock clock) {
-        Entry player = activeEntry(session, command.playerId());
         boolean rebuy = command.action() == Action.REBUY;
+        boolean comeback = rebuy && command.playerId() != null
+                && session.getEliminations().contains(command.playerId());
+        Entry player = comeback
+                ? session.getEntries().stream().filter(entry -> entry.playerId() == command.playerId())
+                        .findFirst().orElseThrow()
+                : activeEntry(session, command.playerId());
         Extra option = rebuy ? session.getSettings().rebuy() : session.getSettings().addOn();
         int count = rebuy ? player.rebuys() : player.addOns();
-        if (option == null || count >= option.limit() || clock.level() >= option.throughLevel()
+        if (option == null || (option.limit() != null && count >= option.limit()) || clock.level() >= option.throughLevel()
                 || clock.remainingMs() == 0) {
             throw BusinessException.conflict("Ese extra de fichas ya no está disponible para este jugador");
         }
+        if (comeback) revive(session, player.playerId());
         replaceEntry(session, rebuy ? player.rebuy() : player.addOn());
     }
 
