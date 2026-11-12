@@ -17,6 +17,7 @@ public class LeagueMemberDTO {
     private Long userId;
     private String participantName;
     private String role;
+    private boolean creator;
     private String paymentStatus;
     private Instant joinedAt;
     // Lombok genera isAdmin(); sin @JsonProperty, Jackson lo publicaría como "admin".

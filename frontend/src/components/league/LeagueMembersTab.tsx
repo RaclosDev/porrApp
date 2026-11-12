@@ -1,3 +1,4 @@
+import type { LeagueMemberRole } from '../../services/endpoints/leagues';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { GroupMember, PaymentStatus } from '../../types/api';
 import { UserAvatar } from '../Avatar';
@@ -38,8 +39,11 @@ interface LeagueMembersTabProps {
   handleShare: () => Promise<void>;
   inviteLink: string;
   isAdmin: boolean;
+  isCreator: boolean;
+  supportsOrganizers: boolean;
   kickMutation: UseMutationResult<unknown, Error, number>;
   kickTargetId: number | null;
+  roleMutation: UseMutationResult<unknown, Error, { userId: number; role: LeagueMemberRole }>;
   transferMutation: UseMutationResult<unknown, Error, number>;
   paidCount: number;
   paidPercent: number;
@@ -74,8 +78,11 @@ export default function LeagueMembersTab({
   handleShare,
   inviteLink,
   isAdmin,
+  isCreator,
+  supportsOrganizers,
   kickMutation,
   kickTargetId,
+  roleMutation,
   transferMutation,
   paidCount,
   paidPercent,
@@ -95,9 +102,9 @@ export default function LeagueMembersTab({
   entryFeeSaving = false,
   onToggleEntryFee,
 }: LeagueMembersTabProps) {
+  const [transferTargetId, setTransferTargetId] = useState<number | null>(null);
   // Solo las ligas con cuota llevan control de pagos; el backend no manda estado de pago en las demás.
   const tracksPayments = entryFee === true && members.some((m) => m.paymentStatus != null);
-  const [adminTargetId, setAdminTargetId] = useState<number | null>(null);
 
   return (
     <div
@@ -106,6 +113,13 @@ export default function LeagueMembersTab({
       role={isAdmin ? 'tabpanel' : undefined}
       aria-labelledby={isAdmin ? 'league-admin-tab-members' : undefined}
     >
+      {isCreator && (
+        <p className="league-admin-muted">
+          Al nombrar administradores, conservas el control como creador.
+          {supportsOrganizers &&
+            ' Los organizadores preparan y dirigen sus torneos, sin cambiar los ajustes ni los permisos de la liga.'}
+        </p>
+      )}
       {isAdmin && entryFee !== undefined && onToggleEntryFee && (
         <section className="league-admin-card">
           <label className="league-admin-fee-toggle">
@@ -329,7 +343,8 @@ export default function LeagueMembersTab({
             const rowKickPending =
               kickMutation.isPending && String(kickMutation.variables) === String(member.userId);
             const confirmingKick = String(kickTargetId) === String(member.userId);
-            const canManage = isAdmin && !member.isAdmin;
+            const canManage =
+              isAdmin && !member.creator && !isSelf && (isCreator || member.role === 'MEMBER');
 
             return (
               <article
@@ -349,8 +364,11 @@ export default function LeagueMembersTab({
                       {member.isAdmin && (
                         <span className="league-admin-badge">
                           <Crown size={10} aria-hidden="true" />
-                          Admin
+                          {member.creator ? 'Creador · Admin' : 'Admin'}
                         </span>
+                      )}
+                      {member.role === 'ORGANIZER' && (
+                        <span className="league-admin-badge">Organizador</span>
                       )}
                       {isSelf && <span className="league-admin-badge is-you">Tú</span>}
                     </div>
@@ -399,15 +417,38 @@ export default function LeagueMembersTab({
                     </span>
                   )}
 
-                  {canManage &&
+                  {isCreator && !member.creator && !isSelf && (
+                    <select
+                      className="league-admin-btn"
+                      aria-label={`Permisos de ${member.participantName}`}
+                      value={member.role}
+                      disabled={roleMutation.isPending}
+                      onChange={(event) =>
+                        roleMutation.mutate({
+                          userId: member.userId,
+                          role: event.target.value as LeagueMemberRole,
+                        })
+                      }
+                    >
+                      <option value="MEMBER">Miembro</option>
+                      <option value="ADMIN">Administrador</option>
+                      {supportsOrganizers && (
+                        <option value="ORGANIZER">Organizador de torneos</option>
+                      )}
+                    </select>
+                  )}
+
+                  {isCreator &&
+                    !member.creator &&
+                    !isSelf &&
                     !confirmingKick &&
-                    (adminTargetId === member.userId ? (
+                    (transferTargetId === member.userId ? (
                       <div
                         className="league-admin-inline-confirm"
                         role="group"
-                        aria-label={`Confirmar ceder la administración a ${member.participantName}`}
+                        aria-label={`Confirmar cesión de la liga a ${member.participantName}`}
                       >
-                        <span>¿Hacer admin? Dejarás de serlo.</span>
+                        <span>¿Ceder la liga? Pasarás a ser miembro.</span>
                         <button
                           type="button"
                           className="league-admin-mini-btn is-danger"
@@ -423,7 +464,7 @@ export default function LeagueMembersTab({
                         <button
                           type="button"
                           className="league-admin-mini-btn"
-                          onClick={() => setAdminTargetId(null)}
+                          onClick={() => setTransferTargetId(null)}
                           disabled={transferMutation.isPending}
                         >
                           No
@@ -432,20 +473,20 @@ export default function LeagueMembersTab({
                     ) : (
                       <button
                         type="button"
-                        className="league-admin-icon-btn"
+                        className="league-admin-mini-btn"
                         onClick={() => {
                           setKickTargetId(null);
-                          setAdminTargetId(member.userId);
+                          setTransferTargetId(member.userId);
                         }}
-                        title={`Hacer admin a ${member.participantName}`}
-                        aria-label={`Hacer admin a ${member.participantName}`}
+                        title={`Ceder la liga a ${member.participantName}`}
+                        aria-label={`Ceder la liga a ${member.participantName}`}
                       >
-                        <Crown size={16} aria-hidden="true" />
+                        Ceder liga
                       </button>
                     ))}
 
                   {canManage &&
-                    adminTargetId !== member.userId &&
+                    transferTargetId !== member.userId &&
                     (confirmingKick ? (
                       <div
                         className="league-admin-inline-confirm"
@@ -479,7 +520,6 @@ export default function LeagueMembersTab({
                         type="button"
                         className="league-admin-icon-btn is-danger"
                         onClick={() => {
-                          setAdminTargetId(null);
                           setKickTargetId(member.userId);
                         }}
                         title={`Expulsar a ${member.participantName}`}

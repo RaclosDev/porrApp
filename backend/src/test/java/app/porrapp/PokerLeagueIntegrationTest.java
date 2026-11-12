@@ -52,6 +52,56 @@ class PokerLeagueIntegrationTest {
     private final HttpClient http = HttpClient.newHttpClient();
 
     @Test
+    void creatorDelegatesWithoutLosingControlAndRevocationTakesEffect() throws Exception {
+        var creator = user("Creador");
+        var admin = user("Admin");
+        var second = user("Segundo");
+        var organizer = user("Organizador");
+        var outsider = user("Ajeno");
+        var league = decode(send("POST", "/api/poker", creator,
+                new CreateLeague("Liga con equipo", UUID.randomUUID())), 201);
+        String group = "/api/groups/" + league.id();
+        String poker = "/api/poker/" + league.id();
+        for (var member : List.of(admin, second, organizer)) memberships.join(league.id(), member.getGoogleEmail());
+
+        assertThat(send("PUT", group + "/members/" + admin.getId() + "/role", outsider,
+                java.util.Map.of("role", "ADMIN")).statusCode()).isEqualTo(403);
+        for (var member : List.of(admin, second)) {
+            assertThat(send("PUT", group + "/members/" + member.getId() + "/role", creator,
+                    java.util.Map.of("role", "ADMIN")).statusCode()).isEqualTo(200);
+        }
+        assertThat(send("PUT", group + "/members/" + organizer.getId() + "/role", creator,
+                java.util.Map.of("role", "ORGANIZER")).statusCode()).isEqualTo(200);
+        var members = json.readTree(send("GET", group + "/members", creator, null).body());
+        assertThat(members.findValuesAsText("role")).contains("ADMIN", "ORGANIZER");
+        assertThat(decode(send("GET", poker, creator, null), 200).owner()).isTrue();
+        assertThat(decode(send("GET", poker, admin, null), 200).owner()).isTrue();
+        assertThat(decode(send("GET", poker, organizer, null), 200).owner()).isTrue();
+        assertThat(send("PUT", group + "/members/" + creator.getId() + "/role", creator,
+                java.util.Map.of("role", "MEMBER")).statusCode()).isEqualTo(400);
+        assertThat(send("PUT", group + "/members/" + second.getId() + "/role", admin,
+                java.util.Map.of("role", "MEMBER")).statusCode()).isEqualTo(403);
+        assertThat(send("DELETE", group + "/members/" + creator.getId(), admin, null).statusCode()).isEqualTo(400);
+        assertThat(send("DELETE", group + "/members/" + second.getId(), admin, null).statusCode()).isEqualTo(403);
+        assertThat(send("DELETE", group, admin, null).statusCode()).isEqualTo(403);
+        assertThat(send("DELETE", group, organizer, null).statusCode()).isEqualTo(403);
+
+        var settings = new Settings(1000, 10000, null, null, List.of(100),
+                List.of(new BlindLevel(15, 25, 50, 0)));
+        assertThat(send("POST", poker + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2026, 11, 21), settings)).statusCode()).isEqualTo(201);
+        assertThat(send("PUT", group + "/members/" + organizer.getId() + "/role", creator,
+                java.util.Map.of("role", "MEMBER")).statusCode()).isEqualTo(200);
+        assertThat(decode(send("GET", poker, organizer, null), 200).owner()).isFalse();
+        assertThat(send("POST", poker + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2026, 11, 28), settings)).statusCode()).isEqualTo(403);
+        assertThat(send("PUT", group + "/members/" + admin.getId() + "/role", creator,
+                java.util.Map.of("role", "MEMBER")).statusCode()).isEqualTo(200);
+        assertThat(decode(send("GET", poker, admin, null), 200).owner()).isFalse();
+        assertThat(decode(send("GET", poker, second, null), 200).owner()).isTrue();
+    }
+
+    @Test
     void membersAndGuestsCanPlayAgainWithOneHistoryAndCorrectPayouts() throws Exception {
         var organizer = user("Ana");
         var member = user("Luis");

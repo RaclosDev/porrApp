@@ -58,7 +58,7 @@ describe('useLeaderboard hook', () => {
       activeGroupId: 10,
       activeGroupPichichi: true,
       activeGroupPoolFormat: 'FULL_BRACKET',
-      activeGroupAdminId: 10,
+      activeGroupAdminIds: [20, 10],
       userId: 10,
       userName: 'Carlos',
     });
@@ -109,11 +109,18 @@ describe('useLeaderboard hook', () => {
     expect(result.current.sortColumn).toBe('matchPoints');
   });
 
-  it('reconoce correctamente si el usuario activo es el administrador de la liga', () => {
+  it.each([
+    { adminIds: [20, 10], canAdminister: true },
+    { adminIds: [20, 30], canAdminister: false },
+  ])('comprueba el permiso de administración con $adminIds', ({ adminIds, canAdminister }) => {
+    mockAppContext({
+      leaderboardData: mockLeaderboardData,
+      userId: 10,
+      activeGroupAdminIds: adminIds,
+    });
     const { result } = renderHook(() => useLeaderboard());
 
-    // activeGroupAdminId = 10, userId = 10 -> isLeagueAdmin = true
-    expect(result.current.isLeagueAdmin).toBe(true);
+    expect(result.current.isLeagueAdmin).toBe(canAdminister);
   });
 
   it('carga los puntos de la jornada actual y permite navegar entre jornadas', () => {
@@ -141,7 +148,7 @@ describe('useLeaderboard hook', () => {
       activeGroupPichichi: true,
       activeGroupPoolFormat: 'MATCH_DAY',
       leagueKind: 'matchday',
-      activeGroupAdminId: 10,
+      activeGroupAdminIds: [10],
       userId: 10,
       userName: 'Carlos',
     });
@@ -192,7 +199,7 @@ describe('useLeaderboard hook', () => {
       activeGroupPichichi: false,
       activeGroupPoolFormat: 'MATCH_DAY',
       leagueKind: 'matchday',
-      activeGroupAdminId: 10,
+      activeGroupAdminIds: [10],
       userId: 10,
       userName: 'Carlos',
     });

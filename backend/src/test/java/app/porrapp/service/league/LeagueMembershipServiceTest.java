@@ -182,11 +182,27 @@ class LeagueMembershipServiceTest {
     }
 
     @Test
+    @DisplayName("Añadir un admin conserva al creador y solo publica un aviso aunque se repita la petición")
+    void addingAdminPreservesCreatorAndPublishesOneEvent() {
+        Membership memberMembership = Membership.builder().user(member).league(league).role("MEMBER").build();
+        when(leagueRepository.findWithLockById(10L)).thenReturn(Optional.of(league));
+        when(membershipRepository.findById(new Membership.MembershipId(2L, 10L)))
+                .thenReturn(Optional.of(memberMembership));
+
+        membershipService.setRole(10L, 2L, "admin@test.com", "ADMIN");
+        membershipService.setRole(10L, 2L, "admin@test.com", "ADMIN");
+
+        assertEquals(admin, league.getAdminUser());
+        assertEquals("ADMIN", memberMembership.getRole());
+        verify(eventPublisher).publishEvent(new LeagueAdminGrantedEvent(10L, 2L));
+    }
+
+    @Test
     @DisplayName("transferAdmin cede la liga a un miembro e intercambia los roles")
     void transferAdminSwapsRoles() {
         Membership adminMembership = Membership.builder().user(admin).league(league).role("ADMIN").build();
         Membership memberMembership = Membership.builder().user(member).league(league).role("MEMBER").build();
-        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(leagueRepository.findWithLockById(10L)).thenReturn(Optional.of(league));
         when(membershipRepository.findById(new Membership.MembershipId(2L, 10L)))
                 .thenReturn(Optional.of(memberMembership));
         when(membershipRepository.findById(new Membership.MembershipId(1L, 10L)))
@@ -200,9 +216,9 @@ class LeagueMembershipServiceTest {
     }
 
     @Test
-    @DisplayName("transferAdmin solo lo puede hacer el admin actual")
+    @DisplayName("Solo el creador puede ceder la liga")
     void transferAdminRejectsNonAdmin() {
-        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(leagueRepository.findWithLockById(10L)).thenReturn(Optional.of(league));
 
         assertThrows(BusinessException.class, () -> membershipService.transferAdmin(10L, 2L, "member@test.com"));
 
@@ -212,7 +228,7 @@ class LeagueMembershipServiceTest {
     @Test
     @DisplayName("transferAdmin rechaza a quien no es miembro de la liga")
     void transferAdminRejectsNonMember() {
-        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(leagueRepository.findWithLockById(10L)).thenReturn(Optional.of(league));
         when(membershipRepository.findById(new Membership.MembershipId(3L, 10L))).thenReturn(Optional.empty());
 
         assertThrows(BusinessException.class, () -> membershipService.transferAdmin(10L, 3L, "admin@test.com"));

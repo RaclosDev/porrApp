@@ -2,8 +2,13 @@ package app.porrapp.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * Entidad 'League' (Liga / Grupo Privado).
@@ -71,6 +76,49 @@ public class League {
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isScoreboard() {
         return KIND_SCOREBOARD.equals(kind);
+    }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @OneToMany(mappedBy = "league", fetch = FetchType.LAZY)
+    @SQLRestriction("role in ('ADMIN', 'ORGANIZER')")
+    @Builder.Default
+    private List<Membership> privilegedMemberships = new ArrayList<>();
+
+    public boolean isCreator(String email) {
+        return email != null && adminUser != null && email.equalsIgnoreCase(adminUser.getGoogleEmail());
+    }
+
+    public boolean isAdmin(String email) {
+        return isCreator(email) || email != null && privilegedMemberships.stream().anyMatch(m ->
+                "ADMIN".equals(m.getRole()) && email.equalsIgnoreCase(m.getUser().getGoogleEmail()));
+    }
+
+    public boolean isAdmin(Long userId) {
+        return userId != null && (userId.equals(getAdminUserId()) || privilegedMemberships.stream().anyMatch(m ->
+                "ADMIN".equals(m.getRole()) && userId.equals(m.getUser().getId())));
+    }
+
+    public boolean canOrganize(Long userId) {
+        return isAdmin(userId) || userId != null && privilegedMemberships.stream().anyMatch(m ->
+                "ORGANIZER".equals(m.getRole()) && userId.equals(m.getUser().getId()));
+    }
+
+    public boolean canOrganize(String email) {
+        return isAdmin(email) || email != null && privilegedMemberships.stream().anyMatch(m ->
+                "ORGANIZER".equals(m.getRole()) && email.equalsIgnoreCase(m.getUser().getGoogleEmail()));
+    }
+
+    @Transient
+    public List<Long> getAdminUserIds() {
+        return Stream.concat(Stream.of(getAdminUserId()),
+                privilegedMemberships.stream().filter(m -> "ADMIN".equals(m.getRole())).map(m -> m.getUser().getId()))
+                .filter(Objects::nonNull).distinct().toList();
+    }
+
+    @Transient
+    public List<Long> getOrganizerUserIds() {
+        return privilegedMemberships.stream().filter(m -> "ORGANIZER".equals(m.getRole()))
+                .map(m -> m.getUser().getId()).toList();
     }
 
     @Builder.Default
