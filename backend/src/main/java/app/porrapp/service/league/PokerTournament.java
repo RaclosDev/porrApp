@@ -27,7 +27,7 @@ final class PokerTournament {
         }
         if (settings.rebuy() != null && settings.rebuy().throughLevel() > levels.size()
                 || settings.addOn() != null && (settings.addOn().throughLevel() > levels.size()
-                || settings.addOn().limit() != 1)) {
+                || !Integer.valueOf(1).equals(settings.addOn().limit()))) {
             throw BusinessException.badRequest("Revisa hasta qué nivel se permiten las recompras y el extra de fichas");
         }
     }
@@ -128,7 +128,7 @@ final class PokerTournament {
         boolean rebuy = command.action() == Action.REBUY;
         Extra option = rebuy ? session.getSettings().rebuy() : session.getSettings().addOn();
         int count = rebuy ? player.rebuys() : player.addOns();
-        if (option == null || count >= option.limit() || clock.level() >= option.throughLevel()
+        if (option == null || (option.limit() != null && count >= option.limit()) || clock.level() >= option.throughLevel()
                 || clock.remainingMs() == 0) {
             throw BusinessException.conflict("Ese extra de fichas ya no está disponible para este jugador");
         }

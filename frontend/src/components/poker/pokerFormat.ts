@@ -60,15 +60,12 @@ export const defaultSettings: PokerSettings = {
     { small: 50, big: 100, ante: 0, minutes: 15 },
     { small: 75, big: 150, ante: 0, minutes: 15 },
     { small: 100, big: 200, ante: 0, minutes: 15 },
-    { small: 0, big: 0, ante: 0, minutes: 10 },
     { small: 150, big: 300, ante: 0, minutes: 15 },
     { small: 200, big: 400, ante: 0, minutes: 15 },
+    { small: 250, big: 500, ante: 0, minutes: 15 },
     { small: 300, big: 600, ante: 0, minutes: 15 },
     { small: 400, big: 800, ante: 0, minutes: 15 },
-    { small: 600, big: 1200, ante: 0, minutes: 15 },
-    { small: 1000, big: 2000, ante: 0, minutes: 15 },
-    { small: 1500, big: 3000, ante: 0, minutes: 15 },
-    { small: 2000, big: 4000, ante: 0, minutes: 15 },
+    { small: 500, big: 1000, ante: 0, minutes: 15 },
   ],
 };
 
@@ -102,12 +99,15 @@ export function pokerStandings(history: PokerSession[]) {
       wins: number;
       podiums: number;
       cashes: number;
+      applause: number;
       paid: number;
       prizes: number;
       places: number;
     }
   >();
   for (const { results } of history) {
+    // Aplauso: el primer puesto que se queda sin premio.
+    const applausePlace = results.filter((result) => result.prizeCents > 0).length + 1;
     for (const result of results) {
       const row = players.get(result.playerId) ?? {
         playerId: result.playerId,
@@ -118,6 +118,7 @@ export function pokerStandings(history: PokerSession[]) {
         wins: 0,
         podiums: 0,
         cashes: 0,
+        applause: 0,
         paid: 0,
         prizes: 0,
         places: 0,
@@ -128,6 +129,7 @@ export function pokerStandings(history: PokerSession[]) {
       row.wins += Number(result.place === 1);
       row.podiums += Number(result.place <= 3);
       row.cashes += Number(result.prizeCents > 0);
+      row.applause += Number(result.place === applausePlace && result.prizeCents === 0);
       row.paid += result.paidCents;
       row.prizes += result.prizeCents;
       row.places += result.place;

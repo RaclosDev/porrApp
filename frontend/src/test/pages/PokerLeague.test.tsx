@@ -119,6 +119,8 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   const rebuy = within(screen.getByRole('group', { name: 'Permitir recompras' }));
   set('Importe (€)', '9.50', rebuy);
   set('Fichas', '6000', rebuy);
+  expect(rebuy.getByLabelText('Sin límite por jugador')).toBeChecked();
+  fireEvent.click(rebuy.getByLabelText('Sin límite por jugador'));
   set('Máximo por jugador', '2', rebuy);
   set('Hasta el final de', '3', rebuy);
   click('Quitar nivel 2');
@@ -233,15 +235,16 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   );
   const { rerender } = render(live(active));
   expect(screen.getByRole('timer')).toHaveTextContent('00:01');
+  expect(screen.getByLabelText('Recompras y add-on: quedan 00:01')).toBeInTheDocument();
   click('Pausar');
   click('Siguiente nivel');
   click('Recompra de Ana');
   click('Add-on para Ana');
   expect(screen.queryByRole('button', { name: 'Recompra de Luis' })).toBeNull();
   click('Eliminar a Paz');
-  fireEvent.click(screen.getByText('Corregir recompras y add-ons'));
-  click('Quitar recompra (1)');
-  click('Quitar add-on (1)');
+  fireEvent.click(screen.getByText('Corregir'));
+  click('Quitar una recompra a Luis (1)');
+  click('Quitar un add-on a Luis (1)');
   expect(onCommand.mock.calls).toEqual([
     ['PAUSE'],
     ['NEXT_LEVEL'],
@@ -260,7 +263,7 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   expect(onCommand).toHaveBeenLastCalledWith('RESUME');
 
   rerender(live({ ...active, eliminations: [3, 2] }));
-  fireEvent.click(screen.getByText('Eliminados (2)'));
+  expect(screen.getByText('Eliminados (2)')).toBeInTheDocument();
   click('Deshacer eliminación de Luis');
   expect(onCommand).toHaveBeenLastCalledWith('UNDO_ELIMINATION');
   click('Cerrar torneo');
@@ -499,7 +502,7 @@ it('desactiva el ante de todos los niveles al guardar y permite recuperarlo ante
   ]);
 });
 
-it('acumula recompras y add-ons por jugador entre torneos cerrados', () => {
+it('acumula recompras, add-ons y aplausos por jugador entre torneos cerrados', () => {
   const first = {
     ...session,
     closedAt: 5000,
@@ -517,6 +520,9 @@ it('acumula recompras y add-ons por jugador entre torneos cerrados', () => {
   expect(ana[headers.indexOf('Add-ons') - 1]).toHaveTextContent(/^2$/);
   expect(luis[headers.indexOf('Recompras') - 1]).toHaveTextContent(/^0$/);
   expect(luis[headers.indexOf('Add-ons') - 1]).toHaveTextContent(/^0$/);
+  // Solo cobra el primero: el segundo se lleva el aplauso.
+  expect(luis[headers.indexOf('Aplausos') - 1]).toHaveTextContent(/^1$/);
+  expect(ana[headers.indexOf('Aplausos') - 1]).toHaveTextContent(/^0$/);
 });
 
 it('ordena cada columna por su valor y alterna el sentido sin cambiar el podio', () => {

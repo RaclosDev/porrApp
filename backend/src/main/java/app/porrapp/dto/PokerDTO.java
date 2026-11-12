@@ -51,7 +51,8 @@ public final class PokerDTO {
 
     public record Extra(@Min(0) @Max(1000000) int costCents,
                         @Min(1) @Max(10000000) int chips,
-                        @Min(1) @Max(20) int limit,
+                        /** Máximo por jugador; null si no tiene límite. */
+                        @Min(1) @Max(20) Integer limit,
                         @Min(1) @Max(30) int throughLevel) {
     }
 

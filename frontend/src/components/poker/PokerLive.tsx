@@ -7,7 +7,7 @@ import type {
   PokerSession,
 } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
-import { SeatBadges } from './PokerBadges';
+import { BagIcon, BulletIcon, Purchases, SeatBadges, SkullIcon } from './PokerBadges';
 import { PokerAvatar } from './PokerFaces';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
 
@@ -19,17 +19,6 @@ interface Props {
   receivedAt: number;
   onCommand: (action: PokerAction, playerId?: number, finalStacks?: FinalStack[]) => Promise<void>;
   lastWinnerIds?: number[];
-}
-
-function purchases({ rebuys, addOns }: { rebuys: number; addOns: number }) {
-  return (
-    [
-      rebuys > 0 && `${rebuys} ${rebuys === 1 ? 'recompra' : 'recompras'}`,
-      addOns > 0 && `${addOns} ${addOns === 1 ? 'add-on' : 'add-ons'}`,
-    ]
-      .filter(Boolean)
-      .join(' · ') || 'Sin recompras ni add-ons'
-  );
 }
 
 function blinds(level: BlindLevel) {
@@ -78,9 +67,33 @@ export default function PokerLive({
       extra &&
       clock.remainingMs > 0 &&
       clock.level < extra.throughLevel &&
-      used < extra.limit,
+      (extra.limit === null || used < extra.limit),
     );
   }
+
+  /** Tiempo que queda para comprar ese extra: el resto del nivel y los siguientes hasta su corte. */
+  function timeToBuy(extra: PokerExtra | null) {
+    if (!clock || !extra || clock.remainingMs === 0 || clock.level >= extra.throughLevel) {
+      return null;
+    }
+    return levels
+      .slice(clock.level + 1, extra.throughLevel)
+      .reduce((sum, level) => sum + level.minutes * 60_000, clock.remainingMs);
+  }
+  const rebuyLeft = timeToBuy(rebuy);
+  const addOnLeft = timeToBuy(addOn);
+  const buyTimers =
+    rebuyLeft !== null && rebuyLeft === addOnLeft
+      ? [{ key: 'both', label: 'Recompras y add-on', ms: rebuyLeft, icons: ['bullet', 'bag'] }]
+      : [
+          rebuyLeft !== null && {
+            key: 'rebuy',
+            label: 'Recompras',
+            ms: rebuyLeft,
+            icons: ['bullet'],
+          },
+          addOnLeft !== null && { key: 'addOn', label: 'Add-on', ms: addOnLeft, icons: ['bag'] },
+        ].filter((timer) => timer !== false);
 
   const emptyStacks = active.filter((entry) => !stacks[entry.playerId]?.trim());
   const enteredStacks = active
@@ -142,6 +155,21 @@ export default function PokerLive({
         <h2 id="poker-table-title" className="poster-title">
           {winner ? 'Torneo listo para cerrar' : 'Torneo en juego'}
         </h2>
+        {!winner && buyTimers.length > 0 && (
+          <ul className="poker-buy-timers">
+            {buyTimers.map((timer) => (
+              <li
+                key={timer.key}
+                aria-label={`${timer.label}: quedan ${timeLabel(timer.ms)}`}
+                title={`${timer.label}: quedan ${timeLabel(timer.ms)}`}
+              >
+                {timer.icons.includes('bullet') && <BulletIcon />}
+                {timer.icons.includes('bag') && <BagIcon />}
+                <span aria-hidden="true">{timeLabel(timer.ms)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         {winner ? (
           <div className="poker-winner">
             <div className="sticker sticker-featured">
@@ -275,7 +303,7 @@ export default function PokerLive({
               />
               <div>
                 <strong className="poster-title">{selectedPlayer.name}</strong>
-                <p className="poker-note">{purchases(selectedPlayer)}</p>
+                <Purchases rebuys={selectedPlayer.rebuys} addOns={selectedPlayer.addOns} />
               </div>
             </div>
             <div className="poker-actions">
@@ -286,6 +314,7 @@ export default function PokerLive({
                   disabled={busy}
                   onClick={() => void onCommand('REBUY', selectedPlayer.playerId)}
                 >
+                  <BulletIcon />
                   Recompra
                 </button>
               )}
@@ -296,6 +325,7 @@ export default function PokerLive({
                   disabled={busy}
                   onClick={() => void onCommand('ADD_ON', selectedPlayer.playerId)}
                 >
+                  <BagIcon />
                   Add-on
                 </button>
               )}
@@ -305,6 +335,7 @@ export default function PokerLive({
                 disabled={busy}
                 onClick={() => void onCommand('ELIMINATE', selectedPlayer.playerId)}
               >
+                <SkullIcon />
                 Eliminar
               </button>
               <button type="button" className="glass-btn" onClick={() => setSelectedPlayerId(null)}>
@@ -411,7 +442,7 @@ export default function PokerLive({
                   <div>
                     <strong>{entry.name}</strong>
                     {(entry.rebuys > 0 || entry.addOns > 0) && (
-                      <p className="poker-note">{purchases(entry)}</p>
+                      <Purchases rebuys={entry.rebuys} addOns={entry.addOns} />
                     )}
                   </div>
                 </div>
@@ -425,6 +456,7 @@ export default function PokerLive({
                         aria-label={`Recompra de ${entry.name}`}
                         onClick={() => void onCommand('REBUY', entry.playerId)}
                       >
+                        <BulletIcon />
                         Recompra
                       </button>
                     )}
@@ -436,6 +468,7 @@ export default function PokerLive({
                         aria-label={`Add-on para ${entry.name}`}
                         onClick={() => void onCommand('ADD_ON', entry.playerId)}
                       >
+                        <BagIcon />
                         Add-on
                       </button>
                     )}
@@ -446,6 +479,7 @@ export default function PokerLive({
                       aria-label={`Eliminar a ${entry.name}`}
                       onClick={() => void onCommand('ELIMINATE', entry.playerId)}
                     >
+                      <SkullIcon />
                       Eliminar
                     </button>
                   </div>
@@ -456,20 +490,63 @@ export default function PokerLive({
           {lastOut && (
             <details className="poker-details">
               <summary>Eliminados ({session.eliminations.length})</summary>
+              <ul className="poker-places poker-detail-content">
+                {[...session.eliminations].reverse().map((id, index) => {
+                  const name = session.entries.find((entry) => entry.playerId === id)?.name ?? '';
+                  return (
+                    <li key={id}>
+                      <span>{active.length + index + 1}.º</span>
+                      <PokerAvatar playerId={id} name={name} size={28} />
+                      {name}
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          )}
+          {owner && (lastOut || hasExtras) && (
+            <details className="poker-details">
+              <summary>Corregir</summary>
               <div className="poker-detail-content">
-                <ul className="poker-places">
-                  {[...session.eliminations].reverse().map((id, index) => {
-                    const name = session.entries.find((entry) => entry.playerId === id)?.name ?? '';
-                    return (
-                      <li key={id}>
-                        <span>{active.length + index + 1}.º</span>
-                        <PokerAvatar playerId={id} name={name} size={28} />
-                        {name}
-                      </li>
-                    );
-                  })}
-                </ul>
-                {owner && (
+                {hasExtras && (
+                  <ul className="poker-active-list poker-corrections">
+                    {session.entries
+                      .filter((entry) => entry.rebuys || entry.addOns)
+                      .map((entry) => (
+                        <li key={entry.playerId}>
+                          <span className="poker-player">
+                            <PokerAvatar playerId={entry.playerId} name={entry.name} size={28} />
+                            <strong>{entry.name}</strong>
+                          </span>
+                          <div className="poker-actions">
+                            {entry.rebuys > 0 && (
+                              <button
+                                type="button"
+                                className="glass-btn"
+                                disabled={busy}
+                                aria-label={`Quitar una recompra a ${entry.name} (${entry.rebuys})`}
+                                onClick={() => void onCommand('UNDO_REBUY', entry.playerId)}
+                              >
+                                − <BulletIcon />×{entry.rebuys}
+                              </button>
+                            )}
+                            {entry.addOns > 0 && (
+                              <button
+                                type="button"
+                                className="glass-btn"
+                                disabled={busy}
+                                aria-label={`Quitar un add-on a ${entry.name} (${entry.addOns})`}
+                                onClick={() => void onCommand('UNDO_ADD_ON', entry.playerId)}
+                              >
+                                − <BagIcon />×{entry.addOns}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+                {lastOut && (
                   <button
                     type="button"
                     className="glass-btn"
@@ -480,42 +557,6 @@ export default function PokerLive({
                   </button>
                 )}
               </div>
-            </details>
-          )}
-          {owner && hasExtras && (
-            <details className="poker-details">
-              <summary>Corregir recompras y add-ons</summary>
-              <ul className="poker-active-list poker-detail-content">
-                {session.entries
-                  .filter((entry) => entry.rebuys || entry.addOns)
-                  .map((entry) => (
-                    <li key={entry.playerId}>
-                      <strong>{entry.name}</strong>
-                      <div className="poker-actions">
-                        {entry.rebuys > 0 && (
-                          <button
-                            type="button"
-                            className="glass-btn"
-                            disabled={busy}
-                            onClick={() => void onCommand('UNDO_REBUY', entry.playerId)}
-                          >
-                            Quitar recompra ({entry.rebuys})
-                          </button>
-                        )}
-                        {entry.addOns > 0 && (
-                          <button
-                            type="button"
-                            className="glass-btn"
-                            disabled={busy}
-                            onClick={() => void onCommand('UNDO_ADD_ON', entry.playerId)}
-                          >
-                            Quitar add-on ({entry.addOns})
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-              </ul>
             </details>
           )}
         </section>
@@ -553,7 +594,8 @@ export default function PokerLive({
               {rebuy && (
                 <li>
                   Recompra · {euros(rebuy.costCents)} por {chips(rebuy.chips)} fichas, hasta el
-                  nivel {rebuy.throughLevel}.
+                  nivel {rebuy.throughLevel},{' '}
+                  {rebuy.limit === null ? 'sin límite' : `máximo ${rebuy.limit} por jugador`}.
                 </li>
               )}
               {addOn && (

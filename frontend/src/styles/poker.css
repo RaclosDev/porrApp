@@ -369,6 +369,7 @@
 /* Tapete: el reloj se lee desde lejos, por eso va sobre fondo oscuro y separado del papel. */
 .poker-felt {
   --text-muted: #c3d5c6;
+  position: relative;
   --border-color: rgba(243, 236, 220, 0.22);
   min-width: 0;
   padding: clamp(1rem, 3vw, 1.6rem);
@@ -833,25 +834,91 @@
 
 .poker-seat-bullet svg {
   width: 0.7rem;
+}
+
+/* Iconos de compras: bala de latón y cobre, bolsa de oro y calavera para eliminar. */
+.poker-icon {
+  flex: none;
+  height: auto;
+}
+
+.poker-icon-bullet {
+  width: 0.5rem;
   stroke: #5a3a10;
   stroke-width: 0.5;
 }
 
-.poker-seat-bullet .bullet-tip {
+.poker-icon-bullet .bullet-tip {
   fill: #b8693a;
 }
 
-.poker-seat-bullet .bullet-case {
+.poker-icon-bullet .bullet-case {
   fill: #d9a83e;
 }
 
-.poker-seat-bullet .bullet-rim {
+.poker-icon-bullet .bullet-rim {
   fill: #b9862a;
 }
 
-.poker-seat-bullet .bullet-shine {
+.poker-icon-bullet .bullet-shine {
   fill: #f6dc8c;
   stroke: none;
+}
+
+.poker-icon-bag {
+  width: 1rem;
+  fill: #f2c94c;
+  stroke: #7a5200;
+  stroke-width: 1;
+}
+
+.poker-icon-bag text {
+  fill: #5a3c00;
+  stroke: none;
+  font:
+    800 9px/1 system-ui,
+    sans-serif;
+}
+
+.poker-icon-skull {
+  width: 0.95rem;
+  fill: currentColor;
+}
+
+.poker-icon-skull .skull-hole {
+  fill: var(--paper);
+}
+
+.poker-icon-skull .skull-teeth {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.1;
+}
+
+.poker-actions .glass-btn:has(.poker-icon) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.poker-purchases {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.15rem 0 0;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-purchases > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.poker-corrections .poker-player {
+  gap: 0.5rem;
 }
 
 .poker-seat-bag {
@@ -861,17 +928,6 @@
 
 .poker-seat-bag svg {
   width: 1.4rem;
-  fill: #f2c94c;
-  stroke: #7a5200;
-  stroke-width: 1;
-}
-
-.poker-seat-bag text {
-  fill: #5a3c00;
-  stroke: none;
-  font:
-    800 9px/1 system-ui,
-    sans-serif;
 }
 
 .poker-seat-bullet b,
@@ -1105,4 +1161,39 @@
 .poker-sort:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 3px;
+}
+
+/* Cuánto queda para recomprar o hacer add-on, en pequeño en la esquina de la mesa. */
+.poker-buy-timers {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-buy-timers li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(243, 236, 220, 0.28);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.25);
+  color: var(--paper);
+  font-size: 0.75rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-buy-timers .poker-icon-bullet {
+  width: 0.4rem;
+}
+
+.poker-buy-timers .poker-icon-bag {
+  width: 0.85rem;
 }
