@@ -204,7 +204,7 @@ it('guarda asistencia, edita con revisión y cancela un torneo abierto', async (
   vi.mocked(confirmAction).mockResolvedValue(true);
   renderLeague();
   await screen.findByRole('heading', { name: 'Inscripciones abiertas' });
-  click('Ya no juego');
+  click('Desapuntarme');
   await waitFor(() =>
     expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13/attendance', {
       method: 'PUT',
