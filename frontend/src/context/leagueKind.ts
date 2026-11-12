@@ -34,6 +34,7 @@ export type LeagueKind =
   | 'grandPrix'
   | 'scoreboard'
   | 'tournament'
+  | 'poker'
   | 'unknown';
 
 const KINDS: Record<LeagueKind, true> = {
@@ -50,6 +51,7 @@ const KINDS: Record<LeagueKind, true> = {
   grandPrix: true,
   scoreboard: true,
   tournament: true,
+  poker: true,
   unknown: true,
 };
 
@@ -99,6 +101,7 @@ export function leagueKindOf({ hasLeague, loading, error, league }: LeagueKindIn
   if (error) return 'error';
   if (loading || !league) return 'loading';
   if (league.kind === 'SCOREBOARD') return 'scoreboard';
+  if (league.kind === 'POKER') return 'poker';
   if (league.kind === 'TOURNAMENT') return 'tournament';
   const format: PoolFormat | null | undefined = league.poolFormat;
   switch (format) {
@@ -131,6 +134,7 @@ export const BRACKET_KINDS = {
   grandPrix: false,
   scoreboard: false,
   tournament: false,
+  poker: false,
   loading: false,
   error: false,
   none: false,
@@ -149,6 +153,7 @@ export const MATCH_KINDS = {
   grandPrix: false,
   scoreboard: false,
   tournament: false,
+  poker: false,
   loading: false,
   error: false,
   none: false,

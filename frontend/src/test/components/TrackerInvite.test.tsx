@@ -90,7 +90,7 @@ describe('TrackerInvite', () => {
   });
 
   it('la invitación por enlace está separada del alta sin cuenta', () => {
-    render(<TrackerInvite tracker={{ ...tracker, owner: false }} />);
+    render(<TrackerInvite tracker={tracker} />);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copiar enlace' })).toBeInTheDocument();
   });
