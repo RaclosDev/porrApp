@@ -364,7 +364,8 @@ const hasPredictionRanking = (
 ) =>
   Boolean(activeGroupId && groupInfo) &&
   !isScoreboardLeague(groupInfo) &&
-  groupInfo?.kind !== 'TOURNAMENT';
+  groupInfo?.kind !== 'TOURNAMENT' &&
+  groupInfo?.kind !== 'POKER';
 
 /** Ranking de la liga activa y pronósticos ya descargados. */
 export function useLeagueRanking() {

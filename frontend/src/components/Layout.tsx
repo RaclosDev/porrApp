@@ -34,6 +34,7 @@ const noLeagueAllowed = (pathname: string) =>
   pathname.startsWith('/join/') ||
   // Una liga de juegos de mesa se crea aunque no haya ninguna otra liga.
   pathname === '/marcador/nuevo' ||
+  pathname === '/poker/nueva' ||
   pathname.startsWith('/linkedin');
 
 /**

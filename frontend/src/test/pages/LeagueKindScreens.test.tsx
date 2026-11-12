@@ -102,6 +102,7 @@ vi.mock('../../components/insights/KnockoutSearch', () => ({
 vi.mock('../../components/insights/TennisSearch', () => ({
   default: () => <p>Buscador de jugadores</p>,
 }));
+vi.mock('../../pages/PokerLeague', () => ({ default: () => <p>Mesa de póker</p> }));
 vi.mock('../../pages/TrackerHome', () => ({ default: () => <p>Marcador de la liga</p> }));
 vi.mock('../../pages/TrackerRanking', () => ({ default: () => <p>Ranking del marcador</p> }));
 vi.mock('../../components/CustomPredictionViewer', () => ({
@@ -193,6 +194,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: ROUTES['/jornadas'],
       grandPrix: ROUTES['/jornadas'],
       scoreboard: ROUTES['/'],
+      poker: ROUTES['/'],
       tournament: ROUTES['/'],
     },
   },
@@ -214,6 +216,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Estadísticas por partido',
       grandPrix: 'Más elegidos de la Fórmula 1',
       scoreboard: ROUTES['/'],
+      poker: ROUTES['/'],
       tournament: ROUTES['/'],
     },
   },
@@ -235,6 +238,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Buscador de jugadores',
       grandPrix: 'Buscador de pilotos',
       scoreboard: ROUTES['/'],
+      poker: ROUTES['/'],
       tournament: ROUTES['/'],
     },
   },
@@ -256,6 +260,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: ROUTES['/tabla'],
       grandPrix: ROUTES['/'],
       scoreboard: ROUTES['/'],
+      poker: ROUTES['/'],
       tournament: ROUTES['/'],
     },
   },
@@ -277,6 +282,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Portada de la liga',
       grandPrix: 'Portada de carreras',
       scoreboard: 'Marcador de la liga',
+      poker: 'Mesa de póker',
       tournament: 'Torneo de seguimiento',
     },
   },
@@ -298,6 +304,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Portada de la liga',
       grandPrix: 'Portada de carreras',
       scoreboard: 'Marcador de la liga',
+      poker: 'Mesa de póker',
       tournament: 'Torneo de seguimiento',
     },
   },
@@ -319,6 +326,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Cuadro del torneo',
       grandPrix: 'Mundial de F1',
       scoreboard: ROUTES['/'],
+      poker: ROUTES['/'],
       tournament: ROUTES['/'],
     },
   },
@@ -340,6 +348,7 @@ const SCREENS: ScreenCase[] = [
       tennisDraw: 'Jornadas de la liga',
       grandPrix: 'Grandes Premios',
       scoreboard: ROUTES['/'],
+      poker: ROUTES['/'],
       tournament: ROUTES['/'],
     },
   },
@@ -383,6 +392,7 @@ describe('Visor de porras para cada clase de liga', () => {
     none: null,
     unknown: null,
     scoreboard: null,
+    poker: null,
     tournament: null,
   };
 
@@ -411,6 +421,7 @@ describe('Ranking para cada clase de liga', () => {
     unknown: null,
     // Sin ranking de predicciones: su ranking son las partidas ganadas.
     scoreboard: null,
+    poker: null,
     tournament: null,
   };
 
@@ -438,6 +449,10 @@ describe('Ranking para cada clase de liga', () => {
     );
     if (kind === 'scoreboard') {
       expect(screen.getByText('Ranking del marcador')).toBeInTheDocument();
+      return;
+    }
+    if (kind === 'poker') {
+      expect(screen.getByText(ROUTES['/'])).toBeInTheDocument();
       return;
     }
     // Cada enlace sale solo donde su pantalla existe.

@@ -44,6 +44,8 @@ public class LeagueMembershipService {
         if (group == null) return;
         if (group.isTournament()) throw BusinessException.badRequest("Este torneo se consulta mediante su enlace público. No necesitas unirte.");
 
+        if (group.isPoker()) leagueRepository.findWithLockById(groupId)
+                .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
         Membership.MembershipId memId = new Membership.MembershipId(user.getId(), group.getId());
         if (!membershipRepository.existsById(memId)) {
             membershipRepository.save(Membership.builder()
@@ -52,7 +54,7 @@ public class LeagueMembershipService {
                     .league(group)
                     .role("MEMBER")
                     .build());
-            if (group.isScoreboard()) scoreboardRoster.memberJoined(group, user);
+            if (group.isScoreboard() || group.isPoker()) scoreboardRoster.memberJoined(group, user);
             // Se avisa a los demás miembros tras confirmar el alta (MemberJoinedNotifier).
             eventPublisher.publishEvent(new MemberJoinedLeagueEvent(group.getId(), user.getId()));
         }

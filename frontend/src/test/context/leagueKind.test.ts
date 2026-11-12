@@ -58,6 +58,7 @@ const EXAMPLES: Record<LeagueKind, LeagueKindInput> = {
   // Liga de juegos de mesa: el servidor le pone un formato, pero manda la clase.
   scoreboard: ready({ poolFormat: 'MATCH_DAY', kind: 'SCOREBOARD' }),
   tournament: ready({ poolFormat: 'MATCH_DAY', kind: 'TOURNAMENT' }),
+  poker: ready({ poolFormat: 'MATCH_DAY', kind: 'POKER' }),
   unknown: ready({
     poolFormat: null,
     formatType: 'TOURNAMENT',

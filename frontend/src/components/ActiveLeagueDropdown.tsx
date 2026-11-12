@@ -128,11 +128,13 @@ export default function ActiveLeagueDropdown() {
   // Solo la competición real de la liga: sin liga (o sin dato) no se supone ninguna.
   const displayCompName = !activeGroupId
     ? 'Elige una de tus ligas'
-    : isScoreboardLeague(activeGroup)
-      ? 'Juego de mesa'
-      : activeGroupMultiCompetition
-        ? 'Varias competiciones'
-        : activeCompetitionName || '';
+    : activeGroup?.kind === 'POKER'
+      ? 'Póker'
+      : isScoreboardLeague(activeGroup)
+        ? 'Juego de mesa'
+        : activeGroupMultiCompetition
+          ? 'Varias competiciones'
+          : activeCompetitionName || '';
 
   return (
     <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
@@ -205,14 +207,16 @@ export default function ActiveLeagueDropdown() {
                           {g.name}
                         </span>
                         <span className="text-[0.72rem] text-muted">
-                          {(isScoreboardLeague(g)
-                            ? ['Juego de mesa']
-                            : [
-                                competitionLabel(g),
-                                // Terminada, la temporada la distingue de la liga que la repite.
-                                g.seasonEnded ? `${g.season ?? 'Temporada'} terminada` : null,
-                                poolFormatShortLabel(g.poolFormat),
-                              ]
+                          {(g.kind === 'POKER'
+                            ? ['Póker']
+                            : isScoreboardLeague(g)
+                              ? ['Juego de mesa']
+                              : [
+                                  competitionLabel(g),
+                                  // Terminada, la temporada la distingue de la liga que la repite.
+                                  g.seasonEnded ? `${g.season ?? 'Temporada'} terminada` : null,
+                                  poolFormatShortLabel(g.poolFormat),
+                                ]
                           )
                             .filter(Boolean)
                             .join(' · ')}

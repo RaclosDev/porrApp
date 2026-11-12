@@ -70,6 +70,7 @@ const LEAGUE_NAV: Record<LeagueKind, readonly LeagueNavItem[] | null> = {
   // Juegos de mesa: la hoja de la partida, su ranking y el histórico por días.
   scoreboard: [HOME, SCOREBOARD_PLAY, RANKING, SCOREBOARD_HISTORY, MY_LEAGUES],
   tournament: [HOME, MY_LEAGUES],
+  poker: [HOME, MY_LEAGUES],
 };
 
 /** Secciones que se enseñan; en la demo el inicio es /demo y no hay Mis Ligas. */

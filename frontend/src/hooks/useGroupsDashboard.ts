@@ -259,7 +259,7 @@ export function useGroupsDashboard() {
   const handleEnterGroup = (groupId: GroupId) => {
     changeGroup(groupId.toString());
     const g = groups.find((item) => item.id.toString() === groupId.toString());
-    if (g && !isScoreboardLeague(g) && isMatchBasedFormat(g.poolFormat)) {
+    if (g && !isScoreboardLeague(g) && g.kind !== 'POKER' && isMatchBasedFormat(g.poolFormat)) {
       navigate('/jornadas');
     } else {
       navigate('/');
