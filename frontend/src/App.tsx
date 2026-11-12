@@ -20,7 +20,9 @@ import ScrollOnNavigate from './components/ScrollOnNavigate';
 import CookieConsent from './components/layout/CookieConsent';
 import RouteHead from './components/layout/RouteHead';
 import { RequireLeague } from './components/NoLeagueState';
+import LeagueLoadState from './components/LeagueLoadState';
 import ScoreboardOnly from './components/tracker/ScoreboardOnly';
+import { pokerRoutes, type PokerSection } from './components/poker/pokerRoutes';
 import { CONTENT_PAGES } from './seo/pages';
 import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
@@ -42,6 +44,7 @@ const Search = lazyPage(() => import('./pages/Search'));
 const GroupsDashboard = lazyPage(() => import('./pages/GroupsDashboard'));
 const CreateLeague = lazyPage(() => import('./pages/CreateLeague'));
 const CreatePokerLeague = lazyPage(() => import('./pages/CreatePokerLeague'));
+const PokerLeague = lazyPage(() => import('./pages/PokerLeague'));
 const CreateTracker = lazyPage(() => import('./pages/CreateTracker'));
 const CreateTournament = lazyPage(() => import('./pages/CreateTournament'));
 const OrganizedTournament = lazyPage(() => import('./pages/OrganizedTournament'));
@@ -55,6 +58,14 @@ const LeagueStandings = lazyPage(() => import('./pages/LeagueStandings'));
 const Legal = lazyPage(() => import('./pages/Legal'));
 const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
 const ContentPage = lazyPage(() => import('./pages/ContentPage'));
+
+function PokerLeagueRoute({ view }: { view: PokerSection }) {
+  const { leagueKind, groupError, activeGroupId } = useAppContext();
+  if (leagueKind === 'loading') return <LeagueLoadState />;
+  if (leagueKind === 'error') return <LeagueLoadState error={groupError} />;
+  if (leagueKind !== 'poker' || !activeGroupId) return <Navigate to="/" replace />;
+  return <PokerLeague key={`${activeGroupId}:${view}`} leagueId={activeGroupId} view={view} />;
+}
 
 // Rutas que un visitante invitado (guest_mode) puede ver sin loguearse
 const GUEST_ALLOWED_PATHS = [
@@ -304,6 +315,22 @@ function AppShell() {
                 </ProtectedRoute>
               }
             />
+            {(Object.keys(pokerRoutes) as PokerSection[]).map((view) => {
+              const { to, label } = pokerRoutes[view];
+              return (
+                <Route
+                  key={to}
+                  path={to}
+                  element={
+                    <ProtectedRoute>
+                      <RequireLeague title={label} what="la liga de póker">
+                        <PokerLeagueRoute view={view} />
+                      </RequireLeague>
+                    </ProtectedRoute>
+                  }
+                />
+              );
+            })}
             {/* Liga de juegos de mesa: la hoja de la partida y el histórico por días. */}
             <Route
               path="/partida"

@@ -1129,6 +1129,12 @@ export const ROUTE_META: Record<string, PageMeta> = {
   '/grupos': { title: 'Grupos · PorrApp', description: HOME_META.description },
   '/partida': { title: 'Partida · PorrApp', description: HOME_META.description },
   '/historico': { title: 'Histórico · PorrApp', description: HOME_META.description },
+  '/poker/mesa': { title: 'Mesa de póker · PorrApp', description: HOME_META.description },
+  '/poker/historico': { title: 'Histórico de póker · PorrApp', description: HOME_META.description },
+  '/poker/estadisticas': {
+    title: 'Estadísticas de póker · PorrApp',
+    description: HOME_META.description,
+  },
   '/restablecer-contrasena': {
     title: 'Nueva contraseña · PorrApp',
     description: HOME_META.description,
@@ -1158,6 +1164,9 @@ export const APP_PATHS = [
   '/marcador/nuevo',
   '/torneos/nuevo',
   '/poker/nueva',
+  '/poker/mesa',
+  '/poker/historico',
+  '/poker/estadisticas',
   '/bracket',
   '/tabla',
   '/prediction',
