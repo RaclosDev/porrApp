@@ -32,7 +32,7 @@ export default function PokerLive({
   onCommand,
 }: Props) {
   const [now, setNow] = useState(() => Date.now());
-  const { levels, rebuy, addOn, prizeShares } = session.settings;
+  const { levels, rebuy, addOn, prizeShares, startingChips } = session.settings;
   const eliminated = new Set(session.eliminations);
   const active = session.entries.filter((entry) => !eliminated.has(entry.playerId));
   const winner = active.length === 1 ? active[0] : null;
@@ -40,6 +40,11 @@ export default function PokerLive({
   const hasExtras = session.entries.some((entry) => entry.rebuys || entry.addOns);
   const clock =
     session.clock && clockAt(session.clock, levels, serverNow + Math.max(0, now - receivedAt));
+  const chipsInPlay = session.entries.reduce(
+    (sum, entry) =>
+      sum + startingChips + entry.rebuys * (rebuy?.chips ?? 0) + entry.addOns * (addOn?.chips ?? 0),
+    0,
+  );
 
   useEffect(() => {
     if (session.clock?.endsAt == null || winner) return;
@@ -72,29 +77,46 @@ export default function PokerLive({
 
   return (
     <>
-      <section className="paper-panel album-sheet poker-panel" aria-labelledby="poker-table-title">
-        <header className="poker-section-head">
-          <h2 id="poker-table-title">{winner ? 'Torneo listo para cerrar' : 'Torneo en juego'}</h2>
-          <p>
-            {active.length} / {session.entries.length} en mesa
-          </p>
-        </header>
+      <section className="poker-felt" aria-labelledby="poker-table-title">
+        <h2 id="poker-table-title" className="poster-title">
+          {winner ? 'Torneo listo para cerrar' : 'Torneo en juego'}
+        </h2>
         {winner ? (
           <div className="poker-winner">
             <span>Primer puesto</span>
             <strong>{winner.name}</strong>
             {session.prizes[0] > 0 && <span>{euros(session.prizes[0])} de premio</span>}
+            {owner && (
+              <div className="poker-actions poker-clock-actions">
+                <button
+                  type="button"
+                  className="glass-btn primary-btn"
+                  disabled={busy}
+                  onClick={() => void close()}
+                >
+                  Cerrar torneo
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           clock && (
             <>
               <div className="poker-clock">
-                <p aria-live="polite">
-                  Nivel {clock.level + 1} · {blinds(levels[clock.level])}
+                <p className="poker-level" aria-live="polite">
+                  <span>Nivel {clock.level + 1}</span>
+                  <strong>{blinds(levels[clock.level])}</strong>
                 </p>
                 <span role="timer" aria-label="Tiempo restante del nivel">
                   {timeLabel(clock.remainingMs)}
                 </span>
+                <div className="poker-progress" aria-hidden="true">
+                  <span
+                    style={{
+                      width: `${Math.min(100, (clock.remainingMs / (levels[clock.level].minutes * 60_000)) * 100)}%`,
+                    }}
+                  />
+                </div>
                 <p>
                   {clock.remainingMs === 0
                     ? 'Último nivel completado'
@@ -110,7 +132,7 @@ export default function PokerLive({
                 <div className="poker-actions poker-clock-actions">
                   <button
                     type="button"
-                    className="glass-btn"
+                    className={clock.endsAt === null ? 'glass-btn primary-btn' : 'glass-btn'}
                     disabled={busy || clock.remainingMs === 0}
                     onClick={() => void onCommand(clock.endsAt === null ? 'RESUME' : 'PAUSE')}
                   >
@@ -129,6 +151,22 @@ export default function PokerLive({
             </>
           )
         )}
+        <dl className="poker-felt-metrics">
+          <div>
+            <dt>En mesa</dt>
+            <dd>
+              {active.length} / {session.entries.length}
+            </dd>
+          </div>
+          <div>
+            <dt>Media de fichas</dt>
+            <dd>{chips(Math.round(chipsInPlay / active.length))}</dd>
+          </div>
+          <div>
+            <dt>Bote</dt>
+            <dd>{euros(session.potCents)}</dd>
+          </div>
+        </dl>
       </section>
 
       <div className="poker-live-grid">
@@ -166,12 +204,12 @@ export default function PokerLive({
                         aria-label={`Extra de fichas para ${entry.name}`}
                         onClick={() => void onCommand('ADD_ON', entry.playerId)}
                       >
-                        Extra de fichas
+                        Extra
                       </button>
                     )}
                     <button
                       type="button"
-                      className="glass-btn"
+                      className="glass-btn poker-out-btn"
                       disabled={busy}
                       aria-label={`Eliminar a ${entry.name}`}
                       onClick={() => void onCommand('ELIMINATE', entry.playerId)}
@@ -286,16 +324,6 @@ export default function PokerLive({
                 </li>
               )}
             </ul>
-          )}
-          {owner && winner && (
-            <button
-              type="button"
-              className="glass-btn primary-btn"
-              disabled={busy}
-              onClick={() => void close()}
-            >
-              Cerrar torneo
-            </button>
           )}
         </section>
       </div>

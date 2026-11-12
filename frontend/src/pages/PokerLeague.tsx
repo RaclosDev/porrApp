@@ -161,13 +161,31 @@ export default function PokerLeague({
               />
             )
           ) : (
-            <section className="paper-panel album-sheet poker-panel">
+            <section className="paper-panel album-sheet poker-panel poker-empty">
               <h2>Próximo torneo</h2>
               <p>
                 {league.owner
                   ? 'Elige la fecha y las reglas para abrir las inscripciones.'
                   : 'El organizador abrirá las inscripciones del próximo torneo aquí.'}
               </p>
+              <ol className="poker-steps">
+                <li>
+                  <strong>Inscripciones</strong>
+                  <span>
+                    {league.owner
+                      ? 'Fijas fecha, entrada y ciegas, y cada jugador confirma si viene.'
+                      : 'Verás la fecha y la entrada, y podrás confirmar si vienes.'}
+                  </span>
+                </li>
+                <li>
+                  <strong>Partida</strong>
+                  <span>El reloj de ciegas, las eliminaciones y el bote se siguen desde aquí.</span>
+                </li>
+                <li>
+                  <strong>Cierre</strong>
+                  <span>Los premios y los puestos quedan guardados en el histórico.</span>
+                </li>
+              </ol>
               {league.owner && (
                 <button
                   type="button"
