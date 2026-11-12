@@ -5,6 +5,9 @@ import app.porrapp.service.league.LeagueService;
 import app.porrapp.service.league.InvitationImageRenderer;
 import app.porrapp.service.account.ProfileImageService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.Optional;
 import javax.imageio.ImageIO;
@@ -37,7 +40,7 @@ class JoinPreviewControllerTest {
         JoinPreviewController controller = new JoinPreviewController(leagueService, mock(ProfileImageService.class), renderer);
 
         String html = controller.preview("ABCDEFGH23");
-        assertThat(html).contains("image.png?v=3", "property=\"og:image:width\" content=\"1200\"",
+        assertThat(html).contains("image.png?v=4", "property=\"og:image:width\" content=\"1200\"",
                 "property=\"og:image:height\" content=\"630\"");
 
         byte[] png = controller.invitationImage("ABCDEFGH23");
@@ -50,20 +53,26 @@ class JoinPreviewControllerTest {
         Files.write(Path.of("target", "invitation-preview", "paper.png"), png);
     }
 
-    @Test
-    void tournamentInvitationDescribesTheTournamentInTheLinkAndImage() throws Exception {
+    @ParameterizedTest
+    @CsvSource({
+            League.KIND_POKER + ", Timbita, Liga de póker",
+            League.KIND_SCOREBOARD + ", Noche de juegos, Juego de mesa",
+            League.KIND_TOURNAMENT + ", Torneo del sábado, Torneo de seguimiento"
+    })
+    void nonPoolInvitationUsesTheLeagueTypeInTheLinkAndImage(String kind, String name, String description)
+            throws Exception {
         LeagueService leagues = mock(LeagueService.class);
         InvitationImageRenderer images = mock(InvitationImageRenderer.class);
-        League tournament = League.builder().id(7L).name("Póker del sábado")
-                .kind(League.KIND_TOURNAMENT).build();
-        when(leagues.getLeagueByJoinCode("TOURNEY")).thenReturn(Optional.of(tournament));
+        League league = League.builder().id(7L).name(name).kind(kind).build();
+        when(leagues.getLeagueByJoinCode("INVITATION")).thenReturn(Optional.of(league));
         JoinPreviewController controller = new JoinPreviewController(leagues, mock(ProfileImageService.class), images);
 
-        assertThat(controller.preview("TOURNEY"))
-                .contains("property=\"og:description\" content=\"Torneo de seguimiento\"");
-        controller.invitationImage("TOURNEY");
-        verify(images).render(anyString(), eq(new InvitationImageRenderer.Card(
-                "Póker del sábado", "Torneo de seguimiento", "Invitación")), any());
+        assertThat(HtmlUtils.htmlUnescape(controller.preview("INVITATION"))).contains(
+                "property=\"og:title\" content=\"" + name + "\"",
+                "property=\"og:description\" content=\"" + description + "\"",
+                "name=\"twitter:description\" content=\"" + description + "\"");
+        controller.invitationImage("INVITATION");
+        verify(images).render(anyString(), eq(new InvitationImageRenderer.Card(name, description, "Invitación")), any());
     }
 
     @Test

@@ -32,8 +32,7 @@ public class JoinPreviewController {
     private String baseUrl = "https://porrapp.app";
     private static final String DEFAULT_TITLE = "Invitación a una porra";
     private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
-    private static final String IMAGE_VERSION = "3";
-    private static final String TOURNAMENT_DESCRIPTION = "Torneo de seguimiento";
+    private static final String IMAGE_VERSION = "4";
 
     private final LeagueService leagueService;
     private final ProfileImageService profileImageService;
@@ -59,18 +58,21 @@ public class JoinPreviewController {
             // El nombre de la liga arriba; competición y formato debajo.
             title = leagueName;
             imageAlt = leagueName;
-            description = league.isTournament() ? TOURNAMENT_DESCRIPTION : DEFAULT_DESCRIPTION;
-
-            Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
-            if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
-                String competitionName = activeEdition.get().getTennisScope() != null
-                        ? activeEdition.get().getTennisScope().label()
-                        : activeEdition.get().isMultiCompetition() ? MULTI_COMPETITION
-                        : activeEdition.get().getCompetition().getName();
-                String format = activeEdition.get().getPoolFormat() != null
-                        ? formatLabel(activeEdition.get().getPoolFormat().name())
-                        : null;
-                description = competitionName + (format != null ? " · " + format : "");
+            String leagueType = nonPoolDescription(league);
+            if (leagueType != null) {
+                description = leagueType;
+            } else {
+                Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
+                if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
+                    String competitionName = activeEdition.get().getTennisScope() != null
+                            ? activeEdition.get().getTennisScope().label()
+                            : activeEdition.get().isMultiCompetition() ? MULTI_COMPETITION
+                            : activeEdition.get().getCompetition().getName();
+                    String format = activeEdition.get().getPoolFormat() != null
+                            ? formatLabel(activeEdition.get().getPoolFormat().name())
+                            : null;
+                    description = competitionName + (format != null ? " · " + format : "");
+                }
             }
             if (league.getImageUpdatedAt() != null) {
                 imageVersion += "-" + league.getImageUpdatedAt().getEpochSecond();
@@ -112,9 +114,12 @@ public class JoinPreviewController {
         }
         League league = leagueOptional.get();
         String name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
-        String competition = league.isTournament() ? TOURNAMENT_DESCRIPTION : "Fútbol";
-        String format = league.isTournament() ? "Invitación" : "Cuadro completo";
-        Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
+        String leagueType = nonPoolDescription(league);
+        String competition = leagueType != null ? leagueType : "Fútbol";
+        String format = leagueType != null ? "Invitación" : "Cuadro completo";
+        Optional<Edition> activeEdition = leagueType == null
+                ? leagueService.findActiveEdition(league.getId())
+                : Optional.empty();
         if (activeEdition.isPresent()) {
             Edition edition = activeEdition.get();
             if (edition.getTennisScope() != null) {
@@ -133,6 +138,13 @@ public class JoinPreviewController {
         return imageRenderer.render(cacheKey, new InvitationImageRenderer.Card(name, competition, format),
                 () -> profileImageService.getLeagueImage(league.getId())
                         .map(ProfileImageService.StoredImage::data).orElse(null));
+    }
+
+    private String nonPoolDescription(League league) {
+        if (league.isPoker()) return "Liga de póker";
+        if (league.isScoreboard()) return "Juego de mesa";
+        if (league.isTournament()) return "Torneo de seguimiento";
+        return null;
     }
 
     private Optional<League> findLeague(String code) {
