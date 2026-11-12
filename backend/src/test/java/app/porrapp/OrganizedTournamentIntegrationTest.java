@@ -4,6 +4,7 @@ import app.porrapp.config.DataInitializer;
 import app.porrapp.config.JwtUtil;
 import app.porrapp.dto.OrganizedTournamentDTO;
 import app.porrapp.dto.OrganizedTournamentDTO.*;
+import app.porrapp.model.Membership;
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.*;
 import app.porrapp.service.league.LeagueMembershipService;
@@ -40,12 +41,29 @@ class OrganizedTournamentIntegrationTest {
     @Autowired OrganizedTournamentService service;
     @Autowired UserAccountRepository users;
     @Autowired LeagueRepository leagues;
+    @Autowired MembershipRepository tournamentMemberships;
     @Autowired LeagueMembershipService memberships;
     @Autowired TournamentResultChangeRepository changes;
     @Autowired JwtUtil jwt;
     @LocalServerPort int port;
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
+
+    @Test
+    void creatorCanFindAndOpenTheTournamentWithoutAMembershipRow() throws Exception {
+        UserAccount owner = user("owner"), outsider = user("outsider");
+        OrganizedTournamentDTO tournament = service.create(owner.getGoogleEmail(),
+                new Create("Torneo en borrador", "Póker", "INDIVIDUAL", UUID.randomUUID()));
+        tournamentMemberships.deleteById(new Membership.MembershipId(owner.getId(), tournament.id()));
+
+        HttpResponse<String> mine = send("GET", "/api/groups/mine", owner, null);
+        assertThat(mine.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(mine.body()).findValuesAsText("id")).contains(tournament.id().toString());
+        assertThat(send("GET", "/api/tournaments/" + tournament.id(), owner, null).statusCode()).isEqualTo(200);
+        HttpResponse<String> outsiderGroups = send("GET", "/api/groups/mine", outsider, null);
+        assertThat(outsiderGroups.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(outsiderGroups.body()).findValuesAsText("id")).doesNotContain(tournament.id().toString());
+    }
 
     @Test
     void publicViewIsOptInReadOnlyAndContainsNoAccountOrJoinData() throws Exception {

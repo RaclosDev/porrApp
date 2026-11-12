@@ -34,6 +34,28 @@ it('does not offer administration of another user league with the same public na
   expect(screen.queryByRole('button', { name: 'Administrar Liga de Ana' })).not.toBeInTheDocument();
 });
 
+it('offers direct tournament management only to its creator', async () => {
+  vi.mocked(useAppContext).mockReturnValue(
+    appContext({ isAuthenticated: true, userId: '7', userName: 'Ana' }),
+  );
+  vi.mocked(fetchMyGroups).mockResolvedValue([
+    group({ id: 30, name: 'Poker Sábados', kind: 'TOURNAMENT', adminUserId: 7 }),
+    group({ id: 31, name: 'Otro torneo', kind: 'TOURNAMENT', adminUserId: 8 }),
+  ]);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <GroupsDashboard />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  expect(
+    await screen.findByRole('link', { name: 'Administrar torneo: Poker Sábados' }),
+  ).toHaveAttribute('href', '/torneos/30');
+  expect(screen.queryByRole('link', { name: 'Administrar torneo: Otro torneo' })).toBeNull();
+});
+
 it('lista primero la liga activa, luego las abiertas hace menos y al final las nunca abiertas', async () => {
   vi.mocked(useAppContext).mockReturnValue(
     appContext({ isAuthenticated: true, userId: '1', userName: 'Ana', activeGroupId: '3' }),
