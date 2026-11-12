@@ -437,7 +437,7 @@ public class LeagueService {
      */
     private static League withAdminLoaded(League league) {
         org.hibernate.Hibernate.initialize(league.getAdminUser());
-        org.hibernate.Hibernate.initialize(league.getMemberships());
+        org.hibernate.Hibernate.initialize(league.getPrivilegedMemberships());
         return league;
     }
 

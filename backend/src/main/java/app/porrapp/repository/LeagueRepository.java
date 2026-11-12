@@ -20,14 +20,14 @@ import java.util.Optional;
 public interface LeagueRepository extends JpaRepository<League, Long> {
 
     @Override
-    @EntityGraph(attributePaths = "adminUser")
+    @EntityGraph(attributePaths = {"adminUser", "privilegedMemberships"})
     Optional<League> findById(Long id);
 
     @Override
     @EntityGraph(attributePaths = "adminUser")
     List<League> findAllById(Iterable<Long> ids);
 
-    @EntityGraph(attributePaths = "adminUser")
+    @EntityGraph(attributePaths = {"adminUser", "privilegedMemberships"})
     Optional<League> findByJoinCode(String joinCode);
 
     // Consultas explícitas: con el getter transitorio League#getAdminUserId, la consulta derivada
@@ -44,7 +44,7 @@ public interface LeagueRepository extends JpaRepository<League, Long> {
     @Query("SELECT l FROM League l WHERE l.adminUser.id = :adminUserId")
     List<League> findByAdminUserId(@Param("adminUserId") Long adminUserId);
 
-    @EntityGraph(attributePaths = "adminUser")
+    @EntityGraph(attributePaths = {"adminUser", "privilegedMemberships"})
     @Query("""
             SELECT l FROM League l
             WHERE (l.adminUser.id = :userId AND l.kind = 'TOURNAMENT')

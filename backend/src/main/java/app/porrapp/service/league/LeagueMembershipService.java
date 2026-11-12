@@ -31,12 +31,10 @@ public class LeagueMembershipService {
     private final ScoreboardRoster scoreboardRoster;
 
     @Transactional
-    // Las listas cacheadas también incluyen los permisos de sus miembros.
+    // Las altas siempre son de miembros ordinarios y no cambian los permisos de la liga.
     @org.springframework.cache.annotation.Caching(evict = {
             @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
-            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", allEntries = true),
-            @org.springframework.cache.annotation.CacheEvict(value = "groupById", allEntries = true),
-            @org.springframework.cache.annotation.CacheEvict(value = "groupByCode", allEntries = true)})
+            @org.springframework.cache.annotation.CacheEvict(value = "userGroups", key = "#email")})
     public void join(Long groupId, String email) {
         UserAccount user = userAccountRepository.findByGoogleEmail(email).orElse(null);
         if (user == null) return;
@@ -65,7 +63,7 @@ public class LeagueMembershipService {
     @org.springframework.cache.annotation.Caching(evict = {
             @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
             @org.springframework.cache.annotation.CacheEvict(value = "userGroups", allEntries = true),
-            @org.springframework.cache.annotation.CacheEvict(value = "groupById", allEntries = true),
+            @org.springframework.cache.annotation.CacheEvict(value = "groupById", key = "#groupId"),
             @org.springframework.cache.annotation.CacheEvict(value = "groupByCode", allEntries = true)})
     public void leave(Long groupId, String email) {
         League group = leagueRepository.findById(groupId)
@@ -165,7 +163,7 @@ public class LeagueMembershipService {
     @org.springframework.cache.annotation.Caching(evict = {
             @org.springframework.cache.annotation.CacheEvict(value = "leaderboard", key = "#groupId"),
             @org.springframework.cache.annotation.CacheEvict(value = "userGroups", allEntries = true),
-            @org.springframework.cache.annotation.CacheEvict(value = "groupById", allEntries = true),
+            @org.springframework.cache.annotation.CacheEvict(value = "groupById", key = "#groupId"),
             @org.springframework.cache.annotation.CacheEvict(value = "groupByCode", allEntries = true)})
     public void kick(Long groupId, Long targetUserId, String email) {
         League group = LeagueAdmins.require(leagueRepository, groupId, email);
