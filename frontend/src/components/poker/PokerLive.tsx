@@ -7,6 +7,7 @@ import type {
   PokerSession,
 } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
+import { SeatBadges } from './PokerBadges';
 import { PokerAvatar } from './PokerFaces';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
 
@@ -17,6 +18,7 @@ interface Props {
   serverNow: number;
   receivedAt: number;
   onCommand: (action: PokerAction, playerId?: number, finalStacks?: FinalStack[]) => Promise<void>;
+  lastWinnerIds?: number[];
 }
 
 function purchases({ rebuys, addOns }: { rebuys: number; addOns: number }) {
@@ -43,6 +45,7 @@ export default function PokerLive({
   serverNow,
   receivedAt,
   onCommand,
+  lastWinnerIds = [],
 }: Props) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [finishing, setFinishing] = useState(false);
@@ -249,6 +252,11 @@ export default function PokerLive({
                     <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
                   </span>
                 )}
+                <SeatBadges
+                  rebuys={entry.rebuys}
+                  addOns={entry.addOns}
+                  crowned={lastWinnerIds.includes(entry.playerId)}
+                />
               </li>
             ))}
           </ul>

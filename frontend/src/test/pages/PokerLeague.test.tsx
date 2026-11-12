@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
+import PokerHome from '../../components/poker/PokerHome';
 import PokerLive from '../../components/poker/PokerLive';
 import { PokerHistory, PokerStatistics } from '../../components/poker/PokerHistory';
 import PokerSettingsForm from '../../components/poker/PokerSettingsForm';
@@ -139,6 +140,74 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   );
   click('Volver');
   expect(cancel).toHaveBeenCalledOnce();
+});
+
+it('marca en la mesa las recompras, los extras y al último ganador', () => {
+  const { container } = render(
+    <PokerLive
+      session={{
+        ...session,
+        startedAt: 1_000,
+        clock: { level: 0, endsAt: null, remainingMs: 1_000 },
+      }}
+      owner={false}
+      busy={false}
+      serverNow={1_000}
+      receivedAt={1_000}
+      lastWinnerIds={[3]}
+      onCommand={vi.fn()}
+    />,
+  );
+  const seats = [...container.querySelectorAll('.poker-seats li')];
+  expect(seats.map((seat) => Boolean(seat.querySelector('.poker-seat-bullet')))).toEqual([
+    false,
+    true,
+    false,
+  ]);
+  expect(seats.map((seat) => Boolean(seat.querySelector('.poker-seat-bag')))).toEqual([
+    false,
+    true,
+    false,
+  ]);
+  expect(seats.map((seat) => Boolean(seat.querySelector('.poker-seat-crown')))).toEqual([
+    false,
+    false,
+    true,
+  ]);
+});
+
+it('corona en inicio al último ganador y marca compras en los cromos del histórico', () => {
+  const closed: PokerSession = {
+    ...session,
+    id: 12,
+    startedAt: 500,
+    closedAt: 900,
+    results: entries.map((entry, index) => ({
+      ...entry,
+      place: index === 2 ? 1 : index + 2,
+      paidCents: 1000,
+      prizeCents: index === 2 ? 2100 : 0,
+    })),
+  };
+  const { container, unmount } = render(
+    <MemoryRouter>
+      <PokerHome league={league} sessions={[closed]} loading={false} onRetry={vi.fn()} />
+    </MemoryRouter>,
+  );
+  const faces = [...container.querySelectorAll('.poker-faces li')];
+  expect(faces.map((face) => Boolean(face.querySelector('.poker-seat-crown')))).toEqual([
+    false,
+    false,
+    true,
+  ]);
+  unmount();
+
+  const history = render(<PokerHistory sessions={[closed]} />);
+  const stickers = [...history.container.querySelectorAll('.poker-podium li')];
+  const luis = stickers.find((sticker) => sticker.textContent?.includes('Luis'));
+  expect(luis?.querySelector('.poker-seat-bullet')).not.toBeNull();
+  expect(luis?.querySelector('.poker-seat-bag')).not.toBeNull();
+  expect(stickers.filter((sticker) => sticker.querySelector('.poker-seat-bullet'))).toHaveLength(1);
 });
 
 it('actualiza el reloj, limita las compras y permite corregir movimientos antes del cierre', async () => {
