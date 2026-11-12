@@ -226,6 +226,10 @@ public class LeagueMembershipService {
         }
         Membership target = membershipRepository.findById(new Membership.MembershipId(targetUserId, groupId))
                 .orElseThrow(() -> BusinessException.badRequest("El usuario debe unirse antes a la liga."));
+        boolean grantedAdmin = "ADMIN".equals(role) && !"ADMIN".equals(target.getRole());
         target.setRole(role);
+        if (grantedAdmin) {
+            eventPublisher.publishEvent(new LeagueAdminGrantedEvent(groupId, targetUserId));
+        }
     }
 }
