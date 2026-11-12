@@ -1,6 +1,7 @@
 import PaperLoading from './PaperLoading';
 import DialogBackdrop from './DialogBackdrop';
 import { useRef, useState } from 'react';
+import type { Group } from '../types/api';
 import { useQuery } from '@tanstack/react-query';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { fetchLeagueScoring } from '../services/api';
@@ -17,10 +18,19 @@ export default function LeagueRulesModal({
   group,
   onClose,
 }: {
-  group: { id?: number | string | null; name?: string; rules?: string | null } | null | undefined;
+  group:
+    | {
+        id?: number | string | null;
+        name?: string;
+        rules?: string | null;
+        kind?: Group['kind'];
+      }
+    | null
+    | undefined;
   onClose: () => void;
 }) {
   const rules = (group?.rules || '').trim();
+  const tournament = group?.kind === 'TOURNAMENT';
   // Sin liga activa el id llega vacío.
   const groupId = group?.id || null;
   const [tab, setTab] = useState<RulesTab>('scoring');
@@ -35,7 +45,7 @@ export default function LeagueRulesModal({
   } = useQuery({
     queryKey: queryKeys.leagueScoring(groupId),
     queryFn: () => fetchLeagueScoring(groupId as number | string),
-    enabled: groupId != null,
+    enabled: groupId != null && !tournament,
   });
 
   return (
@@ -51,7 +61,9 @@ export default function LeagueRulesModal({
         <div className="py-4 px-5 border-b border-b-[rgba(17,_24,_39,_0.15)] flex flex-col gap-3">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
-              <div className="marker-ink text-[1rem]">Reglas de la liga</div>
+              <div className="marker-ink text-[1rem]">
+                {tournament ? 'Reglas del torneo' : 'Reglas de la liga'}
+              </div>
               <h2
                 className="m-0 poster-title text-[1.35rem] text-[#111827] overflow-hidden text-ellipsis whitespace-nowrap"
                 id="league-rules-title"
@@ -68,11 +80,11 @@ export default function LeagueRulesModal({
               ✕
             </button>
           </div>
-          <RulesTabs idPrefix="league-rules" tab={tab} onChange={setTab} />
+          {!tournament && <RulesTabs idPrefix="league-rules" tab={tab} onChange={setTab} />}
         </div>
 
         <div className="py-4.5 px-5 overflow-y-auto flex-1">
-          {tab === 'scoring' && (
+          {!tournament && tab === 'scoring' && (
             <div
               id="league-rules-panel-scoring"
               role="tabpanel"
@@ -93,11 +105,11 @@ export default function LeagueRulesModal({
             </div>
           )}
 
-          {tab === 'norms' && (
+          {(tournament || tab === 'norms') && (
             <div
               id="league-rules-panel-norms"
-              role="tabpanel"
-              aria-labelledby="league-rules-tab-norms"
+              role={tournament ? undefined : 'tabpanel'}
+              aria-labelledby={tournament ? undefined : 'league-rules-tab-norms'}
             >
               {rules ? (
                 <p className="m-0 whitespace-pre-wrap leading-[1.6] text-[0.95rem] text-[#1f2937]">
@@ -105,8 +117,9 @@ export default function LeagueRulesModal({
                 </p>
               ) : (
                 <p className="m-0 text-[#4b5563] text-[0.9rem]">
-                  El administrador de esta liga todavía no ha escrito normas: cuota, pagos o
-                  premios.
+                  {tournament
+                    ? 'Todavía no se han publicado las normas del torneo.'
+                    : 'El administrador de esta liga todavía no ha escrito normas: cuota, pagos o premios.'}
                 </p>
               )}
             </div>

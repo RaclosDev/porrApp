@@ -17,8 +17,8 @@ import { isScoreboardLeague } from '../utils/scoreboardLeague';
 import { claimTrackerPlayer } from '../services/endpoints/trackers';
 
 /** Dónde empieza la liga recién abierta: las de jornadas en sus jornadas; el resto, en el inicio. */
-const landingOf = (scoreboard: boolean, poolFormat?: string | null) =>
-  !scoreboard && isMatchBasedFormat(poolFormat) ? '/jornadas' : '/';
+const landingOf = (tableLeague: boolean, poolFormat?: string | null) =>
+  !tableLeague && isMatchBasedFormat(poolFormat) ? '/jornadas' : '/';
 
 /**
  * Quien entra con el enlace «este eres tú» de una liga de juegos de mesa hereda el histórico de ese
@@ -69,6 +69,8 @@ export default function JoinRedirect() {
 
   // Una liga de juegos de mesa no tiene jornadas: su inicio es el marcador.
   const scoreboard = isScoreboardLeague(preview);
+  const poker = preview?.kind === 'POKER';
+  const tournament = preview?.kind === 'TOURNAMENT';
 
   useEffect(() => {
     if (!signedIn || !preview || joining.current) return;
@@ -78,13 +80,20 @@ export default function JoinRedirect() {
     joining.current = true;
     void claimInvited(queryClient, scoreboard ? invitedPlayer : null, existing.id).finally(() => {
       joining.current = false;
-      changeGroup(String(existing.id));
-      navigate(landingOf(scoreboard, preview.poolFormat || existing.poolFormat), { replace: true });
+      if (!tournament) changeGroup(String(existing.id));
+      navigate(
+        tournament
+          ? `/torneos/${existing.id}`
+          : landingOf(scoreboard || poker, preview.poolFormat || existing.poolFormat),
+        { replace: true },
+      );
     });
   }, [
     signedIn,
     preview,
     scoreboard,
+    poker,
+    tournament,
     membership.data,
     changeGroup,
     navigate,
@@ -109,8 +118,13 @@ export default function JoinRedirect() {
       queryClient.setQueryData(queryKeys.group(String(group.id)), group);
       localStorage.removeItem('pendingJoinCode');
       await claimInvited(queryClient, scoreboard ? invitedPlayer : null, group.id);
-      changeGroup(String(group.id));
-      navigate(landingOf(scoreboard, group.poolFormat || preview.poolFormat), { replace: true });
+      if (!tournament) changeGroup(String(group.id));
+      navigate(
+        tournament
+          ? `/torneos/${group.id}`
+          : landingOf(scoreboard || poker, group.poolFormat || preview.poolFormat),
+        { replace: true },
+      );
     } catch (cause) {
       setError(errorMessage(cause, 'No se ha podido entrar en la liga. Inténtalo de nuevo.'));
     } finally {
@@ -127,7 +141,9 @@ export default function JoinRedirect() {
   return (
     <section className="max-w-130 mx-auto my-8">
       <div className="paper-panel album-sheet landing-tape p-6 sm:p-8 flex flex-col gap-5">
-        <p className="marker-ink m-0">Te han invitado a jugar</p>
+        <p className="marker-ink m-0">
+          {tournament ? 'Te han invitado a seguir un torneo' : 'Te han invitado a jugar'}
+        </p>
         {invitation.isPending && normalizedCode ? (
           <PaperLoading label="Cargando invitación" embedded />
         ) : null}
@@ -138,18 +154,24 @@ export default function JoinRedirect() {
               <h1 className="poster-title text-2xl m-0 break-words min-w-0">{preview.name}</h1>
             </div>
             <p className="m-0 text-muted">
-              {scoreboard
-                ? 'Juego de mesa'
-                : `${preview.competitionName || 'Fútbol'} · ${
-                    preview.poolFormat === 'SURVIVOR'
-                      ? 'Superviviente'
-                      : preview.poolFormat === 'MATCH_DAY'
-                        ? 'Por jornadas'
-                        : 'Cuadro del torneo'
-                  }`}
+              {tournament
+                ? 'Torneo de seguimiento'
+                : poker
+                  ? 'Liga de póker'
+                  : scoreboard
+                    ? 'Juego de mesa'
+                    : `${preview.competitionName || 'Fútbol'} · ${
+                        preview.poolFormat === 'SURVIVOR'
+                          ? 'Superviviente'
+                          : preview.poolFormat === 'MATCH_DAY'
+                            ? 'Por jornadas'
+                            : 'Cuadro del torneo'
+                      }`}
             </p>
             {busy ? (
-              <p role="status">Preparando tu entrada en la liga…</p>
+              <p role="status">
+                {tournament ? 'Abriendo el torneo…' : 'Preparando tu entrada en la liga…'}
+              </p>
             ) : signedIn ? (
               <button
                 type="button"
@@ -157,13 +179,17 @@ export default function JoinRedirect() {
                 onClick={() => accept()}
                 disabled={membership.isPending}
               >
-                Unirme a la liga
+                {tournament ? 'Seguir el torneo' : 'Unirme a la liga'}
               </button>
             ) : (
               <AuthPanel
                 intent="signup"
                 hideHeading
-                lede={`Crea tu cuenta o entra para unirte a esta liga. Después te llevaremos directamente ${scoreboard ? 'al marcador' : 'a tu porra'}.`}
+                lede={
+                  tournament
+                    ? 'Crea tu cuenta o entra para ver el torneo.'
+                    : `Crea tu cuenta o entra para unirte a esta liga. Después te llevaremos directamente ${poker ? 'a la mesa' : scoreboard ? 'al marcador' : 'a tu porra'}.`
+                }
                 onGoogleSuccess={(response) => accept(() => signIn(response))}
                 onApple={() => accept(appleSignIn)}
                 signInOptions={{ navigateAfterLogin: false }}

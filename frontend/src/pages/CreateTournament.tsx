@@ -83,8 +83,8 @@ export default function CreateTournament() {
           </select>
         </label>
         <p>
-          Los participantes no necesitan cuenta. El torneo empieza en borrador: se podrá consultar
-          cuando lo publiques.
+          Puedes invitar a gente desde Mis ligas. Si publicas el torneo, cualquiera con el enlace
+          podrá consultarlo.
         </p>
         {error && <p role="alert">{error}</p>}
         <button className="glass-btn primary-btn" disabled={busy}>
