@@ -54,7 +54,9 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
     grandPrix: <GrandPrixHome />,
     // Juegos de mesa: el inicio es el resumen de la liga (hoy, podio y último día).
     scoreboard: <TrackerHome leagueId={activeGroupId} />,
-    poker: activeGroupId && <PokerLeague key={activeGroupId} leagueId={activeGroupId} />,
+    poker: activeGroupId && (
+      <PokerLeague key={activeGroupId} leagueId={activeGroupId} view="home" />
+    ),
     tournament: (
       <section className="paper-panel album-sheet p-6">
         <h1>Torneo de seguimiento</h1>

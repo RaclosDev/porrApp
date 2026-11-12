@@ -196,7 +196,7 @@ export default function LeagueSettingsTab({
             </h3>
           </div>
           <p className="league-admin-muted">
-            Borra la liga con sus predicciones y participantes. No se puede deshacer.
+            Borra la liga, sus datos y sus participantes. No se puede deshacer.
           </p>
           {!deleteOpen ? (
             <button

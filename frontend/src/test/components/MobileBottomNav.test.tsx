@@ -34,7 +34,7 @@ const EXPECTED: Record<LeagueKind, string[] | null> = {
   grandPrix: ['Inicio', 'Predicciones', 'Ranking', 'Mundial', 'Mis Ligas'],
   scoreboard: ['Inicio', 'Partida', 'Ranking', 'Histórico', 'Mis Ligas'],
   tournament: ['Inicio', 'Mis Ligas'],
-  poker: ['Inicio', 'Mis Ligas'],
+  poker: ['Inicio', 'Mesa', 'Histórico', 'Estadísticas', 'Mis Ligas'],
 };
 
 const renderMobile = () =>

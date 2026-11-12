@@ -267,10 +267,14 @@ export function useGroupsDashboard() {
   };
 
   const handleLeaveGroup = async (groupId: GroupId, groupName: string) => {
+    const group = groups.find((item) => String(item.id) === String(groupId));
     if (
       !(await confirmAction({
         title: `¿Salir de «${groupName}»?`,
-        message: 'Perderás tus porras en esta liga.',
+        message:
+          group?.kind === 'POKER'
+            ? 'Puedes volver a entrar con el enlace de invitación.'
+            : 'Perderás tus porras en esta liga.',
         confirmLabel: 'Salir de la liga',
       }))
     )

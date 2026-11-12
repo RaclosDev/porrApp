@@ -8,9 +8,10 @@ import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import PokerRegistration from '../components/poker/PokerRegistration';
 import PokerSettingsForm from '../components/poker/PokerSettingsForm';
 import PokerLive from '../components/poker/PokerLive';
+import PokerHome from '../components/poker/PokerHome';
 import { PokerHistory, PokerStatistics } from '../components/poker/PokerHistory';
-import { defaultSettings, today, tournamentDate } from '../components/poker/pokerFormat';
-import { deleteGroup, leaveGroup } from '../services/endpoints/leagues';
+import { defaultSettings, today } from '../components/poker/pokerFormat';
+import { pokerRoutes, type PokerSection } from '../components/poker/pokerRoutes';
 import {
   fetchPokerHistory,
   fetchPokerLeague,
@@ -19,20 +20,20 @@ import {
   type PokerLeagueData,
 } from '../services/endpoints/poker';
 import { queryKeys } from '../services/queryKeys';
-import { confirmAction } from '../utils/confirmAction';
 import { errorMessage } from '../utils/errors';
 import '../styles/poker.css';
 
-const views = ['Mesa', 'Histórico', 'Estadísticas'] as const;
-type View = (typeof views)[number];
-
-export default function PokerLeague({ leagueId }: { leagueId: string }) {
+export default function PokerLeague({
+  leagueId,
+  view,
+}: {
+  leagueId: string;
+  view: 'home' | PokerSection;
+}) {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const [view, setView] = useState<View>('Mesa');
   const [invite, setInvite] = useState(false);
   const [form, setForm] = useState<'new' | 'edit' | null>(null);
-  const [removing, setRemoving] = useState(false);
   const key = queryKeys.poker(leagueId);
   const historyKey = queryKeys.pokerHistory(leagueId);
   const query = useQuery({
@@ -43,8 +44,8 @@ export default function PokerLeague({ leagueId }: { leagueId: string }) {
   const history = useQuery({
     queryKey: historyKey,
     queryFn: () => fetchPokerHistory(leagueId),
-    enabled: Boolean(query.data) && (view !== 'Mesa' || form === 'new'),
-    refetchInterval: view === 'Mesa' ? false : 15000,
+    enabled: Boolean(query.data) && (view !== 'table' || form === 'new'),
+    refetchInterval: view === 'table' ? false : 15000,
   });
   const mutation = useMutation({
     mutationFn: (request: () => Promise<PokerLeagueData>) => request(),
@@ -67,7 +68,7 @@ export default function PokerLeague({ leagueId }: { leagueId: string }) {
 
   const league = query.data;
   const { current } = league;
-  const busy = mutation.isPending || removing;
+  const busy = mutation.isPending;
 
   async function change(request: () => Promise<PokerLeagueData>) {
     if (busy) return false;
@@ -79,61 +80,40 @@ export default function PokerLeague({ leagueId }: { leagueId: string }) {
     }
   }
 
-  async function remove() {
-    const confirmed = await confirmAction({
-      title: league.owner ? '¿Borrar la liga de póker?' : '¿Salir de la liga?',
-      message: league.owner
-        ? 'Se borrarán la mesa y todos los resultados de la liga.'
-        : 'Puedes volver a entrar con el enlace de invitación.',
-      confirmLabel: league.owner ? 'Borrar liga' : 'Salir de la liga',
-    });
-    if (!confirmed) return;
-    setRemoving(true);
-    try {
-      await (league.owner ? deleteGroup(league.id) : leaveGroup(league.id));
-      await client.invalidateQueries({ queryKey: queryKeys.myGroups() });
-      navigate('/mis-ligas', { replace: true });
-      client.removeQueries({ queryKey: key });
-    } catch (reason) {
-      toast.error(errorMessage(reason, 'No se pudo completar el cambio.'));
-      setRemoving(false);
-    }
-  }
-
   return (
-    <section className="view-section active create-league tracker poker">
-      <header className="create-league-header poker-header">
-        <div>
-          <h1 className="m-0 poster-title text-[1.8rem] text-white">{league.name}</h1>
-          <p className="create-league-progress">Liga de póker · Texas Hold’em</p>
-        </div>
-        <button
-          type="button"
-          className="glass-btn"
-          aria-expanded={invite}
-          onClick={() => setInvite(!invite)}
-        >
-          {invite ? 'Cerrar invitación' : 'Invitar con enlace'}
-        </button>
-      </header>
-      {invite && <TrackerInvite tracker={league} />}
-      <nav className="poker-nav" aria-label="Liga de póker">
-        {views.map((label) => (
-          <button
-            key={label}
-            type="button"
-            className="glass-btn"
-            aria-pressed={view === label}
-            onClick={() => {
-              setView(label);
-              setForm(null);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-      {view === 'Mesa' && (
+    <section className="poker">
+      {view === 'home' ? (
+        <>
+          <header className="home-hero paper-panel album-sheet">
+            <div className="home-hero-info">
+              <h1 className="home-hero-title">{league.name}</h1>
+              <div className="home-hero-pills">
+                <span className="home-hero-pill">Póker · Texas Hold’em</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="home-rules-btn"
+              aria-expanded={invite}
+              onClick={() => setInvite(!invite)}
+            >
+              {invite ? 'Cerrar invitación' : 'Invitar con enlace'}
+            </button>
+          </header>
+          {invite && <TrackerInvite tracker={league} />}
+          <PokerHome
+            league={league}
+            sessions={history.data}
+            loading={history.isPending}
+            onRetry={() => void history.refetch()}
+          />
+        </>
+      ) : (
+        <h1 className="poster-title mt-0 mb-4 text-[1.8rem] text-white">
+          {pokerRoutes[view].label}
+        </h1>
+      )}
+      {view === 'table' && (
         <>
           {league.owner &&
           ((form === 'new' && !current) || (form === 'edit' && current?.startedAt === null)) ? (
@@ -176,7 +156,7 @@ export default function PokerLeague({ leagueId }: { leagueId: string }) {
                   const saved = await change(() =>
                     pokerCommand(league.id, current, action, playerId),
                   );
-                  if (saved && action === 'CLOSE') setView('Histórico');
+                  if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
                 }}
               />
             )
@@ -201,7 +181,7 @@ export default function PokerLeague({ leagueId }: { leagueId: string }) {
           )}
         </>
       )}
-      {view !== 'Mesa' &&
+      {(view === 'history' || view === 'statistics') &&
         (history.isPending ? (
           <PaperLoading label="Cargando los resultados" />
         ) : history.isError && !history.data ? (
@@ -211,19 +191,11 @@ export default function PokerLeague({ leagueId }: { leagueId: string }) {
               Reintentar
             </button>
           </section>
-        ) : view === 'Histórico' ? (
+        ) : view === 'history' ? (
           <PokerHistory sessions={history.data ?? []} />
         ) : (
           <PokerStatistics sessions={history.data ?? []} />
         ))}
-      {view === 'Mesa' && (
-        <footer className="poker-footer">
-          {current && <span>{tournamentDate(current.date)}</span>}
-          <button type="button" className="glass-btn" disabled={busy} onClick={() => void remove()}>
-            {league.owner ? 'Borrar liga' : 'Salir de la liga'}
-          </button>
-        </footer>
-      )}
     </section>
   );
 }

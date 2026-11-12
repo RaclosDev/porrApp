@@ -1,4 +1,5 @@
 import {
+  ChartNoAxesColumn,
   Calendar,
   Dices,
   Flag,
@@ -6,6 +7,7 @@ import {
   Home,
   LayoutGrid,
   ListOrdered,
+  Spade,
   Pencil,
   Swords,
   Trophy,
@@ -13,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { BRACKET_KINDS, type LeagueKind } from '../../context/leagueKind';
+import { pokerRoutes } from '../poker/pokerRoutes';
 
 /** Sección de la navegación principal (escritorio y móvil). */
 export interface LeagueNavItem {
@@ -70,7 +73,13 @@ const LEAGUE_NAV: Record<LeagueKind, readonly LeagueNavItem[] | null> = {
   // Juegos de mesa: la hoja de la partida, su ranking y el histórico por días.
   scoreboard: [HOME, SCOREBOARD_PLAY, RANKING, SCOREBOARD_HISTORY, MY_LEAGUES],
   tournament: [HOME, MY_LEAGUES],
-  poker: [HOME, MY_LEAGUES],
+  poker: [
+    HOME,
+    { ...pokerRoutes.table, icon: Spade },
+    { ...pokerRoutes.history, icon: History },
+    { ...pokerRoutes.statistics, icon: ChartNoAxesColumn },
+    MY_LEAGUES,
+  ],
 };
 
 /** Secciones que se enseñan; en la demo el inicio es /demo y no hay Mis Ligas. */

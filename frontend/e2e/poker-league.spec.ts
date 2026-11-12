@@ -152,6 +152,27 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
   await page.getByLabel('Nombre de la liga').fill('Póker de los sábados');
   await page.getByRole('button', { name: 'Crear liga', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Póker de los sábados' })).toBeVisible();
+  const nav = page.getByRole('navigation', { name: 'Navegación principal móvil' });
+  await expect(nav.getByRole('link')).toHaveText([
+    'Inicio',
+    'Mesa',
+    'Histórico',
+    'Estadísticas',
+    'Mis Ligas',
+  ]);
+  await expect(page.getByText('Aún no hay ningún torneo programado.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Podio de la liga' })).toBeVisible();
+  await nav.getByRole('link', { name: 'Mis Ligas' }).click();
+  await page.getByRole('button', { name: 'Más opciones de Póker de los sábados' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Administrar Póker de los sábados' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Abrir Póker de los sábados' }).click();
+  await page.getByRole('link', { name: 'Ir a la mesa' }).click();
+  await expect(nav.getByRole('link', { name: 'Mesa', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
 
   await page.getByRole('button', { name: 'Preparar torneo' }).click();
   await page.getByLabel('Fecha').fill('2026-11-14');
@@ -176,13 +197,21 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
   await page.getByRole('button', { name: 'Cerrar y guardar' }).click();
 
   await expect(page.getByRole('heading', { name: 'Histórico de torneos' })).toBeVisible();
+  await expect(page).toHaveURL('/poker/historico');
   const winner = page.getByRole('row', { name: /Ana/ });
   await expect(winner).toContainText('18,00');
-  await page.getByRole('button', { name: 'Estadísticas' }).click();
+  await nav.getByRole('link', { name: 'Estadísticas' }).click();
   await expect(winner).toContainText('100');
   await expect(page.getByRole('row', { name: /Luis/ })).toContainText('3,00');
 
-  await page.getByRole('button', { name: 'Mesa', exact: true }).click();
+  await nav.getByRole('link', { name: 'Inicio' }).click();
+  await expect(page.getByText(/Ganó Ana/)).toBeVisible();
+  await expect(page.getByText('1.º Ana')).toBeVisible();
+  await page.getByRole('link', { name: 'Ver histórico' }).click();
+  await expect(page).toHaveURL('/poker/historico');
+  await page.goBack();
+  await expect(nav.getByRole('link', { name: 'Inicio' })).toHaveAttribute('aria-current', 'page');
+  await nav.getByRole('link', { name: 'Mesa', exact: true }).click();
   await page.getByRole('button', { name: 'Preparar torneo' }).click();
   await expect(page.getByLabel('Entrada (€)')).toHaveValue('10');
   await page.getByLabel('Fecha').fill('2026-11-21');
@@ -217,6 +246,24 @@ test('un miembro confirma su asistencia desde la liga sin controles de organizad
     results: [],
   };
   await page.goto('/?group=9');
+  const nav = page.getByRole('navigation').filter({
+    has: page.getByRole('link', { name: 'Mesa', exact: true }),
+  });
+  await expect(nav.getByRole('link')).toHaveText([
+    'Inicio',
+    'Mesa',
+    'Histórico',
+    'Estadísticas',
+    'Mis Ligas',
+  ]);
+  await expect(page.getByRole('heading', { name: 'Próximo torneo' })).toBeVisible();
+  await expect(page.getByText('Jugadores confirmados')).toBeVisible();
+  await page.getByRole('link', { name: 'Apuntarme al torneo' }).click();
+  await page.reload();
+  await expect(nav.getByRole('link', { name: 'Mesa', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
   await page.getByRole('button', { name: 'Juego hoy' }).click();
   await expect(page.getByText('Asistencia confirmada')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Empezar torneo' })).toHaveCount(0);

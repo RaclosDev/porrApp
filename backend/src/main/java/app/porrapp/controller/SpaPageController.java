@@ -41,6 +41,7 @@ public class SpaPageController {
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
             "/partida", "/historico", "/torneos/nuevo",
+            "/poker/mesa", "/poker/historico", "/poker/estadisticas",
             "/restablecer-contrasena");
 
     private static final String NOINDEX = "noindex";
@@ -56,6 +57,7 @@ public class SpaPageController {
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
             "/partida", "/historico", "/torneos/nuevo", "/torneos/{id:[0-9]+}", "/t/{publicId}",
+            "/poker/mesa", "/poker/historico", "/poker/estadisticas",
             "/restablecer-contrasena"})
     public ResponseEntity<Resource> page(HttpServletRequest request) {
         String path = request.getRequestURI();

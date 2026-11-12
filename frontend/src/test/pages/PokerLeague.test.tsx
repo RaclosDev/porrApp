@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import PokerLive from '../../components/poker/PokerLive';
+import { PokerStatistics } from '../../components/poker/PokerHistory';
 import PokerSettingsForm from '../../components/poker/PokerSettingsForm';
 import PokerLeague from '../../pages/PokerLeague';
 import type { PokerLeagueData, PokerSession, PokerSettings } from '../../services/endpoints/poker';
@@ -72,7 +73,7 @@ function renderLeague() {
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <PokerLeague leagueId="8" />
+        <PokerLeague leagueId="8" view="table" />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -243,22 +244,24 @@ it('guarda asistencia, edita con revisión y cancela un torneo abierto', async (
   });
 });
 
-it('reutiliza las reglas del torneo anterior y calcula porcentajes y neto por participante', async () => {
+it('calcula porcentajes y neto por participante', () => {
   const won = { ...entries[0], place: 1, paidCents: 1000, prizeCents: 2100 };
   const third = { ...entries[1], place: 3, paidCents: 2000, prizeCents: 0 };
   const past = { ...session, closedAt: 5000, results: [won, third] };
-  api.mockResolvedValue({ ...league, current: null });
+  render(<PokerStatistics sessions={[past]} />);
+  const row = within(screen.getByRole('row', { name: /Ana/ }));
+  expect(row.getAllByText(/100\s*%/)).toHaveLength(2);
+  expect(row.getByText(/11,00/)).toBeVisible();
+});
+
+it('reutiliza las reglas del torneo anterior', async () => {
+  api.mockImplementation(async (path) =>
+    path.endsWith('/history') ? [{ ...session, closedAt: 5000 }] : { ...league, current: null },
+  );
   renderLeague();
   await screen.findByRole('heading', { name: 'Próximo torneo' });
-  api.mockResolvedValueOnce([past]);
-  click('Histórico');
-  expect(await screen.findByText(/Ganó Ana/)).toBeVisible();
-  click('Estadísticas');
-  const row = screen.getByRole('rowheader', { name: 'Ana' }).closest('tr');
-  expect(row).toHaveTextContent('100');
-  expect(row).toHaveTextContent('11,00');
-  click('Mesa');
   click('Preparar torneo');
+  await screen.findByLabelText('Entrada (€)');
   expect(screen.getByLabelText('Entrada (€)')).toHaveValue(10);
   expect(screen.getByLabelText('Puesto 1 (%)')).toHaveValue(70);
   click('Abrir inscripciones');

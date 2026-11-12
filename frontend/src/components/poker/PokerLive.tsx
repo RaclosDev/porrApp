@@ -72,8 +72,8 @@ export default function PokerLive({
 
   return (
     <>
-      <section className="poker-felt" aria-labelledby="poker-table-title">
-        <header className="poker-felt-header">
+      <section className="paper-panel album-sheet poker-panel" aria-labelledby="poker-table-title">
+        <header className="poker-section-head">
           <h2 id="poker-table-title">{winner ? 'Torneo listo para cerrar' : 'Torneo en juego'}</h2>
           <p>
             {active.length} / {session.entries.length} en mesa
