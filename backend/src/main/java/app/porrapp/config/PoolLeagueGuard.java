@@ -47,7 +47,8 @@ public class PoolLeagueGuard implements WebMvcConfigurer, HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         LeagueRepository repository = leagues.getIfAvailable();
         if (repository == null) return true;
-        leagueId(request).flatMap(repository::findById).filter(league -> league.isScoreboard() || league.isTournament()).ifPresent(league -> {
+        leagueId(request).flatMap(repository::findById).filter(league -> league.isScoreboard() || league.isTournament() || league.isPoker()).ifPresent(league -> {
+            if (league.isPoker()) throw BusinessException.badRequest("Esta liga es de póker y no tiene predicciones.");
             throw BusinessException.badRequest(league.isTournament() ? "Este torneo es de seguimiento y no tiene predicciones." : MESSAGE);
         });
         return true;

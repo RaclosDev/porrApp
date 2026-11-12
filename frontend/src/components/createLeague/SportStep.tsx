@@ -35,6 +35,14 @@ export default function SportStep({ draft, update, errors, ctx }: StepProps) {
             </span>
           </span>
         </Link>
+        <Link to="/poker/nueva" className="create-league-option is-link">
+          <span className="create-league-option-body">
+            <span className="create-league-option-title">Liga de póker</span>
+            <span className="create-league-option-text">
+              Torneos de Texas Hold’em con asistencia, reloj de ciegas, premios e histórico.
+            </span>
+          </span>
+        </Link>
       </div>
       <FieldError fieldId={FIELD_IDS.sport} message={errors.sport} />
     </fieldset>
