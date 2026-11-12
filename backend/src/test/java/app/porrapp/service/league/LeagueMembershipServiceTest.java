@@ -182,17 +182,19 @@ class LeagueMembershipServiceTest {
     }
 
     @Test
-    @DisplayName("Añadir un admin conserva al creador y sus permisos")
-    void addingAdminPreservesCreator() {
+    @DisplayName("Añadir un admin conserva al creador y solo publica un aviso aunque se repita la petición")
+    void addingAdminPreservesCreatorAndPublishesOneEvent() {
         Membership memberMembership = Membership.builder().user(member).league(league).role("MEMBER").build();
         when(leagueRepository.findWithLockById(10L)).thenReturn(Optional.of(league));
         when(membershipRepository.findById(new Membership.MembershipId(2L, 10L)))
                 .thenReturn(Optional.of(memberMembership));
 
         membershipService.setRole(10L, 2L, "admin@test.com", "ADMIN");
+        membershipService.setRole(10L, 2L, "admin@test.com", "ADMIN");
 
         assertEquals(admin, league.getAdminUser());
         assertEquals("ADMIN", memberMembership.getRole());
+        verify(eventPublisher).publishEvent(new LeagueAdminGrantedEvent(10L, 2L));
     }
 
     @Test

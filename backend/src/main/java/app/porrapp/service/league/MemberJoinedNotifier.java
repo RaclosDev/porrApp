@@ -29,9 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Avisa por push a los demás miembros de una liga de que se ha unido alguien.
- * <p>
- * Corre fuera de la petición y después de confirmar el alta: un fallo del push no la deshace.
+ * Envía avisos de la liga por push fuera de la petición y después de confirmar el cambio.
  */
 @Slf4j
 @Component
@@ -48,6 +46,29 @@ public class MemberJoinedNotifier {
     private final WebPushSender sender;
     private final ObjectMapper objectMapper;
     private final PushNotificationLogService notificationLog;
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onAdminGranted(LeagueAdminGrantedEvent event) {
+        try {
+            if (!sender.isEnabled()) return;
+            Membership target = membershipRepository.findById(new Membership.MembershipId(event.userId(), event.leagueId()))
+                    .orElse(null);
+            if (target == null || !"ADMIN".equals(target.getRole())) return;
+            UserAccount user = target.getUser();
+            if (!user.isMatchRemindersEnabled() && !user.isMemberJoinedAlertsEnabled()
+                    && !user.isMatchdayFinishedAlertsEnabled()) return;
+
+            League league = target.getLeague();
+            String url = league.isTournament() ? "/torneos/" + league.getId() : "/?group=" + league.getId();
+            deliver(Set.of(event.userId()), new PushMessage("Permisos de administrador",
+                    "Ahora puedes administrar «" + league.getName() + "».", url, "league-admin-granted-" + league.getId()));
+        } catch (RuntimeException e) {
+            log.warn("No se pudo avisar del nombramiento de administrador de la liga {}: {}",
+                    event.leagueId(), e.getMessage());
+        }
+    }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
