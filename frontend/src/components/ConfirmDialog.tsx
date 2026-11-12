@@ -30,6 +30,13 @@ export default function ConfirmDialog() {
         </span>
         <h3 id="app-confirm-title">{request.title}</h3>
         <p id="app-confirm-message">{request.message}</p>
+        {request.details && request.details.length > 0 && (
+          <ul className="app-confirm-details">
+            {request.details.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
         <div className="league-admin-confirm-actions">
           <button
             type="button"

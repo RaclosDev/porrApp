@@ -10,6 +10,7 @@ import PokerLeague from '../../pages/PokerLeague';
 import type { PokerLeagueData, PokerSession, PokerSettings } from '../../services/endpoints/poker';
 import { request } from '../../services/http';
 import { confirmAction } from '../../utils/confirmAction';
+import { euros } from '../../components/poker/pokerFormat';
 
 vi.mock('../../services/http', () => ({ request: vi.fn() }));
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
@@ -273,6 +274,9 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   click('Cerrar torneo');
   vi.useRealTimers();
   await waitFor(() => expect(onCommand).toHaveBeenLastCalledWith('CLOSE'));
+  expect(confirmAction).toHaveBeenLastCalledWith(
+    expect.objectContaining({ details: [`1.º Ana · ${euros(2100)}`, `2.º Luis · ${euros(900)}`] }),
+  );
 });
 
 it('guarda asistencia, edita con revisión y cancela un torneo abierto', async () => {
@@ -403,11 +407,59 @@ it('finaliza con las fichas de los supervivientes y exige cuadrar el total', asy
   set('Fichas de Luis', '10000');
   click('Finalizar y guardar');
   await waitFor(() =>
-    expect(command).toHaveBeenCalledWith('CLOSE', undefined, [
-      { playerId: 1, chips: 20000 },
-      { playerId: 2, chips: 10000 },
-    ]),
+    expect(command).toHaveBeenCalledWith('CLOSE', undefined, {
+      finalStacks: [
+        { playerId: 1, chips: 20000 },
+        { playerId: 2, chips: 10000 },
+      ],
+    }),
   );
+  expect(confirmAction).toHaveBeenLastCalledWith(
+    expect.objectContaining({ details: [`1.º Ana · ${euros(2100)}`, `2.º Luis · ${euros(900)}`] }),
+  );
+});
+
+it('cambia el reparto de premios en juego y muestra cómo quedaría', async () => {
+  const command = vi.fn().mockResolvedValue(undefined);
+  render(
+    <PokerLive
+      session={{ ...session, startedAt: 1, clock: { level: 0, endsAt: null, remainingMs: 1000 } }}
+      owner
+      busy={false}
+      serverNow={1000}
+      receivedAt={Date.now()}
+      onCommand={command}
+    />,
+  );
+  click('Cambiar reparto');
+  set('Puesto 1 (%)', '50');
+  expect(screen.getByRole('button', { name: 'Guardar reparto' })).toBeDisabled();
+  click('Añadir premio');
+  set('Puesto 2 (%)', '30');
+  set('Puesto 3 (%)', '20');
+  expect(screen.getByText(/Quedaría/)).toHaveTextContent('1.º 15,00 € · 2.º 9,00 € · 3.º 6,00 €');
+  expect(screen.getByRole('button', { name: 'Añadir premio' })).toBeDisabled();
+  click('Guardar reparto');
+  await waitFor(() =>
+    expect(command).toHaveBeenCalledWith('SET_PRIZES', undefined, { prizeShares: [50, 30, 20] }),
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Cambiar reparto' })).toBeVisible(),
+  );
+});
+
+it('no deja cambiar el reparto a quien no organiza', () => {
+  render(
+    <PokerLive
+      session={{ ...session, startedAt: 1, clock: { level: 0, endsAt: null, remainingMs: 1000 } }}
+      owner={false}
+      busy={false}
+      serverNow={1000}
+      receivedAt={Date.now()}
+      onCommand={vi.fn()}
+    />,
+  );
+  expect(screen.queryByRole('button', { name: 'Cambiar reparto' })).toBeNull();
 });
 
 it('calcula el ultimo jugador y recalcula al corregir los otros importes', () => {

@@ -1291,3 +1291,29 @@
 .poker-buy-timers .poker-icon-bag {
   width: 0.85rem;
 }
+
+.poker-prize-edit {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.poker-prize-edit:hover:not(:disabled),
+.poker-prize-edit:focus-visible {
+  color: var(--text-main);
+}
+
+.poker-prize-editor {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.18);
+}

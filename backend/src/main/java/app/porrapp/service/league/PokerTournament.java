@@ -15,9 +15,7 @@ final class PokerTournament {
     }
 
     static void validate(Settings settings) {
-        if (settings.prizeShares().stream().mapToInt(Integer::intValue).sum() != 100) {
-            throw BusinessException.badRequest("El reparto de premios debe sumar el 100 %");
-        }
+        validateShares(settings.prizeShares());
         var levels = settings.levels();
         if (levels.getFirst().big() == 0 || levels.getLast().big() == 0
                 || levels.stream().anyMatch(level -> level.big() == 0
@@ -29,6 +27,12 @@ final class PokerTournament {
                 || settings.addOn() != null && (settings.addOn().throughLevel() > levels.size()
                 || !Integer.valueOf(1).equals(settings.addOn().limit()))) {
             throw BusinessException.badRequest("Revisa hasta qué nivel se permiten las recompras y el extra de fichas");
+        }
+    }
+
+    private static void validateShares(List<Integer> shares) {
+        if (shares == null || shares.isEmpty() || shares.stream().mapToInt(Integer::intValue).sum() != 100) {
+            throw BusinessException.badRequest("El reparto de premios debe sumar el 100 %");
         }
     }
 
@@ -71,6 +75,15 @@ final class PokerTournament {
                     session.setEliminations(new ArrayList<>(
                             session.getEliminations().subList(0, session.getEliminations().size() - 1)));
                 }
+            }
+            case SET_PRIZES -> {
+                validateShares(command.prizeShares());
+                if (command.prizeShares().size() > session.getEntries().size()) {
+                    throw BusinessException.badRequest("Hay más puestos premiados que jugadores. Ajusta el reparto");
+                }
+                Settings old = session.getSettings();
+                session.setSettings(new Settings(old.buyInCents(), old.startingChips(), old.rebuy(), old.addOn(),
+                        List.copyOf(command.prizeShares()), old.levels()));
             }
             case CLOSE -> {
                 if (command.finalStacks() != null) {

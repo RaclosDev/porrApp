@@ -177,9 +177,9 @@ export default function PokerLeague({
                   serverNow={league.serverNow}
                   receivedAt={query.dataUpdatedAt}
                   lastWinnerIds={lastWinnerIds(history.data)}
-                  onCommand={async (action, playerId, finalStacks) => {
+                  onCommand={async (action, playerId, extra) => {
                     const saved = await change(() =>
-                      pokerCommand(league.id, current, action, playerId, finalStacks),
+                      pokerCommand(league.id, current, action, playerId, extra),
                     );
                     if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
                   }}

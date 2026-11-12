@@ -382,6 +382,20 @@
     line-height: 1.5;
   }
 
+  .app-confirm-details {
+    display: grid;
+    gap: 4px;
+    margin: -6px 0 16px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    list-style: none;
+    text-align: left;
+  }
+
   .league-admin-confirm-actions {
     display: flex;
     flex-direction: column;
