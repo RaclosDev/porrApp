@@ -36,7 +36,13 @@ export interface BlindClock {
   remainingMs: number;
 }
 
+export interface FinalStack {
+  playerId: number;
+  chips: number;
+}
+
 interface PokerResult extends PokerEntry {
+  finalChips?: number | null;
   place: number;
   paidCents: number;
   prizeCents: number;
@@ -133,8 +139,9 @@ export const pokerCommand = (
   session: PokerSession,
   action: PokerAction,
   playerId?: number,
+  finalStacks?: FinalStack[],
 ) =>
   request<PokerLeagueData>(`/poker/${id}/sessions/${session.id}/commands`, {
     method: 'POST',
-    json: { action, revision: session.revision, playerId },
+    json: { action, revision: session.revision, playerId, ...(finalStacks && { finalStacks }) },
   });

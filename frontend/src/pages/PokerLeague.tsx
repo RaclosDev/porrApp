@@ -19,6 +19,7 @@ import {
   pokerCommand,
   savePokerSession,
   type PokerLeagueData,
+  type PokerSession,
 } from '../services/endpoints/poker';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
@@ -110,23 +111,41 @@ export default function PokerLeague({
               onRetry={() => void history.refetch()}
             />
           </>
-        ) : (
+        ) : view !== 'table' ? (
           <h1 className="poster-title mt-0 mb-4 text-[1.8rem] text-white">
             {pokerRoutes[view].label}
           </h1>
-        )}
+        ) : null}
         {view === 'table' && (
           <>
             {league.owner &&
             ((form === 'new' && !current) || (form === 'edit' && current?.startedAt === null)) ? (
               form === 'new' && history.isPending ? (
                 <PaperLoading label="Cargando la configuración" />
+              ) : form === 'new' && history.isError ? (
+                <section className="paper-panel album-sheet poker-panel">
+                  <p>No se pudo cargar la configuración del último torneo.</p>
+                  <button
+                    type="button"
+                    className="glass-btn"
+                    onClick={() => void history.refetch()}
+                  >
+                    Reintentar
+                  </button>
+                </section>
               ) : (
                 <PokerSettingsForm
                   key={form}
                   editing={form === 'edit'}
                   date={current?.date ?? today()}
-                  settings={current?.settings ?? history.data?.[0]?.settings ?? defaultSettings}
+                  settings={
+                    current?.settings ??
+                    history.data?.reduce<PokerSession | undefined>(
+                      (latest, session) => (!latest || session.id > latest.id ? session : latest),
+                      undefined,
+                    )?.settings ??
+                    defaultSettings
+                  }
                   busy={busy}
                   onCancel={() => setForm(null)}
                   onSave={async (date, settings) => {
@@ -154,9 +173,9 @@ export default function PokerLeague({
                   busy={busy}
                   serverNow={league.serverNow}
                   receivedAt={query.dataUpdatedAt}
-                  onCommand={async (action, playerId) => {
+                  onCommand={async (action, playerId, finalStacks) => {
                     const saved = await change(() =>
-                      pokerCommand(league.id, current, action, playerId),
+                      pokerCommand(league.id, current, action, playerId, finalStacks),
                     );
                     if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
                   }}

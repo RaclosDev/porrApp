@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type {
   BlindLevel,
+  FinalStack,
   PokerAction,
   PokerExtra,
   PokerSession,
@@ -15,7 +16,18 @@ interface Props {
   busy: boolean;
   serverNow: number;
   receivedAt: number;
-  onCommand: (action: PokerAction, playerId?: number) => Promise<void>;
+  onCommand: (action: PokerAction, playerId?: number, finalStacks?: FinalStack[]) => Promise<void>;
+}
+
+function purchases({ rebuys, addOns }: { rebuys: number; addOns: number }) {
+  return (
+    [
+      rebuys > 0 && `${rebuys} ${rebuys === 1 ? 'recompra' : 'recompras'}`,
+      addOns > 0 && `${addOns} ${addOns === 1 ? 'add-on' : 'add-ons'}`,
+    ]
+      .filter(Boolean)
+      .join(' · ') || 'Sin recompras ni add-ons'
+  );
 }
 
 function blinds(level: BlindLevel) {
@@ -32,10 +44,14 @@ export default function PokerLive({
   receivedAt,
   onCommand,
 }: Props) {
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [finishing, setFinishing] = useState(false);
+  const [stacks, setStacks] = useState<Record<number, string>>({});
   const [now, setNow] = useState(() => Date.now());
   const { levels, rebuy, addOn, prizeShares, startingChips } = session.settings;
   const eliminated = new Set(session.eliminations);
   const active = session.entries.filter((entry) => !eliminated.has(entry.playerId));
+  const selectedPlayer = active.find((entry) => entry.playerId === selectedPlayerId);
   const winner = active.length === 1 ? active[0] : null;
   const lastOut = session.entries.find((entry) => entry.playerId === session.eliminations.at(-1));
   const hasExtras = session.entries.some((entry) => entry.rebuys || entry.addOns);
@@ -61,6 +77,47 @@ export default function PokerLive({
       clock.level < extra.throughLevel &&
       used < extra.limit,
     );
+  }
+
+  const emptyStacks = active.filter((entry) => !stacks[entry.playerId]?.trim());
+  const enteredStacks = active
+    .filter((entry) => stacks[entry.playerId]?.trim())
+    .map((entry) => Number(stacks[entry.playerId]));
+  const remainingChips = chipsInPlay - enteredStacks.reduce((sum, value) => sum + value, 0);
+  const autoPlayerId =
+    emptyStacks.length === 1 &&
+    enteredStacks.every((value) => Number.isSafeInteger(value) && value >= 0) &&
+    remainingChips >= 0
+      ? emptyStacks[0].playerId
+      : null;
+  const displayedStacks = { ...stacks };
+  if (autoPlayerId !== null) displayedStacks[autoPlayerId] = String(remainingChips);
+
+  const finalStacks = active.map((entry) => ({
+    playerId: entry.playerId,
+    chips: Number(displayedStacks[entry.playerId] ?? 0),
+  }));
+  const totalFinal = finalStacks.reduce((sum, stack) => sum + stack.chips, 0);
+  const validStacks =
+    active.every(
+      (entry) =>
+        displayedStacks[entry.playerId]?.trim() !== '' &&
+        displayedStacks[entry.playerId] !== undefined,
+    ) &&
+    finalStacks.every((stack) => Number.isSafeInteger(stack.chips) && stack.chips >= 0) &&
+    totalFinal === chipsInPlay;
+
+  async function finish() {
+    if (!validStacks) return;
+    if (
+      await confirmAction({
+        title: '¿Finalizar el torneo?',
+        message:
+          'Se guardarán las fichas y la clasificación final. Los empates compartirán puesto y los premios correspondientes.',
+        confirmLabel: 'Finalizar y guardar',
+      })
+    )
+      await onCommand('CLOSE', undefined, finalStacks);
   }
 
   async function close() {
@@ -152,19 +209,101 @@ export default function PokerLive({
                   >
                     Siguiente nivel
                   </button>
+                  <button
+                    type="button"
+                    className="glass-btn"
+                    disabled={busy}
+                    onClick={() => setFinishing(true)}
+                  >
+                    Finalizar torneo
+                  </button>
                 </div>
               )}
             </>
           )
         )}
         {!winner && (
-          <ul className="poker-seats" aria-hidden="true">
+          <ul className="poker-seats" aria-label="Jugadores en la mesa">
             {session.entries.map((entry) => (
               <li key={entry.playerId} className={eliminated.has(entry.playerId) ? 'is-out' : ''}>
-                <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
+                {owner && !eliminated.has(entry.playerId) ? (
+                  <button
+                    type="button"
+                    className="poker-seat-button"
+                    aria-label={`Acciones de ${entry.name}`}
+                    aria-expanded={selectedPlayerId === entry.playerId}
+                    aria-controls="poker-seat-actions"
+                    disabled={busy}
+                    onClick={() =>
+                      setSelectedPlayerId(
+                        selectedPlayerId === entry.playerId ? null : entry.playerId,
+                      )
+                    }
+                  >
+                    <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
+                  </button>
+                ) : (
+                  <span
+                    aria-label={`${entry.name}${eliminated.has(entry.playerId) ? ' (eliminado)' : ''}`}
+                  >
+                    <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
+                  </span>
+                )}
               </li>
             ))}
           </ul>
+        )}
+        {owner && !winner && selectedPlayer && (
+          <section
+            id="poker-seat-actions"
+            className="poker-seat-actions"
+            aria-label={`Acciones de ${selectedPlayer.name}`}
+          >
+            <div className="poker-player">
+              <PokerAvatar
+                playerId={selectedPlayer.playerId}
+                name={selectedPlayer.name}
+                size={44}
+              />
+              <div>
+                <strong className="poster-title">{selectedPlayer.name}</strong>
+                <p className="poker-note">{purchases(selectedPlayer)}</p>
+              </div>
+            </div>
+            <div className="poker-actions">
+              {canBuy(rebuy, selectedPlayer.rebuys) && (
+                <button
+                  type="button"
+                  className="glass-btn"
+                  disabled={busy}
+                  onClick={() => void onCommand('REBUY', selectedPlayer.playerId)}
+                >
+                  Recompra
+                </button>
+              )}
+              {canBuy(addOn, selectedPlayer.addOns) && (
+                <button
+                  type="button"
+                  className="glass-btn"
+                  disabled={busy}
+                  onClick={() => void onCommand('ADD_ON', selectedPlayer.playerId)}
+                >
+                  Add-on
+                </button>
+              )}
+              <button
+                type="button"
+                className="glass-btn poker-out-btn"
+                disabled={busy}
+                onClick={() => void onCommand('ELIMINATE', selectedPlayer.playerId)}
+              >
+                Eliminar
+              </button>
+              <button type="button" className="glass-btn" onClick={() => setSelectedPlayerId(null)}>
+                Cerrar
+              </button>
+            </div>
+          </section>
         )}
         <dl className="poker-felt-metrics">
           <div>
@@ -184,6 +323,75 @@ export default function PokerLive({
         </dl>
       </section>
 
+      {owner && finishing && !winner && (
+        <form
+          className="paper-panel album-sheet poker-panel poker-form poker-finish"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void finish();
+          }}
+        >
+          <h2>Fichas al finalizar</h2>
+          <p>
+            Indica las fichas de cada jugador. La clasificación se ordenará de mayor a menor; los
+            empates compartirán puesto y premios.
+          </p>
+          <div className="poker-fields poker-finish-fields">
+            {active.map((entry) => (
+              <label key={entry.playerId}>
+                <span className="poker-player">
+                  <PokerAvatar playerId={entry.playerId} name={entry.name} size={28} />
+                  {entry.name}
+                </span>
+                <input
+                  type="number"
+                  className="glass-input"
+                  inputMode="numeric"
+                  placeholder="0"
+                  min="0"
+                  max={chipsInPlay}
+                  step="1"
+                  required
+                  disabled={busy}
+                  aria-label={`Fichas de ${entry.name}`}
+                  value={displayedStacks[entry.playerId] ?? ''}
+                  onChange={(event) =>
+                    setStacks({ ...stacks, [entry.playerId]: event.target.value })
+                  }
+                />
+                {entry.playerId === autoPlayerId && (
+                  <small>Calculado con las fichas restantes</small>
+                )}
+              </label>
+            ))}
+          </div>
+          <div className="poker-progress poker-finish-progress" aria-hidden="true">
+            <span
+              style={{
+                width: `${Math.min(100, Math.max(0, ((Number.isFinite(totalFinal) ? totalFinal : 0) / chipsInPlay) * 100))}%`,
+              }}
+            />
+          </div>
+          <p role="status" className={validStacks ? 'poker-total' : 'poker-total is-off'}>
+            Total: {chips(Number.isFinite(totalFinal) ? totalFinal : 0)} / {chips(chipsInPlay)}{' '}
+            fichas
+          </p>
+          <div className="poker-actions">
+            <button type="submit" className="glass-btn primary-btn" disabled={busy || !validStacks}>
+              Finalizar y guardar
+            </button>
+            <button
+              type="button"
+              className="glass-btn"
+              disabled={busy}
+              onClick={() => setFinishing(false)}
+            >
+              Volver a la mesa
+            </button>
+          </div>
+        </form>
+      )}
+
       <div className="poker-live-grid">
         <section className="paper-panel album-sheet poker-panel">
           <h2>Jugadores</h2>
@@ -195,9 +403,7 @@ export default function PokerLive({
                   <div>
                     <strong>{entry.name}</strong>
                     {(entry.rebuys > 0 || entry.addOns > 0) && (
-                      <p className="poker-note">
-                        Recompras {entry.rebuys} · Extras {entry.addOns}
-                      </p>
+                      <p className="poker-note">{purchases(entry)}</p>
                     )}
                   </div>
                 </div>
@@ -219,10 +425,10 @@ export default function PokerLive({
                         type="button"
                         className="glass-btn"
                         disabled={busy}
-                        aria-label={`Extra de fichas para ${entry.name}`}
+                        aria-label={`Add-on para ${entry.name}`}
                         onClick={() => void onCommand('ADD_ON', entry.playerId)}
                       >
-                        Extra
+                        Add-on
                       </button>
                     )}
                     <button
@@ -270,7 +476,7 @@ export default function PokerLive({
           )}
           {owner && hasExtras && (
             <details className="poker-details">
-              <summary>Corregir recompras y extras</summary>
+              <summary>Corregir recompras y add-ons</summary>
               <ul className="poker-active-list poker-detail-content">
                 {session.entries
                   .filter((entry) => entry.rebuys || entry.addOns)
@@ -295,7 +501,7 @@ export default function PokerLive({
                             disabled={busy}
                             onClick={() => void onCommand('UNDO_ADD_ON', entry.playerId)}
                           >
-                            Quitar extra ({entry.addOns})
+                            Quitar add-on ({entry.addOns})
                           </button>
                         )}
                       </div>
@@ -344,7 +550,7 @@ export default function PokerLive({
               )}
               {addOn && (
                 <li>
-                  Extra · {euros(addOn.costCents)} por {chips(addOn.chips)} fichas, hasta el nivel{' '}
+                  Add-on · {euros(addOn.costCents)} por {chips(addOn.chips)} fichas, hasta el nivel{' '}
                   {addOn.throughLevel}.
                 </li>
               )}

@@ -353,7 +353,7 @@
   white-space: normal;
   min-width: 7rem;
   max-width: 13rem;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .poker-table thead {
@@ -834,9 +834,17 @@
     padding-inline: 0.4rem;
   }
 
-  /* Cinco columnas tienen que caber en 390 px sin desplazamiento lateral. */
+  /* En 390 px caben cuatro columnas: fichas y aportado bajan a la línea del nombre. */
   .poker-results-table {
     font-size: 0.8rem;
+  }
+
+  .poker-results-table :is(.poker-col-chips, .poker-col-paid) {
+    display: none;
+  }
+
+  .poker-results-table th .poker-row-extra {
+    display: block;
   }
 
   .poker-results-table th,
@@ -846,9 +854,159 @@
 
   .poker-results-table [scope='row'] {
     min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .poker-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Fichas al finalizar: una fila por jugador con su cara, como en la lista de la mesa. */
+.poker-finish-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.poker-finish label {
+  overflow-wrap: anywhere;
+}
+
+.poker-finish label small {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 400;
+}
+
+.poker-finish-progress {
+  width: 100%;
+  margin: 0;
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+.poker-finish-progress span {
+  background: var(--ink);
+}
+
+.poker .poker-finish .poker-total {
+  margin: 0;
+}
+
+.poker-table .poker-row-extra {
+  display: none;
+}
+
+.poker-podium-name.is-long {
+  font-size: 0.64rem;
+  overflow-wrap: break-word;
+}
+
+.poker-podium .sticker-featured .poker-podium-name.is-long {
+  font-size: 0.8rem;
+}
+
+.poker-details > summary .poker-note {
+  display: block;
+  margin: 0.15rem 0 0;
+  font-weight: 400;
+}
+
+/* Cada cara del tapete abre las acciones de ese jugador. */
+.poker-seat-button {
+  display: inline-flex;
+  padding: 3px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.poker-seat-button:hover,
+.poker-seat-button[aria-expanded='true'] {
+  background: var(--paper);
+}
+
+.poker-seat-button:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 4px;
+}
+
+.poker-seat-button:disabled {
+  cursor: wait;
+}
+
+.poker-seat-actions {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 30rem;
+  margin: 0.85rem auto;
+  padding: 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: rgba(7, 32, 24, 0.45);
+}
+
+.poker-seat-actions .poster-title {
+  display: block;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.poker-seat-actions .poker-note {
+  margin: 0.1rem 0 0;
+}
+
+.poker-seat-actions .glass-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.poker-felt .poker-out-btn {
+  border-color: color-mix(in srgb, #fecaca 55%, transparent);
+  color: #fecaca;
+}
+
+.poker-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.poker-sort::after {
+  content: '↕';
+  opacity: 0.55;
+}
+
+[aria-sort='ascending'] > .poker-sort,
+[aria-sort='descending'] > .poker-sort {
+  color: var(--ink);
+}
+
+[aria-sort='ascending'] > .poker-sort::after {
+  content: '↑';
+  opacity: 1;
+}
+
+[aria-sort='descending'] > .poker-sort::after {
+  content: '↓';
+  opacity: 1;
+}
+
+.poker-sort:hover {
+  text-decoration: underline;
+}
+
+.poker-sort:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }

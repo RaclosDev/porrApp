@@ -7,6 +7,11 @@ import type {
 
 const moneyFormat = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'full' });
+const upcomingDateFormat = new Intl.DateTimeFormat('es-ES', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+});
 const shortDateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' });
 const numberFormat = new Intl.NumberFormat('es-ES');
 const percentFormat = new Intl.NumberFormat('es-ES', {
@@ -25,6 +30,8 @@ export const signedEuros = (cents: number) => signedMoneyFormat.format(cents / 1
 export const chips = (count: number) => numberFormat.format(count);
 export const percent = (value: number) => percentFormat.format(value);
 export const tournamentDate = (date: string) => dateFormat.format(new Date(`${date}T12:00:00`));
+export const upcomingTournamentDate = (date: string) =>
+  upcomingDateFormat.format(new Date(`${date}T12:00:00`));
 export const shortDate = (date: string) => shortDateFormat.format(new Date(`${date}T12:00:00`));
 
 // En el podio de la liga, quien aún no ha ganado se presenta por sus podios.
@@ -90,6 +97,8 @@ export function pokerStandings(history: PokerSession[]) {
       playerId: number;
       name: string;
       played: number;
+      rebuys: number;
+      addOns: number;
       wins: number;
       podiums: number;
       cashes: number;
@@ -104,6 +113,8 @@ export function pokerStandings(history: PokerSession[]) {
         playerId: result.playerId,
         name: result.name,
         played: 0,
+        rebuys: 0,
+        addOns: 0,
         wins: 0,
         podiums: 0,
         cashes: 0,
@@ -112,6 +123,8 @@ export function pokerStandings(history: PokerSession[]) {
         places: 0,
       };
       row.played += 1;
+      row.rebuys += result.rebuys;
+      row.addOns += result.addOns;
       row.wins += Number(result.place === 1);
       row.podiums += Number(result.place <= 3);
       row.cashes += Number(result.prizeCents > 0);
