@@ -428,7 +428,7 @@ public class LeagueService {
     @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
     public Optional<League> getLeagueById(Long id) {
-        return leagueRepository.findById(id).map(LeagueService::withAdminLoaded);
+        return leagueRepository.findWithPermissionsById(id).map(LeagueService::withAdminLoaded);
     }
 
     /**

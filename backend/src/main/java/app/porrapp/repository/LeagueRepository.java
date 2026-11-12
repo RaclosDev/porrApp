@@ -20,8 +20,11 @@ import java.util.Optional;
 public interface LeagueRepository extends JpaRepository<League, Long> {
 
     @Override
-    @EntityGraph(attributePaths = {"adminUser", "privilegedMemberships"})
+    @EntityGraph(attributePaths = "adminUser")
     Optional<League> findById(Long id);
+
+    @EntityGraph(attributePaths = {"adminUser", "privilegedMemberships"})
+    Optional<League> findWithPermissionsById(Long id);
 
     @Override
     @EntityGraph(attributePaths = "adminUser")
