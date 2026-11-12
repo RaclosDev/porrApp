@@ -227,14 +227,17 @@ export default function GroupsDashboard() {
             .filter((group) => group.kind === 'TOURNAMENT')
             .map((group) => (
               <li key={group.id} className="paper-panel album-sheet p-5">
-                <h3 className="poster-title">{group.name}</h3>
-                <p>Torneo de seguimiento</p>
-                <Link
-                  className="glass-btn inline-flex items-center min-h-11 px-4"
-                  to={`/torneos/${group.id}`}
-                >
-                  Administrar torneo
-                </Link>
+                <h3 className="poster-title m-0 wrap-break-word">{group.name}</h3>
+                <p className="text-muted mt-1 mb-0">Torneo de seguimiento</p>
+                {isGroupAdmin(group) && (
+                  <Link
+                    className="glass-btn primary-btn mt-4 inline-flex items-center min-h-11 px-4 font-bold"
+                    to={`/torneos/${group.id}`}
+                    aria-label={`Administrar torneo: ${group.name}`}
+                  >
+                    Administrar torneo
+                  </Link>
+                )}
               </li>
             ))}
           {sortGroupsByRecent(
