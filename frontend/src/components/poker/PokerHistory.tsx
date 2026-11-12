@@ -28,6 +28,8 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
   const found = ordered.findIndex((session) => session.id === selectedId);
   const index = found === -1 ? ordered.length - 1 : found;
   const session = ordered[index];
+  // Solo los torneos finalizados por fichas tienen esa columna; en móvil va bajo el nombre.
+  const hasChips = session?.results.some((result) => result.finalChips != null) ?? false;
 
   return (
     <section className="paper-panel album-sheet poker-panel">
@@ -94,8 +96,14 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
                 <tr>
                   <th scope="col">Puesto</th>
                   <th scope="col">Jugador</th>
-                  <th scope="col">Fichas finales</th>
-                  <th scope="col">Aportado</th>
+                  {hasChips && (
+                    <th scope="col" className="poker-col-chips">
+                      Fichas finales
+                    </th>
+                  )}
+                  <th scope="col" className="poker-col-paid">
+                    Aportado
+                  </th>
                   <th scope="col">Premio</th>
                   <th scope="col">Neto</th>
                 </tr>
@@ -109,13 +117,17 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
                         <PokerAvatar playerId={result.playerId} name={result.name} size={28} />
                         <span>
                           {result.name}
+                          <small className="poker-row-extra">
+                            {result.finalChips != null && `${chips(result.finalChips)} fichas · `}
+                            aportó {euros(result.paidCents)}
+                          </small>
                           {(result.rebuys > 0 || result.addOns > 0) && (
                             <small>
                               {[
                                 result.rebuys > 0 &&
                                   `${result.rebuys} ${result.rebuys === 1 ? 'recompra' : 'recompras'}`,
                                 result.addOns > 0 &&
-                                  `${result.addOns} ${result.addOns === 1 ? 'extra' : 'extras'}`,
+                                  `${result.addOns} ${result.addOns === 1 ? 'add-on' : 'add-ons'}`,
                               ]
                                 .filter(Boolean)
                                 .join(' · ')}
@@ -124,8 +136,12 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
                         </span>
                       </span>
                     </th>
-                    <td>{result.finalChips == null ? '—' : chips(result.finalChips)}</td>
-                    <td>{euros(result.paidCents)}</td>
+                    {hasChips && (
+                      <td className="poker-col-chips">
+                        {result.finalChips == null ? '—' : chips(result.finalChips)}
+                      </td>
+                    )}
+                    <td className="poker-col-paid">{euros(result.paidCents)}</td>
                     <td>{euros(result.prizeCents)}</td>
                     <Net cents={result.prizeCents - result.paidCents} />
                   </tr>
