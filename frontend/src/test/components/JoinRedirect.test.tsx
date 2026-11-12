@@ -63,6 +63,7 @@ function showInvitation(path = '/join/abc123') {
         <Routes>
           <Route path="/join/:code" element={<JoinRedirect />} />
           <Route path="/jornadas" element={<p>Tu jornada</p>} />
+          <Route path="/torneos/:id" element={<p>Panel del torneo</p>} />
           <Route path="/" element={<p>Inicio de la liga</p>} />
         </Routes>
       </MemoryRouter>
@@ -98,6 +99,18 @@ it('una liga de juegos de mesa se une como cualquier otra y abre su marcador', a
   expect(joinGroup).toHaveBeenCalledExactlyOnceWith('ABC123');
   expect(changeGroup).toHaveBeenCalledWith('9');
   expect(localStorage.getItem('pendingJoinCode')).toBeNull();
+});
+
+it('acepta una invitación a un torneo y lo abre sin cambiar la liga activa', async () => {
+  const tournament = group({ id: 17, name: 'Torneo de verano', kind: 'TOURNAMENT' });
+  vi.mocked(fetchGroupInvitationPreview).mockResolvedValue(tournament);
+  vi.mocked(joinGroup).mockResolvedValue(tournament);
+  showInvitation();
+  expect(await screen.findByText('Torneo de seguimiento')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Continuar con Google' }));
+  expect(await screen.findByText('Panel del torneo')).toBeInTheDocument();
+  expect(joinGroup).toHaveBeenCalledExactlyOnceWith('ABC123');
+  expect(changeGroup).not.toHaveBeenCalled();
 });
 
 it('no se une si falla el inicio de sesión y conserva el enlace', async () => {

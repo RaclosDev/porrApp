@@ -318,7 +318,7 @@ public class LeagueService {
             joinedAt.merge(m.getId().getLeagueId(), m.getJoinedAt() != null ? m.getJoinedAt() : Instant.EPOCH,
                     (a, b) -> a.isBefore(b) ? a : b);
         }
-        List<League> groups = leagueRepository.findAllById(joinedAt.keySet());
+        List<League> groups = leagueRepository.findAllForUserDashboard(user.getId());
         if (groups.isEmpty()) return List.of();
 
         List<Long> groupIds = groups.stream().map(League::getId).collect(Collectors.toList());

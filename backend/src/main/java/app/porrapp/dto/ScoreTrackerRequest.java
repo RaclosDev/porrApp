@@ -11,7 +11,11 @@ public record ScoreTrackerRequest(
         @NotBlank @Size(max = 100) String name,
         @Size(max = 60) String gameName,
         @Size(max = 30) String unit,
-        boolean lowerWins,
+        Boolean lowerWins,
         @Size(max = 19) List<@NotBlank @Size(max = 40) String> players,
         @Pattern(regexp = "POINTS|WINS|DIRECT") String mode) {
+    /** La web no envía {@code lowerWins} cuando no aplica: ausente equivale a {@code false}. */
+    public ScoreTrackerRequest {
+        lowerWins = Boolean.TRUE.equals(lowerWins);
+    }
 }

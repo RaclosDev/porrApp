@@ -104,7 +104,7 @@ class LeagueServiceTest {
         membership.setJoinedAt(joined);
         when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
         when(membershipRepository.findByUserId(2L)).thenReturn(List.of(membership));
-        when(leagueRepository.findAllById(java.util.Set.of(10L))).thenReturn(List.of(league));
+        when(leagueRepository.findAllForUserDashboard(member.getId())).thenReturn(List.of(league));
         when(editionRepository.findByLeagueIdInAndStatus(List.of(10L), "ACTIVE")).thenReturn(List.of());
 
         var mine = leagueService.getUserLeagueDTOs("member@test.com");

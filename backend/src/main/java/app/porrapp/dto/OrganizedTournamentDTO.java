@@ -4,9 +4,9 @@ import jakarta.validation.constraints.*;
 import java.time.Instant;
 import java.util.List;
 
-/** Public projection: participant names are supplied by the organizer, never account data. */
+/** Participant names are supplied by the organizer. The view contains no account data. */
 public record OrganizedTournamentDTO(Long id, String name, String activity, String participantType,
-        String format, boolean published, String publicId, long revision, int winPoints, int drawPoints,
+        String format, boolean published, String publicId, boolean canEdit, long revision, int winPoints, int drawPoints,
         int lossPoints, List<Participant> participants, List<Match> matches, List<Standing> standings) {
     public record Participant(String id, String name) {}
     public record Match(String id, int round, int position, String homeId, String awayId,

@@ -223,23 +223,9 @@ export default function GroupsDashboard() {
         </div>
       ) : (
         <ul className="grid gap-2.5 md:grid-cols-2 max-w-240 mx-auto my-0 p-0 list-none">
-          {groups
-            .filter((group) => group.kind === 'TOURNAMENT')
-            .map((group) => (
-              <li key={group.id} className="paper-panel album-sheet p-5">
-                <h3 className="poster-title">{group.name}</h3>
-                <p>Torneo de seguimiento</p>
-                <Link
-                  className="glass-btn inline-flex items-center min-h-11 px-4"
-                  to={`/torneos/${group.id}`}
-                >
-                  Administrar torneo
-                </Link>
-              </li>
-            ))}
           {sortGroupsByRecent(
             // Las de juegos de mesa tienen su tarjeta, con jugadores y partidas.
-            groups.filter((group) => !isScoreboardLeague(group) && group.kind !== 'TOURNAMENT'),
+            groups.filter((group) => !isScoreboardLeague(group)),
             activeGroupId,
           ).map((group) => {
             const isSelected = Boolean(activeGroupId) && activeGroupId === group.id.toString();
@@ -248,7 +234,11 @@ export default function GroupsDashboard() {
               <GroupCard
                 key={group.id}
                 group={group}
-                summary={summaries.get(group.id)}
+                summary={
+                  group.kind === 'POKER' || group.kind === 'TOURNAMENT'
+                    ? undefined
+                    : summaries.get(group.id)
+                }
                 isSelected={isSelected}
                 isCreator={isCreator}
                 handleEnterGroup={handleEnterGroup}
@@ -282,6 +272,7 @@ export default function GroupsDashboard() {
           key={selectedGroupForMembers.id}
           groupId={selectedGroupForMembers.id}
           groupName={selectedGroupForMembers.name}
+          isTournament={selectedGroupForMembers.kind === 'TOURNAMENT'}
           currentJoinCode={selectedGroupForMembers.joinCode}
           initialRules={selectedGroupForMembers.rules || ''}
           imageUrl={selectedGroupForMembers.imageUrl || null}
@@ -317,7 +308,7 @@ export default function GroupsDashboard() {
             );
           }}
           entryFee={
-            selectedGroupForMembers.publicLeague
+            selectedGroupForMembers.publicLeague || selectedGroupForMembers.kind === 'TOURNAMENT'
               ? undefined
               : Boolean(selectedGroupForMembers.entryFee)
           }
