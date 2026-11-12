@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import PokerLive from '../../components/poker/PokerLive';
-import { PokerStatistics } from '../../components/poker/PokerHistory';
+import { PokerHistory, PokerStatistics } from '../../components/poker/PokerHistory';
 import PokerSettingsForm from '../../components/poker/PokerSettingsForm';
 import PokerLeague from '../../pages/PokerLeague';
 import type { PokerLeagueData, PokerSession, PokerSettings } from '../../services/endpoints/poker';
@@ -252,6 +252,27 @@ it('calcula porcentajes y neto por participante', () => {
   const row = within(screen.getByRole('row', { name: /Ana/ }));
   expect(row.getAllByText(/100\s*%/)).toHaveLength(2);
   expect(row.getByText(/11,00/)).toBeVisible();
+});
+
+it('recorre el histórico torneo a torneo', () => {
+  const result = { ...entries[0], place: 1, paidCents: 1000, prizeCents: 1000 };
+  const closed = (id: number, date: string) => ({
+    ...session,
+    id,
+    date,
+    closedAt: 5000,
+    results: [result],
+  });
+  render(<PokerHistory sessions={[closed(22, '2026-07-18'), closed(21, '2026-07-04')]} />);
+  const picker = screen.getByLabelText<HTMLSelectElement>('Seleccionar torneo');
+  expect(picker.value).toBe('22');
+  expect(screen.getByRole('button', { name: 'Torneo siguiente' })).toBeDisabled();
+  click('Torneo anterior');
+  expect(picker.value).toBe('21');
+  expect(screen.getByText(/4 de julio de 2026/)).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Torneo anterior' })).toBeDisabled();
+  fireEvent.change(picker, { target: { value: '22' } });
+  expect(screen.getByText(/18 de julio de 2026/)).toBeVisible();
 });
 
 it('reutiliza las reglas del torneo anterior', async () => {

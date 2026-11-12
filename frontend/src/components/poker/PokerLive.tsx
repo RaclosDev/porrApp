@@ -6,6 +6,7 @@ import type {
   PokerSession,
 } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
+import { PokerAvatar } from './PokerFaces';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
 
 interface Props {
@@ -83,9 +84,14 @@ export default function PokerLive({
         </h2>
         {winner ? (
           <div className="poker-winner">
-            <span>Primer puesto</span>
-            <strong>{winner.name}</strong>
-            {session.prizes[0] > 0 && <span>{euros(session.prizes[0])} de premio</span>}
+            <div className="sticker sticker-featured">
+              <span className="sticker-rank">1.º</span>
+              <PokerAvatar playerId={winner.playerId} name={winner.name} size={96} />
+              <strong className="poster-title">{winner.name}</strong>
+              <span className="marker-ink">
+                {session.prizes[0] > 0 ? `${euros(session.prizes[0])} de premio` : 'Primer puesto'}
+              </span>
+            </div>
             {owner && (
               <div className="poker-actions poker-clock-actions">
                 <button
@@ -151,6 +157,15 @@ export default function PokerLive({
             </>
           )
         )}
+        {!winner && (
+          <ul className="poker-seats" aria-hidden="true">
+            {session.entries.map((entry) => (
+              <li key={entry.playerId} className={eliminated.has(entry.playerId) ? 'is-out' : ''}>
+                <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
+              </li>
+            ))}
+          </ul>
+        )}
         <dl className="poker-felt-metrics">
           <div>
             <dt>En mesa</dt>
@@ -175,13 +190,16 @@ export default function PokerLive({
           <ul className="poker-active-list">
             {active.map((entry) => (
               <li key={entry.playerId}>
-                <div>
-                  <strong>{entry.name}</strong>
-                  {(entry.rebuys > 0 || entry.addOns > 0) && (
-                    <p className="poker-note">
-                      Recompras {entry.rebuys} · Extras {entry.addOns}
-                    </p>
-                  )}
+                <div className="poker-player">
+                  <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
+                  <div>
+                    <strong>{entry.name}</strong>
+                    {(entry.rebuys > 0 || entry.addOns > 0) && (
+                      <p className="poker-note">
+                        Recompras {entry.rebuys} · Extras {entry.addOns}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {owner && !winner && (
                   <div className="poker-actions">
@@ -226,12 +244,16 @@ export default function PokerLive({
               <summary>Eliminados ({session.eliminations.length})</summary>
               <div className="poker-detail-content">
                 <ul className="poker-places">
-                  {[...session.eliminations].reverse().map((id, index) => (
-                    <li key={id}>
-                      <span>{active.length + index + 1}.º</span>
-                      {session.entries.find((entry) => entry.playerId === id)?.name}
-                    </li>
-                  ))}
+                  {[...session.eliminations].reverse().map((id, index) => {
+                    const name = session.entries.find((entry) => entry.playerId === id)?.name ?? '';
+                    return (
+                      <li key={id}>
+                        <span>{active.length + index + 1}.º</span>
+                        <PokerAvatar playerId={id} name={name} size={28} />
+                        {name}
+                      </li>
+                    );
+                  })}
                 </ul>
                 {owner && (
                   <button
@@ -301,7 +323,10 @@ export default function PokerLive({
                     );
               return (
                 <li key={index}>
-                  <span>
+                  <span className="poker-player">
+                    {player && (
+                      <PokerAvatar playerId={player.playerId} name={player.name} size={28} />
+                    )}
                     {place}.º {player?.name ?? `${prizeShares[index]} %`}
                   </span>
                   <strong>{euros(prize)}</strong>

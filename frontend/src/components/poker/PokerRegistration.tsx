@@ -8,6 +8,7 @@ import {
   type PokerSession,
 } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
+import { PokerAvatar } from './PokerFaces';
 import { chips, euros, tournamentDate } from './pokerFormat';
 
 interface Props {
@@ -48,7 +49,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
       <div className="poker-section-head">
         <div>
           <h2>Inscripciones abiertas</h2>
-          <p className="poker-date first-letter:uppercase">{tournamentDate(session.date)}</p>
+          <p className="poster-title poker-big-date">{tournamentDate(session.date)}</p>
         </div>
         {league.myPlayerId !== null && (
           <button
@@ -62,7 +63,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
         )}
       </div>
       {playing && (
-        <p role="status" className="poker-attending">
+        <p role="status" className="marker-ink poker-state">
           Asistencia confirmada
         </p>
       )}
@@ -107,6 +108,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
                       );
                     }}
                   />
+                  <PokerAvatar playerId={player.id} name={player.name} size={40} />
                   <span>
                     {player.name}
                     {player.guest && <small>Invitado</small>}
@@ -116,10 +118,11 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
             ))}
           </ul>
         ) : count > 0 ? (
-          <ul className="poker-player-list">
+          <ul className="poker-faces">
             {session.entries.map((entry) => (
-              <li className="poker-confirmed-name" key={entry.playerId}>
-                {entry.name}
+              <li key={entry.playerId}>
+                <PokerAvatar playerId={entry.playerId} name={entry.name} size={48} />
+                <span>{entry.name}</span>
               </li>
             ))}
           </ul>

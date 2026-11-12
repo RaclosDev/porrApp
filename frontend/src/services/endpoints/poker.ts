@@ -57,13 +57,21 @@ export interface PokerSession {
   results: PokerResult[];
 }
 
+export interface PokerPlayer {
+  id: number;
+  name: string;
+  guest: boolean;
+  userId?: number | null;
+  avatarUrl?: string | null;
+}
+
 export interface PokerLeagueData {
   id: number;
   name: string;
   joinCode: string;
   owner: boolean;
   myPlayerId: number | null;
-  players: { id: number; name: string; guest: boolean }[];
+  players: PokerPlayer[];
   current: PokerSession | null;
   serverNow: number;
 }

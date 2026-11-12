@@ -9,6 +9,7 @@ import PokerRegistration from '../components/poker/PokerRegistration';
 import PokerSettingsForm from '../components/poker/PokerSettingsForm';
 import PokerLive from '../components/poker/PokerLive';
 import PokerHome from '../components/poker/PokerHome';
+import { PokerFaces } from '../components/poker/PokerFaces';
 import { PokerHistory, PokerStatistics } from '../components/poker/PokerHistory';
 import { defaultSettings, today } from '../components/poker/pokerFormat';
 import { pokerRoutes, type PokerSection } from '../components/poker/pokerRoutes';
@@ -81,139 +82,143 @@ export default function PokerLeague({
   }
 
   return (
-    <section className="poker">
-      {view === 'home' ? (
-        <>
-          <header className="home-hero paper-panel album-sheet">
-            <div className="home-hero-info">
-              <h1 className="home-hero-title">{league.name}</h1>
-              <div className="home-hero-pills">
-                <span className="home-hero-pill">Póker · Texas Hold’em</span>
+    <PokerFaces players={league.players}>
+      <section className="poker">
+        {view === 'home' ? (
+          <>
+            <header className="home-hero paper-panel album-sheet">
+              <div className="home-hero-info">
+                <h1 className="home-hero-title">{league.name}</h1>
+                <div className="home-hero-pills">
+                  <span className="home-hero-pill">Póker · Texas Hold’em</span>
+                </div>
               </div>
-            </div>
-            <button
-              type="button"
-              className="home-rules-btn"
-              aria-expanded={invite}
-              onClick={() => setInvite(!invite)}
-            >
-              {invite ? 'Cerrar invitación' : 'Invitar con enlace'}
-            </button>
-          </header>
-          {invite && <TrackerInvite tracker={league} />}
-          <PokerHome
-            league={league}
-            sessions={history.data}
-            loading={history.isPending}
-            onRetry={() => void history.refetch()}
-          />
-        </>
-      ) : (
-        <h1 className="poster-title mt-0 mb-4 text-[1.8rem] text-white">
-          {pokerRoutes[view].label}
-        </h1>
-      )}
-      {view === 'table' && (
-        <>
-          {league.owner &&
-          ((form === 'new' && !current) || (form === 'edit' && current?.startedAt === null)) ? (
-            form === 'new' && history.isPending ? (
-              <PaperLoading label="Cargando la configuración" />
-            ) : (
-              <PokerSettingsForm
-                key={form}
-                editing={form === 'edit'}
-                date={current?.date ?? today()}
-                settings={current?.settings ?? history.data?.[0]?.settings ?? defaultSettings}
-                busy={busy}
-                onCancel={() => setForm(null)}
-                onSave={async (date, settings) => {
-                  const saved = await change(() =>
-                    savePokerSession(league.id, date, settings, current ?? undefined),
-                  );
-                  if (saved) setForm(null);
-                  return saved;
-                }}
-              />
-            )
-          ) : current ? (
-            current.startedAt === null ? (
-              <PokerRegistration
-                league={league}
-                session={current}
-                busy={busy}
-                change={change}
-                onEdit={() => setForm('edit')}
-              />
-            ) : (
-              <PokerLive
-                session={current}
-                owner={league.owner}
-                busy={busy}
-                serverNow={league.serverNow}
-                receivedAt={query.dataUpdatedAt}
-                onCommand={async (action, playerId) => {
-                  const saved = await change(() =>
-                    pokerCommand(league.id, current, action, playerId),
-                  );
-                  if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
-                }}
-              />
-            )
-          ) : (
-            <section className="paper-panel album-sheet poker-panel poker-empty">
-              <h2>Próximo torneo</h2>
-              <p>
-                {league.owner
-                  ? 'Elige la fecha y las reglas para abrir las inscripciones.'
-                  : 'El organizador abrirá las inscripciones del próximo torneo aquí.'}
-              </p>
-              <ol className="poker-steps">
-                <li>
-                  <strong>Inscripciones</strong>
-                  <span>
-                    {league.owner
-                      ? 'Fijas fecha, entrada y ciegas, y cada jugador confirma si viene.'
-                      : 'Verás la fecha y la entrada, y podrás confirmar si vienes.'}
-                  </span>
-                </li>
-                <li>
-                  <strong>Partida</strong>
-                  <span>El reloj de ciegas, las eliminaciones y el bote se siguen desde aquí.</span>
-                </li>
-                <li>
-                  <strong>Cierre</strong>
-                  <span>Los premios y los puestos quedan guardados en el histórico.</span>
-                </li>
-              </ol>
-              {league.owner && (
-                <button
-                  type="button"
-                  className="glass-btn primary-btn"
-                  onClick={() => setForm('new')}
-                >
-                  Preparar torneo
-                </button>
-              )}
-            </section>
-          )}
-        </>
-      )}
-      {(view === 'history' || view === 'statistics') &&
-        (history.isPending ? (
-          <PaperLoading label="Cargando los resultados" />
-        ) : history.isError && !history.data ? (
-          <section className="paper-panel album-sheet poker-panel">
-            <h2>No se pudieron cargar los resultados</h2>
-            <button type="button" className="glass-btn" onClick={() => void history.refetch()}>
-              Reintentar
-            </button>
-          </section>
-        ) : view === 'history' ? (
-          <PokerHistory sessions={history.data ?? []} />
+              <button
+                type="button"
+                className="home-rules-btn"
+                aria-expanded={invite}
+                onClick={() => setInvite(!invite)}
+              >
+                {invite ? 'Cerrar invitación' : 'Invitar con enlace'}
+              </button>
+            </header>
+            {invite && <TrackerInvite tracker={league} />}
+            <PokerHome
+              league={league}
+              sessions={history.data}
+              loading={history.isPending}
+              onRetry={() => void history.refetch()}
+            />
+          </>
         ) : (
-          <PokerStatistics sessions={history.data ?? []} />
-        ))}
-    </section>
+          <h1 className="poster-title mt-0 mb-4 text-[1.8rem] text-white">
+            {pokerRoutes[view].label}
+          </h1>
+        )}
+        {view === 'table' && (
+          <>
+            {league.owner &&
+            ((form === 'new' && !current) || (form === 'edit' && current?.startedAt === null)) ? (
+              form === 'new' && history.isPending ? (
+                <PaperLoading label="Cargando la configuración" />
+              ) : (
+                <PokerSettingsForm
+                  key={form}
+                  editing={form === 'edit'}
+                  date={current?.date ?? today()}
+                  settings={current?.settings ?? history.data?.[0]?.settings ?? defaultSettings}
+                  busy={busy}
+                  onCancel={() => setForm(null)}
+                  onSave={async (date, settings) => {
+                    const saved = await change(() =>
+                      savePokerSession(league.id, date, settings, current ?? undefined),
+                    );
+                    if (saved) setForm(null);
+                    return saved;
+                  }}
+                />
+              )
+            ) : current ? (
+              current.startedAt === null ? (
+                <PokerRegistration
+                  league={league}
+                  session={current}
+                  busy={busy}
+                  change={change}
+                  onEdit={() => setForm('edit')}
+                />
+              ) : (
+                <PokerLive
+                  session={current}
+                  owner={league.owner}
+                  busy={busy}
+                  serverNow={league.serverNow}
+                  receivedAt={query.dataUpdatedAt}
+                  onCommand={async (action, playerId) => {
+                    const saved = await change(() =>
+                      pokerCommand(league.id, current, action, playerId),
+                    );
+                    if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
+                  }}
+                />
+              )
+            ) : (
+              <section className="paper-panel album-sheet poker-panel poker-empty">
+                <h2>Próximo torneo</h2>
+                <p>
+                  {league.owner
+                    ? 'Elige la fecha y las reglas para abrir las inscripciones.'
+                    : 'El organizador abrirá las inscripciones del próximo torneo aquí.'}
+                </p>
+                <ol className="poker-steps">
+                  <li>
+                    <strong>Inscripciones</strong>
+                    <span>
+                      {league.owner
+                        ? 'Fijas fecha, entrada y ciegas, y cada jugador confirma si viene.'
+                        : 'Verás la fecha y la entrada, y podrás confirmar si vienes.'}
+                    </span>
+                  </li>
+                  <li>
+                    <strong>Partida</strong>
+                    <span>
+                      El reloj de ciegas, las eliminaciones y el bote se siguen desde aquí.
+                    </span>
+                  </li>
+                  <li>
+                    <strong>Cierre</strong>
+                    <span>Los premios y los puestos quedan guardados en el histórico.</span>
+                  </li>
+                </ol>
+                {league.owner && (
+                  <button
+                    type="button"
+                    className="glass-btn primary-btn"
+                    onClick={() => setForm('new')}
+                  >
+                    Preparar torneo
+                  </button>
+                )}
+              </section>
+            )}
+          </>
+        )}
+        {(view === 'history' || view === 'statistics') &&
+          (history.isPending ? (
+            <PaperLoading label="Cargando los resultados" />
+          ) : history.isError && !history.data ? (
+            <section className="paper-panel album-sheet poker-panel">
+              <h2>No se pudieron cargar los resultados</h2>
+              <button type="button" className="glass-btn" onClick={() => void history.refetch()}>
+                Reintentar
+              </button>
+            </section>
+          ) : view === 'history' ? (
+            <PokerHistory sessions={history.data ?? []} />
+          ) : (
+            <PokerStatistics sessions={history.data ?? []} />
+          ))}
+      </section>
+    </PokerFaces>
   );
 }
