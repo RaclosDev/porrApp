@@ -33,6 +33,7 @@ public class JoinPreviewController {
     private static final String DEFAULT_TITLE = "Invitación a una porra";
     private static final String DEFAULT_DESCRIPTION = "Porra de fútbol";
     private static final String IMAGE_VERSION = "3";
+    private static final String TOURNAMENT_DESCRIPTION = "Torneo de seguimiento";
 
     private final LeagueService leagueService;
     private final ProfileImageService profileImageService;
@@ -58,7 +59,7 @@ public class JoinPreviewController {
             // El nombre de la liga arriba; competición y formato debajo.
             title = leagueName;
             imageAlt = leagueName;
-            description = "Porra de fútbol";
+            description = league.isTournament() ? TOURNAMENT_DESCRIPTION : DEFAULT_DESCRIPTION;
 
             Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
             if (activeEdition.isPresent() && activeEdition.get().getCompetition() != null) {
@@ -111,8 +112,8 @@ public class JoinPreviewController {
         }
         League league = leagueOptional.get();
         String name = league.getName() == null || league.getName().isBlank() ? "Mi liga" : league.getName();
-        String competition = "Fútbol";
-        String format = "Cuadro completo";
+        String competition = league.isTournament() ? TOURNAMENT_DESCRIPTION : "Fútbol";
+        String format = league.isTournament() ? "Invitación" : "Cuadro completo";
         Optional<Edition> activeEdition = leagueService.findActiveEdition(league.getId());
         if (activeEdition.isPresent()) {
             Edition edition = activeEdition.get();
