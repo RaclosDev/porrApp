@@ -33,6 +33,7 @@ public class PokerLeagueService {
     private final ScoreboardRoster roster;
     private final ScoreTrackerPlayerRepository players;
     private final PokerSessionRepository sessions;
+    private final org.springframework.context.ApplicationEventPublisher events;
 
     @Transactional
     @CacheEvict(value = "userGroups", key = "#email")
@@ -105,6 +106,15 @@ public class PokerLeagueService {
         session.setScheduledOn(request.date());
         session.setSettings(request.settings());
         sessions.save(session);
+        var recipients = memberships.findByLeagueId(leagueId).stream()
+                .map(member -> member.getUser().getId()).filter(id -> !id.equals(userId))
+                .collect(java.util.stream.Collectors.toSet());
+        events.publishEvent(new PokerNotificationEvent(recipients,
+                new app.porrapp.service.notification.PushMessage("Nuevo torneo de póker",
+                        league.getName() + " · " + request.date().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                + ". Apúntate y confirma tu asistencia.",
+                        "/?group=" + leagueId, "poker-scheduled-" + session.getId()),
+                System.currentTimeMillis() + 24 * 60 * 60 * 1000L));
         return view(league, userId);
     }
 
@@ -161,8 +171,56 @@ public class PokerLeagueService {
             sessions.delete(session);
             return view(league, userId);
         }
+        BlindClock previous = session.getBlindClock();
         PokerTournament.apply(session, command, System.currentTimeMillis());
+        session.setBlindClock(PokerTournament.clockAt(session.getBlindClock(), session.getSettings().levels(),
+                System.currentTimeMillis()));
+        notifyClock(league, session, previous);
         return changed(league, userId, session);
+    }
+
+    @Transactional
+    public void advanceClock(Long leagueId) {
+        League league = leagues.findWithLockById(leagueId).orElse(null);
+        if (league == null) return;
+        PokerSession session = sessions.findByLeagueIdAndClosedAtIsNull(leagueId).orElse(null);
+        if (session == null || session.getBlindClock() == null) return;
+        BlindClock previous = session.getBlindClock();
+        BlindClock current = PokerTournament.clockAt(previous, session.getSettings().levels(), System.currentTimeMillis());
+        if (current.level() == previous.level() && (current.remainingMs() == 0) == (previous.remainingMs() == 0)) return;
+        session.setBlindClock(current);
+        notifyClock(league, session, previous);
+    }
+
+    private void notifyClock(League league, PokerSession session, BlindClock previous) {
+        BlindClock current = session.getBlindClock();
+        if (current == null || session.getClosedAt() != null) return;
+        if (previous != null && previous.level() == current.level()
+                && (previous.remainingMs() == 0) == (current.remainingMs() == 0)) return;
+        BlindLevel level = session.getSettings().levels().get(current.level());
+        String title;
+        String body;
+        if (current.remainingMs() == 0) {
+            title = "Ha terminado el último nivel";
+            body = "Se mantienen las ciegas " + level.small() + " / " + level.big() + " y el ante " + level.ante() + ".";
+        } else if (level.big() == 0) {
+            title = "Descanso de póker";
+            body = "Empieza un descanso de " + level.minutes() + " minutos.";
+        } else {
+            title = "Nivel " + (current.level() + 1) + " de póker";
+            body = "Ciegas " + level.small() + " / " + level.big() + " · Ante " + level.ante()
+                    + " · " + level.minutes() + " minutos.";
+        }
+        var entered = session.getEntries().stream().map(Entry::playerId).collect(java.util.stream.Collectors.toSet());
+        var memberIds = memberships.findByLeagueId(league.getId()).stream().map(m -> m.getUser().getId())
+                .collect(java.util.stream.Collectors.toSet());
+        var recipients = players.findByLeagueIdOrderByPositionAsc(league.getId()).stream()
+                .filter(player -> entered.contains(player.getId()) && memberIds.contains(player.getUserId()))
+                .map(ScoreTrackerPlayer::getUserId).collect(java.util.stream.Collectors.toSet());
+        events.publishEvent(new PokerNotificationEvent(recipients,
+                new app.porrapp.service.notification.PushMessage(title, league.getName() + ". " + body,
+                        "/?group=" + league.getId(), "poker-clock-" + session.getId()),
+                current.endsAt() == null ? System.currentTimeMillis() + 300_000 : current.endsAt()));
     }
 
     private LeagueView changed(League league, Long userId, PokerSession session) {
