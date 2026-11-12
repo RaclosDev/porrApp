@@ -11,6 +11,7 @@ export type LeagueSettingsSection = 'general' | 'scoring' | 'norms';
 
 interface LeagueSettingsTabProps {
   /** Pestaña de ajustes que se muestra. */
+  isTournament?: boolean;
   section: LeagueSettingsSection;
   deleteConfirmName: string;
   deleteOpen: boolean;
@@ -38,6 +39,7 @@ interface LeagueSettingsTabProps {
 /** Ajustes de la liga, uno por pestaña: general (identidad, cierre y borrado), puntuación y normas. */
 export default function LeagueSettingsTab({
   section,
+  isTournament = false,
   deleteConfirmName,
   deleteOpen,
   deleting,
@@ -74,7 +76,7 @@ export default function LeagueSettingsTab({
           <div className="league-admin-card-head">
             <h3>
               <ShieldCheck size={14} aria-hidden="true" />
-              Identidad de la liga
+              {isTournament ? 'Identidad del torneo' : 'Identidad de la liga'}
             </h3>
           </div>
           <p className="league-admin-muted">
@@ -94,7 +96,9 @@ export default function LeagueSettingsTab({
             />
           </div>
           <div className="league-admin-field">
-            <label htmlFor="league-admin-name">Nombre de la liga</label>
+            <label htmlFor="league-admin-name">
+              {isTournament ? 'Nombre del torneo' : 'Nombre de la liga'}
+            </label>
             <input
               id="league-admin-name"
               className="glass-input"
@@ -104,7 +108,7 @@ export default function LeagueSettingsTab({
                 setName(event.target.value);
                 setNotice('');
               }}
-              placeholder="Nombre de la liga"
+              placeholder={isTournament ? 'Nombre del torneo' : 'Nombre de la liga'}
               autoComplete="off"
             />
             <span className={`league-admin-hint ${isNameValid ? '' : 'is-error'}`}>
@@ -171,7 +175,11 @@ export default function LeagueSettingsTab({
               setRulesText(event.target.value);
               setNotice('');
             }}
-            placeholder="Ej.: 10 € por Bizum a Ana. 60 % al primero, 30 % al segundo, 10 % al tercero."
+            placeholder={
+              isTournament
+                ? 'Ej.: los desempates se juegan a una ronda.'
+                : 'Ej.: 10 € por Bizum a Ana. 60 % al primero, 30 % al segundo, 10 % al tercero.'
+            }
             aria-label="Normas de la liga"
           />
           <span className="league-admin-hint">{rulesText.length}/8000 caracteres</span>
@@ -196,7 +204,9 @@ export default function LeagueSettingsTab({
             </h3>
           </div>
           <p className="league-admin-muted">
-            Borra la liga, sus datos y sus participantes. No se puede deshacer.
+            {isTournament
+              ? 'Borra el torneo, sus encuentros y sus participantes. No se puede deshacer.'
+              : 'Borra la liga, sus datos y sus participantes. No se puede deshacer.'}
           </p>
           {!deleteOpen ? (
             <button
@@ -205,7 +215,7 @@ export default function LeagueSettingsTab({
               onClick={() => setDeleteOpen(true)}
             >
               <Trash2 size={15} aria-hidden="true" />
-              Eliminar liga
+              {isTournament ? 'Eliminar torneo' : 'Eliminar liga'}
             </button>
           ) : (
             <div className="league-admin-delete">

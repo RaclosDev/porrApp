@@ -7,11 +7,9 @@ import app.porrapp.dto.OrganizedTournamentDTO.*;
 import app.porrapp.model.Membership;
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.*;
-import app.porrapp.service.league.LeagueMembershipService;
 import app.porrapp.service.sync.SyncService;
 import app.porrapp.service.tournament.OrganizedTournamentService;
 import app.porrapp.service.tournament.TopScorerService;
-import app.porrapp.exception.BusinessException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +40,6 @@ class OrganizedTournamentIntegrationTest {
     @Autowired UserAccountRepository users;
     @Autowired LeagueRepository leagues;
     @Autowired MembershipRepository tournamentMemberships;
-    @Autowired LeagueMembershipService memberships;
     @Autowired TournamentResultChangeRepository changes;
     @Autowired JwtUtil jwt;
     @LocalServerPort int port;
@@ -78,7 +75,6 @@ class OrganizedTournamentIntegrationTest {
         assertThat(send("GET", "/api/tournaments/" + id, outsider, null).statusCode()).isEqualTo(403);
         assertThat(send("PUT", "/api/tournaments/" + id + "/publication", outsider, new Publication(0, true)).statusCode()).isEqualTo(403);
         assertThat(send("PUT", "/api/tournaments/" + id + "/publication", null, new Publication(0, true)).statusCode()).isEqualTo(401);
-        assertThatThrownBy(() -> memberships.join(id, outsider.getGoogleEmail())).isInstanceOf(BusinessException.class);
         t = service.addParticipant(owner.getGoogleEmail(), id, new ParticipantInput(t.revision(), "Pareja A"));
         t = service.addParticipant(owner.getGoogleEmail(), id, new ParticipantInput(t.revision(), "Pareja B"));
         t = service.generate(owner.getGoogleEmail(), id, new Schedule(t.revision(), "LEAGUE", "SEEDED", 1, 3, 1, 0));
@@ -94,6 +90,42 @@ class OrganizedTournamentIntegrationTest {
         assertThat(leagues.findById(id).orElseThrow().isPublicLeague()).isFalse();
         service.publish(owner.getGoogleEmail(), id, new Publication(t.revision(), false));
         assertThat(send("GET", publicPath, null, null).statusCode()).isEqualTo(404);
+    }
+
+    @Test
+    void invitationGrantsReadOnlyAccessAndOwnerCanDeleteTheTournament() throws Exception {
+        UserAccount owner = user("owner"), guest = user("guest");
+        OrganizedTournamentDTO tournament = service.create(owner.getGoogleEmail(),
+                new Create("Copa privada", "Póker", "INDIVIDUAL", UUID.randomUUID()));
+        Long id = tournament.id();
+        String code = leagues.findById(id).orElseThrow().getJoinCode();
+        String detail = "/api/tournaments/" + id;
+        String group = "/api/groups/" + id;
+        String publicPath = "/api/tournaments/public/" + tournament.publicId();
+
+        HttpResponse<String> preview = send("GET", "/api/groups/preview/" + code, null, null);
+        assertThat(preview.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(preview.body()).path("kind").asText()).isEqualTo("TOURNAMENT");
+        assertThat(send("GET", detail, guest, null).statusCode()).isEqualTo(403);
+        assertThat(send("POST", "/api/groups/join", guest, Map.of("joinCode", code)).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> view = send("GET", detail, guest, null);
+        assertThat(view.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(view.body()).path("canEdit").asBoolean()).isFalse();
+        assertThat(json.readTree(view.body()).path("publicId").isNull()).isTrue();
+        assertThat(json.readTree(send("GET", "/api/groups/mine", guest, null).body()).findValuesAsText("id"))
+                .contains(id.toString());
+        assertThat(send("GET", publicPath, null, null).statusCode()).isEqualTo(404);
+        assertThat(send("POST", detail + "/participants", guest, new ParticipantInput(0, "Intruso")).statusCode())
+                .isEqualTo(403);
+        assertThat(send("DELETE", group, guest, null).statusCode()).isEqualTo(403);
+
+        service.publish(owner.getGoogleEmail(), id, new Publication(0, true));
+        assertThat(send("GET", publicPath, null, null).statusCode()).isEqualTo(200);
+        assertThat(send("DELETE", group, owner, null).statusCode()).isEqualTo(200);
+        assertThat(send("GET", detail, guest, null).statusCode()).isEqualTo(404);
+        assertThat(send("GET", publicPath, null, null).statusCode()).isEqualTo(404);
+        assertThat(send("GET", "/api/groups/preview/" + code, null, null).statusCode()).isEqualTo(404);
     }
 
     @Test

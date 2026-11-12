@@ -42,7 +42,6 @@ public class LeagueMembershipService {
         
         League group = leagueRepository.findById(groupId).orElse(null);
         if (group == null) return;
-        if (group.isTournament()) throw BusinessException.badRequest("Este torneo se consulta mediante su enlace público. No necesitas unirte.");
 
         if (group.isPoker()) leagueRepository.findWithLockById(groupId)
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));

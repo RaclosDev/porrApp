@@ -34,7 +34,8 @@ export interface OrganizedTournament {
   participantType: 'INDIVIDUAL' | 'TEAM' | 'PAIR';
   format: 'MANUAL' | 'LEAGUE' | 'KNOCKOUT';
   published: boolean;
-  publicId: string;
+  publicId: string | null;
+  canEdit: boolean;
   revision: number;
   winPoints: number;
   drawPoints: number;

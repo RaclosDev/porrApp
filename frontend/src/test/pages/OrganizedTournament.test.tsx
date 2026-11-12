@@ -29,6 +29,7 @@ const fixture = (): OrganizedTournament => ({
   participantType: 'PAIR',
   format: 'LEAGUE',
   published: false,
+  canEdit: true,
   publicId: 'public-key',
   revision: 3,
   winPoints: 3,
@@ -270,4 +271,17 @@ it('supports results without a score, dates and deliberate result clearing', asy
     awayScore: null,
     outcome: null,
   });
+});
+
+it('shows the private tournament to invited members without editing or publishing controls', async () => {
+  vi.mocked(fetchOrganizedTournament).mockResolvedValue({
+    ...fixture(),
+    canEdit: false,
+    publicId: null,
+  });
+  renderPage();
+  expect(await screen.findByRole('heading', { name: 'Copa de verano' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Publicar torneo' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Participantes y formato' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Editar encuentro/ })).toBeNull();
 });

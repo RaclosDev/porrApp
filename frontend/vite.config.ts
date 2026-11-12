@@ -144,8 +144,8 @@ export default defineConfig({
         ws: true,
       },
       // Permite probar la imagen de invitación contra el backend local.
-      '/join': {
-        target: 'http://localhost:8080',
+      '^/join/[^/]+/image\\.png(?:\\?|$)': {
+        target: process.env.API_PROXY_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
     },

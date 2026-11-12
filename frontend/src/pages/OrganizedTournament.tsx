@@ -34,11 +34,12 @@ export default function OrganizedTournament({ publicView = false }: { publicView
   const [round, setRound] = useState(1);
   const [selection, setSelection] = useState<{ id: string; tab: TournamentTab } | null>(null);
   const t = query.data;
+  const canEdit = !publicView && t?.canEdit === true;
   if (t && selection?.id !== id) {
     setSelection({ id, tab: t.matches.length ? 'results' : 'setup' });
   }
   const update: TournamentUpdate = async (path, method, data) => {
-    if (!t || saving.current || publicView) return false;
+    if (!t || saving.current || !canEdit) return false;
     saving.current = true;
     setBusy(true);
     setError('');
@@ -133,7 +134,7 @@ export default function OrganizedTournament({ publicView = false }: { publicView
           )}
           {match.venue && <> · {match.venue}</>}
         </p>
-        {!publicView && !match.bye && (
+        {canEdit && !match.bye && (
           <button
             className="glass-btn"
             disabled={busy}
@@ -171,14 +172,16 @@ export default function OrganizedTournament({ publicView = false }: { publicView
         {publicView ? (
           <p>Resultados del organizador. Se actualizan cada 30 segundos.</p>
         ) : (
-          <p>
-            {t.published
-              ? 'Publicado: cualquiera con el enlace puede consultarlo.'
-              : 'Borrador. La página pública estará disponible cuando lo publiques.'}
-          </p>
+          canEdit && (
+            <p>
+              {t.published
+                ? 'Publicado: cualquiera con el enlace puede consultarlo.'
+                : 'Borrador. La página pública estará disponible cuando lo publiques.'}
+            </p>
+          )
         )}
       </header>
-      {!publicView && (
+      {canEdit && (
         <section className="paper-panel album-sheet tournament-section">
           <div className="tournament-actions">
             <button
@@ -255,7 +258,7 @@ export default function OrganizedTournament({ publicView = false }: { publicView
       <p className="tournament-notice" role="status">
         {busy ? 'Guardando…' : notice}
       </p>
-      {!publicView && (
+      {canEdit && (
         <nav className="tournament-actions" aria-label="Secciones del torneo">
           <button
             className="glass-btn"
@@ -273,7 +276,7 @@ export default function OrganizedTournament({ publicView = false }: { publicView
           </button>
         </nav>
       )}
-      {!publicView && activeTab === 'setup' ? (
+      {canEdit && activeTab === 'setup' ? (
         <TournamentSetup tournament={t} update={update} busy={busy} />
       ) : (
         <>
@@ -286,18 +289,18 @@ export default function OrganizedTournament({ publicView = false }: { publicView
             <div className="paper-panel album-sheet tournament-section">
               <h2>Encuentros por anunciar</h2>
               <p>
-                {publicView
+                {!canEdit
                   ? 'El organizador todavía está preparando el calendario.'
                   : 'Añade participantes y genera una liga o un cuadro, o introduce los encuentros a mano.'}
               </p>
-              {!publicView && (
+              {canEdit && (
                 <button className="glass-btn primary-btn" onClick={() => setTab('setup')}>
                   Preparar torneo
                 </button>
               )}
             </div>
           )}
-          {currentMatch && !publicView && (
+          {currentMatch && canEdit && (
             <section
               className="paper-panel album-sheet tournament-section"
               aria-label="Editar encuentro"
