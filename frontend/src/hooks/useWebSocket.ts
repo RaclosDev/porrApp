@@ -53,6 +53,8 @@ const INVALIDATION_BASE_DELAY_MS = 100;
 const leagueKeys = (leagueId: string | number, isMine: boolean) => [
   queryKeys.group(leagueId),
   queryKeys.groupMembers(leagueId),
+  queryKeys.poker(leagueId),
+  ['organizedTournament', 'admin', String(leagueId)],
   queryKeys.leagueScoring(leagueId),
   queryKeys.predictions(leagueId),
   queryKeys.leaderboard(leagueId),

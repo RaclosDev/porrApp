@@ -159,6 +159,28 @@ class LeagueAccessMatrixIntegrationTest {
         assertThat(allowed).as("cambios permitidos a quien no administra la liga").isEmpty();
     }
 
+    @Test
+    void secondaryAdminsManagePredictionsWithoutTakingOwnership() throws Exception {
+        var creator = user("creator-roles@test.invalid", "Creador");
+        var delegate = user("delegate-roles@test.invalid", "Admin secundario");
+        var league = leagueService.createLeague(NewLeague.custom("Liga delegada", creator.getGoogleEmail(),
+                "Competición delegada", PoolFormat.MATCH_DAY).withPichichi(false));
+        membershipService.join(league.getId(), delegate.getGoogleEmail());
+        String token = jwtUtil.generateAccessToken(delegate.getId(), delegate.getGoogleEmail());
+        String base = "/api/groups/" + league.getId();
+        // Carga la caché antes de cambiar permisos para comprobar también su invalidación.
+        assertThat(send(request(base).GET(), token).statusCode()).isEqualTo(200);
+        membershipService.setRole(league.getId(), delegate.getId(), creator.getGoogleEmail(), "ADMIN");
+        var rename = request(base).PUT(HttpRequest.BodyPublishers.ofString("{\"name\":\"Nueva liga\"}"))
+                .header("Content-Type", "application/json");
+        assertThat(send(rename, token).statusCode()).isEqualTo(200);
+        assertThat(send(request(base).DELETE(), token).statusCode()).isEqualTo(403);
+        assertThat(send(request(base + "/members/" + creator.getId()).DELETE(), token).statusCode()).isEqualTo(400);
+        assertThat(leagueService.getLeagueById(league.getId()).orElseThrow().getAdminUserId()).isEqualTo(creator.getId());
+        membershipService.setRole(league.getId(), delegate.getId(), creator.getGoogleEmail(), "MEMBER");
+        assertThat(send(rename, token).statusCode()).isEqualTo(403);
+    }
+
     private UserAccount user(String email, String name) {
         return users.save(UserAccount.builder().googleEmail(email).googleName(name).participantName(name).build());
     }

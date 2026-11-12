@@ -11,6 +11,7 @@ function tournament(): OrganizedTournament {
     participantType: 'TEAM',
     format: 'MANUAL',
     published: false,
+    canEdit: true,
     publicId: '742048c5-c4b6-4bcc-ab10-2ebcc48e91cf',
     revision: 0,
     winPoints: 3,
@@ -108,7 +109,10 @@ test('organizer creates, generates, scores and shares a tournament on mobile', a
   await page.getByLabel('Deporte o juego').fill(state.activity);
   await page.getByRole('button', { name: 'Crear torneo', exact: true }).click();
   await expect(page).toHaveURL(/\/torneos\/42$/);
-  await page.getByRole('button', { name: 'Preparar torneo', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Participantes y formato' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   for (const name of ['Las Encinas', 'Los Olivos']) {
     await page.getByLabel('Nombre del participante', { exact: true }).fill(name);
     await page.getByRole('button', { name: 'Añadir', exact: true }).click();
@@ -209,7 +213,7 @@ test('stale edits show the conflict and reload the latest participants', async (
   const state = tournament();
   await mockTournament(page, state);
   await page.goto('/torneos/42');
-  await page.getByRole('button', { name: 'Preparar torneo', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Nombre del participante' })).toBeVisible();
   state.revision++;
   state.participants.push({ id: 'external', name: 'Equipo añadido desde otro móvil' });
   await page.getByLabel('Nombre del participante', { exact: true }).fill('Mi equipo');

@@ -61,6 +61,7 @@ function PredictionViewer(props: PredictionViewerProps) {
     none: null,
     unknown: null,
     scoreboard: null,
+    poker: null,
     tournament: null,
   };
   return viewers[leagueKind];

@@ -93,7 +93,6 @@ public class LeagueScoringService {
     }
 
     private static boolean isAdmin(League league, String email) {
-        String adminEmail = league.getAdminUser() != null ? league.getAdminUser().getGoogleEmail() : null;
-        return email != null && adminEmail != null && adminEmail.equalsIgnoreCase(email);
+        return league != null && league.isAdmin(email);
     }
 }

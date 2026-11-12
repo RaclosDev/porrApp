@@ -29,6 +29,7 @@ const fixture = (): OrganizedTournament => ({
   participantType: 'PAIR',
   format: 'LEAGUE',
   published: false,
+  canEdit: true,
   publicId: 'public-key',
   revision: 3,
   winPoints: 3,
@@ -133,6 +134,22 @@ it('publishes using the loaded revision and shows a shareable link', async () =>
   expect(screen.getByLabelText('Enlace público')).toHaveValue(
     `${window.location.origin}/t/public-key`,
   );
+});
+
+it('opens an empty tournament directly in setup', async () => {
+  vi.mocked(fetchOrganizedTournament).mockResolvedValue({
+    ...fixture(),
+    participants: [],
+    matches: [],
+    standings: [],
+  });
+  renderPage();
+
+  expect(await screen.findByRole('button', { name: 'Participantes y formato' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(screen.getByRole('textbox', { name: 'Nombre del participante' })).toBeVisible();
 });
 
 it('keeps a rejected result visible and reloads after a conflict', async () => {
@@ -254,4 +271,17 @@ it('supports results without a score, dates and deliberate result clearing', asy
     awayScore: null,
     outcome: null,
   });
+});
+
+it('shows the private tournament to invited members without editing or publishing controls', async () => {
+  vi.mocked(fetchOrganizedTournament).mockResolvedValue({
+    ...fixture(),
+    canEdit: false,
+    publicId: null,
+  });
+  renderPage();
+  expect(await screen.findByRole('heading', { name: 'Copa de verano' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Publicar torneo' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Participantes y formato' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Editar encuentro/ })).toBeNull();
 });

@@ -356,7 +356,7 @@ export interface Group {
   id: number;
   name: string;
   /** Clase de liga: porra de predicciones o marcador de juegos de mesa. Sin dato, una porra. */
-  kind?: 'POOL' | 'SCOREBOARD' | 'TOURNAMENT';
+  kind?: 'POOL' | 'SCOREBOARD' | 'TOURNAMENT' | 'POKER';
   joinCode: string | null;
   /** Liga pública: cualquiera puede consultarla sin ser miembro. */
   publicLeague?: boolean;
@@ -364,6 +364,8 @@ export interface Group {
   entryFee?: boolean;
   adminParticipantName: string | null;
   adminUserId: number | null;
+  adminUserIds?: number[];
+  organizerUserIds?: number[];
   createdAt: string | null;
   /** Cuándo se unió el usuario (solo en sus ligas, `/groups/mine`). */
   joinedAt?: string | null;
@@ -693,6 +695,7 @@ export interface GroupMember {
   userId: number;
   participantName: string;
   role: string;
+  creator?: boolean;
   /** null en las ligas públicas, que no tienen pagos. */
   paymentStatus: PaymentStatus | null;
   joinedAt: string | null;

@@ -32,7 +32,9 @@ class FlywayFreshDatabaseTest {
         Flyway.configure().dataSource(url, POSTGRES.getUsername(), POSTGRES.getPassword())
                 .locations("classpath:db/migration").target("57").load().migrate();
 
-        assertThat(flyway(url).migrate().migrationsExecuted).isEqualTo(4);
+        Flyway upgrade = flyway(url);
+        MigrationInfo[] pending = upgrade.info().pending();
+        assertThat(upgrade.migrate().migrationsExecuted).isEqualTo(pending.length);
 
         try (Connection c = DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
              Statement st = c.createStatement()) {
@@ -40,6 +42,7 @@ class FlywayFreshDatabaseTest {
             assertThat(queryLong(st, "SELECT count(*) FROM push_device_states")).isZero();
             assertThat(queryLong(st, "SELECT count(*) FROM organized_tournaments")).isZero();
             assertThat(queryLong(st, "SELECT count(*) FROM tournament_result_changes")).isZero();
+            assertThat(queryLong(st, "SELECT count(*) FROM poker_sessions")).isZero();
             assertThat(queryLong(st, "SELECT count(*) FROM push_subscriptions WHERE receipts_enabled")).isZero();
         }
     }

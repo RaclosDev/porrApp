@@ -104,7 +104,7 @@ class LeagueServiceTest {
         membership.setJoinedAt(joined);
         when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
         when(membershipRepository.findByUserId(2L)).thenReturn(List.of(membership));
-        when(leagueRepository.findAllById(java.util.Set.of(10L))).thenReturn(List.of(league));
+        when(leagueRepository.findAllForUserDashboard(member.getId())).thenReturn(List.of(league));
         when(editionRepository.findByLeagueIdInAndStatus(List.of(10L), "ACTIVE")).thenReturn(List.of());
 
         var mine = leagueService.getUserLeagueDTOs("member@test.com");
@@ -378,7 +378,7 @@ class LeagueServiceTest {
     @Test
     @DisplayName("Una liga privada no existe para quien no es miembro, ni con sesión ni sin ella")
     void nonMemberCannotSeePrivateLeague() {
-        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(leagueRepository.findWithPermissionsById(10L)).thenReturn(Optional.of(league));
         when(userAccountRepository.findByGoogleEmail("stranger@test.com")).thenReturn(Optional.of(stranger));
         when(membershipRepository.existsById(new Membership.MembershipId(3L, 10L))).thenReturn(false);
 
@@ -390,7 +390,7 @@ class LeagueServiceTest {
     @DisplayName("Un miembro ve la liga completa con su código")
     void memberGetsFullLeague() {
         league.setRules("Reglas internas");
-        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(leagueRepository.findWithPermissionsById(10L)).thenReturn(Optional.of(league));
         when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));
         when(membershipRepository.existsById(new Membership.MembershipId(2L, 10L))).thenReturn(true);
 

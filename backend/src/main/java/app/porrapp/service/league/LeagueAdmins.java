@@ -14,7 +14,7 @@ final class LeagueAdmins {
     static League require(LeagueRepository leagues, Long leagueId, String email) {
         League league = leagues.findById(leagueId)
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        if (!league.getAdminUser().getGoogleEmail().equalsIgnoreCase(email)) {
+        if (!league.isAdmin(email)) {
             throw BusinessException.forbidden("No tienes permiso para administrar esta liga.");
         }
         return league;

@@ -47,6 +47,7 @@ function MatchdayPredictor() {
     // Liga de juegos de mesa: no hay predicciones; su inicio es el marcador.
     scoreboard: <Navigate to="/" replace />,
     tournament: <Navigate to="/" replace />,
+    poker: <Navigate to="/" replace />,
     matchday: league,
     fightCard: league,
     tennisDraw: league,

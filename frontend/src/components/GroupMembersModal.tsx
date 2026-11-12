@@ -38,8 +38,11 @@ import { queryKeys } from '../services/queryKeys';
 export default function GroupMembersModal({
   groupId,
   groupName,
+  isTournament = false,
   currentJoinCode,
-  isAdmin,
+  isAdmin: initialIsAdmin,
+  leagueKind,
+  creatorUserId,
   currentUserId = null,
   initialRules = '',
   imageUrl = null,
@@ -55,8 +58,11 @@ export default function GroupMembersModal({
 }: {
   groupId: number;
   groupName: string;
+  isTournament?: boolean;
   currentJoinCode: string | null | undefined;
   isAdmin: boolean;
+  leagueKind?: string;
+  creatorUserId?: number | string | null;
   currentUserId?: string | number | null;
   initialRules?: string;
   imageUrl?: string | null;
@@ -86,9 +92,16 @@ export default function GroupMembersModal({
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const scoringEditor = useScoringEditor(groupId, isAdmin);
   const membersAdmin = useLeagueMembersAdmin(groupId, setActionError);
   const { members } = membersAdmin;
+  const currentMember = members.find((member) => String(member.userId) === String(currentUserId));
+  const isAdmin = currentMember
+    ? Boolean(currentMember.creator || currentMember.role === 'ADMIN')
+    : initialIsAdmin;
+  const scoringEditor = useScoringEditor(groupId, isAdmin && !isTournament);
+  const isCreator =
+    currentUserId != null &&
+    (currentMember?.creator ?? String(creatorUserId) === String(currentUserId));
   const invite = useInviteCode({
     groupId,
     groupName,
@@ -251,9 +264,10 @@ export default function GroupMembersModal({
       extra: rulesDirty && <UnsavedDot />,
     },
   ];
+  const visibleTabs = isTournament ? adminTabs.filter(({ id }) => id !== 'scoring') : adminTabs;
 
   const handleTabKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
-    const ids = adminTabs.map((item) => item.id);
+    const ids = visibleTabs.map((item) => item.id);
     const index = ids.indexOf(tab);
     const keys: Record<string, number> = {
       ArrowRight: (index + 1) % ids.length,
@@ -287,14 +301,18 @@ export default function GroupMembersModal({
               ) : (
                 <Users size={12} aria-hidden="true" />
               )}
-              {isAdmin ? 'Administrar liga' : 'Participantes'}
+              {isAdmin
+                ? isTournament
+                  ? 'Administrar torneo'
+                  : 'Administrar liga'
+                : 'Participantes'}
             </span>
             <h2 id="league-admin-title" className="league-admin-title">
               {groupName}
             </h2>
             <p className="league-admin-subtitle">
               {members.length} {members.length === 1 ? 'participante' : 'participantes'}
-              {isAdmin ? ' · Pagos e invitaciones' : ''}
+              {isAdmin && (isTournament ? ' · Invitaciones' : ' · Pagos e invitaciones')}
             </p>
           </div>
           <button
@@ -309,7 +327,7 @@ export default function GroupMembersModal({
 
         {isAdmin && (
           <div className="league-admin-tabs" role="tablist" aria-label="Secciones de la liga">
-            {adminTabs.map((item) => (
+            {visibleTabs.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -347,6 +365,8 @@ export default function GroupMembersModal({
               {...invite}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
+              isCreator={isCreator}
+              supportsOrganizers={isTournament || leagueKind === 'POKER'}
               setActionError={setActionError}
               entryFee={entryFee}
               entryFeeSaving={entryFeeMutation.isPending}
@@ -357,6 +377,8 @@ export default function GroupMembersModal({
           {currentTab !== 'members' && (
             <LeagueSettingsTab
               section={currentTab}
+              isTournament={isTournament}
+              canDelete={isCreator}
               deleteConfirmName={deleteConfirmName}
               deleteOpen={deleteOpen}
               deleting={deleting}

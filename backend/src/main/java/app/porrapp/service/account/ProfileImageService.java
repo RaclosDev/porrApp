@@ -121,9 +121,7 @@ public class ProfileImageService {
     private League requireLeagueAdmin(Long groupId, String email) {
         League league = leagueRepository.findById(groupId)
                 .orElseThrow(() -> BusinessException.notFound("Liga no encontrada"));
-        UserAccount admin = league.getAdminUser();
-        if (email == null || admin == null || admin.getGoogleEmail() == null
-                || !admin.getGoogleEmail().equalsIgnoreCase(email)) {
+        if (!league.isAdmin(email)) {
             throw BusinessException.forbidden("Solo el administrador de la liga puede cambiar su imagen.");
         }
         return league;
