@@ -200,6 +200,10 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
   await expect(page).toHaveURL('/poker/historico');
   const winner = page.getByRole('row', { name: /Ana/ });
   await expect(winner).toContainText('18,00');
+  const tip = page.getByRole('dialog', { name: /Propina para el crupier/ });
+  await expect(tip).toBeVisible();
+  await tip.getByRole('button', { name: 'Cerrar' }).click();
+  await expect(tip).toBeHidden();
   await nav.getByRole('link', { name: 'Estadísticas' }).click();
   await expect(winner).toContainText('100');
   await expect(page.getByRole('row', { name: /Luis/ })).toContainText('3,00');
