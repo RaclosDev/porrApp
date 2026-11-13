@@ -42,6 +42,23 @@ describe('ContentPage', () => {
     expect(totals()).toHaveTextContent('Total1822 ★ (va ganando)19');
   });
 
+  it('la página de timbas de póker explica el reloj, el bote y el reparto, y enlaza al resto', () => {
+    renderPage('/timbas-de-poker');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      'Organiza la timba de póker desde el móvil.',
+    );
+    for (const heading of [
+      'Reloj de ciegas que no se para',
+      'Reparto de premios sin discusiones',
+    ]) {
+      expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
+    }
+    expect(screen.getByText('¿PorrApp mueve el dinero de la timba?')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: 'Apuntar puntos de juegos de mesa' })[0],
+    ).toHaveAttribute('href', '/apuntar-puntos-juegos-de-mesa');
+  });
+
   it('shows phone screenshots of a UFC league under the headline, with fixed size and alt text', () => {
     renderPage('/porra-ufc');
 
