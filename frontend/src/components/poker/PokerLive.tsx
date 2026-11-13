@@ -19,6 +19,7 @@ import PokerPrizeShares, {
   type PrizeDraft,
 } from './PokerPrizeShares';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
+import { usePokerAlerts } from './usePokerAlerts';
 
 interface Props {
   session: PokerSession;
@@ -80,6 +81,13 @@ export default function PokerLive({
       sum + startingChips + entry.rebuys * (rebuy?.chips ?? 0) + entry.addOns * (addOn?.chips ?? 0),
     0,
   );
+
+  const { soundOn, toggleSound } = usePokerAlerts({
+    running: Boolean(clock && clock.endsAt !== null && !winner),
+    level: clock ? clock.level : null,
+    onBreak: clock ? levels[clock.level]?.big === 0 : false,
+    remainingMs: clock ? clock.remainingMs : null,
+  });
 
   useEffect(() => {
     if (session.clock?.endsAt == null || winner) return;
@@ -340,6 +348,14 @@ export default function PokerLive({
               {levels[clock.level + 1] && (
                 <p className="poker-next">Siguiente · {blinds(levels[clock.level + 1])}</p>
               )}
+              <button
+                type="button"
+                className="glass-btn"
+                aria-pressed={soundOn}
+                onClick={toggleSound}
+              >
+                {soundOn ? 'Sonido activado' : 'Sonido silenciado'}
+              </button>
               {owner && (
                 <div className="poker-actions poker-clock-actions">
                   <button
