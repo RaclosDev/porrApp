@@ -1317,3 +1317,51 @@
   padding-top: 14px;
   border-top: 1px dashed rgba(255, 255, 255, 0.18);
 }
+
+/* Selector del reparto: porcentaje del bote o cantidades fijas. */
+.poker-prize-mode {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 10px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+.poker-prize-mode button {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.poker-prize-mode button.is-active {
+  background: color-mix(in srgb, var(--accent-cyan) 18%, transparent);
+  color: var(--text-main);
+}
+
+.poker-prize-mode button:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* Cierre con reparto editable: más ancho que una confirmación y con scroll si no cabe. */
+.league-admin-confirm-dialog.poker-close-dialog {
+  max-width: 440px;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+
+.poker-close-dialog .poker-form {
+  text-align: left;
+}
+
+.poker-close-dialog .poker-share-fields {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr));
+}

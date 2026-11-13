@@ -132,8 +132,8 @@ export default function PokerSettingsForm({
       <fieldset className="poker-fieldset">
         <legend>Reparto de premios</legend>
         <PokerPrizeShares
-          shares={draft.prizeShares}
-          onChange={(prizeShares) => patch({ prizeShares })}
+          draft={{ mode: 'percent', values: draft.prizeShares }}
+          onChange={({ values }) => patch({ prizeShares: values })}
         />
       </fieldset>
 

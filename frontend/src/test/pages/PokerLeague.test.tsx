@@ -12,6 +12,9 @@ import { request } from '../../services/http';
 import { confirmAction } from '../../utils/confirmAction';
 import { euros } from '../../components/poker/pokerFormat';
 
+/** Importe como lo deja toHaveTextContent, que normaliza el espacio no separable. */
+const money = (cents: number) => euros(cents).replace(/\s/g, ' ');
+
 vi.mock('../../services/http', () => ({ request: vi.fn() }));
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
 const api = vi.mocked(request);
@@ -273,9 +276,13 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   expect(onCommand).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
   click('Cerrar torneo');
   vi.useRealTimers();
-  await waitFor(() => expect(onCommand).toHaveBeenLastCalledWith('CLOSE'));
-  expect(confirmAction).toHaveBeenLastCalledWith(
-    expect.objectContaining({ details: [`1.º Ana · ${euros(2100)}`, `2.º Luis · ${euros(900)}`] }),
+  const dialog = screen.getByRole('dialog', { name: '¿Cerrar el torneo?' });
+  expect(within(dialog).getByRole('list', { name: 'Premios que se guardarán' })).toHaveTextContent(
+    `1.º Ana · ${money(2100)}2.º Luis · ${money(900)}`,
+  );
+  click('Cerrar y guardar');
+  await waitFor(() =>
+    expect(onCommand).toHaveBeenLastCalledWith('CLOSE', undefined, { prizeShares: [70, 30] }),
   );
 });
 
@@ -380,9 +387,8 @@ it('reutiliza las reglas del torneo anterior', async () => {
   );
 });
 
-it('finaliza con las fichas de los supervivientes y exige cuadrar el total', async () => {
+it('finaliza con las fichas de los supervivientes y deja ajustar el reparto antes de guardar', async () => {
   const command = vi.fn().mockResolvedValue(undefined);
-  vi.mocked(confirmAction).mockResolvedValue(true);
   render(
     <PokerLive
       session={{
@@ -399,12 +405,25 @@ it('finaliza con las fichas de los supervivientes y exige cuadrar el total', asy
     />,
   );
   click('Finalizar torneo');
-  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeDisabled();
   set('Fichas de Ana', '20000');
   expect(screen.getByLabelText('Fichas de Luis', { exact: false })).toHaveValue(10000);
   set('Fichas de Luis', '5000');
-  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeDisabled();
   set('Fichas de Luis', '10000');
+  click('Revisar premios y finalizar');
+
+  const dialog = screen.getByRole('dialog', { name: '¿Finalizar el torneo?' });
+  const prizes = () => within(dialog).getByRole('list', { name: 'Premios que se guardarán' });
+  expect(prizes()).toHaveTextContent(`1.º Ana · ${money(2100)}2.º Luis · ${money(900)}`);
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cantidad (€)' }));
+  expect(within(dialog).getByLabelText('1.º Ana (€)')).toHaveValue(21);
+  set('1.º Ana (€)', '25', within(dialog));
+  expect(dialog).toHaveTextContent(`supera el bote en ${money(400)}`);
+  expect(within(dialog).getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  set('2.º Luis (€)', '4', within(dialog));
+  expect(dialog).toHaveTextContent(`sobran ${money(100)}, que se suman al 1.º puesto`);
+  expect(prizes()).toHaveTextContent(`1.º Ana · ${money(2600)}2.º Luis · ${money(400)}`);
   click('Finalizar y guardar');
   await waitFor(() =>
     expect(command).toHaveBeenCalledWith('CLOSE', undefined, {
@@ -412,10 +431,40 @@ it('finaliza con las fichas de los supervivientes y exige cuadrar el total', asy
         { playerId: 1, chips: 20000 },
         { playerId: 2, chips: 10000 },
       ],
+      prizeAmounts: [2500, 400],
     }),
   );
-  expect(confirmAction).toHaveBeenLastCalledWith(
-    expect.objectContaining({ details: [`1.º Ana · ${euros(2100)}`, `2.º Luis · ${euros(900)}`] }),
+});
+
+it('reparte en cantidades fijas durante el juego y avisa del resto', async () => {
+  const command = vi.fn().mockResolvedValue(undefined);
+  render(
+    <PokerLive
+      session={{ ...session, startedAt: 1, clock: { level: 0, endsAt: null, remainingMs: 1000 } }}
+      owner
+      busy={false}
+      serverNow={1000}
+      receivedAt={Date.now()}
+      onCommand={command}
+    />,
+  );
+  click('Cambiar reparto');
+  click('Cantidad (€)');
+  expect(screen.getByRole('button', { name: 'Cantidad (€)' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  set('Puesto 1 (€)', '15');
+  expect(screen.getByText(/Reparto total/)).toHaveTextContent(
+    `sobran ${money(600)}, que se suman al 1.º puesto`,
+  );
+  expect(screen.getByText(/Quedaría/)).toHaveTextContent(`1.º ${money(2100)} · 2.º ${money(900)}`);
+  set('Puesto 2 (€)', '20');
+  expect(screen.getByRole('button', { name: 'Guardar reparto' })).toBeDisabled();
+  set('Puesto 2 (€)', '9.5');
+  click('Guardar reparto');
+  await waitFor(() =>
+    expect(command).toHaveBeenCalledWith('SET_PRIZES', undefined, { prizeAmounts: [1500, 950] }),
   );
 });
 
@@ -482,10 +531,10 @@ it('calcula el ultimo jugador y recalcula al corregir los otros importes', () =>
   expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(7000);
   set('Fichas de Ana', '30000');
   expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(null);
-  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeDisabled();
   set('Fichas de Ana', '22000');
   expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(0);
-  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeEnabled();
 });
 
 it('abre las acciones desde la foto y respeta permisos y extras disponibles', () => {

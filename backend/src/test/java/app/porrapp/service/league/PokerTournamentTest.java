@@ -102,6 +102,42 @@ class PokerTournamentTest {
         assertThat(session.getSettings().prizeShares()).containsExactly(50, 30, 20);
     }
 
+    @Test
+    void fixedAmountsGiveTheRemainderToTheWinnerAndNeverExceedThePot() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.SET_PRIZES, 0L, null, null, null, List.of(150L, 100L)), 1000);
+        assertThat(session.getSettings().prizeAmounts()).containsExactly(150L, 100L);
+        assertThat(session.getSettings().prizeShares()).containsExactly(70, 30);
+        assertThat(PokerTournament.view(session, 1000).prizes()).containsExactly(203L, 100L);
+        for (var amounts : List.of(List.of(300L, 4L), List.of(1L, 1L, 1L, 1L))) {
+            assertThatThrownBy(() -> PokerTournament.apply(session,
+                    new Command(Action.SET_PRIZES, 0L, null, null, null, amounts), 1000))
+                    .isInstanceOf(BusinessException.class);
+        }
+        assertThatThrownBy(() -> PokerTournament.apply(session,
+                new Command(Action.SET_PRIZES, 0L, null, null, List.of(100), List.of(303L)), 1000))
+                .isInstanceOf(BusinessException.class);
+
+        PokerTournament.apply(session, new Command(Action.SET_PRIZES, 0L, null, null, List.of(100)), 1000);
+        assertThat(session.getSettings().prizeAmounts()).isNull();
+        assertThat(PokerTournament.view(session, 1000).prizes()).containsExactly(303L);
+    }
+
+    @Test
+    void closingSavesTheAgreedPrizes() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100)), null, List.of(200L, 103L)), 1000);
+        assertThat(PokerTournament.view(session, 1000).results())
+                .extracting(Result::prizeCents).containsExactly(200L, 103L, 0L);
+
+        var tooMuch = activeSession();
+        assertThatThrownBy(() -> PokerTournament.apply(tooMuch, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100)), null, List.of(300L, 100L)), 1000))
+                .isInstanceOf(BusinessException.class);
+        assertThat(tooMuch.getClosedAt()).isNull();
+    }
+
     private PokerSession activeSession() {
         var session = new PokerSession();
         session.setId(1L);
