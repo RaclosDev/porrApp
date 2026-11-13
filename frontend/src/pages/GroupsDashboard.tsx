@@ -130,12 +130,6 @@ export default function GroupsDashboard() {
           <h2 className="sr-only">Mis ligas</h2>
         </div>
         <div className="flex gap-2.5 flex-wrap">
-          <Link
-            to="/torneos/nuevo"
-            className="glass-btn py-2 px-4 font-bold inline-flex items-center min-h-11"
-          >
-            Organizar torneo
-          </Link>
           <button
             type="button"
             onClick={() => setShowJoinModal((prev) => !prev)}
