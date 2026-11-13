@@ -66,9 +66,9 @@ export interface ContentPage extends PageMeta {
 }
 
 export const HOME_META: PageMeta = {
-  title: 'Porra con amigos gratis: fútbol, F1, UFC y más · PorrApp',
+  title: 'Porra entre amigos gratis: fútbol, F1, UFC y más · PorrApp',
   description:
-    'Crea gratis una porra con tus amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos.',
+    'Crea gratis una porra entre amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos.',
 };
 
 /** Textos de la portada que también van en su HTML prerenderizado. */
@@ -1175,6 +1175,100 @@ export const CONTENT_PAGES: ContentPage[] = [
           "Sí. El reloj de ciegas, las recompras y el reparto de premios valen para cualquier torneo de fichas: Texas Hold'em, Omaha o la variante que juguéis en casa.",
       },
     ],
+  },
+  {
+    path: '/porra-entre-amigos',
+    navLabel: 'Porra entre amigos',
+    title: 'Porra entre amigos gratis: crea la tuya en un minuto · PorrApp',
+    description:
+      'Monta una porra entre amigos de fútbol, F1, UFC, NBA o tenis. Liga privada, invitación por enlace y clasificación automática. Gratis, sin descargas ni anuncios.',
+    h1: 'Una porra entre amigos,',
+    h1Marked: 'sin hojas de cálculo.',
+    lede: 'Crea una liga privada, pasa el enlace por el grupo de WhatsApp y cada uno hace sus predicciones desde el móvil. Los puntos y la clasificación se calculan solos con los resultados reales.',
+    sections: [
+      {
+        heading: 'Para qué sirve una porra entre amigos',
+        paragraphs: [
+          'Una porra entre amigos es un pique sano: todos predecís los mismos partidos, carreras o combates y gana quien más acierta. PorrApp lleva la cuenta por vosotros, así que nadie tiene que apuntar resultados ni repasar quién ha fallado qué.',
+          'Funciona con LaLiga, la Champions, la Premier, el Mundial, la Copa del Rey, la Fórmula 1, la UFC, la NBA, la NFL y el tenis. Podéis tener varias ligas a la vez, cada una con su propia clasificación.',
+        ],
+      },
+      {
+        heading: 'Cómo empezar',
+        paragraphs: [
+          'Entra con Google o con tu email, crea la liga y elige la competición. Comparte el enlace de invitación y, al abrirlo, cada amigo queda unido a la liga.',
+          'Las predicciones se cierran a la hora de cada partido y, desde entonces, todos ven lo que eligió cada uno. Sin discusiones sobre quién cambió su resultado.',
+        ],
+      },
+      {
+        heading: 'Gratis y sin complicaciones',
+        paragraphs: [
+          'No hay que instalar nada: PorrApp funciona en el navegador del móvil o del ordenador. Es gratis, sin anuncios y sin límite de amigos ni de ligas.',
+          'Si jugáis con bote, el administrador apunta quién ha pagado. El dinero se queda fuera de la app: PorrApp no cobra ni reparte nada.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: '¿Cuánto cuesta una porra entre amigos en PorrApp?',
+        answer: FREE_ANSWER,
+      },
+      {
+        question: '¿Cuántos amigos pueden jugar?',
+        answer: 'Los que queráis. No hay límite de jugadores por liga ni de ligas por cuenta.',
+      },
+      {
+        question: '¿Tienen que registrarse mis amigos?',
+        answer:
+          'Basta con que abran el enlace de invitación y entren con Google o con su email. Les lleva unos segundos.',
+      },
+    ],
+  },
+  {
+    path: '/como-hacer-una-porra',
+    navLabel: 'Cómo hacer una porra',
+    title: 'Cómo hacer una porra: guía paso a paso con amigos · PorrApp',
+    description:
+      'Guía para hacer una porra: elegir competición, fijar puntos, decidir si hay bote y llevar la clasificación sin errores. Con PorrApp se calcula sola.',
+    h1: 'Cómo hacer una porra',
+    h1Marked: 'que no acabe en pelea.',
+    lede: 'Una porra bien montada necesita unas pocas decisiones al principio: qué se predice, cuántos puntos vale cada acierto y quién lleva las cuentas. Esta guía las repasa en orden.',
+    sections: [
+      {
+        heading: '1. Elige qué se predice',
+        paragraphs: [
+          'Lo más sencillo es una competición con partidos semanales, como LaLiga o la Champions: cada jornada predecís el resultado de cada partido. Para un torneo corto, como el Mundial, funciona mejor un cuadro completo con el campeón y el pichichi.',
+          'En motor o combate se predice el podio de cada Gran Premio o el ganador de cada pelea de la UFC.',
+        ],
+      },
+      {
+        heading: '2. Fija los puntos',
+        paragraphs: [
+          'Decide cuántos puntos da acertar el signo (1X2) y cuántos el marcador exacto. Una regla habitual es 1 punto por el signo y 3 por el resultado exacto: premia el riesgo sin que un acierto de suerte decida la liga.',
+          'En PorrApp el administrador de la liga puede cambiar estos valores antes de empezar.',
+        ],
+      },
+      {
+        heading: '3. Decide si hay bote',
+        paragraphs: [
+          'Si jugáis dinero, acordad antes cuánto pone cada uno y cómo se reparte (todo para el primero, o primero y segundo). Apuntad quién ha pagado desde el principio para evitar líos al final.',
+          'PorrApp no mueve dinero: el administrador marca quién ha pagado y el bote se gestiona fuera de la app.',
+        ],
+      },
+      {
+        heading: '4. Cierra las predicciones a tiempo',
+        paragraphs: [
+          'La regla que más peleas evita: las predicciones se cierran al empezar cada partido. En PorrApp esto es automático, y a esa hora quedan a la vista de todos.',
+        ],
+      },
+      {
+        heading: '5. Deja que la app lleve las cuentas',
+        paragraphs: [
+          'Recoger predicciones por WhatsApp y puntuar a mano es lo que hace que las porras mueran a mitad de temporada. Con PorrApp los resultados llegan solos y la clasificación general y la de cada jornada siempre están al día.',
+        ],
+      },
+    ],
+    faq: HOW_IT_WORKS_FAQ,
   },
 ];
 

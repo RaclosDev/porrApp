@@ -34,6 +34,7 @@ public class SpaPageController {
             "/plantilla-porra-excel", "/alternativa-laporra", "/mejores-apps-porra",
             "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey",
             "/apuntar-puntos-juegos-de-mesa", "/timbas-de-poker",
+            "/porra-entre-amigos", "/como-hacer-una-porra",
             "/privacidad", "/aviso-legal");
 
     /** Pantallas de la app: existen, pero no tienen sentido en un buscador. */
@@ -53,6 +54,7 @@ public class SpaPageController {
             "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
             "/plantilla-porra-excel", "/alternativa-laporra", "/mejores-apps-porra",
             "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey", "/apuntar-puntos-juegos-de-mesa", "/timbas-de-poker",
+            "/porra-entre-amigos", "/como-hacer-una-porra",
             "/privacidad", "/aviso-legal",
             "/demo", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
