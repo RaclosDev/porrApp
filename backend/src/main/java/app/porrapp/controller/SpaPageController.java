@@ -43,7 +43,7 @@ public class SpaPageController {
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
             "/partida", "/historico", "/torneos/nuevo",
             "/poker/mesa", "/poker/historico", "/poker/estadisticas",
-            "/restablecer-contrasena");
+            "/restablecer-contrasena", "/gestion-7k2q");
 
     private static final String NOINDEX = "noindex";
     private static final MediaType MANIFEST = MediaType.valueOf("application/manifest+json");
@@ -60,7 +60,7 @@ public class SpaPageController {
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
             "/partida", "/historico", "/torneos/nuevo", "/torneos/{id:[0-9]+}", "/t/{publicId}",
             "/poker/mesa", "/poker/historico", "/poker/estadisticas",
-            "/restablecer-contrasena"})
+            "/restablecer-contrasena", "/gestion-7k2q"})
     public ResponseEntity<Resource> page(HttpServletRequest request) {
         String path = request.getRequestURI();
         ResponseEntity.BodyBuilder response = html(HttpStatus.OK);

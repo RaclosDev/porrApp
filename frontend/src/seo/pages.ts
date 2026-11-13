@@ -1371,6 +1371,7 @@ export const ROUTE_META: Record<string, PageMeta> = {
     title: 'Nueva contraseña · PorrApp',
     description: HOME_META.description,
   },
+  '/gestion-7k2q': { title: 'PorrApp', description: HOME_META.description },
 };
 
 /** Páginas que pueden aparecer en los buscadores y van al sitemap. */
@@ -1406,6 +1407,7 @@ export const APP_PATHS = [
   '/partida',
   '/historico',
   '/restablecer-contrasena',
+  '/gestion-7k2q',
 ];
 
 export const metaForPath = (path: string): PageMeta =>

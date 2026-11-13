@@ -57,6 +57,7 @@ const MatchdayPredictor = lazyPage(() => import('./pages/MatchdayPredictor'));
 const LeagueStandings = lazyPage(() => import('./pages/LeagueStandings'));
 const Legal = lazyPage(() => import('./pages/Legal'));
 const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
+const AdminPanel = lazyPage(() => import('./pages/AdminPanel'));
 const ContentPage = lazyPage(() => import('./pages/ContentPage'));
 
 function PokerLeagueRoute({ view }: { view: PokerSection }) {
@@ -233,6 +234,14 @@ function AppShell() {
             <Route path="/privacidad" element={<Legal kind="privacy" />} />
             <Route path="/aviso-legal" element={<Legal kind="legal" />} />
             <Route path="/restablecer-contrasena" element={<ResetPassword />} />
+            <Route
+              path="/gestion-7k2q"
+              element={
+                <ProtectedRoute>
+                  <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
             {CONTENT_PAGES.map((page) => (
               <Route key={page.path} path={page.path} element={<ContentPage page={page} />} />
             ))}
