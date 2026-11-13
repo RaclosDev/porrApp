@@ -642,6 +642,9 @@
       right: auto !important;
       min-width: 250px !important;
       max-width: calc(100vw - 24px) !important;
+      /* Con el móvil en horizontal tampoco se sale por abajo: desplaza su contenido. */
+      max-height: calc(100dvh - 72px);
+      overflow-y: auto;
     }
 
     /* Ocultar botón CTA duplicado de porra en cabecera superior (ya está en bottom nav) */
