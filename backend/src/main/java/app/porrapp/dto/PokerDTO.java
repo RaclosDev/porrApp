@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.UUID;
 
 public final class PokerDTO {
+    /** Tope de un premio fijo: 10 millones de euros. */
+    public static final long MAX_PRIZE_CENTS = 1_000_000_000L;
+
     private PokerDTO() {
     }
 
@@ -30,13 +33,20 @@ public final class PokerDTO {
 
     public record Command(@NotNull Action action, @NotNull @Min(0) Long revision, @Min(1) Long playerId,
                           @Size(max = 20) List<@NotNull @Valid FinalStack> finalStacks,
-                          @Size(min = 1, max = 20) List<@NotNull @Min(1) @Max(100) Integer> prizeShares) {
+                          @Size(min = 1, max = 20) List<@NotNull @Min(1) @Max(100) Integer> prizeShares,
+                          /** Reparto en cantidades fijas (céntimos por puesto); excluye a {@code prizeShares}. */
+                          @Size(min = 1, max = 20) List<@NotNull @Min(1) @Max(MAX_PRIZE_CENTS) Long> prizeAmounts) {
         public Command(Action action, Long revision, Long playerId) {
-            this(action, revision, playerId, null, null);
+            this(action, revision, playerId, null, null, null);
         }
 
         public Command(Action action, Long revision, Long playerId, List<FinalStack> finalStacks) {
-            this(action, revision, playerId, finalStacks, null);
+            this(action, revision, playerId, finalStacks, null, null);
+        }
+
+        public Command(Action action, Long revision, Long playerId, List<FinalStack> finalStacks,
+                       List<Integer> prizeShares) {
+            this(action, revision, playerId, finalStacks, prizeShares, null);
         }
     }
 
@@ -51,7 +61,18 @@ public final class PokerDTO {
                            @Min(1) @Max(10000000) int startingChips,
                            @Valid Extra rebuy, @Valid Extra addOn,
                            @NotNull @Size(min = 1, max = 20) List<@NotNull @Min(1) @Max(100) Integer> prizeShares,
-                           @NotNull @Size(min = 1, max = 30) List<@NotNull @Valid BlindLevel> levels) {
+                           @NotNull @Size(min = 1, max = 30) List<@NotNull @Valid BlindLevel> levels,
+                           /** Cantidades fijas por puesto en céntimos; null si el reparto va por porcentajes. */
+                           @Size(min = 1, max = 20) List<@NotNull @Min(1) @Max(MAX_PRIZE_CENTS) Long> prizeAmounts) {
+        public Settings(int buyInCents, int startingChips, Extra rebuy, Extra addOn, List<Integer> prizeShares,
+                        List<BlindLevel> levels) {
+            this(buyInCents, startingChips, rebuy, addOn, prizeShares, levels, null);
+        }
+
+        /** Puestos con premio, sea cual sea el modo del reparto. */
+        public int prizePlaces() {
+            return prizeAmounts != null ? prizeAmounts.size() : prizeShares.size();
+        }
     }
 
     public record Extra(@Min(0) @Max(1000000) int costCents,

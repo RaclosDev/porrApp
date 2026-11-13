@@ -21,6 +21,8 @@ export interface PokerSettings {
   rebuy: PokerExtra | null;
   addOn: PokerExtra | null;
   prizeShares: number[];
+  /** Cantidades fijas por puesto en céntimos; null o ausente si el reparto va por porcentajes. */
+  prizeAmounts?: number[] | null;
   levels: BlindLevel[];
 }
 
@@ -102,6 +104,7 @@ export type PokerAction =
 export interface PokerCommandExtra {
   finalStacks?: FinalStack[];
   prizeShares?: number[];
+  prizeAmounts?: number[];
 }
 
 export const fetchPokerLeague = (id: string) => request<PokerLeagueData>(`/poker/${id}`);

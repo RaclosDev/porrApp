@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PokerSession } from '../../services/endpoints/poker';
+import PokerEmpty from './PokerEmpty';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
 import {
@@ -12,6 +13,7 @@ import {
   standingLabel,
   tournamentDate,
 } from './pokerFormat';
+import { pokerRoutes } from './pokerRoutes';
 
 function Net({ cents }: { cents: number }) {
   return (
@@ -35,7 +37,13 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
     <section className="paper-panel album-sheet poker-panel">
       <h2>Histórico de torneos</h2>
       {!session ? (
-        <p className="poker-note">Los torneos aparecerán aquí al cerrarlos.</p>
+        <PokerEmpty
+          icon="history"
+          title="Aún no hay torneos cerrados"
+          action={{ to: pokerRoutes.table.to, label: 'Ir a la mesa' }}
+        >
+          Al cerrar cada torneo quedan aquí la clasificación, los premios y las recompras.
+        </PokerEmpty>
       ) : (
         <>
           <div className="md-round-bar poker-round-bar">
@@ -198,7 +206,13 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
     <section className="paper-panel album-sheet poker-panel">
       <h2>Estadísticas de la liga</h2>
       {standings.length === 0 ? (
-        <p className="poker-note">Las estadísticas se calculan al cerrar el primer torneo.</p>
+        <PokerEmpty
+          icon="stats"
+          title="Sin estadísticas todavía"
+          action={{ to: pokerRoutes.table.to, label: 'Ir a la mesa' }}
+        >
+          Con el primer torneo cerrado verás victorias, podios, aplausos y el neto de cada jugador.
+        </PokerEmpty>
       ) : (
         <>
           <p className="poker-note">

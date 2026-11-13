@@ -44,12 +44,10 @@ describe('TrackerInvite', () => {
       expect.stringContaining('/join/ABCDEFGH'),
       'Enlace copiado',
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Ocultar QR' }));
-    expect(screen.queryByText(/QR de/)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Mostrar QR' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar el código ABCDEFGH' }));
+    expect(copyWithToast).toHaveBeenCalledWith('ABCDEFGH', 'Código ABCDEFGH copiado');
+    // Sin la API de compartir del sistema no se ofrece ese botón.
+    expect(screen.queryByRole('button', { name: 'Compartir' })).not.toBeInTheDocument();
   });
 
   it('apunta a quien no tiene cuenta, limpia el nombre y confirma el alta', async () => {
