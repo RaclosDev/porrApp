@@ -26,6 +26,32 @@ interface HeaderActionsProps {
   userName: string;
 }
 
+/** Taza con vapor y un corazón: mismo trazo que los iconos de la campana para que casen. */
+function SupportCupIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 2.5c-.6.8-.6 1.7 0 2.5M12 2.5c-.6.8-.6 1.7 0 2.5" />
+      <path d="M4 8h13v6a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6V8Z" />
+      <path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17" />
+      <path
+        d="M10.5 16.2s-2.7-1.5-2.7-3.2a1.4 1.4 0 0 1 2.7-.5 1.4 1.4 0 0 1 2.7.5c0 1.7-2.7 3.2-2.7 3.2Z"
+        fill="currentColor"
+        strokeWidth="1"
+      />
+    </svg>
+  );
+}
+
 /** Entradas del menú de cuenta que abren los ajustes, cada una en su sección. */
 const SETTINGS_ENTRIES: { section: SettingsSection; label: string }[] = [
   { section: 'account', label: 'Ajustes de cuenta' },
@@ -90,10 +116,10 @@ export default function HeaderActions({
             title="Apoya el proyecto"
             aria-label="Apoya el proyecto"
             aria-haspopup="dialog"
-            className="glass-btn h-11 py-0 px-3 max-[400px]:px-2.5 rounded-[10px] text-[0.8rem] font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+            className="glass-btn header-icon-btn header-support-btn"
           >
-            <span aria-hidden="true">☕</span>
-            <span className="max-[400px]:hidden">Apoyar</span>
+            <SupportCupIcon />
+            <span className="header-support-label">Apoyar</span>
           </button>
           <SupportDialog open={showSupport} onClose={() => setShowSupport(false)} />
           <InstallAppButton />

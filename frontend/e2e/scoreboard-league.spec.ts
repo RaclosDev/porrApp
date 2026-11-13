@@ -103,6 +103,20 @@ for (const width of [390, 1440]) {
       true,
     );
 
+    // El menú de ligas abierto cabe entero en la pantalla.
+    await selector.click();
+    const menu = page.locator('.active-league-menu');
+    await expect(menu).toBeVisible();
+    const box = await menu.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, right: r.right, bottom: r.bottom, vw: innerWidth, vh: innerHeight };
+    });
+    expect(box.left).toBeGreaterThanOrEqual(0);
+    expect(box.right).toBeLessThanOrEqual(box.vw);
+    expect(box.bottom).toBeLessThanOrEqual(box.vh);
+    await selector.click();
+    await expect(menu).toBeHidden();
+
     // En Mis ligas sale una sola vez, con su tarjeta de juego de mesa.
     await page.goto('/mis-ligas');
     const card = page.getByRole('link', { name: 'Abrir el marcador Mus de los jueves' });

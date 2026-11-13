@@ -624,12 +624,27 @@
       }
     }
 
-    /* Selector de liga alineado a la derecha en móvil para evitar cortes de pantalla */
+    /*
+     * Con una liga activa la cabecera no repite la marca: el selector de liga ocupa su sitio a la
+     * izquierda y tiene más ancho para el nombre.
+     */
+    .header-title-row:has(#btn-active-league-dropdown) > .header-brand-link {
+      display: none !important;
+    }
+
+    #btn-active-league-dropdown {
+      max-width: min(260px, 100%) !important;
+    }
+
+    /* El menú de ligas se abre desde el borde izquierdo, bajo el selector, sin salirse. */
     .active-league-menu {
-      left: auto !important;
-      right: 0 !important;
+      left: 0 !important;
+      right: auto !important;
       min-width: 250px !important;
       max-width: calc(100vw - 24px) !important;
+      /* Con el móvil en horizontal tampoco se sale por abajo: desplaza su contenido. */
+      max-height: calc(100dvh - 72px);
+      overflow-y: auto;
     }
 
     /* Ocultar botón CTA duplicado de porra en cabecera superior (ya está en bottom nav) */
