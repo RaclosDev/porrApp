@@ -1444,3 +1444,100 @@
 .poker-close-dialog .poker-share-fields {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr));
 }
+
+/* Sección aún sin datos: un icono dibujado, qué saldrá aquí y el camino para llegar. */
+.poker-blank {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 0.75rem 0.5rem 0.25rem;
+  text-align: center;
+}
+
+.poker-blank-icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 56px;
+  block-size: 56px;
+  margin-bottom: 0.25rem;
+  border: 1.5px dashed currentColor;
+  border-radius: 50%;
+  color: var(--ink);
+  opacity: 0.75;
+}
+
+.poker-blank-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.poker-blank .poker-note {
+  max-inline-size: 32ch;
+  margin: 0;
+}
+
+.poker-blank .glass-btn {
+  margin-top: 0.6rem;
+}
+
+/* Primeros pasos de una liga sin torneos cerrados. */
+.poker-todo {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-todo > li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed rgba(17, 24, 39, 0.18);
+}
+
+.poker-todo > li:last-child {
+  border-bottom: 0;
+}
+
+.poker-todo-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  font-weight: 800;
+}
+
+.poker-todo > li.is-done .poker-todo-mark {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.poker-todo > li.is-done .poker-todo-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.poker-todo-text {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.poker-todo-text p {
+  margin: 0;
+}
+
+.poker-todo-title {
+  font-weight: 800;
+}
+
+.poker-todo .glass-btn {
+  flex: none;
+  min-block-size: 44px;
+  padding-inline: 14px;
+}

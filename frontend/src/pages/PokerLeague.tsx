@@ -107,18 +107,18 @@ export default function PokerLeague({
             <header className="home-hero paper-panel album-sheet">
               <div className="home-hero-info">
                 <h1 className="home-hero-title">{league.name}</h1>
-                <div className="home-hero-pills">
+                <div className="home-hero-pills is-spread">
                   <span className="home-hero-pill">Póker · Texas Hold’em</span>
+                  <button
+                    type="button"
+                    className="home-rules-btn home-hero-invite"
+                    aria-expanded={invite}
+                    onClick={() => setInvite(!invite)}
+                  >
+                    {invite ? 'Cerrar' : 'Invitar'}
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                className="home-rules-btn"
-                aria-expanded={invite}
-                onClick={() => setInvite(!invite)}
-              >
-                {invite ? 'Cerrar invitación' : 'Invitar con enlace'}
-              </button>
             </header>
             {invite && <TrackerInvite tracker={league} />}
             <PokerHome
@@ -126,6 +126,10 @@ export default function PokerLeague({
               sessions={history.data}
               loading={history.isPending}
               onRetry={() => void history.refetch()}
+              onInvite={() => {
+                setInvite(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
           </>
         ) : view !== 'table' ? (
