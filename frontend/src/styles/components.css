@@ -212,6 +212,27 @@
     cursor: pointer;
   }
 
+  /* Apoyar: el mismo botón que la campana; en pantallas anchas lleva además el texto. */
+  .header-support-btn {
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 769px) {
+    .header-icon-btn.header-support-btn {
+      width: auto;
+      padding-inline: 12px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .header-support-label {
+      display: none;
+    }
+  }
+
   .nav-links {
     display: flex;
     flex-wrap: nowrap;
