@@ -98,7 +98,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
                 <label className="poker-check">
                   <input
                     type="checkbox"
-                    aria-label={player.guest ? `${player.name} (invitado)` : undefined}
+                    aria-label={player.guest ? `${player.name} (invitado)` : player.name}
                     checked={confirmed.has(player.id)}
                     disabled={busy || (full && !confirmed.has(player.id))}
                     onChange={(event) => {

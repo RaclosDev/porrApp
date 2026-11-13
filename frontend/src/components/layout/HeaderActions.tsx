@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { UserAvatar } from '../Avatar';
 import InstallAppButton from './InstallAppButton';
 import NotificationBell from './NotificationBell';
+import SupportDialog from '../SupportDialog';
 import type { NavigateFunction } from 'react-router-dom';
 import type { SettingsSection } from '../ProfileSettingsModal';
 
@@ -47,6 +49,8 @@ export default function HeaderActions({
   userId,
   userName,
 }: HeaderActionsProps) {
+  const [showSupport, setShowSupport] = useState(false);
+
   return (
     <div className="header-right flex justify-end items-center gap-2.5 relative">
       {!isUserLoggedIn ? (
@@ -80,6 +84,18 @@ export default function HeaderActions({
         )
       ) : (
         <>
+          <button
+            type="button"
+            onClick={() => setShowSupport(true)}
+            title="Apoya el proyecto"
+            aria-label="Apoya el proyecto"
+            aria-haspopup="dialog"
+            className="glass-btn h-11 py-0 px-3 max-[400px]:px-2.5 rounded-[10px] text-[0.8rem] font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+          >
+            <span aria-hidden="true">☕</span>
+            <span className="max-[400px]:hidden">Apoyar</span>
+          </button>
+          <SupportDialog open={showSupport} onClose={() => setShowSupport(false)} />
           <InstallAppButton />
           {showNotificationBell && (
             <NotificationBell onOpenSettings={() => onOpenSettings('reminders')} />

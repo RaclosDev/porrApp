@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import PokerHome from '../../components/poker/PokerHome';
 import PokerLive from '../../components/poker/PokerLive';
@@ -11,6 +11,9 @@ import type { PokerLeagueData, PokerSession, PokerSettings } from '../../service
 import { request } from '../../services/http';
 import { confirmAction } from '../../utils/confirmAction';
 import { euros } from '../../components/poker/pokerFormat';
+
+/** Importe como lo deja toHaveTextContent, que normaliza el espacio no separable. */
+const money = (cents: number) => euros(cents).replace(/\s/g, ' ');
 
 vi.mock('../../services/http', () => ({ request: vi.fn() }));
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
@@ -100,7 +103,7 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   click('Añadir premio');
   click('Abrir inscripciones');
   expect(screen.getByRole('alert')).toHaveTextContent('debe sumar el 100 %');
-  click('Quitar último premio');
+  click('Quitar premio');
   set('Puesto 1 (%)', '75');
   set('Puesto 2 (%)', '25');
 
@@ -132,6 +135,7 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
       buyInCents: 1245,
       startingChips: 8000,
       prizeShares: [75, 25],
+      prizeAmounts: null,
       levels: [
         { ...settings.levels[0], ante: 50 },
         { small: 0, big: 0, ante: 0, minutes: 10 },
@@ -273,9 +277,13 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   expect(onCommand).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
   click('Cerrar torneo');
   vi.useRealTimers();
-  await waitFor(() => expect(onCommand).toHaveBeenLastCalledWith('CLOSE'));
-  expect(confirmAction).toHaveBeenLastCalledWith(
-    expect.objectContaining({ details: [`1.º Ana · ${euros(2100)}`, `2.º Luis · ${euros(900)}`] }),
+  const dialog = screen.getByRole('dialog', { name: '¿Cerrar el torneo?' });
+  expect(within(dialog).getByRole('list', { name: 'Premios que se guardarán' })).toHaveTextContent(
+    `1.º Ana · ${money(2100)}2.º Luis · ${money(900)}`,
+  );
+  click('Cerrar y guardar');
+  await waitFor(() =>
+    expect(onCommand).toHaveBeenLastCalledWith('CLOSE', undefined, { prizeShares: [70, 30] }),
   );
 });
 
@@ -314,7 +322,7 @@ it('guarda asistencia, edita con revisión y cancela un torneo abierto', async (
   await screen.findByRole('heading', { name: 'Inscripciones abiertas' });
   expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13', {
     method: 'PUT',
-    json: { date, settings, revision: 2 },
+    json: { date, settings: { ...settings, prizeAmounts: null }, revision: 2 },
   });
   api.mockResolvedValueOnce({ ...league, current: null });
   click('Cancelar torneo');
@@ -350,10 +358,26 @@ it('recorre el histórico torneo a torneo', () => {
   expect(screen.getByRole('button', { name: 'Torneo siguiente' })).toBeDisabled();
   click('Torneo anterior');
   expect(picker.value).toBe('21');
-  expect(screen.getByText(/4 de julio de 2026/)).toBeVisible();
+  expect(screen.getByText(/sábado, 4 de julio/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Torneo anterior' })).toBeDisabled();
   fireEvent.change(picker, { target: { value: '22' } });
-  expect(screen.getByText(/18 de julio de 2026/)).toBeVisible();
+  expect(screen.getByText(/sábado, 18 de julio/)).toBeVisible();
+});
+
+it('solo muestra el año de los torneos de otros años', () => {
+  const result = { ...entries[0], place: 1, paidCents: 1000, prizeCents: 1000 };
+  const year = new Date().getFullYear();
+  render(
+    <PokerHistory
+      sessions={[
+        { ...session, id: 22, date: `${year}-07-18`, closedAt: 5000, results: [result] },
+        { ...session, id: 21, date: `${year - 1}-07-04`, closedAt: 5000, results: [result] },
+      ]}
+    />,
+  );
+  const options = screen.getAllByRole('option').map((option) => option.textContent);
+  expect(options).toEqual([`Torneo 1 · 4 jul ${year - 1}`, 'Torneo 2 · 18 jul']);
+  expect(screen.getByText(/, 18 de julio$/)).toBeVisible();
 });
 
 it('reutiliza las reglas del torneo anterior', async () => {
@@ -361,7 +385,8 @@ it('reutiliza las reglas del torneo anterior', async () => {
     path.endsWith('/history')
       ? [
           { ...session, id: 12, closedAt: 5000, settings: { ...settings, buyInCents: 2500 } },
-          { ...session, closedAt: 5000 },
+          // Las cantidades fijas dependían del bote de aquel torneo: no se heredan.
+          { ...session, closedAt: 5000, settings: { ...settings, prizeAmounts: [5000, 3000] } },
         ]
       : { ...league, current: null },
   );
@@ -375,14 +400,16 @@ it('reutiliza las reglas del torneo anterior', async () => {
   await waitFor(() =>
     expect(api).toHaveBeenCalledWith('/poker/8/sessions', {
       method: 'POST',
-      json: { date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), settings },
+      json: {
+        date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        settings: { ...settings, prizeAmounts: null },
+      },
     }),
   );
 });
 
-it('finaliza con las fichas de los supervivientes y exige cuadrar el total', async () => {
+it('finaliza con las fichas de los supervivientes y deja ajustar el reparto antes de guardar', async () => {
   const command = vi.fn().mockResolvedValue(undefined);
-  vi.mocked(confirmAction).mockResolvedValue(true);
   render(
     <PokerLive
       session={{
@@ -399,12 +426,25 @@ it('finaliza con las fichas de los supervivientes y exige cuadrar el total', asy
     />,
   );
   click('Finalizar torneo');
-  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeDisabled();
   set('Fichas de Ana', '20000');
   expect(screen.getByLabelText('Fichas de Luis', { exact: false })).toHaveValue(10000);
   set('Fichas de Luis', '5000');
-  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeDisabled();
   set('Fichas de Luis', '10000');
+  click('Revisar premios y finalizar');
+
+  const dialog = screen.getByRole('dialog', { name: '¿Finalizar el torneo?' });
+  const prizes = () => within(dialog).getByRole('list', { name: 'Premios que se guardarán' });
+  expect(prizes()).toHaveTextContent(`1.º Ana · ${money(2100)}2.º Luis · ${money(900)}`);
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cantidad (€)' }));
+  expect(within(dialog).getByLabelText('1.º Ana (€)')).toHaveValue(21);
+  set('1.º Ana (€)', '25', within(dialog));
+  expect(dialog).toHaveTextContent(`supera el bote en ${money(400)}`);
+  expect(within(dialog).getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  set('2.º Luis (€)', '4', within(dialog));
+  expect(dialog).toHaveTextContent(`sobran ${money(100)}, que se suman al 1.º puesto`);
+  expect(prizes()).toHaveTextContent(`1.º Ana · ${money(2600)}2.º Luis · ${money(400)}`);
   click('Finalizar y guardar');
   await waitFor(() =>
     expect(command).toHaveBeenCalledWith('CLOSE', undefined, {
@@ -412,10 +452,40 @@ it('finaliza con las fichas de los supervivientes y exige cuadrar el total', asy
         { playerId: 1, chips: 20000 },
         { playerId: 2, chips: 10000 },
       ],
+      prizeAmounts: [2500, 400],
     }),
   );
-  expect(confirmAction).toHaveBeenLastCalledWith(
-    expect.objectContaining({ details: [`1.º Ana · ${euros(2100)}`, `2.º Luis · ${euros(900)}`] }),
+});
+
+it('reparte en cantidades fijas durante el juego y avisa del resto', async () => {
+  const command = vi.fn().mockResolvedValue(undefined);
+  render(
+    <PokerLive
+      session={{ ...session, startedAt: 1, clock: { level: 0, endsAt: null, remainingMs: 1000 } }}
+      owner
+      busy={false}
+      serverNow={1000}
+      receivedAt={Date.now()}
+      onCommand={command}
+    />,
+  );
+  click('Cambiar reparto');
+  click('Cantidad (€)');
+  expect(screen.getByRole('button', { name: 'Cantidad (€)' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  set('Puesto 1 (€)', '15');
+  expect(screen.getByText(/Reparto total/)).toHaveTextContent(
+    `sobran ${money(600)}, que se suman al 1.º puesto`,
+  );
+  expect(screen.getByText(/Quedaría/)).toHaveTextContent(`1.º ${money(2100)} · 2.º ${money(900)}`);
+  set('Puesto 2 (€)', '20');
+  expect(screen.getByRole('button', { name: 'Guardar reparto' })).toBeDisabled();
+  set('Puesto 2 (€)', '9.5');
+  click('Guardar reparto');
+  await waitFor(() =>
+    expect(command).toHaveBeenCalledWith('SET_PRIZES', undefined, { prizeAmounts: [1500, 950] }),
   );
 });
 
@@ -482,10 +552,10 @@ it('calcula el ultimo jugador y recalcula al corregir los otros importes', () =>
   expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(7000);
   set('Fichas de Ana', '30000');
   expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(null);
-  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeDisabled();
   set('Fichas de Ana', '22000');
   expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(0);
-  expect(screen.getByRole('button', { name: 'Finalizar y guardar' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeEnabled();
 });
 
 it('abre las acciones desde la foto y respeta permisos y extras disponibles', () => {
@@ -638,4 +708,43 @@ it('ordena cada columna por su valor y alterna el sentido sin cambiar el podio',
   expect(screen.getByRole('list', { name: 'Podio de la liga por victorias' }).textContent).toBe(
     podium,
   );
+});
+
+it('al cerrar el torneo ofrece una propina para el crupier con las formas de apoyar', async () => {
+  const live: PokerSession = { ...session, startedAt: 1_000, eliminations: [3, 2] };
+  api.mockImplementation((url: string, options?: { method?: string }) => {
+    if (url === '/poker/8/history') return Promise.resolve([]);
+    if (options?.method === 'POST') return Promise.resolve({ ...league, current: null });
+    return Promise.resolve({ ...league, current: live });
+  });
+  vi.mocked(confirmAction).mockResolvedValue(true);
+  // Como en App: cada sección monta su propia página, así que el aviso tiene que sobrevivir al cambio.
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter initialEntries={['/poker/mesa']}>
+        <Routes>
+          <Route
+            path="/poker/mesa"
+            element={<PokerLeague key="table" leagueId="8" view="table" />}
+          />
+          <Route
+            path="/poker/historico"
+            element={<PokerLeague key="history" leagueId="8" view="history" />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Cerrar torneo' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Cerrar y guardar' }));
+
+  const dialog = await screen.findByRole('dialog', { name: '¿Propina para el crupier? 😉' });
+  expect(within(dialog).getByRole('link', { name: /^Revolut/ })).toHaveAttribute(
+    'href',
+    'https://revolut.me/raclos',
+  );
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
+  expect(screen.queryByRole('dialog')).toBeNull();
 });

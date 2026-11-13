@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type {
   BlindLevel,
   PokerAction,
@@ -8,10 +8,16 @@ import type {
 } from '../../services/endpoints/poker';
 
 type Entry = PokerSession['entries'][number];
-import { confirmAction } from '../../utils/confirmAction';
 import { BagIcon, BulletIcon, Purchases, SeatBadges, SkullIcon } from './PokerBadges';
 import { PokerAvatar } from './PokerFaces';
-import PokerPrizeShares, { sharesTotal } from './PokerPrizeShares';
+import PokerCloseDialog, { type Standing } from './PokerCloseDialog';
+import PokerPrizeShares, {
+  draftFromSettings,
+  draftPrizes,
+  draftValid,
+  prizeCommand,
+  type PrizeDraft,
+} from './PokerPrizeShares';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
 
 interface Props {
@@ -22,13 +28,6 @@ interface Props {
   receivedAt: number;
   onCommand: (action: PokerAction, playerId?: number, extra?: PokerCommandExtra) => Promise<void>;
   lastWinnerIds?: number[];
-}
-
-/** Mismo cálculo que el servidor: los céntimos que sobran van al primer puesto. */
-function splitPot(pot: number, shares: number[]) {
-  const prizes = shares.map((share) => Math.floor((pot * share) / 100));
-  if (prizes.length > 0) prizes[0] += pot - prizes.reduce((sum, prize) => sum + prize, 0);
-  return prizes;
 }
 
 function blinds(level: BlindLevel) {
@@ -48,10 +47,17 @@ export default function PokerLive({
 }: Props) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [finishing, setFinishing] = useState(false);
+  const finishRef = useRef<HTMLFormElement>(null);
+  // En el móvil el formulario de fichas queda bajo el pliegue: se lleva a la vista al abrirlo.
+  useEffect(() => {
+    if (finishing) finishRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  }, [finishing]);
   const [stacks, setStacks] = useState<Record<number, string>>({});
-  const [prizeDraft, setPrizeDraft] = useState<number[] | null>(null);
+  const [prizeDraft, setPrizeDraft] = useState<PrizeDraft | null>(null);
+  /** Cierre pendiente de confirmar: con las fichas de los que siguen o con un único ganador. */
+  const [closing, setClosing] = useState<'stacks' | 'winner' | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const { levels, rebuy, addOn, prizeShares, startingChips } = session.settings;
+  const { levels, rebuy, addOn, prizeShares, prizeAmounts, startingChips } = session.settings;
   const eliminated = new Set(session.eliminations);
   const active = session.entries.filter((entry) => !eliminated.has(entry.playerId));
   const selectedPlayer = session.entries.find((entry) => entry.playerId === selectedPlayerId);
@@ -190,69 +196,79 @@ export default function PokerLive({
     finalStacks.every((stack) => Number.isSafeInteger(stack.chips) && stack.chips >= 0) &&
     totalFinal === chipsInPlay;
 
-  /** Reparto que quedará al cerrar: los que siguen por fichas (empates a partes iguales) y los eliminados por orden. */
-  function prizeLines(survivors: { entry: Entry; chips: number }[]) {
-    const rows = survivors.map(({ entry, chips: own }) => {
-      const place = 1 + survivors.filter((other) => other.chips > own).length;
-      const tied = survivors
+  /** Clasificación al cerrar: los que siguen por fichas (empates comparten puesto) y los eliminados por orden. */
+  function standings(survivors: { entry: Entry; chips: number }[]): Standing[] {
+    const rows = survivors.map(({ entry, chips: own }) => ({
+      place: 1 + survivors.filter((other) => other.chips > own).length,
+      playerId: entry.playerId,
+      name: entry.name,
+      tied: survivors
         .filter((other) => other.chips === own)
         .map((other) => other.entry.playerId)
-        .sort((a, b) => a - b);
-      const shared = session.prizes
-        .slice(place - 1, place - 1 + tied.length)
-        .reduce((sum, prize) => sum + prize, 0);
-      const extraCent = tied.indexOf(entry.playerId) < shared % tied.length ? 1 : 0;
-      return { place, name: entry.name, prize: Math.floor(shared / tied.length) + extraCent };
-    });
+        .sort((a, b) => a - b),
+    }));
     session.eliminations.forEach((playerId, index) => {
-      const place = session.entries.length - index;
       const entry = session.entries.find((candidate) => candidate.playerId === playerId);
-      if (entry) rows.push({ place, name: entry.name, prize: session.prizes[place - 1] ?? 0 });
+      if (entry) {
+        rows.push({
+          place: session.entries.length - index,
+          playerId,
+          name: entry.name,
+          tied: [playerId],
+        });
+      }
     });
-    return rows
-      .filter((row) => row.prize > 0)
-      .sort((a, b) => a.place - b.place)
-      .map((row) => `${row.place}.º ${row.name} · ${euros(row.prize)}`);
+    return rows.sort((a, b) => a.place - b.place);
   }
 
   async function savePrizes() {
-    if (!prizeDraft || sharesTotal(prizeDraft) !== 100) return;
-    await onCommand('SET_PRIZES', undefined, { prizeShares: prizeDraft });
+    if (!prizeDraft || !draftValid(prizeDraft, session.potCents)) return;
+    await onCommand('SET_PRIZES', undefined, prizeCommand(prizeDraft));
     setPrizeDraft(null);
   }
 
-  async function finish() {
-    if (!validStacks) return;
-    if (
-      await confirmAction({
-        title: '¿Finalizar el torneo?',
-        message:
-          'Se guardarán las fichas y la clasificación final. Los empates compartirán puesto y los premios correspondientes.',
-        confirmLabel: 'Finalizar y guardar',
-        details: prizeLines(
-          active.map((entry, index) => ({ entry, chips: finalStacks[index].chips })),
-        ),
-      })
-    )
-      await onCommand('CLOSE', undefined, { finalStacks });
+  async function confirmClose(draft: PrizeDraft) {
+    const stacksClose = closing === 'stacks';
+    setClosing(null);
+    await onCommand('CLOSE', undefined, {
+      ...(stacksClose && { finalStacks }),
+      ...prizeCommand(draft),
+    });
   }
 
-  async function close() {
-    if (
-      winner &&
-      (await confirmAction({
-        title: '¿Cerrar el torneo?',
-        message: `${winner.name} quedará en primer puesto. Los resultados y premios se guardarán en el histórico.`,
-        confirmLabel: 'Cerrar y guardar',
-        details: prizeLines([{ entry: winner, chips: 0 }]),
-      }))
-    ) {
-      await onCommand('CLOSE');
-    }
-  }
+  const closeDialog =
+    closing === 'stacks'
+      ? {
+          title: '¿Finalizar el torneo?',
+          message:
+            'Se guardarán las fichas y la clasificación final. Los empates compartirán puesto y los premios correspondientes. Puedes ajustar el reparto antes de confirmar.',
+          confirmLabel: 'Finalizar y guardar',
+          standings: standings(
+            active.map((entry, index) => ({ entry, chips: finalStacks[index].chips })),
+          ),
+        }
+      : closing === 'winner' && winner
+        ? {
+            title: '¿Cerrar el torneo?',
+            message: `${winner.name} quedará en primer puesto. Los resultados y premios se guardarán en el histórico. Puedes ajustar el reparto antes de confirmar.`,
+            confirmLabel: 'Cerrar y guardar',
+            standings: standings([{ entry: winner, chips: 0 }]),
+          }
+        : null;
 
   return (
     <>
+      {closeDialog && (
+        <PokerCloseDialog
+          {...closeDialog}
+          pot={session.potCents}
+          initial={draftFromSettings(session.settings)}
+          maxPlaces={session.entries.length}
+          busy={busy}
+          onCancel={() => setClosing(null)}
+          onConfirm={(draft) => void confirmClose(draft)}
+        />
+      )}
       <section className="poker-felt" aria-labelledby="poker-table-title">
         <h2 id="poker-table-title" className="poster-title">
           {winner ? 'Torneo listo para cerrar' : 'Torneo en juego'}
@@ -288,7 +304,7 @@ export default function PokerLive({
                   type="button"
                   className="glass-btn primary-btn"
                   disabled={busy}
-                  onClick={() => void close()}
+                  onClick={() => setClosing('winner')}
                 >
                   Cerrar torneo
                 </button>
@@ -436,10 +452,11 @@ export default function PokerLive({
 
       {owner && finishing && !winner && (
         <form
+          ref={finishRef}
           className="paper-panel album-sheet poker-panel poker-form poker-finish"
           onSubmit={(event) => {
             event.preventDefault();
-            void finish();
+            if (validStacks) setClosing('stacks');
           }}
         >
           <h2>Fichas al finalizar</h2>
@@ -489,7 +506,7 @@ export default function PokerLive({
           </p>
           <div className="poker-actions">
             <button type="submit" className="glass-btn primary-btn" disabled={busy || !validStacks}>
-              Finalizar y guardar
+              Revisar premios y finalizar
             </button>
             <button
               type="button"
@@ -606,7 +623,9 @@ export default function PokerLive({
                     ) : (
                       <span className="poker-note">Por decidir</span>
                     )}
-                    <small>{prizeShares[index]} % del bote</small>
+                    <small>
+                      {prizeAmounts ? 'Cantidad fija' : `${prizeShares[index]} % del bote`}
+                    </small>
                   </span>
                   <strong>{euros(prize)}</strong>
                 </li>
@@ -649,15 +668,16 @@ export default function PokerLive({
                 }}
               >
                 <PokerPrizeShares
-                  shares={prizeDraft}
+                  draft={prizeDraft}
                   onChange={setPrizeDraft}
+                  pot={session.potCents}
                   maxPlaces={session.entries.length}
                   disabled={busy}
                 />
-                {sharesTotal(prizeDraft) === 100 && (
+                {draftValid(prizeDraft, session.potCents) && (
                   <p className="poker-note">
                     Quedaría:{' '}
-                    {splitPot(session.potCents, prizeDraft)
+                    {draftPrizes(prizeDraft, session.potCents)
                       .map((prize, index) => `${index + 1}.º ${euros(prize)}`)
                       .join(' · ')}
                   </p>
@@ -666,7 +686,7 @@ export default function PokerLive({
                   <button
                     type="submit"
                     className="glass-btn primary-btn"
-                    disabled={busy || sharesTotal(prizeDraft) !== 100}
+                    disabled={busy || !draftValid(prizeDraft, session.potCents)}
                   >
                     Guardar reparto
                   </button>
@@ -685,7 +705,7 @@ export default function PokerLive({
                 type="button"
                 className="poker-link-btn poker-prize-edit"
                 disabled={busy}
-                onClick={() => setPrizeDraft(prizeShares)}
+                onClick={() => setPrizeDraft(draftFromSettings(session.settings))}
               >
                 Cambiar reparto
               </button>

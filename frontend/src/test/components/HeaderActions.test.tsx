@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import HeaderActions from '../../components/layout/HeaderActions';
 
@@ -51,4 +51,26 @@ it('«Ajustes de cuenta» abre los ajustes por arriba y la campana, en los aviso
 
   fireEvent.click(screen.getByRole('button', { name: 'Ajustes de avisos' }));
   expect(onOpenSettings).toHaveBeenLastCalledWith('reminders');
+});
+
+it('el botón de apoyar abre una ventana con Ko-fi, Revolut y PayPal en otra pestaña', () => {
+  setup();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Apoya el proyecto' }));
+
+  const dialog = screen.getByRole('dialog', { name: 'Invítanos a un café' });
+  const expected = {
+    'Ko-fi': 'https://ko-fi.com/O3E42AJYOP',
+    Revolut: 'https://revolut.me/raclos',
+    PayPal: 'https://www.paypal.com/paypalme/raclos',
+  };
+  for (const [name, href] of Object.entries(expected)) {
+    const link = within(dialog).getByRole('link', { name: new RegExp(`^${name}`) });
+    expect(link).toHaveAttribute('href', href);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  }
+
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
+  expect(screen.queryByRole('dialog')).toBeNull();
 });
