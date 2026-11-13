@@ -1107,6 +1107,23 @@ export const CONTENT_PAGES: ContentPage[] = [
     h1: 'Organiza la timba de póker',
     h1Marked: 'desde el móvil.',
     lede: 'Todo lo que hace falta en una partida de póker en casa: el reloj de ciegas, quién ha recomprado, cuánto hay en el bote y cuánto cobra cada puesto. Al terminar queda el histórico de la timba y el ranking de la temporada.',
+    screens: {
+      title: 'Así se ve una timba de póker en PorrApp',
+      shots: [
+        appScreen(
+          'poker-mesa',
+          'Torneo de póker en juego en PorrApp: reloj de ciegas con el nivel 4, jugadores en mesa, media de fichas y bote.',
+        ),
+        appScreen(
+          'poker-historico',
+          'Histórico de torneos de póker en PorrApp: podio con los tres primeros, premios y neto de cada jugador.',
+        ),
+        appScreen(
+          'poker-estadisticas',
+          'Estadísticas de una liga de póker en PorrApp: victorias, torneos jugados y recompras de cada jugador.',
+        ),
+      ],
+    },
     sections: [
       {
         heading: 'Reloj de ciegas que no se para',
