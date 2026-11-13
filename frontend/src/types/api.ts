@@ -939,3 +939,40 @@ export interface TournamentFormat {
  * la forma entera de su cuadro.
  */
 export type TournamentRounds = Pick<TournamentFormat, 'firstRound' | 'thirdPlaceMatch'>;
+
+/** Resumen del panel de administración (solo lo recibe quien es administrador). */
+export interface AdminOverview {
+  generatedAt: string;
+  totals: {
+    users: number;
+    newUsers24h: number;
+    newUsers7d: number;
+    newUsers30d: number;
+    active24h: number;
+    active7d: number;
+    leagues: number;
+    publicLeagues: number;
+    newLeagues7d: number;
+    memberships: number;
+    leaguesByKind: Record<string, number>;
+  };
+  signupsByDay: { day: string; count: number }[];
+  recentUsers: {
+    id: number;
+    name: string;
+    email: string;
+    method: 'google' | 'apple' | 'email';
+    joinedAt: string;
+    lastActiveAt: string;
+    leagues: number;
+  }[];
+  leagues: {
+    id: number;
+    name: string;
+    kind: string;
+    isPublic: boolean;
+    owner: string | null;
+    members: number;
+    createdAt: string;
+  }[];
+}
