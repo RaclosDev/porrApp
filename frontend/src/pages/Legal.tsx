@@ -195,6 +195,13 @@ function LegalNoticeContent() {
         cuentas. Podemos retirar contenido o cuentas que incumplan estas normas.
       </p>
 
+      <h2>Aportaciones voluntarias</h2>
+      <p>
+        Puedes apoyar el proyecto con una aportación a través de Revolut, PayPal o Ko-fi. Es
+        voluntaria, no da derecho a ninguna contraprestación ni a funciones extra, y la gestiona
+        cada plataforma con sus propias condiciones: PorrApp no recibe tus datos de pago.
+      </p>
+
       <h2>Resultados y responsabilidad</h2>
       <p>
         Los resultados, horarios y estadísticas se obtienen de fuentes públicas y pueden tener

@@ -535,3 +535,83 @@
   gap: 8px;
   margin-bottom: 8px;
 }
+
+/* Invitación: QR, código que se copia al tocarlo y las vías para compartir. */
+.tracker-invite-body {
+  display: grid;
+  gap: 14px;
+  align-items: center;
+  justify-items: center;
+}
+
+.tracker-invite-body .tracker-qr {
+  margin: 0;
+  inline-size: min(180px, 100%);
+}
+
+.tracker-invite-side {
+  display: grid;
+  gap: 10px;
+  inline-size: 100%;
+}
+
+.tracker-invite-code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 48px;
+  padding: 8px 14px;
+  border: 1.5px dashed var(--ink);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.tracker-invite-code:hover,
+.tracker-invite-code:focus-visible {
+  background: rgba(17, 24, 39, 0.06);
+}
+
+.tracker-invite-code-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tracker-invite-code-value {
+  flex: 1;
+  min-inline-size: 0;
+  color: var(--marker-ink);
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  overflow-wrap: anywhere;
+}
+
+.tracker-invite-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.tracker-invite-actions .glass-btn {
+  min-block-size: 44px;
+  padding-inline: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+@media (min-width: 560px) {
+  .tracker-invite-body {
+    grid-template-columns: auto 1fr;
+    justify-items: stretch;
+  }
+
+  .tracker-invite-body .tracker-qr {
+    inline-size: 160px;
+  }
+}

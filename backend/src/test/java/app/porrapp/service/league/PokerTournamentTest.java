@@ -52,6 +52,92 @@ class PokerTournamentTest {
         }
     }
 
+    @Test
+    void rebuysWithoutLimitKeepGoingAndLimitedOnesStop() {
+        var unlimited = activeSession();
+        unlimited.setSettings(new Settings(101, 100, new Extra(100, 100, null, 1), null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0))));
+        for (int i = 0; i < 25; i++) {
+            PokerTournament.apply(unlimited, new Command(Action.REBUY, 0L, 1L), 1000);
+        }
+        assertThat(unlimited.getEntries().getFirst().rebuys()).isEqualTo(25);
+
+        var limited = activeSession();
+        limited.setSettings(new Settings(101, 100, new Extra(100, 100, 2, 1), null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0))));
+        PokerTournament.apply(limited, new Command(Action.REBUY, 0L, 1L), 1000);
+        PokerTournament.apply(limited, new Command(Action.REBUY, 0L, 1L), 1000);
+        assertThatThrownBy(() -> PokerTournament.apply(limited, new Command(Action.REBUY, 0L, 1L), 1000))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void anyEliminationCanBeUndoneAndARebuyBringsThePlayerBack() {
+        var session = activeSession();
+        session.setSettings(new Settings(101, 100, new Extra(100, 100, null, 1), null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0))));
+        PokerTournament.apply(session, new Command(Action.ELIMINATE, 0L, 1L), 1000);
+
+        PokerTournament.apply(session, new Command(Action.UNDO_ELIMINATION, 0L, 3L), 1000);
+        assertThat(session.getEliminations()).containsExactly(1L);
+        assertThatThrownBy(() -> PokerTournament.apply(session, new Command(Action.UNDO_ELIMINATION, 0L, 3L), 1000))
+                .isInstanceOf(BusinessException.class);
+
+        PokerTournament.apply(session, new Command(Action.REBUY, 0L, 1L), 1000);
+        assertThat(session.getEliminations()).isEmpty();
+        assertThat(session.getEntries().getFirst().rebuys()).isEqualTo(1);
+    }
+
+    @Test
+    void prizesCanBeChangedDuringTheTournament() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.SET_PRIZES, 0L, null, null, List.of(50, 30, 20)), 1000);
+        assertThat(session.getSettings().prizeShares()).containsExactly(50, 30, 20);
+        assertThat(PokerTournament.view(session, 1000).prizes()).containsExactly(153L, 90L, 60L);
+        for (var shares : List.of(List.of(60, 30), List.of(40, 30, 20, 10))) {
+            assertThatThrownBy(() -> PokerTournament.apply(session,
+                    new Command(Action.SET_PRIZES, 0L, null, null, shares), 1000))
+                    .isInstanceOf(BusinessException.class);
+        }
+        assertThat(session.getSettings().prizeShares()).containsExactly(50, 30, 20);
+    }
+
+    @Test
+    void fixedAmountsGiveTheRemainderToTheWinnerAndNeverExceedThePot() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.SET_PRIZES, 0L, null, null, null, List.of(150L, 100L)), 1000);
+        assertThat(session.getSettings().prizeAmounts()).containsExactly(150L, 100L);
+        assertThat(session.getSettings().prizeShares()).containsExactly(70, 30);
+        assertThat(PokerTournament.view(session, 1000).prizes()).containsExactly(203L, 100L);
+        for (var amounts : List.of(List.of(300L, 4L), List.of(1L, 1L, 1L, 1L))) {
+            assertThatThrownBy(() -> PokerTournament.apply(session,
+                    new Command(Action.SET_PRIZES, 0L, null, null, null, amounts), 1000))
+                    .isInstanceOf(BusinessException.class);
+        }
+        assertThatThrownBy(() -> PokerTournament.apply(session,
+                new Command(Action.SET_PRIZES, 0L, null, null, List.of(100), List.of(303L)), 1000))
+                .isInstanceOf(BusinessException.class);
+
+        PokerTournament.apply(session, new Command(Action.SET_PRIZES, 0L, null, null, List.of(100)), 1000);
+        assertThat(session.getSettings().prizeAmounts()).isNull();
+        assertThat(PokerTournament.view(session, 1000).prizes()).containsExactly(303L);
+    }
+
+    @Test
+    void closingSavesTheAgreedPrizes() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100)), null, List.of(200L, 103L)), 1000);
+        assertThat(PokerTournament.view(session, 1000).results())
+                .extracting(Result::prizeCents).containsExactly(200L, 103L, 0L);
+
+        var tooMuch = activeSession();
+        assertThatThrownBy(() -> PokerTournament.apply(tooMuch, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100)), null, List.of(300L, 100L)), 1000))
+                .isInstanceOf(BusinessException.class);
+        assertThat(tooMuch.getClosedAt()).isNull();
+    }
+
     private PokerSession activeSession() {
         var session = new PokerSession();
         session.setId(1L);

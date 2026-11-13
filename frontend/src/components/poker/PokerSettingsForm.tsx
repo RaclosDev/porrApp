@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { BlindLevel, PokerExtra, PokerSettings } from '../../services/endpoints/poker';
+import PokerPrizeShares, { sharesTotal } from './PokerPrizeShares';
 import { chips } from './pokerFormat';
 
 interface Props {
@@ -59,7 +60,7 @@ export default function PokerSettingsForm({
         : null;
     patch({ levels, rebuy: updateCutoff(draft.rebuy), addOn: updateCutoff(draft.addOn) });
   };
-  const shareTotal = draft.prizeShares.reduce((sum, share) => sum + share, 0) || 0;
+  const shareTotal = sharesTotal(draft.prizeShares);
   const minutes = draft.levels.reduce((sum, level) => sum + (level.minutes || 0), 0);
   const structure = [
     `${draft.levels.length} ${draft.levels.length === 1 ? 'nivel' : 'niveles'}`,
@@ -86,6 +87,9 @@ export default function PokerSettingsForm({
     setError('');
     await onSave(day, {
       ...draft,
+      // Aquí el reparto va por porcentajes; las cantidades fijas solo se fijan en juego y no
+      // deben heredarse del torneo anterior, cuyo bote era otro.
+      prizeAmounts: null,
       levels: draft.levels.map((level) => ({
         ...level,
         ante: anteEnabled && level.big > 0 ? level.ante : 0,
@@ -130,44 +134,10 @@ export default function PokerSettingsForm({
 
       <fieldset className="poker-fieldset">
         <legend>Reparto de premios</legend>
-        <div className="poker-fields poker-share-fields">
-          {draft.prizeShares.map((value, index) => (
-            <NumberField
-              key={index}
-              label={`Puesto ${index + 1} (%)`}
-              min={1}
-              max={100}
-              value={value}
-              onChange={(share) =>
-                patch({
-                  prizeShares: draft.prizeShares.map((old, i) => (i === index ? share : old)),
-                })
-              }
-            />
-          ))}
-        </div>
-        <div className="poker-actions">
-          <span className={shareTotal === 100 ? 'poker-total' : 'poker-total is-off'}>
-            Reparto total {shareTotal} %{shareTotal < 100 && ` · falta un ${100 - shareTotal} %`}
-            {shareTotal > 100 && ` · sobra un ${shareTotal - 100} %`}
-          </span>
-          <button
-            type="button"
-            className="glass-btn"
-            disabled={draft.prizeShares.length >= 20}
-            onClick={() => patch({ prizeShares: [...draft.prizeShares, 1] })}
-          >
-            Añadir premio
-          </button>
-          <button
-            type="button"
-            className="glass-btn"
-            disabled={draft.prizeShares.length <= 1}
-            onClick={() => patch({ prizeShares: draft.prizeShares.slice(0, -1) })}
-          >
-            Quitar último premio
-          </button>
-        </div>
+        <PokerPrizeShares
+          draft={{ mode: 'percent', values: draft.prizeShares }}
+          onChange={({ values }) => patch({ prizeShares: values })}
+        />
       </fieldset>
 
       <details className="poker-details">
@@ -371,7 +341,7 @@ function ExtraFields({
                 ? {
                     costCents: settings.buyInCents,
                     chips: settings.startingChips,
-                    limit: 1,
+                    limit: multiple ? null : 1,
                     throughLevel: Math.min(settings.levels.length, multiple ? 4 : 5),
                   }
                 : null,
@@ -395,6 +365,16 @@ function ExtraFields({
             onChange={(value) => onChange({ ...extra, chips: value })}
           />
           {multiple && (
+            <label className="poker-check">
+              <input
+                type="checkbox"
+                checked={extra.limit === null}
+                onChange={(event) => onChange({ ...extra, limit: event.target.checked ? null : 1 })}
+              />
+              Sin límite por jugador
+            </label>
+          )}
+          {multiple && extra.limit !== null && (
             <NumberField
               label="Máximo por jugador"
               min={1}

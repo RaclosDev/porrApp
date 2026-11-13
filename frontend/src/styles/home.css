@@ -50,6 +50,17 @@
     margin-top: 8px;
   }
 
+  /* La etiqueta a la izquierda y la acción de la liga a la derecha, en la misma línea. */
+  .home-hero-pills.is-spread {
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+
+  .home-hero-pills.is-spread .home-hero-pill {
+    min-width: 0;
+  }
+
   .home-hero-pill {
     display: inline-flex;
     align-items: center;

@@ -176,6 +176,14 @@
   min-height: 44px;
 }
 
+/* Las casillas dentro de una rejilla de campos ocupan su fila, con el texto al lado. */
+.poker-fields .poker-check {
+  display: flex;
+  grid-column: 1 / -1;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 .poker-fieldset {
   min-width: 0;
   margin: 0;
@@ -303,21 +311,115 @@
 }
 
 .poker-extra-rules {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.poker-extra-rules > li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 0.6rem;
+}
+
+.poker-extra-rules .poker-icon {
+  flex-shrink: 0;
+  width: auto;
+  height: 1.6rem;
+}
+
+.poker-extra-rules small,
+.poker-prize-who small {
+  display: block;
   color: var(--text-muted);
-  font-size: 0.875rem;
-  line-height: 1.45;
+  font-size: 0.8rem;
 }
 
 .poker .poker-pot {
-  margin-block: 0.55rem;
-  font-size: 1.5rem;
-  font-weight: 750;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-block: 0.55rem 0.3rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.6rem;
+  background: radial-gradient(ellipse at 30% 20%, #1a5a41, #0f3d2e 80%);
+  color: #fff;
 }
 
 .poker-pot span {
-  color: var(--text-muted);
+  color: #c3d5c6;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.poker-pot strong {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker .poker-prizes > li {
+  justify-content: flex-start;
+}
+
+.poker-prize-place {
+  display: grid;
+  flex-shrink: 0;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  border: 2px solid var(--prize-ring, var(--border-color));
+  border-radius: 50%;
+  background: var(--prize-fill, transparent);
+  color: var(--prize-ink, inherit);
   font-size: 0.85rem;
-  font-weight: 400;
+  font-weight: 800;
+}
+
+.poker-prize.is-place-1 {
+  --prize-fill: #f6c445;
+  --prize-ring: #8a5a00;
+  --prize-ink: #3d2800;
+}
+
+.poker-prize.is-place-2 {
+  --prize-fill: #d7dde3;
+  --prize-ring: #6b7785;
+  --prize-ink: #27313b;
+}
+
+.poker-prize.is-place-3 {
+  --prize-fill: #d99a63;
+  --prize-ring: #7a4219;
+  --prize-ink: #3a1d08;
+}
+
+.poker-prize-who {
+  flex: 1;
+  min-width: 0;
+}
+
+.poker-prizes > li > strong {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-actions .poker-icon-btn {
+  min-width: 44px;
+  justify-content: center;
+  padding-inline: 0.6rem;
+}
+
+.poker-undo-icon {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .poker-table-scroll {
@@ -369,6 +471,7 @@
 /* Tapete: el reloj se lee desde lejos, por eso va sobre fondo oscuro y separado del papel. */
 .poker-felt {
   --text-muted: #c3d5c6;
+  position: relative;
   --border-color: rgba(243, 236, 220, 0.22);
   min-width: 0;
   padding: clamp(1rem, 3vw, 1.6rem);
@@ -387,6 +490,63 @@
 
 .poker-felt p {
   margin: 0.4rem 0;
+}
+
+/* Mesa sin torneo: el tapete vacío invita a preparar el siguiente. */
+.poker-felt.poker-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-block: clamp(1.6rem, 6vw, 3rem) clamp(1.1rem, 4vw, 1.8rem);
+  text-align: center;
+}
+
+.poker-empty-suits {
+  color: rgba(243, 236, 220, 0.55);
+  font-size: 1.35rem;
+  letter-spacing: 0.35em;
+}
+
+.poker-felt.poker-empty h2 {
+  margin-top: 0.6rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.poker .poker-empty-title {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.9rem, 7vw, 2.8rem);
+  line-height: 1.05;
+  rotate: -1.5deg;
+}
+
+.poker-felt .poker-empty-text {
+  max-width: 34ch;
+  margin: 0.6rem 0 0;
+  color: var(--text-muted);
+  text-wrap: balance;
+}
+
+.poker .poker-empty-cta {
+  justify-content: center;
+  min-width: min(100%, 15rem);
+  margin-top: 1.1rem;
+}
+
+.poker-felt.poker-empty .poker-steps {
+  width: 100%;
+  max-width: 52rem;
+  margin: 1.6rem 0 0;
+  padding-top: 1.1rem;
+  text-align: left;
+}
+
+.poker-felt.poker-empty .poker-steps li::before {
+  background: var(--paper);
+  color: #0f3d2e;
 }
 
 .poker-level {
@@ -531,6 +691,11 @@
   color: #9f1239;
 }
 
+/* El total va en su propia línea y los botones juntos debajo, sin partirse a medias. */
+.poker-actions > .poker-total {
+  flex-basis: 100%;
+}
+
 .poker-pick-list {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
   gap: 0.4rem;
@@ -651,6 +816,11 @@
   min-width: 0;
   align-items: center;
   gap: 0.55rem;
+}
+
+/* El nombre no se parte en dos líneas por unos pocos píxeles: la tabla ya se desplaza si no cabe. */
+.poker-table:not(.poker-results-table) th[scope='row'] {
+  min-width: 9.5rem;
 }
 
 .poker-player > :first-child,
@@ -780,9 +950,160 @@
 }
 
 .poker-seats li {
+  position: relative;
   display: grid;
   border: 2px solid var(--paper);
   border-radius: 50%;
+}
+
+.poker-badged {
+  position: relative;
+  display: inline-grid;
+}
+
+.poker-faces:has(.poker-seat-crown) {
+  margin-top: 1.6rem;
+}
+
+.poker-seats:has(.poker-seat-crown) {
+  margin-top: 1.3rem;
+}
+
+.poker-seats li:not(:first-child):has(.poker-seat-bullet) {
+  margin-left: 0.2rem;
+}
+
+.poker-seat-crown {
+  position: absolute;
+  top: -1.05rem;
+  left: 50%;
+  width: 2.1rem;
+  transform: translateX(-50%) rotate(-8deg);
+  fill: #f6c445;
+  stroke: #8a5a00;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.4));
+}
+
+.poker-seat-bullet,
+.poker-seat-bag {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45));
+}
+
+.poker-seat-bullet {
+  top: 62%;
+  left: -0.3rem;
+  transform: translateY(-50%) rotate(-12deg);
+}
+
+.poker-seat-bullet svg {
+  width: 0.7rem;
+}
+
+/* Iconos de compras: bala de latón y cobre, bolsa de oro y calavera para eliminar. */
+.poker-icon {
+  flex: none;
+  height: auto;
+}
+
+.poker-icon-bullet {
+  width: 0.5rem;
+  stroke: #5a3a10;
+  stroke-width: 0.5;
+}
+
+.poker-icon-bullet .bullet-tip {
+  fill: #b8693a;
+}
+
+.poker-icon-bullet .bullet-case {
+  fill: #d9a83e;
+}
+
+.poker-icon-bullet .bullet-rim {
+  fill: #b9862a;
+}
+
+.poker-icon-bullet .bullet-shine {
+  fill: #f6dc8c;
+  stroke: none;
+}
+
+.poker-icon-bag {
+  width: 1rem;
+  fill: #f2c94c;
+  stroke: #7a5200;
+  stroke-width: 1;
+}
+
+.poker-icon-bag text {
+  fill: #5a3c00;
+  stroke: none;
+  font:
+    800 9px/1 system-ui,
+    sans-serif;
+}
+
+.poker-icon-skull {
+  width: 0.95rem;
+  fill: currentColor;
+}
+
+.poker-icon-skull .skull-hole {
+  fill: var(--paper);
+}
+
+.poker-icon-skull .skull-teeth {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.1;
+}
+
+.poker-actions .glass-btn:has(.poker-icon) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.poker-purchases {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.15rem 0 0;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-purchases > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.poker-corrections .poker-player {
+  gap: 0.5rem;
+}
+
+.poker-seat-bag {
+  right: -0.55rem;
+  bottom: -0.5rem;
+}
+
+.poker-seat-bag svg {
+  width: 1.4rem;
+}
+
+.poker-seat-bullet b,
+.poker-seat-bag b {
+  color: var(--paper);
+  font-size: 0.65rem;
+  line-height: 1;
 }
 
 .poker-seats .is-out {
@@ -867,6 +1188,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
   gap: 0.85rem 1rem;
+}
+
+.poker-finish {
+  scroll-margin-top: 5rem;
 }
 
 .poker-finish label {
@@ -1009,4 +1334,210 @@
 .poker-sort:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 3px;
+}
+
+/* Cuánto queda para recomprar o hacer add-on, en pequeño en la esquina de la mesa. */
+.poker-buy-timers {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-buy-timers li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(243, 236, 220, 0.28);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.25);
+  color: var(--paper);
+  font-size: 0.75rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-buy-timers .poker-icon-bullet {
+  width: 0.4rem;
+}
+
+.poker-buy-timers .poker-icon-bag {
+  width: 0.85rem;
+}
+
+.poker-prize-edit {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.poker-prize-edit:hover:not(:disabled),
+.poker-prize-edit:focus-visible {
+  color: var(--text-main);
+}
+
+.poker-prize-editor {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.18);
+}
+
+/* Selector del reparto: porcentaje del bote o cantidades fijas. */
+.poker-prize-mode {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 10px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+.poker-prize-mode button {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.poker-prize-mode button.is-active {
+  background: color-mix(in srgb, var(--accent-cyan) 18%, transparent);
+  color: var(--text-main);
+}
+
+.poker-prize-mode button:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* Cierre con reparto editable: más ancho que una confirmación y con scroll si no cabe. */
+.league-admin-confirm-dialog.poker-close-dialog {
+  max-width: 440px;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+
+.poker-close-dialog .poker-form {
+  text-align: left;
+}
+
+.poker-close-dialog .poker-share-fields {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr));
+}
+
+/* Sección aún sin datos: un icono dibujado, qué saldrá aquí y el camino para llegar. */
+.poker-blank {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 0.75rem 0.5rem 0.25rem;
+  text-align: center;
+}
+
+.poker-blank-icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 56px;
+  block-size: 56px;
+  margin-bottom: 0.25rem;
+  border: 1.5px dashed currentColor;
+  border-radius: 50%;
+  color: var(--ink);
+  opacity: 0.75;
+}
+
+.poker-blank-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.poker-blank .poker-note {
+  max-inline-size: 32ch;
+  margin: 0;
+}
+
+.poker-blank .glass-btn {
+  margin-top: 0.6rem;
+}
+
+/* Primeros pasos de una liga sin torneos cerrados. */
+.poker-todo {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-todo > li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed rgba(17, 24, 39, 0.18);
+}
+
+.poker-todo > li:last-child {
+  border-bottom: 0;
+}
+
+.poker-todo-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  font-weight: 800;
+}
+
+.poker-todo > li.is-done .poker-todo-mark {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.poker-todo > li.is-done .poker-todo-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.poker-todo-text {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.poker-todo-text p {
+  margin: 0;
+}
+
+.poker-todo-title {
+  font-weight: 800;
+}
+
+.poker-todo .glass-btn {
+  flex: none;
+  min-block-size: 44px;
+  padding-inline: 14px;
 }

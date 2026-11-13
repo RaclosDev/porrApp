@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PokerSession } from '../../services/endpoints/poker';
+import PokerEmpty from './PokerEmpty';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
 import {
@@ -12,6 +13,7 @@ import {
   standingLabel,
   tournamentDate,
 } from './pokerFormat';
+import { pokerRoutes } from './pokerRoutes';
 
 function Net({ cents }: { cents: number }) {
   return (
@@ -35,7 +37,13 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
     <section className="paper-panel album-sheet poker-panel">
       <h2>Histórico de torneos</h2>
       {!session ? (
-        <p className="poker-note">Los torneos aparecerán aquí al cerrarlos.</p>
+        <PokerEmpty
+          icon="history"
+          title="Aún no hay torneos cerrados"
+          action={{ to: pokerRoutes.table.to, label: 'Ir a la mesa' }}
+        >
+          Al cerrar cada torneo quedan aquí la clasificación, los premios y las recompras.
+        </PokerEmpty>
       ) : (
         <>
           <div className="md-round-bar poker-round-bar">
@@ -82,6 +90,8 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
               playerId: result.playerId,
               place: result.place,
               name: result.name,
+              rebuys: result.rebuys,
+              addOns: result.addOns,
               value: result.prizeCents > 0 ? euros(result.prizeCents) : 'Sin premio',
             }))}
           />
@@ -164,6 +174,7 @@ const statisticColumns: { label: string; value: (row: Standing) => number | stri
   { label: 'Victorias', value: (row) => row.wins },
   { label: '% victorias', value: (row) => row.wins / row.played },
   { label: 'Podios', value: (row) => row.podiums },
+  { label: 'Aplausos', value: (row) => row.applause },
   { label: '% con premio', value: (row) => row.cashes / row.played },
   { label: 'Puesto medio', value: (row) => row.places / row.played },
   { label: 'Premios', value: (row) => row.prizes },
@@ -195,7 +206,13 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
     <section className="paper-panel album-sheet poker-panel">
       <h2>Estadísticas de la liga</h2>
       {standings.length === 0 ? (
-        <p className="poker-note">Las estadísticas se calculan al cerrar el primer torneo.</p>
+        <PokerEmpty
+          icon="stats"
+          title="Sin estadísticas todavía"
+          action={{ to: pokerRoutes.table.to, label: 'Ir a la mesa' }}
+        >
+          Con el primer torneo cerrado verás victorias, podios, aplausos y el neto de cada jugador.
+        </PokerEmpty>
       ) : (
         <>
           <p className="poker-note">
@@ -263,6 +280,7 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                     <td>{row.wins}</td>
                     <td>{percent(row.wins / row.played)}</td>
                     <td>{row.podiums}</td>
+                    <td>{row.applause}</td>
                     <td>{percent(row.cashes / row.played)}</td>
                     <td>{formatPlace.format(row.places / row.played)}.º</td>
                     <td>{euros(row.prizes)}</td>
@@ -274,8 +292,9 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
           </div>
           <p className="poker-note">
             Los porcentajes se calculan sobre los torneos jugados por cada persona. El neto
-            descuenta entradas, recompras y add-ons. Las recompras y los add-ons acumulan las
-            compras de cada jugador en los torneos cerrados.
+            descuenta entradas, recompras y add-ons. Un aplauso es quedar en el primer puesto sin
+            premio. Las recompras y los add-ons acumulan las compras de cada jugador en los torneos
+            cerrados.
           </p>
         </>
       )}

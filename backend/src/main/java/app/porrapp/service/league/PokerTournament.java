@@ -15,9 +15,7 @@ final class PokerTournament {
     }
 
     static void validate(Settings settings) {
-        if (settings.prizeShares().stream().mapToInt(Integer::intValue).sum() != 100) {
-            throw BusinessException.badRequest("El reparto de premios debe sumar el 100 %");
-        }
+        validateShares(settings.prizeShares());
         var levels = settings.levels();
         if (levels.getFirst().big() == 0 || levels.getLast().big() == 0
                 || levels.stream().anyMatch(level -> level.big() == 0
@@ -27,8 +25,14 @@ final class PokerTournament {
         }
         if (settings.rebuy() != null && settings.rebuy().throughLevel() > levels.size()
                 || settings.addOn() != null && (settings.addOn().throughLevel() > levels.size()
-                || settings.addOn().limit() != 1)) {
+                || !Integer.valueOf(1).equals(settings.addOn().limit()))) {
             throw BusinessException.badRequest("Revisa hasta qué nivel se permiten las recompras y el extra de fichas");
+        }
+    }
+
+    private static void validateShares(List<Integer> shares) {
+        if (shares == null || shares.isEmpty() || shares.stream().mapToInt(Integer::intValue).sum() != 100) {
+            throw BusinessException.badRequest("El reparto de premios debe sumar el 100 %");
         }
     }
 
@@ -65,12 +69,19 @@ final class PokerTournament {
             case UNDO_REBUY, UNDO_ADD_ON -> undoExtra(session, command);
             case ELIMINATE -> eliminate(session, command.playerId());
             case UNDO_ELIMINATION -> {
-                if (!session.getEliminations().isEmpty()) {
+                if (command.playerId() != null) {
+                    revive(session, command.playerId());
+                } else if (!session.getEliminations().isEmpty()) {
                     session.setEliminations(new ArrayList<>(
                             session.getEliminations().subList(0, session.getEliminations().size() - 1)));
                 }
             }
+            case SET_PRIZES -> setPrizes(session, command);
             case CLOSE -> {
+                if (command.prizeShares() != null || command.prizeAmounts() != null) {
+                    setPrizes(session, command);
+                }
+                checkAmountsFit(session.getSettings().prizeAmounts(), pot(session));
                 if (command.finalStacks() != null) {
                     finishStacks(session, command.finalStacks());
                 } else if (remaining(session) != 1) {
@@ -81,6 +92,34 @@ final class PokerTournament {
             }
             default -> throw new IllegalArgumentException("Acción inesperada: " + command.action());
         }
+    }
+
+    /** Cambia el reparto en juego: por porcentajes o por cantidades fijas que no superen el bote. */
+    private static void setPrizes(PokerSession session, Command command) {
+        boolean amounts = command.prizeAmounts() != null;
+        if (amounts == (command.prizeShares() != null)) {
+            throw BusinessException.badRequest("Indica el reparto en porcentajes o en cantidades, no ambos");
+        }
+        if (!amounts) validateShares(command.prizeShares());
+        int places = amounts ? command.prizeAmounts().size() : command.prizeShares().size();
+        if (places > session.getEntries().size()) {
+            throw BusinessException.badRequest("Hay más puestos premiados que jugadores. Ajusta el reparto");
+        }
+        if (amounts) checkAmountsFit(command.prizeAmounts(), pot(session));
+        Settings old = session.getSettings();
+        session.setSettings(new Settings(old.buyInCents(), old.startingChips(), old.rebuy(), old.addOn(),
+                amounts ? old.prizeShares() : List.copyOf(command.prizeShares()), old.levels(),
+                amounts ? List.copyOf(command.prizeAmounts()) : null));
+    }
+
+    private static void checkAmountsFit(List<Long> amounts, long pot) {
+        if (amounts != null && amounts.stream().mapToLong(Long::longValue).sum() > pot) {
+            throw BusinessException.badRequest("Las cantidades del reparto superan el bote. Ajusta el reparto");
+        }
+    }
+
+    private static long pot(PokerSession session) {
+        return session.getEntries().stream().mapToLong(entry -> paid(entry, session.getSettings())).sum();
     }
 
     private static void finishStacks(PokerSession session, List<FinalStack> stacks) {
@@ -108,7 +147,7 @@ final class PokerTournament {
         if (session.getStartedAt() != null) throw BusinessException.conflict("El torneo ya ha empezado");
         int count = session.getEntries().size();
         if (count < 2) throw BusinessException.badRequest("Confirma al menos dos jugadores");
-        if (count < session.getSettings().prizeShares().size()) {
+        if (count < session.getSettings().prizePlaces()) {
             throw BusinessException.badRequest("Hay más puestos premiados que jugadores. Ajusta el reparto");
         }
         long duration = duration(session.getSettings().levels().getFirst());
@@ -123,15 +162,30 @@ final class PokerTournament {
         session.setEliminations(order);
     }
 
+    /** Quita la eliminación de un jugador concreto; los demás conservan su orden. */
+    private static void revive(PokerSession session, Long playerId) {
+        if (!session.getEliminations().contains(playerId)) {
+            throw BusinessException.conflict("Ese jugador no está eliminado");
+        }
+        session.setEliminations(session.getEliminations().stream()
+                .filter(id -> !id.equals(playerId)).toList());
+    }
+
     private static void extra(PokerSession session, Command command, BlindClock clock) {
-        Entry player = activeEntry(session, command.playerId());
         boolean rebuy = command.action() == Action.REBUY;
+        boolean comeback = rebuy && command.playerId() != null
+                && session.getEliminations().contains(command.playerId());
+        Entry player = comeback
+                ? session.getEntries().stream().filter(entry -> entry.playerId() == command.playerId())
+                        .findFirst().orElseThrow()
+                : activeEntry(session, command.playerId());
         Extra option = rebuy ? session.getSettings().rebuy() : session.getSettings().addOn();
         int count = rebuy ? player.rebuys() : player.addOns();
-        if (option == null || count >= option.limit() || clock.level() >= option.throughLevel()
+        if (option == null || (option.limit() != null && count >= option.limit()) || clock.level() >= option.throughLevel()
                 || clock.remainingMs() == 0) {
             throw BusinessException.conflict("Ese extra de fichas ya no está disponible para este jugador");
         }
+        if (comeback) revive(session, player.playerId());
         replaceEntry(session, rebuy ? player.rebuy() : player.addOn());
     }
 
@@ -192,12 +246,24 @@ final class PokerTournament {
         return List.copyOf(prizes);
     }
 
+    /**
+     * Premios por puesto. Con cantidades fijas, lo que sobra del bote se suma al primer puesto, igual que
+     * los céntimos del reparto por porcentajes; así el bote siempre se reparte entero.
+     */
+    static List<Long> prizes(long pot, Settings settings) {
+        if (settings.prizeAmounts() == null) return prizes(pot, settings.prizeShares());
+        var prizes = new ArrayList<>(settings.prizeAmounts());
+        long remainder = pot - prizes.stream().mapToLong(Long::longValue).sum();
+        if (remainder > 0) prizes.set(0, prizes.getFirst() + remainder);
+        return List.copyOf(prizes);
+    }
+
     static Session view(PokerSession session, long now) {
         Settings settings = session.getSettings();
         List<Entry> entries = session.getEntries();
         List<Long> order = session.getEliminations();
-        long pot = entries.stream().mapToLong(entry -> paid(entry, settings)).sum();
-        List<Long> prizes = prizes(pot, settings.prizeShares());
+        long pot = pot(session);
+        List<Long> prizes = prizes(pot, settings);
         List<Result> results = session.getClosedAt() == null ? List.of() : entries.stream()
                 .map(entry -> {
                     int index = order.indexOf(entry.playerId());
