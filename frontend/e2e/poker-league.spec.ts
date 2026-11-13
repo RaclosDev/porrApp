@@ -160,15 +160,18 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
     'Estadísticas',
     'Mis Ligas',
   ]);
-  await expect(page.getByText('Aún no hay ningún torneo programado.')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Podio de la liga' })).toBeVisible();
+  await expect(page.getByText('Sin torneo a la vista')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Primeros pasos' })).toBeVisible();
+  // Invitar abre el panel con el código, a la altura de la etiqueta de la liga.
+  await page.getByRole('button', { name: 'Invitar', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: 'Invitar a la liga' })).toBeVisible();
   await nav.getByRole('link', { name: 'Mis Ligas' }).click();
   await page.getByRole('button', { name: 'Más opciones de Póker de los sábados' }).click();
   await expect(
     page.getByRole('button', { name: 'Administrar Póker de los sábados' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Abrir Póker de los sábados' }).click();
-  await page.getByRole('link', { name: 'Ir a la mesa' }).click();
+  await page.getByRole('link', { name: 'Preparar torneo' }).click();
   await expect(nav.getByRole('link', { name: 'Mesa', exact: true })).toHaveAttribute(
     'aria-current',
     'page',

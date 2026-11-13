@@ -198,7 +198,13 @@ it('corona en inicio al último ganador y marca compras en los cromos del histó
   };
   const { container, unmount } = render(
     <MemoryRouter>
-      <PokerHome league={league} sessions={[closed]} loading={false} onRetry={vi.fn()} />
+      <PokerHome
+        league={league}
+        sessions={[closed]}
+        loading={false}
+        onRetry={vi.fn()}
+        onInvite={vi.fn()}
+      />
     </MemoryRouter>,
   );
   const faces = [...container.querySelectorAll('.poker-faces li')];
@@ -747,4 +753,39 @@ it('al cerrar el torneo ofrece una propina para el crupier con las formas de apo
   );
   fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
   expect(screen.queryByRole('dialog')).toBeNull();
+});
+
+it('sin torneos cerrados guía los primeros pasos y explica cada sección vacía', () => {
+  const onInvite = vi.fn();
+  const { unmount } = render(
+    <MemoryRouter>
+      <PokerHome
+        league={{ ...league, current: null, players: [league.players[0]] }}
+        sessions={[]}
+        loading={false}
+        onRetry={vi.fn()}
+        onInvite={onInvite}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText('Sin torneo a la vista')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Preparar torneo' })).toHaveAttribute(
+    'href',
+    '/poker/mesa',
+  );
+  expect(screen.getByRole('heading', { name: 'Primeros pasos' })).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Podio de la liga' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Invitar' }));
+  expect(onInvite).toHaveBeenCalledTimes(1);
+  unmount();
+
+  render(
+    <MemoryRouter>
+      <PokerHistory sessions={[]} />
+      <PokerStatistics sessions={[]} />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText('Aún no hay torneos cerrados')).toBeInTheDocument();
+  expect(screen.getByText('Sin estadísticas todavía')).toBeInTheDocument();
+  expect(screen.getAllByRole('link', { name: 'Ir a la mesa' })).toHaveLength(2);
 });
