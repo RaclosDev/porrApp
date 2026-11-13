@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { PokerLeagueData, PokerSession } from '../../services/endpoints/poker';
 import { BadgedAvatar, lastWinnerIds } from './PokerBadges';
+import PokerEmpty from './PokerEmpty';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
 import {
@@ -17,11 +18,13 @@ export default function PokerHome({
   sessions,
   loading,
   onRetry,
+  onInvite,
 }: {
   league: PokerLeagueData;
   sessions: PokerSession[] | undefined;
   loading: boolean;
   onRetry: () => void;
+  onInvite: () => void;
 }) {
   const { current } = league;
   const live = Boolean(current && current.startedAt !== null);
@@ -74,16 +77,33 @@ export default function PokerHome({
             </dl>
           </>
         ) : (
-          <p className="poker-note">Aún no hay ningún torneo programado.</p>
+          <PokerEmpty
+            icon="cards"
+            title="Sin torneo a la vista"
+            action={
+              league.owner ? { to: pokerRoutes.table.to, label: 'Preparar torneo' } : undefined
+            }
+          >
+            {league.owner
+              ? 'Elige fecha, entrada y ciegas; la gente se apunta desde aquí.'
+              : 'Cuando se programe el próximo, podrás apuntarte desde aquí.'}
+          </PokerEmpty>
         )}
-        {(current || league.owner) && (
+        {current && (
           <Link className="glass-btn primary-btn" to={pokerRoutes.table.to}>
             {current && !live && !attending ? 'Apuntarme al torneo' : 'Ir a la mesa'}
           </Link>
         )}
       </section>
 
-      {sessions ? (
+      {sessions?.length === 0 ? (
+        <FirstSteps
+          invited={league.players.length > 1}
+          scheduled={Boolean(current)}
+          owner={league.owner}
+          onInvite={onInvite}
+        />
+      ) : sessions ? (
         <div className="home-dashboard-sidebar">
           <section className="paper-panel album-sheet poker-panel">
             <header className="home-list-header">
@@ -152,5 +172,72 @@ export default function PokerHome({
         </section>
       )}
     </div>
+  );
+}
+
+/** Hasta cerrar el primer torneo, en vez de tarjetas vacías: qué falta para estrenar la liga. */
+function FirstSteps({
+  invited,
+  scheduled,
+  owner,
+  onInvite,
+}: {
+  invited: boolean;
+  scheduled: boolean;
+  owner: boolean;
+  onInvite: () => void;
+}) {
+  const steps = [
+    {
+      done: invited,
+      title: 'Invita a la gente',
+      text: 'Con el QR, el código o el enlace.',
+      action: (
+        <button type="button" className="glass-btn" onClick={onInvite}>
+          Invitar
+        </button>
+      ),
+    },
+    {
+      done: scheduled,
+      title: 'Prepara el primer torneo',
+      text: owner ? 'Fecha, entrada, fichas y ciegas.' : 'Lo programa quien organiza la liga.',
+      action:
+        owner && !scheduled ? (
+          <Link className="glass-btn" to={pokerRoutes.table.to}>
+            Preparar
+          </Link>
+        ) : null,
+    },
+    {
+      done: false,
+      title: 'Juega y cierra el torneo',
+      text: 'El histórico, el podio y las estadísticas se llenan solos.',
+      action: null,
+    },
+  ];
+  return (
+    <section className="paper-panel album-sheet poker-panel">
+      <header className="home-list-header">
+        <h2>Primeros pasos</h2>
+      </header>
+      <ol className="poker-todo">
+        {steps.map((step, index) => (
+          <li key={step.title} className={step.done ? 'is-done' : undefined}>
+            <span className="poker-todo-mark" aria-hidden="true">
+              {step.done ? '✓' : index + 1}
+            </span>
+            <div className="poker-todo-text">
+              <p className="poker-todo-title">
+                {step.title}
+                {step.done && <span className="sr-only"> (hecho)</span>}
+              </p>
+              <p className="poker-note">{step.text}</p>
+            </div>
+            {step.action}
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }

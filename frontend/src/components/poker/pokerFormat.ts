@@ -6,14 +6,17 @@ import type {
 } from '../../services/endpoints/poker';
 
 const moneyFormat = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'full' });
-const upcomingDateFormat = new Intl.DateTimeFormat('es-ES', {
+const longDate = new Intl.DateTimeFormat('es-ES', {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
 });
-const shortDateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' });
-const numberFormat = new Intl.NumberFormat('es-ES');
+const longDateWithYear = new Intl.DateTimeFormat('es-ES', { dateStyle: 'full' });
+const shortDateFormat = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
+const shortDateWithYear = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' });
+// En es-ES Intl no agrupa los números de cuatro cifras (4233 junto a 65.767); de-DE usa el mismo
+// punto de millares y sí los agrupa.
+const numberFormat = new Intl.NumberFormat('de-DE');
 const percentFormat = new Intl.NumberFormat('es-ES', {
   style: 'percent',
   maximumFractionDigits: 1,
@@ -29,10 +32,18 @@ export const euros = (cents: number) => moneyFormat.format(cents / 100);
 export const signedEuros = (cents: number) => signedMoneyFormat.format(cents / 100);
 export const chips = (count: number) => numberFormat.format(count);
 export const percent = (value: number) => percentFormat.format(value);
-export const tournamentDate = (date: string) => dateFormat.format(new Date(`${date}T12:00:00`));
-export const upcomingTournamentDate = (date: string) =>
-  upcomingDateFormat.format(new Date(`${date}T12:00:00`));
-export const shortDate = (date: string) => shortDateFormat.format(new Date(`${date}T12:00:00`));
+const noon = (date: string) => new Date(`${date}T12:00:00`);
+/** El año solo se muestra si no es el actual: la mayoría de timbas son de esta temporada. */
+const thisYear = (date: Date) => date.getFullYear() === new Date().getFullYear();
+export const tournamentDate = (date: string) => {
+  const day = noon(date);
+  return (thisYear(day) ? longDate : longDateWithYear).format(day);
+};
+export const upcomingTournamentDate = (date: string) => longDate.format(noon(date));
+export const shortDate = (date: string) => {
+  const day = noon(date);
+  return (thisYear(day) ? shortDateFormat : shortDateWithYear).format(day);
+};
 
 // En el podio de la liga, quien aún no ha ganado se presenta por sus podios.
 export const standingLabel = ({ wins, podiums }: { wins: number; podiums: number }) =>

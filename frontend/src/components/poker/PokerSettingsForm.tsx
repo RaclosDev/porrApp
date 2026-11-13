@@ -87,6 +87,9 @@ export default function PokerSettingsForm({
     setError('');
     await onSave(day, {
       ...draft,
+      // Aquí el reparto va por porcentajes; las cantidades fijas solo se fijan en juego y no
+      // deben heredarse del torneo anterior, cuyo bote era otro.
+      prizeAmounts: null,
       levels: draft.levels.map((level) => ({
         ...level,
         ante: anteEnabled && level.big > 0 ? level.ante : 0,
@@ -132,8 +135,8 @@ export default function PokerSettingsForm({
       <fieldset className="poker-fieldset">
         <legend>Reparto de premios</legend>
         <PokerPrizeShares
-          shares={draft.prizeShares}
-          onChange={(prizeShares) => patch({ prizeShares })}
+          draft={{ mode: 'percent', values: draft.prizeShares }}
+          onChange={({ values }) => patch({ prizeShares: values })}
         />
       </fieldset>
 

@@ -37,18 +37,17 @@ export default function MobileBottomNav() {
   if (leagueKind === 'loading') {
     return (
       <nav
-        className="mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 flex items-center justify-around py-0 px-1.5 z-[1000]"
+        className="mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(env(safe-area-inset-bottom,_0px)_+_24px)] left-5 right-5 mx-auto max-w-110 h-14 p-1 flex items-center justify-around rounded-full z-[1000]"
         aria-label="Navegación principal móvil"
         aria-busy="true"
       >
         {[0, 1, 2, 3, 4].map((slot) => (
           <span
             key={slot}
-            className="flex flex-1 flex-col items-center justify-center gap-1.5 h-12.5"
+            className="flex flex-1 items-center justify-center h-full"
             aria-hidden="true"
           >
-            <span className="chrome-placeholder w-5 h-5 rounded-md" />
-            <span className="chrome-placeholder w-9 h-2 rounded-sm" />
+            <span className="chrome-placeholder w-6 h-6 rounded-md" />
           </span>
         ))}
       </nav>
@@ -57,7 +56,7 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className={`mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(14px_+_env(safe-area-inset-bottom,_0px))] left-[50%] [transform:translateX(-50%)] w-[calc(100%_-_24px)] max-w-107.5 h-15.5 flex items-center justify-around py-0 px-1.5 z-[1000]  ${isNavLocked ? 'opacity-[0.45]' : 'opacity-[1]'} ${isNavLocked ? 'pointer-events-none' : 'pointer-events-auto'}`}
+      className={`mobile-bottom-nav floating-capsule-nav fixed bottom-[calc(env(safe-area-inset-bottom,_0px)_+_24px)] left-5 right-5 mx-auto max-w-110 h-14 p-1 flex items-center justify-around rounded-full z-[1000]  ${isNavLocked ? 'opacity-[0.45]' : 'opacity-[1]'} ${isNavLocked ? 'pointer-events-none' : 'pointer-events-auto'}`}
       aria-label="Navegación principal móvil"
       inert={isNavLocked}
       style={
@@ -89,14 +88,13 @@ export default function MobileBottomNav() {
             style={({ isActive }) => ({
               position: 'relative',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '2px',
               textDecoration: 'none',
               flex: 1,
-              height: '50px',
-              borderRadius: '25px',
+              height: '100%',
+              minWidth: 0,
+              borderRadius: '999px',
               color: isActive ? 'var(--ink)' : '#94a3b8',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               WebkitTapHighlightColor: 'transparent',
@@ -106,16 +104,12 @@ export default function MobileBottomNav() {
               <>
                 <span className="flex items-center justify-center leading-[1]">
                   <IconComponent
-                    size={20}
+                    size={24}
                     strokeWidth={isActive ? 2.4 : 1.8}
                     color={isActive ? 'var(--ink)' : '#94a3b8'}
                   />
                 </span>
-                <span
-                  className={`text-[0.64rem] tracking-[0.2px] [transition:color_0.2s_ease] ${isActive ? 'font-bold' : 'font-medium'} ${isActive ? 'text-[#111827]' : 'text-[#94a3b8]'}`}
-                >
-                  {item.mobileLabel ?? item.label}
-                </span>
+                <span className="sr-only">{item.mobileLabel ?? item.label}</span>
               </>
             )}
           </NavLink>

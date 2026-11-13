@@ -13,7 +13,7 @@ export default function TrackerHistoryPage({ leagueId }: { leagueId: string | nu
     <section className="view-section active create-league tracker">
       <header className="create-league-header tracker-head">
         <div>
-          <h1 className="m-0 poster-title text-[1.8rem] text-white">Histórico</h1>
+          <h1 className="sr-only">Histórico</h1>
           <p className="create-league-progress">{tracker.name}</p>
         </div>
       </header>

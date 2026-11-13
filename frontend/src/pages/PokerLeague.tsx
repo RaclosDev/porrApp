@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
+import SupportDialog from '../components/SupportDialog';
 import TrackerInvite from '../components/tracker/TrackerInvite';
 import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import PokerRegistration from '../components/poker/PokerRegistration';
@@ -37,6 +38,18 @@ export default function PokerLeague({
   const navigate = useNavigate();
   const [invite, setInvite] = useState(false);
   const [form, setForm] = useState<'new' | 'edit' | null>(null);
+  const location = useLocation();
+  /**
+   * Tras cerrar un torneo, ventana de propina para el crupier (apoyar el proyecto). Llega en el
+   * estado de la navegación porque el historial monta la página de nuevo.
+   */
+  const [showTip, setShowTip] = useState(
+    () => (location.state as { pokerTip?: boolean } | null)?.pokerTip === true,
+  );
+  const closeTip = () => {
+    setShowTip(false);
+    navigate(location.pathname, { replace: true, state: null });
+  };
   const key = queryKeys.poker(leagueId);
   const historyKey = queryKeys.pokerHistory(leagueId);
   const query = useQuery({
@@ -87,24 +100,25 @@ export default function PokerLeague({
 
   return (
     <PokerFaces players={league.players}>
+      <SupportDialog variant="tip" open={showTip} onClose={closeTip} />
       <section className="poker">
         {view === 'home' ? (
           <>
             <header className="home-hero paper-panel album-sheet">
               <div className="home-hero-info">
                 <h1 className="home-hero-title">{league.name}</h1>
-                <div className="home-hero-pills">
+                <div className="home-hero-pills is-spread">
                   <span className="home-hero-pill">Póker · Texas Hold’em</span>
+                  <button
+                    type="button"
+                    className="home-rules-btn home-hero-invite"
+                    aria-expanded={invite}
+                    onClick={() => setInvite(!invite)}
+                  >
+                    {invite ? 'Cerrar' : 'Invitar'}
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                className="home-rules-btn"
-                aria-expanded={invite}
-                onClick={() => setInvite(!invite)}
-              >
-                {invite ? 'Cerrar invitación' : 'Invitar con enlace'}
-              </button>
             </header>
             {invite && <TrackerInvite tracker={league} />}
             <PokerHome
@@ -112,12 +126,14 @@ export default function PokerLeague({
               sessions={history.data}
               loading={history.isPending}
               onRetry={() => void history.refetch()}
+              onInvite={() => {
+                setInvite(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
           </>
         ) : view !== 'table' ? (
-          <h1 className="poster-title mt-0 mb-4 text-[1.8rem] text-white">
-            {pokerRoutes[view].label}
-          </h1>
+          <h1 className="sr-only">{pokerRoutes[view].label}</h1>
         ) : null}
         {view === 'table' && (
           <>
@@ -181,18 +197,33 @@ export default function PokerLeague({
                     const saved = await change(() =>
                       pokerCommand(league.id, current, action, playerId, extra),
                     );
-                    if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
+                    if (saved && action === 'CLOSE') {
+                      navigate(pokerRoutes.history.to, { state: { pokerTip: true } });
+                    }
                   }}
                 />
               )
             ) : (
-              <section className="paper-panel album-sheet poker-panel poker-empty">
-                <h2>Próximo torneo</h2>
-                <p>
+              <section className="poker-felt poker-empty" aria-labelledby="poker-empty-title">
+                <span className="poker-empty-suits" aria-hidden="true">
+                  ♠ ♥ ♣ ♦
+                </span>
+                <h2 id="poker-empty-title">Próximo torneo</h2>
+                <p className="poster-title poker-empty-title">La mesa está libre</p>
+                <p className="poker-empty-text">
                   {league.owner
                     ? 'Elige la fecha y las reglas para abrir las inscripciones.'
                     : 'El organizador abrirá las inscripciones del próximo torneo aquí.'}
                 </p>
+                {league.owner && (
+                  <button
+                    type="button"
+                    className="glass-btn primary-btn poker-empty-cta"
+                    onClick={() => setForm('new')}
+                  >
+                    Preparar torneo
+                  </button>
+                )}
                 <ol className="poker-steps">
                   <li>
                     <strong>Inscripciones</strong>
@@ -213,15 +244,6 @@ export default function PokerLeague({
                     <span>Los premios y los puestos quedan guardados en el histórico.</span>
                   </li>
                 </ol>
-                {league.owner && (
-                  <button
-                    type="button"
-                    className="glass-btn primary-btn"
-                    onClick={() => setForm('new')}
-                  >
-                    Preparar torneo
-                  </button>
-                )}
               </section>
             )}
           </>
