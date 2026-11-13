@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import PaperLoading from '../components/PaperLoading';
+import SupportDialog from '../components/SupportDialog';
 import TrackerInvite from '../components/tracker/TrackerInvite';
 import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import PokerRegistration from '../components/poker/PokerRegistration';
@@ -37,6 +38,18 @@ export default function PokerLeague({
   const navigate = useNavigate();
   const [invite, setInvite] = useState(false);
   const [form, setForm] = useState<'new' | 'edit' | null>(null);
+  const location = useLocation();
+  /**
+   * Tras cerrar un torneo, ventana de propina para el crupier (apoyar el proyecto). Llega en el
+   * estado de la navegación porque el historial monta la página de nuevo.
+   */
+  const [showTip, setShowTip] = useState(
+    () => (location.state as { pokerTip?: boolean } | null)?.pokerTip === true,
+  );
+  const closeTip = () => {
+    setShowTip(false);
+    navigate(location.pathname, { replace: true, state: null });
+  };
   const key = queryKeys.poker(leagueId);
   const historyKey = queryKeys.pokerHistory(leagueId);
   const query = useQuery({
@@ -87,6 +100,7 @@ export default function PokerLeague({
 
   return (
     <PokerFaces players={league.players}>
+      <SupportDialog variant="tip" open={showTip} onClose={closeTip} />
       <section className="poker">
         {view === 'home' ? (
           <>
@@ -115,9 +129,7 @@ export default function PokerLeague({
             />
           </>
         ) : view !== 'table' ? (
-          <h1 className="poster-title mt-0 mb-4 text-[1.8rem] text-white">
-            {pokerRoutes[view].label}
-          </h1>
+          <h1 className="sr-only">{pokerRoutes[view].label}</h1>
         ) : null}
         {view === 'table' && (
           <>
@@ -181,18 +193,33 @@ export default function PokerLeague({
                     const saved = await change(() =>
                       pokerCommand(league.id, current, action, playerId, extra),
                     );
-                    if (saved && action === 'CLOSE') navigate(pokerRoutes.history.to);
+                    if (saved && action === 'CLOSE') {
+                      navigate(pokerRoutes.history.to, { state: { pokerTip: true } });
+                    }
                   }}
                 />
               )
             ) : (
-              <section className="paper-panel album-sheet poker-panel poker-empty">
-                <h2>Próximo torneo</h2>
-                <p>
+              <section className="poker-felt poker-empty" aria-labelledby="poker-empty-title">
+                <span className="poker-empty-suits" aria-hidden="true">
+                  ♠ ♥ ♣ ♦
+                </span>
+                <h2 id="poker-empty-title">Próximo torneo</h2>
+                <p className="poster-title poker-empty-title">La mesa está libre</p>
+                <p className="poker-empty-text">
                   {league.owner
                     ? 'Elige la fecha y las reglas para abrir las inscripciones.'
                     : 'El organizador abrirá las inscripciones del próximo torneo aquí.'}
                 </p>
+                {league.owner && (
+                  <button
+                    type="button"
+                    className="glass-btn primary-btn poker-empty-cta"
+                    onClick={() => setForm('new')}
+                  >
+                    Preparar torneo
+                  </button>
+                )}
                 <ol className="poker-steps">
                   <li>
                     <strong>Inscripciones</strong>
@@ -213,15 +240,6 @@ export default function PokerLeague({
                     <span>Los premios y los puestos quedan guardados en el histórico.</span>
                   </li>
                 </ol>
-                {league.owner && (
-                  <button
-                    type="button"
-                    className="glass-btn primary-btn"
-                    onClick={() => setForm('new')}
-                  >
-                    Preparar torneo
-                  </button>
-                )}
               </section>
             )}
           </>

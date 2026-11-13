@@ -583,12 +583,12 @@
 
     /* Padding inferior para que el contenido no quede tapado por la barra flotante */
     .app-container.has-mobile-bottom-nav {
-      padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+      padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     /* Lo que se enfoca o se trae a la vista (teclado, anclas) tampoco se queda tras la barra. */
     html:has(.has-mobile-bottom-nav) {
-      scroll-padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+      scroll-padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     }
 
     .mobile-bottom-nav .mobile-nav-item:active {
@@ -597,18 +597,15 @@
 
     /*
      * Resalte único que se desliza entre pestañas. Las pestañas miden lo mismo (flex: 1), así
-     * que basta con el índice activo y el número de pestañas: 12px es el padding horizontal de
-     * la barra y 50px la altura de cada pestaña.
+     * que basta con el índice activo y el número de pestañas: 4px es el relleno de la barra.
      */
     .mobile-nav-indicator {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 6px;
-      width: calc((100% - 12px) / var(--nav-count));
-      height: 50px;
-      margin-block: auto;
-      border-radius: 25px;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc((100% - 8px) / var(--nav-count));
+      border-radius: 999px;
       background: rgba(0, 210, 211, 0.14);
       pointer-events: none;
       transform: translateX(calc(var(--nav-active) * 100%));

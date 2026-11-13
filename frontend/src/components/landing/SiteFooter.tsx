@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { AFFILIATION_NOTICE, CONTENT_PAGES } from '../../seo/pages';
 import { SMOOTH_SCROLL_STATE } from '../ScrollOnNavigate';
+import { SUPPORT_LINKS } from '../../supportLinks';
 
 const linkClass = 'underline hover:text-white inline-flex items-center min-h-11';
 
@@ -33,6 +34,20 @@ export default function SiteFooter({ current }: SiteFooterProps) {
           ))}
         </ul>
       </nav>
+      <p className="m-0 flex flex-wrap justify-center items-center gap-x-3">
+        <span>Apoya el proyecto ☕</span>
+        {SUPPORT_LINKS.map((link) => (
+          <a
+            key={link.label}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClass}
+          >
+            {link.label}
+          </a>
+        ))}
+      </p>
       <div className="flex flex-wrap justify-center items-center gap-x-3">
         <Link
           to="/"

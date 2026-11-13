@@ -127,7 +127,7 @@ export default function GroupsDashboard() {
     <section className="view-section active">
       <div className="flex justify-between items-center flex-wrap gap-3.5 mb-6 pb-4 border-b border-b-[rgba(255,_255,_255,_0.08)]">
         <div>
-          <h2 className="m-0 poster-title text-[1.8rem] text-white">Mis ligas</h2>
+          <h2 className="sr-only">Mis ligas</h2>
         </div>
         <div className="flex gap-2.5 flex-wrap">
           <Link

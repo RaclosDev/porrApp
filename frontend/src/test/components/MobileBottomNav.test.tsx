@@ -58,7 +58,7 @@ describe('Navegación por clase de liga', () => {
       // Ni las pestañas del cuadro ni las de jornadas: aún no se sabe cuáles tocan.
       expect(nav).toHaveAttribute('aria-busy', 'true');
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
-      expect(nav.querySelectorAll('.chrome-placeholder')).toHaveLength(10);
+      expect(nav.querySelectorAll('.chrome-placeholder')).toHaveLength(5);
       return;
     }
     expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(expected);

@@ -71,12 +71,12 @@
   .mobile-bottom-nav {
     background: var(--bg-color);
     border: 1px solid rgba(243, 236, 220, 0.3);
-    border-radius: 6px;
+    border-radius: 999px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 
   .mobile-bottom-nav .mobile-nav-indicator {
-    border-radius: 3px;
+    border-radius: 999px;
   }
 }
 
