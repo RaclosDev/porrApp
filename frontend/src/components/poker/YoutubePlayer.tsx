@@ -77,9 +77,15 @@ export default function YoutubePlayer({ videoId, onDone }: Props) {
           videoId: current.current,
           width: '100%',
           height: '100%',
-          playerVars: { autoplay: 1, playsinline: 1, rel: 0 },
+          playerVars: { autoplay: 1, playsinline: 1, rel: 0, cc_load_policy: 0, iv_load_policy: 3 },
           events: {
-            onReady: (event) => event.target.playVideo(),
+            onReady: (event) => {
+              // Nunca subtítulos, aunque la cuenta de YouTube los tenga activados.
+              const target = event.target as { unloadModule?: (name: string) => void };
+              target.unloadModule?.('captions');
+              target.unloadModule?.('cc');
+              event.target.playVideo();
+            },
             onStateChange: (event) => {
               if (event.data === ENDED) doneRef.current();
             },
