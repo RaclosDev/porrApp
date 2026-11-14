@@ -26,8 +26,6 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class PokerMusicService {
     public static final Pattern VIDEO_ID = Pattern.compile("^[A-Za-z0-9_-]{11}$");
-    private static final Pattern LINK = Pattern.compile(
-            "(?:youtu\\.be/|youtube(?:-nocookie)?\\.com/(?:watch\\?(?:[^\\s#]*&)?v=|shorts/|embed/|live/))([A-Za-z0-9_-]{11})");
     static final int MAX_QUEUE = 30;
     static final int MAX_PER_USER = 3;
 
@@ -46,15 +44,50 @@ public class PokerMusicService {
             throw BusinessException.badRequest("Escribe entre 2 y 200 caracteres");
         }
         if (!youtube.isEnabled()) return new MusicSearch(false, List.of());
-        var link = LINK.matcher(clean);
-        boolean isLink = link.find();
-        if (!isLink && clean.length() > 80) {
+        String linked = videoIdFromLink(clean);
+        if (linked == null && clean.length() > 80) {
             throw BusinessException.badRequest("Escribe entre 2 y 80 caracteres");
         }
-        var found = isLink ? youtube.lookup(link.group(1)) : youtube.search(clean);
+        var found = linked != null ? youtube.lookup(linked) : youtube.search(clean);
         return new MusicSearch(true, found.stream()
                 .map(track -> new app.porrapp.dto.PokerDTO.Track(track.videoId(), track.title(), track.channel()))
                 .toList());
+    }
+
+    /** El id de vídeo de un enlace de YouTube (youtu.be, watch?v=, shorts, embed, live); null si no es uno. Sin regex sobre el texto libre. */
+    static String videoIdFromLink(String text) {
+        for (String token : text.split(" ")) {
+            if (!token.startsWith("http://") && !token.startsWith("https://")) continue;
+            java.net.URI uri;
+            try {
+                uri = java.net.URI.create(token);
+            } catch (IllegalArgumentException invalid) {
+                continue;
+            }
+            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(java.util.Locale.ROOT);
+            String path = uri.getPath() == null ? "" : uri.getPath();
+            String candidate = null;
+            if (host.equals("youtu.be")) {
+                candidate = path.startsWith("/") ? path.substring(1) : path;
+            } else if (host.equals("youtube.com") || host.endsWith(".youtube.com") || host.equals("youtube-nocookie.com")
+                    || host.endsWith(".youtube-nocookie.com")) {
+                if (path.equals("/watch") && uri.getQuery() != null) {
+                    for (String pair : uri.getQuery().split("&")) {
+                        if (pair.startsWith("v=")) candidate = pair.substring(2);
+                    }
+                } else {
+                    for (String prefix : List.of("/shorts/", "/embed/", "/live/")) {
+                        if (path.startsWith(prefix)) candidate = path.substring(prefix.length());
+                    }
+                }
+            }
+            if (candidate != null) {
+                int slash = candidate.indexOf('/');
+                if (slash >= 0) candidate = candidate.substring(0, slash);
+                if (VIDEO_ID.matcher(candidate).matches()) return candidate;
+            }
+        }
+        return null;
     }
 
     @Transactional(readOnly = true)
