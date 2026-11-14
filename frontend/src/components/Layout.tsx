@@ -70,6 +70,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const showProfileSettings = profileSettings != null;
   const profileSetupCompleted = useAppStore((state) => state.profileSetupCompleted);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
+  const isAdmin = useAppStore((state) => state.isAdmin);
   const userId = useAppStore((state) => state.userId);
   const logout = useAppStore((state) => state.logout);
 
@@ -247,6 +248,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             showProfileMenu={showProfileMenu}
             showNotificationBell={isUserLoggedIn && !isDemo}
             userAvatarUrl={userAvatarUrl}
+            isAdmin={isAdmin}
             userId={userId}
             userName={userName}
           />

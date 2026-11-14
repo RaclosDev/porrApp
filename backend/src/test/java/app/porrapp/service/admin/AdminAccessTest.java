@@ -42,6 +42,16 @@ class AdminAccessTest {
     }
 
     @Test
+    void isAdminReportsWithoutThrowing() {
+        account("boss@example.com", "sub-1", null);
+        AdminAccess access = new AdminAccess("boss@example.com", users);
+
+        assertThat(access.isAdmin("boss@example.com")).isTrue();
+        assertThat(access.isAdmin("other@example.com")).isFalse();
+        assertThat(access.isAdmin(null)).isFalse();
+    }
+
+    @Test
     void passwordAccountWithAnAdminEmailIsRejectedBecauseItIsNotVerified() {
         account("boss@example.com", null, null);
         AdminAccess access = new AdminAccess("boss@example.com", users);
