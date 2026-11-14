@@ -37,7 +37,9 @@ class UserDataExportPersistenceTest {
 
     @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
+            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
 
     @Autowired private TestEntityManager em;
     @Autowired private UserDataExportService exports;

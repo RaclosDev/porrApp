@@ -35,7 +35,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(LeaderboardService.class)
 class LeaderboardReadOnlyTransactionTest {
     @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
+            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
     @Autowired LeaderboardService leaderboard;
     @Autowired PlatformTransactionManager transactions;
     @Autowired UserAccountRepository users;

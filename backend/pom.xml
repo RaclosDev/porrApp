@@ -18,7 +18,7 @@
     <description>PorrApp: porras de predicciones multideporte</description>
 
     <properties>
-        <surefire.forks>2</surefire.forks>
+        <surefire.forks>3</surefire.forks>
         <shedlock.version>7.10.1</shedlock.version>
         <sentry.version>8.63.0</sentry.version>
         <java.version>21</java.version>

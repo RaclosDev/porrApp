@@ -34,7 +34,9 @@ import static org.mockito.Mockito.*;
 @Import({LegacyFixtureRepairService.class, MatchEventProcessor.class, FightCardService.class})
 class LegacyFixtureRepairPersistenceTest {
     @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
+            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
     @Autowired LegacyFixtureRepairService repair;
     @Autowired MatchRepository matches;
     @Autowired TeamRepository teams;
