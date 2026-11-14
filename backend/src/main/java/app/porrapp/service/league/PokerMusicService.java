@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class PokerMusicService {
     public static final Pattern VIDEO_ID = Pattern.compile("^[A-Za-z0-9_-]{11}$");
+    private static final Pattern LINK = Pattern.compile(
+            "(?:youtu\\.be/|youtube(?:-nocookie)?\\.com/(?:watch\\?(?:[^\\s#]*&)?v=|shorts/|embed/|live/))([A-Za-z0-9_-]{11})");
     static final int MAX_QUEUE = 30;
     static final int MAX_PER_USER = 3;
 
@@ -40,11 +42,17 @@ public class PokerMusicService {
         Long userId = account(email);
         member(leagueId, userId, false);
         String clean = query == null ? "" : query.strip().replaceAll("\\s+", " ");
-        if (clean.length() < 2 || clean.length() > 80) {
-            throw BusinessException.badRequest("Escribe entre 2 y 80 caracteres");
+        if (clean.length() < 2 || clean.length() > 200) {
+            throw BusinessException.badRequest("Escribe entre 2 y 200 caracteres");
         }
         if (!youtube.isEnabled()) return new MusicSearch(false, List.of());
-        return new MusicSearch(true, youtube.search(clean).stream()
+        var link = LINK.matcher(clean);
+        boolean isLink = link.find();
+        if (!isLink && clean.length() > 80) {
+            throw BusinessException.badRequest("Escribe entre 2 y 80 caracteres");
+        }
+        var found = isLink ? youtube.lookup(link.group(1)) : youtube.search(clean);
+        return new MusicSearch(true, found.stream()
                 .map(track -> new app.porrapp.dto.PokerDTO.Track(track.videoId(), track.title(), track.channel()))
                 .toList());
     }

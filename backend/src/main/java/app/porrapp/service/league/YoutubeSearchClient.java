@@ -31,6 +31,7 @@ public class YoutubeSearchClient {
     public record Track(String videoId, String title, String channel) {}
 
     private static final String ENDPOINT = "https://www.googleapis.com/youtube/v3/search";
+    private static final String VIDEOS = "https://www.googleapis.com/youtube/v3/videos";
     private static final Duration TIMEOUT = Duration.ofSeconds(8);
     private static final List<Track> DEMO = List.of(
             new Track("fJ9rUzIMcZQ", "Queen – Bohemian Rhapsody", "Queen Official"),
@@ -78,6 +79,42 @@ public class YoutubeSearchClient {
             return parse(objectMapper.readTree(response.body()));
         } catch (IOException failure) {
             log.warn("No se pudo buscar en YouTube: {}", failure.getMessage());
+            return List.of();
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            return List.of();
+        }
+    }
+
+    /** Un vídeo concreto (para enlaces pegados en el buscador); vacío si no existe o no se puede incrustar. */
+    @Cacheable(value = "youtubeSearch", key = "'id:' + #videoId", sync = true)
+    public List<Track> lookup(String videoId) {
+        if (demo && apiKey.isEmpty()) {
+            return List.of(DEMO.stream().filter(track -> track.videoId().equals(videoId)).findFirst()
+                    .orElse(new Track(videoId, "Vídeo de YouTube", "YouTube")));
+        }
+        String url = VIDEOS + "?part=snippet,status&id=" + URLEncoder.encode(videoId, StandardCharsets.UTF_8)
+                + "&key=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(TIMEOUT)
+                    .header("Accept", "application/json").GET().build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                log.warn("YouTube respondió {} al buscar un vídeo", response.statusCode());
+                return List.of();
+            }
+            List<Track> tracks = new ArrayList<>();
+            for (JsonNode item : objectMapper.readTree(response.body()).path("items")) {
+                if (!item.path("status").path("embeddable").asBoolean(false)) continue;
+                JsonNode snippet = item.path("snippet");
+                String title = HtmlUtils.htmlUnescape(snippet.path("title").asText(""));
+                if (!PokerMusicService.VIDEO_ID.matcher(item.path("id").asText("")).matches() || title.isBlank()) continue;
+                tracks.add(new Track(item.path("id").asText(), cut(title, 150),
+                        cut(HtmlUtils.htmlUnescape(snippet.path("channelTitle").asText("")), 100)));
+            }
+            return tracks;
+        } catch (IOException failure) {
+            log.warn("No se pudo consultar el vídeo en YouTube: {}", failure.getMessage());
             return List.of();
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();

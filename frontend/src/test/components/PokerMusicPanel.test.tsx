@@ -35,7 +35,7 @@ it('busca por nombre y añade la canción a la cola', async () => {
     return Promise.resolve({ organizer: false, searchAvailable: true, items });
   });
   mount();
-  fireEvent.change(await screen.findByPlaceholderText(/Busca una canción/), {
+  fireEvent.change(await screen.findByPlaceholderText(/enlace de YouTube/), {
     target: { value: 'queen' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));

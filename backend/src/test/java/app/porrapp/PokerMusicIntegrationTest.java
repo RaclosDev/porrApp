@@ -64,6 +64,10 @@ class PokerMusicIntegrationTest {
         JsonNode found = json.readTree(send("GET", music + "/search?q=queen", guest, null).body());
         assertThat(found.get("available").asBoolean()).isTrue();
         assertThat(found.get("results").get(0).get("videoId").asText()).isEqualTo("fJ9rUzIMcZQ");
+        String link = java.net.URLEncoder.encode("https://youtu.be/dQw4w9WgXcQ?si=abc", java.nio.charset.StandardCharsets.UTF_8);
+        JsonNode byLink = json.readTree(send("GET", music + "/search?q=" + link, guest, null).body());
+        assertThat(byLink.get("results")).hasSize(1);
+        assertThat(byLink.get("results").get(0).get("videoId").asText()).isEqualTo("dQw4w9WgXcQ");
 
         assertThat(send("POST", music, guest, new AddTrack("no es valido!", "Mala", "")).statusCode())
                 .isEqualTo(400);

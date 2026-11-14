@@ -29,12 +29,12 @@ export default function PokerMusicPanel({ leagueId }: { leagueId: string | numbe
       ) : (
         <form onSubmit={submit} role="search" className="poker-music-search">
           <label>
-            <span className="sr-only">Buscar canción</span>
+            <span className="sr-only">Buscar canción o pegar enlace de YouTube</span>
             <input
               type="search"
               value={text}
-              maxLength={80}
-              placeholder="Busca una canción: shakira loba…"
+              maxLength={200}
+              placeholder="Nombre de la canción o enlace de YouTube"
               onChange={(event) => setText(event.target.value)}
             />
           </label>
@@ -49,7 +49,10 @@ export default function PokerMusicPanel({ leagueId }: { leagueId: string | numbe
       )}
       {search.isError && <p role="alert">{errorMessage(search.error, 'No se pudo buscar.')}</p>}
       {search.data && search.data.results.length === 0 && (
-        <p>No hay resultados. Prueba con otro nombre.</p>
+        <p>
+          No hay resultados (si es un enlace, puede que el vídeo no se pueda reproducir aquí).
+          Prueba con otro.
+        </p>
       )}
       {search.data && search.data.results.length > 0 && (
         <ul className="poker-music-results" aria-label="Resultados">
