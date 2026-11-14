@@ -23,7 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(PushDeviceStateService.class)
 class PushDeviceStatePersistenceTest {
     @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
+            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
     @Autowired private PushDeviceStateService service;
     @Autowired private PushDeviceStateRepository states;
     @Autowired private UserAccountRepository users;

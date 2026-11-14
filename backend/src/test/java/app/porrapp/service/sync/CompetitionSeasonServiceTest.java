@@ -61,7 +61,9 @@ class CompetitionSeasonServiceTest {
 
     @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
+            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
 
     private static final Season SEASON_26_27 = Season.of(new SeasonWindow("2026-08-14T04:00Z", "2027-06-01T03:59Z"));
 

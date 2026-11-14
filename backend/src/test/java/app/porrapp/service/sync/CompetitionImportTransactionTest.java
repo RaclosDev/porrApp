@@ -57,7 +57,9 @@ class CompetitionImportTransactionTest {
         @Bean CacheManager cacheManager() { return new ConcurrentMapCacheManager("leaderboard", "userGroups", "standings", "officialPoints"); }
     }
     @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
+            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
     @Autowired CompetitionImportService sync;
     @Autowired TeamRepository teams;
     @Autowired MatchRepository matches;
