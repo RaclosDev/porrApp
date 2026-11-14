@@ -1563,7 +1563,7 @@
 }
 /* Contorno negro para que las letras se lean sobre el vídeo. */
 .poker-tv {
-  -webkit-text-stroke: 0.1em #000;
+  -webkit-text-stroke: 0.16em #000;
   paint-order: stroke fill;
   text-shadow:
     0 0 0.15em #000,
