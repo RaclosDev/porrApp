@@ -19,6 +19,7 @@ import PokerPrizeShares, {
   type PrizeDraft,
 } from './PokerPrizeShares';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
+import PokerTv from './PokerTv';
 import { usePokerAlerts } from './usePokerAlerts';
 
 interface Props {
@@ -58,6 +59,7 @@ export default function PokerLive({
   /** Cierre pendiente de confirmar: con las fichas de los que siguen o con un único ganador. */
   const [closing, setClosing] = useState<'stacks' | 'winner' | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [tv, setTv] = useState(false);
   const { levels, rebuy, addOn, prizeShares, prizeAmounts, startingChips } = session.settings;
   const eliminated = new Set(session.eliminations);
   const active = session.entries.filter((entry) => !eliminated.has(entry.playerId));
@@ -348,14 +350,30 @@ export default function PokerLive({
               {levels[clock.level + 1] && (
                 <p className="poker-next">Siguiente · {blinds(levels[clock.level + 1])}</p>
               )}
-              <button
-                type="button"
-                className="glass-btn"
-                aria-pressed={soundOn}
-                onClick={toggleSound}
-              >
-                {soundOn ? 'Sonido activado' : 'Sonido silenciado'}
-              </button>
+              <div className="poker-actions">
+                <button
+                  type="button"
+                  className="glass-btn"
+                  aria-pressed={soundOn}
+                  onClick={toggleSound}
+                >
+                  {soundOn ? 'Sonido activado' : 'Sonido silenciado'}
+                </button>
+                <button type="button" className="glass-btn" onClick={() => setTv(true)}>
+                  Modo TV
+                </button>
+              </div>
+              {tv && (
+                <PokerTv
+                  clock={clock}
+                  levels={levels}
+                  playersLeft={active.length}
+                  playersTotal={session.entries.length}
+                  potCents={session.potCents}
+                  buyTimers={buyTimers}
+                  onClose={() => setTv(false)}
+                />
+              )}
               {owner && (
                 <div className="poker-actions poker-clock-actions">
                   <button
