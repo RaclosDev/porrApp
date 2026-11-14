@@ -55,6 +55,9 @@ interface AppState {
   /** El servidor ya ha contestado (o fallado) al pedir el perfil de la sesión abierta. */
   profileChecked: boolean;
   setProfileChecked: (profileChecked: boolean) => void;
+  /** La cuenta puede abrir el panel de gestión (lo dice el servidor). */
+  isAdmin: boolean;
+  setIsAdmin: (isAdmin: boolean) => void;
   userAvatarUrl: string;
   setUserAvatarUrl: (url: string | null) => void;
   userId: string;
@@ -277,6 +280,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ userName });
   },
 
+  isAdmin: false,
+  setIsAdmin: (isAdmin) => set({ isAdmin }),
   userAvatarUrl: localStorage.getItem('my_avatar_url') || '',
   setUserAvatarUrl: (userAvatarUrl) => {
     if (userAvatarUrl) {
@@ -388,6 +393,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       userName: '',
       userId: '',
       userAvatarUrl: '',
+      isAdmin: false,
       profileSetupCompleted: null,
       activeGroupId: '',
       activeCompetitionId: null,

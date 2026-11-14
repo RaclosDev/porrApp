@@ -146,8 +146,10 @@
     cursor: pointer;
   }
 
-  option {
-    background: var(--bg-color);
+  /* --panel-bg y --text-main cambian juntos en las hojas de papel; --bg-color no, y dejaba tinta oscura sobre fondo oscuro. */
+  option,
+  optgroup {
+    background-color: var(--panel-bg);
     color: var(--text-main);
   }
 
@@ -212,7 +214,7 @@
     cursor: pointer;
   }
 
-  /* Apoyar: el mismo botón que la campana; en pantallas anchas lleva además el texto. */
+  /* Apoyar: el mismo botón que la campana; lleva además el texto. */
   .header-support-btn {
     gap: 6px;
     font-size: 0.8rem;
@@ -220,16 +222,14 @@
     white-space: nowrap;
   }
 
-  @media (min-width: 769px) {
-    .header-icon-btn.header-support-btn {
-      width: auto;
-      padding-inline: 12px;
-    }
+  .header-icon-btn.header-support-btn {
+    width: auto;
+    padding-inline: 10px;
   }
 
-  @media (max-width: 768px) {
-    .header-support-label {
-      display: none;
+  @media (min-width: 769px) {
+    .header-icon-btn.header-support-btn {
+      padding-inline: 12px;
     }
   }
 
