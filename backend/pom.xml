@@ -19,6 +19,7 @@
 
     <properties>
         <surefire.forks>2</surefire.forks>
+        <test.jvm.flags>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC</test.jvm.flags>
         <shedlock.version>7.10.1</shedlock.version>
         <sentry.version>8.63.0</sentry.version>
         <java.version>21</java.version>
@@ -250,7 +251,7 @@
                     <forkCount>${surefire.forks}</forkCount>
                     <reuseForks>true</reuseForks>
                     <!-- Las JVM de test viven poco: solo el compilador C1 y GC serie arrancan los contextos de Spring antes. -->
-                    <argLine>@{argLine} -XX:TieredStopAtLevel=1 -XX:+UseSerialGC</argLine>
+                    <argLine>@{argLine} ${test.jvm.flags}</argLine>
                 </configuration>
             </plugin>
             <plugin>
