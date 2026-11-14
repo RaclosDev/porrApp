@@ -4,6 +4,7 @@ import app.porrapp.exception.BusinessException;
 import app.porrapp.dto.MeResponse;
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.UserAccountRepository;
+import app.porrapp.service.admin.AdminAccess;
 import app.porrapp.util.TextSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,12 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserAccountRepository userAccountRepository;
+    private final AdminAccess adminAccess;
 
     @Transactional(readOnly = true)
     public MeResponse getMe(String email) {
         UserAccount user = findUser(email);
         return new MeResponse(user.getId(), TextSanitizer.fixParticipantName(user.getParticipantName()),
-                user.getLastSelectedGroupId(), user.getAvatarUrl(), user.isProfileSetupCompleted());
+                user.getLastSelectedGroupId(), user.getAvatarUrl(), user.isProfileSetupCompleted(),
+                adminAccess.isAdmin(email));
     }
 
     @Transactional
