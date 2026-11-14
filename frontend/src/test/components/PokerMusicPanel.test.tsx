@@ -35,12 +35,14 @@ it('busca por nombre y añade la canción a la cola', async () => {
     return Promise.resolve({ organizer: false, searchAvailable: true, items });
   });
   mount();
+  fireEvent.click(await screen.findByRole('button', { name: 'Añadir canción' }));
   fireEvent.change(await screen.findByPlaceholderText(/enlace de YouTube/), {
     target: { value: 'queen' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Añadir' }));
-  expect(await screen.findByRole('button', { name: 'Quitar Bohemian Rhapsody' })).toBeVisible();
+  expect(await screen.findByRole('button', { name: 'En la cola' })).toBeDisabled();
+  expect(screen.getByText('Sonando · Ana')).toBeVisible();
   expect(api).toHaveBeenCalledWith(
     '/poker/8/music',
     expect.objectContaining({ method: 'POST', json: track }),
@@ -51,5 +53,16 @@ it('avisa cuando la búsqueda no está disponible', async () => {
   api.mockResolvedValue({ organizer: false, searchAvailable: false, items: [] });
   mount();
   expect(await screen.findByText(/no está disponible/)).toBeVisible();
-  expect(screen.queryByRole('search')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Añadir canción' })).toBeNull();
+});
+
+it('pliega la cola: solo se ve lo que suena hasta desplegarla', async () => {
+  const second = { ...queued, id: 8, title: 'Despacito', videoId: 'kJQP7kiw5Fk' };
+  api.mockResolvedValue({ organizer: false, searchAvailable: true, items: [queued, second] });
+  mount();
+  expect(await screen.findByText('Sonando · Ana')).toBeVisible();
+  expect(screen.queryByText('Despacito')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Ver la cola (1 más)' }));
+  expect(screen.getByText('Despacito')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Quitar Despacito' })).toBeVisible();
 });
