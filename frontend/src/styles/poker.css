@@ -1541,3 +1541,82 @@
   min-block-size: 44px;
   padding-inline: 14px;
 }
+
+/* Modo TV: reloj a pantalla completa para verlo de lejos. */
+.poker-tv {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  background: #0b1f16;
+  color: #f6f1e4;
+  text-align: center;
+}
+.poker-tv p {
+  margin: 0;
+}
+.poker-tv-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.poker-tv-level {
+  font-size: clamp(1.25rem, 4vw, 2.5rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.poker-tv-time {
+  font-size: clamp(5rem, 28vmin, 22rem);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.poker-tv-paused {
+  font-size: clamp(1.25rem, 4vw, 2.25rem);
+  color: #f0c94c;
+}
+.poker-tv-blinds {
+  font-size: clamp(2.5rem, 12vmin, 9rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+.poker-tv-ante,
+.poker-tv-next {
+  font-size: clamp(1.25rem, 5vmin, 3rem);
+  opacity: 0.85;
+}
+.poker-tv-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem 3rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.poker-tv-facts li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.poker-tv-facts strong {
+  font-size: clamp(1.75rem, 7vmin, 4rem);
+  font-variant-numeric: tabular-nums;
+}
+.poker-tv-facts span {
+  font-size: clamp(0.9rem, 2.5vmin, 1.5rem);
+  opacity: 0.7;
+}
