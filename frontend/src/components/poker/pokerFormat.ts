@@ -98,6 +98,45 @@ export function timeLabel(ms: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
+export interface Payment {
+  fromId: number;
+  from: string;
+  toId: number;
+  to: string;
+  cents: number;
+}
+
+/** Pagos mínimos para saldar un torneo: quien perdió dinero paga a quien lo ganó. */
+export function settlements(results: PokerSession['results']): Payment[] {
+  const nets = results
+    .map((result) => ({
+      id: result.playerId,
+      name: result.name,
+      cents: result.prizeCents - result.paidCents,
+    }))
+    .filter((net) => net.cents !== 0);
+  const debtors = nets.filter((net) => net.cents < 0).sort((a, b) => a.cents - b.cents);
+  const creditors = nets.filter((net) => net.cents > 0).sort((a, b) => b.cents - a.cents);
+  const payments: Payment[] = [];
+  let d = 0;
+  let c = 0;
+  while (d < debtors.length && c < creditors.length) {
+    const cents = Math.min(-debtors[d].cents, creditors[c].cents);
+    payments.push({
+      fromId: debtors[d].id,
+      from: debtors[d].name,
+      toId: creditors[c].id,
+      to: creditors[c].name,
+      cents,
+    });
+    debtors[d].cents += cents;
+    creditors[c].cents -= cents;
+    if (debtors[d].cents === 0) d += 1;
+    if (creditors[c].cents === 0) c += 1;
+  }
+  return payments;
+}
+
 export function pokerStandings(history: PokerSession[]) {
   const players = new Map<
     number,
@@ -114,9 +153,13 @@ export function pokerStandings(history: PokerSession[]) {
       paid: number;
       prizes: number;
       places: number;
+      /** Podios seguidos hasta el último torneo que jugó, y la mejor racha de podios. */
+      streak: number;
+      bestStreak: number;
     }
   >();
-  for (const { results } of history) {
+  // El histórico llega del más reciente al más antiguo: las rachas se cuentan en orden cronológico.
+  for (const { results } of [...history].reverse()) {
     // Aplauso: el primer puesto que se queda sin premio.
     const applausePlace = results.filter((result) => result.prizeCents > 0).length + 1;
     for (const result of results) {
@@ -133,6 +176,8 @@ export function pokerStandings(history: PokerSession[]) {
         paid: 0,
         prizes: 0,
         places: 0,
+        streak: 0,
+        bestStreak: 0,
       };
       row.played += 1;
       row.rebuys += result.rebuys;
@@ -144,6 +189,8 @@ export function pokerStandings(history: PokerSession[]) {
       row.paid += result.paidCents;
       row.prizes += result.prizeCents;
       row.places += result.place;
+      row.streak = result.place <= 3 ? row.streak + 1 : 0;
+      row.bestStreak = Math.max(row.bestStreak, row.streak);
       players.set(result.playerId, row);
     }
   }
