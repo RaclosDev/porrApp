@@ -118,7 +118,9 @@ public class SecurityConfig {
                             // Google Analytics: solo se carga si el visitante acepta la analítica.
                             + " https://www.googletagmanager.com"
                             // «Iniciar sesión con Apple»: su script solo se carga al pintar el botón.
-                            + " https://appleid.cdn-apple.com; " +
+                            + " https://appleid.cdn-apple.com"
+                            // API de reproductor de YouTube: avisa al modo TV del póker cuando acaba cada canción.
+                            + " https://www.youtube.com; " +
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                             "font-src 'self' https://fonts.gstatic.com; " +
                             // blob: para la vista previa local de una foto antes de subirla.
@@ -127,7 +129,9 @@ public class SecurityConfig {
                             "connect-src 'self' https://accounts.google.com https://site.api.espn.com https://a.espncdn.com"
                             + " https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com"
                             + " https://appleid.apple.com; " +
-                            "frame-src 'self' https://accounts.google.com https://appleid.apple.com; " +
+                            // Reproductor de música del modo TV del póker (YouTube y Spotify incrustados).
+                            "frame-src 'self' https://accounts.google.com https://appleid.apple.com"
+                            + " https://www.youtube-nocookie.com https://open.spotify.com; " +
                             "frame-ancestors 'none';")
                 )
                 .permissionsPolicyHeader(perm -> perm

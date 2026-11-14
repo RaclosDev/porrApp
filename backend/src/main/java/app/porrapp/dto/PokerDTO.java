@@ -124,4 +124,21 @@ public final class PokerDTO {
     public record LeagueView(long id, String name, String joinCode, boolean owner, Long myPlayerId,
                              List<Player> players, Session current, long serverNow) {
     }
+
+    public record Track(String videoId, String title, String channel) {
+    }
+
+    public record MusicSearch(boolean available, List<Track> results) {
+    }
+
+    public record AddTrack(@NotBlank @Size(max = 11) String videoId, @NotBlank @Size(max = 150) String title,
+                           @Size(max = 100) String channel) {
+    }
+
+    public record QueuedTrack(long id, String videoId, String title, String channel, String addedBy,
+                              boolean removable) {
+    }
+
+    public record MusicQueue(boolean organizer, boolean searchAvailable, List<QueuedTrack> items) {
+    }
 }

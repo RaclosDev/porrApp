@@ -1546,7 +1546,7 @@
 .poker-tv {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 1100; /* Por encima de la barra de navegación del móvil (1000). */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1556,9 +1556,15 @@
   background: #0b1f16;
   color: #f6f1e4;
   text-align: center;
+  overflow-y: auto;
 }
 .poker-tv p {
   margin: 0;
+}
+/* Contorno negro para que las letras se lean sobre el vídeo. */
+.poker-tv {
+  -webkit-text-stroke: 0.16em #000;
+  paint-order: stroke fill;
 }
 .poker-tv-close {
   position: absolute;
@@ -1571,6 +1577,23 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+.poker-tv-toggle {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.poker-tv-toggle[aria-pressed='true'] {
+  border-color: #f0c94c;
+  background: #f0c94c;
+  color: #1a1a1a;
 }
 .poker-tv-level {
   font-size: clamp(1.25rem, 4vw, 2.5rem);
@@ -1653,4 +1676,166 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.poker-tv-music {
+  display: flex;
+  margin-top: 1.5rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(22rem, calc(100% - 2rem));
+  text-align: left;
+}
+.poker-tv-music button {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.poker-tv-video {
+  /* Vídeo de fondo a pantalla completa y a medias de opacidad, detrás de todo el reloj. */
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  opacity: 0.5;
+  filter: blur(4px);
+  pointer-events: none;
+}
+.poker-tv-video iframe {
+  /* «cover»: el vídeo 16:9 llena la pantalla recortando lo que sobre. */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.78vh);
+  height: max(100vh, 56.25vw);
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: 0;
+}
+.poker-tv:has(.poker-tv-queue) {
+  padding-bottom: 8rem;
+}
+.poker-tv-queue {
+  /* Cola de canciones en una tira pegada al borde de abajo. */
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: auto;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent);
+}
+.poker-tv-carousel {
+  display: flex;
+  flex: 1;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.poker-tv-carousel li {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: min(16rem, 70vw);
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.45);
+  text-align: left;
+  scroll-snap-align: start;
+}
+.poker-tv-carousel li.is-playing {
+  border-color: #f0c94c;
+}
+.poker-tv-carousel strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poker-tv-carousel small,
+.poker-tv-carousel span {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+.poker-tv-skip {
+  flex: none;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.45);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.poker-music-search {
+  display: flex;
+  gap: 0.5rem;
+}
+.poker-music-search label {
+  flex: 1;
+}
+.poker-music-search input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgb(0 0 0 / 0.25);
+  border-radius: 8px;
+  font: inherit;
+}
+.poker-music-results,
+.poker-music-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.poker-music-results li,
+.poker-music-queue li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.poker-music-results img {
+  border-radius: 6px;
+  flex: none;
+}
+.poker-music-results li > span,
+.poker-music-queue li > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.poker-music-results small,
+.poker-music-queue small {
+  opacity: 0.7;
+}
+
+.poker-tv-facts .poker-tv-fact-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.poker-tv-facts .poker-icon {
+  width: auto;
+  height: clamp(1.1rem, 3.2vmin, 2rem);
 }

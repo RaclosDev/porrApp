@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
+import { BagIcon, BulletIcon } from './PokerBadges';
 import { chips, euros, timeLabel } from './pokerFormat';
+import PokerTvQueue from './PokerTvQueue';
 
 interface Props {
   clock: BlindClock;
@@ -8,7 +10,9 @@ interface Props {
   playersLeft: number;
   playersTotal: number;
   potCents: number;
-  buyTimers: { key: string; label: string; ms: number }[];
+  buyTimers: { key: string; label: string; ms: number; icons?: string[] }[];
+  /** Con la liga suena la cola de canciones pedidas desde los móviles. */
+  leagueId?: string | number;
   onClose: () => void;
 }
 
@@ -24,6 +28,7 @@ export default function PokerTv({
   playersTotal,
   potCents,
   buyTimers,
+  leagueId,
   onClose,
 }: Props) {
   const closeRef = useRef(onClose);
@@ -33,6 +38,7 @@ export default function PokerTv({
   const level = levels[clock.level];
   const next = levels[clock.level + 1];
   const paused = clock.endsAt === null;
+  const [tv, setTv] = useState(false);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -54,6 +60,17 @@ export default function PokerTv({
 
   return (
     <div className="poker-tv" role="dialog" aria-modal="true" aria-label="Reloj del torneo">
+      {leagueId !== undefined && (
+        <button
+          type="button"
+          className="poker-tv-toggle"
+          aria-pressed={tv}
+          title="Es la pantalla donde suena la música de la mesa"
+          onClick={() => setTv(!tv)}
+        >
+          TV {tv ? 'activada' : 'apagada'}
+        </button>
+      )}
       <button type="button" className="poker-tv-close" onClick={onClose}>
         Cerrar
       </button>
@@ -79,10 +96,15 @@ export default function PokerTv({
         {buyTimers.map((timer) => (
           <li key={timer.key}>
             <strong>{timeLabel(timer.ms)}</strong>
-            <span>{timer.label}</span>
+            <span className="poker-tv-fact-label">
+              {timer.icons?.includes('bullet') && <BulletIcon />}
+              {timer.icons?.includes('bag') && <BagIcon />}
+              {timer.label}
+            </span>
           </li>
         ))}
       </ul>
+      {leagueId !== undefined && <PokerTvQueue leagueId={leagueId} tv={tv} />}
     </div>
   );
 }
