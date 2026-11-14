@@ -187,6 +187,7 @@ export default function PokerLeague({
                 />
               ) : (
                 <PokerLive
+                  leagueId={league.id}
                   session={current}
                   owner={league.owner}
                   busy={busy}

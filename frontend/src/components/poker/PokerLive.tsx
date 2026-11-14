@@ -19,9 +19,13 @@ import PokerPrizeShares, {
   type PrizeDraft,
 } from './PokerPrizeShares';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
+import PokerMusicPanel from './PokerMusicPanel';
+import PokerTv from './PokerTv';
 import { usePokerAlerts } from './usePokerAlerts';
 
 interface Props {
+  /** Liga del torneo; con ella se activa la cola de música. */
+  leagueId?: string | number;
   session: PokerSession;
   owner: boolean;
   busy: boolean;
@@ -38,6 +42,7 @@ function blinds(level: BlindLevel) {
 }
 
 export default function PokerLive({
+  leagueId,
   session,
   owner,
   busy,
@@ -58,6 +63,7 @@ export default function PokerLive({
   /** Cierre pendiente de confirmar: con las fichas de los que siguen o con un único ganador. */
   const [closing, setClosing] = useState<'stacks' | 'winner' | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [tv, setTv] = useState(false);
   const { levels, rebuy, addOn, prizeShares, prizeAmounts, startingChips } = session.settings;
   const eliminated = new Set(session.eliminations);
   const active = session.entries.filter((entry) => !eliminated.has(entry.playerId));
@@ -348,14 +354,48 @@ export default function PokerLive({
               {levels[clock.level + 1] && (
                 <p className="poker-next">Siguiente · {blinds(levels[clock.level + 1])}</p>
               )}
-              <button
-                type="button"
-                className="glass-btn"
-                aria-pressed={soundOn}
-                onClick={toggleSound}
-              >
-                {soundOn ? 'Sonido activado' : 'Sonido silenciado'}
-              </button>
+              <div className="poker-clock-tools">
+                <button
+                  type="button"
+                  className="poker-tool-btn"
+                  aria-pressed={soundOn}
+                  aria-label={soundOn ? 'Sonido activado' : 'Sonido silenciado'}
+                  title={soundOn ? 'Sonido activado' : 'Sonido silenciado'}
+                  onClick={toggleSound}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none" />
+                    {soundOn ? (
+                      <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+                    ) : (
+                      <path d="M16.5 9.5l5 5m0-5l-5 5" />
+                    )}
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="poker-tool-btn"
+                  aria-label="Modo TV"
+                  title="Modo TV"
+                  onClick={() => setTv(true)}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+                  </svg>
+                </button>
+              </div>
+              {tv && (
+                <PokerTv
+                  clock={clock}
+                  levels={levels}
+                  playersLeft={active.length}
+                  playersTotal={session.entries.length}
+                  potCents={session.potCents}
+                  buyTimers={buyTimers}
+                  leagueId={leagueId}
+                  onClose={() => setTv(false)}
+                />
+              )}
               {owner && (
                 <div className="poker-actions poker-clock-actions">
                   <button
@@ -465,6 +505,8 @@ export default function PokerLive({
           </div>
         </dl>
       </section>
+
+      {leagueId !== undefined && <PokerMusicPanel leagueId={leagueId} />}
 
       {owner && finishing && !winner && (
         <form
