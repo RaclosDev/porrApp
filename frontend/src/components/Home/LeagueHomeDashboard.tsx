@@ -228,6 +228,7 @@ function MatchCard({
               <Flag
                 team={match.home}
                 logo={match.homeLogo || match.homeTeamLogo}
+                badge={match.homeFlag}
                 style={{ width: '22px', height: '22px' }}
               />
             </span>
@@ -259,6 +260,7 @@ function MatchCard({
               <Flag
                 team={match.away}
                 logo={match.awayLogo || match.awayTeamLogo}
+                badge={match.awayFlag}
                 style={{ width: '22px', height: '22px' }}
               />
             </span>

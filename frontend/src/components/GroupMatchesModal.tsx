@@ -114,7 +114,7 @@ const GroupMatchesModal = ({
                   </div>
                   <div className="flex items-center justify-end gap-1.5 text-right">
                     <span className="overflow-hidden text-ellipsis">{m.home}</span>
-                    <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
+                    <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} badge={m.homeFlag} />
                   </div>
                   <div
                     className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasScore ? 'text-main' : 'text-muted'} ${hasScore ? 'bg-[rgba(17,24,39,0.08)]' : 'bg-transparent bg-none'}`}
@@ -122,7 +122,7 @@ const GroupMatchesModal = ({
                     {hasScore ? `${homeScore} - ${awayScore}` : 'VS'}
                   </div>
                   <div className="flex items-center justify-start gap-1.5">
-                    <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} />
+                    <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} badge={m.awayFlag} />
                     <span className="overflow-hidden text-ellipsis">{m.away}</span>
                   </div>
                 </div>

@@ -63,7 +63,11 @@ class TennisDataProviderTest {
                 "/leagues/atp/events/339-2025", """
                         {"id": "339-2025", "date": "2025-11-09T05:00Z", "endDate": "2025-11-17T04:59Z"}
                         """.getBytes(StandardCharsets.UTF_8),
-                "/atp/scoreboard?dates=20251109", finals2025().getBytes(StandardCharsets.UTF_8));
+                "/atp/scoreboard?dates=20251109", finals2025().getBytes(StandardCharsets.UTF_8),
+                // Solo Fritz tiene foto en ESPN; el resto de tenistas se queda con la bandera.
+                "/tennis/athletes/2946", """
+                        {"id": "2946", "headshot": {"href": "https://a.espncdn.com/i/headshots/tennis/players/full/2946.png"}}
+                        """.getBytes(StandardCharsets.UTF_8));
         lenient().when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenAnswer(invocation -> {
             String url = invocation.<HttpRequest>getArgument(0).uri().toString();
             requested.add(url);
@@ -171,7 +175,10 @@ class TennisDataProviderTest {
         JsonNode fritz = competitor(match, "away");
         assertEquals("Taylor Fritz", fritz.path("team").path("displayName").asText());
         assertTrue(fritz.path("team").path("id").asText().startsWith("tennis-"));
-        assertTrue(fritz.path("team").path("logo").asText().startsWith("https://"));
+        assertEquals("https://a.espncdn.com/i/headshots/tennis/players/full/2946.png",
+                fritz.path("team").path("logo").asText(), "con foto en ESPN, el escudo es la foto");
+        assertTrue(competitor(match, "home").path("team").path("logo").asText().contains("/teamlogos/countries/"),
+                "sin foto, la bandera");
         assertEquals("2", fritz.path("score").asText());
         assertTrue(fritz.path("winner").asBoolean());
         assertEquals("0", competitor(match, "home").path("score").asText());

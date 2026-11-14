@@ -109,6 +109,9 @@ export interface Match {
   awayLogo: string | null;
   homeTeamLogo: string | null;
   awayTeamLogo: string | null;
+  /** Bandera del país del tenista (en tenis el escudo es su foto). */
+  homeFlag?: string | null;
+  awayFlag?: string | null;
   homeScore: number | null;
   awayScore: number | null;
   home_score: number | null;

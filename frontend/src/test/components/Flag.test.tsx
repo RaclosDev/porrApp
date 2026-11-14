@@ -66,4 +66,17 @@ describe('Flag component', () => {
     // After logo error, falls back to country flag
     expect(screen.getByRole('img')).toHaveAttribute('src', '/flags/es.svg');
   });
+
+  it('shows the player photo with the country flag as a badge', () => {
+    const { container } = render(
+      <Flag
+        team="Carlos Alcaraz"
+        logo="https://example.com/alcaraz.png"
+        badge="https://example.com/esp.png"
+      />,
+    );
+    const images = container.querySelectorAll('img');
+    expect(images[0]).toHaveAttribute('src', 'https://example.com/alcaraz.png');
+    expect(images[1]).toHaveAttribute('src', 'https://example.com/esp.png');
+  });
 });

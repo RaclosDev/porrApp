@@ -318,7 +318,8 @@ public class MatchEventProcessor {
             // importar: el partido ya trae su nombre y su bandera.
             team = teamRepository.save(Team.builder().name(competitor.nameEn()).nameEn(competitor.nameEn())
                     .externalId(competitor.espnId())
-                    .logoUrl(competitor.node().path("team").path("logo").asText(null)).build());
+                    .logoUrl(competitor.node().path("team").path("logo").asText(null))
+                    .flagUrl(competitor.node().path("team").path("flag").asText(null)).build());
             cache.put(competitor.espnId(), team);
             batch.teamsUpdated++;
             link(team, batch);
@@ -334,6 +335,19 @@ public class MatchEventProcessor {
         if (!Objects.equals(team.getExternalId(), competitor.espnId())) {
             team.setExternalId(competitor.espnId());
             changed = true;
+        }
+        if (competitor.espnId().startsWith(TennisDataProvider.ID_PREFIX)) {
+            // La foto del tenista (o su bandera si no hay foto) y la bandera, sin pisarlas con vacío.
+            String logo = competitor.node().path("team").path("logo").asText(null);
+            String flag = competitor.node().path("team").path("flag").asText(null);
+            if (logo != null && !logo.equals(team.getLogoUrl())) {
+                team.setLogoUrl(logo);
+                changed = true;
+            }
+            if (flag != null && !flag.equals(team.getFlagUrl())) {
+                team.setFlagUrl(flag);
+                changed = true;
+            }
         }
         if (changed) {
             teamRepository.save(team);
