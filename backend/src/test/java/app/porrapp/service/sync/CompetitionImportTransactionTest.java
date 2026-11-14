@@ -35,7 +35,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -56,8 +55,8 @@ class CompetitionImportTransactionTest {
     static class Caches {
         @Bean CacheManager cacheManager() { return new ConcurrentMapCacheManager("leaderboard", "userGroups", "standings", "officialPoints"); }
     }
-    @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    @ServiceConnection
+    static final PostgreSQLContainer<?> POSTGRES = app.porrapp.SharedPostgres.committing();
     @Autowired CompetitionImportService sync;
     @Autowired TeamRepository teams;
     @Autowired MatchRepository matches;

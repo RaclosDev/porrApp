@@ -19,7 +19,6 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
@@ -29,13 +28,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Las cifras y listados del panel de administración, con Postgres real. */
 @SpringBootTest
 @TestPropertySource(locations = "file:src/main/resources/application.properties",
-        properties = "app.jwt.secret=admin-service-test-secret-0123456789-abcdefghijklmnop")
+        properties = "app.jwt.secret=shared-integration-test-secret-0123456789-abcdefghijklmnop")
 @Testcontainers(disabledWithoutDocker = true)
 class AdminServiceIntegrationTest {
 
-    @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = SharedPostgres.integration();
 
     @MockitoBean private DataInitializer dataInitializer;
     @MockitoBean private TopScorerService topScorerService;

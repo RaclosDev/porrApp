@@ -16,8 +16,8 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
+import app.porrapp.SharedPostgres;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
@@ -32,9 +32,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         CustomBracketPredictionValidator.class, CustomLockService.class})
 class PredictionPersistenceTest {
 
-    @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = SharedPostgres.rollback();
 
     @Autowired private TestEntityManager em;
     @Autowired private PredictionService predictions;

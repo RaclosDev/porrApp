@@ -22,8 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import app.porrapp.SharedPostgres;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,9 +42,8 @@ import static org.mockito.Mockito.when;
 @Import({PasswordAuthService.class, AuthService.class, AccountEmailThrottle.class, SessionService.class, JwtUtil.class})
 class PasswordAuthServiceTest {
 
-    @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = SharedPostgres.rollback();
 
     @Autowired
     private PasswordAuthService passwordAuthService;
