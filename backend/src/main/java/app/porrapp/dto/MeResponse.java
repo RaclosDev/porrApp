@@ -8,6 +8,8 @@ package app.porrapp.dto;
  * @param lastSelectedGroupId última liga que tenía abierta
  * @param avatarUrl           foto de perfil versionada, o null
  * @param profileSetupCompleted ya eligió personalizar su perfil u omitir la presentación
+ * @param admin               la cuenta puede abrir el panel de gestión
  */
-public record MeResponse(Long userId, String participantName, Long lastSelectedGroupId, String avatarUrl, boolean profileSetupCompleted) {
+public record MeResponse(Long userId, String participantName, Long lastSelectedGroupId, String avatarUrl, boolean profileSetupCompleted,
+                         boolean admin) {
 }

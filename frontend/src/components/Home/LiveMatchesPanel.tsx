@@ -39,7 +39,7 @@ function LiveMatchesPanel({
         </div>
         <div className="last-match-teams my-auto mx-0">
           <div className="last-match-team">
-            <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
+            <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} badge={m.homeFlag} />
             <span>{m.home}</span>
           </div>
 
@@ -55,7 +55,7 @@ function LiveMatchesPanel({
           </div>
 
           <div className="last-match-team away">
-            <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} />
+            <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} badge={m.awayFlag} />
             <span>{m.away}</span>
           </div>
         </div>
