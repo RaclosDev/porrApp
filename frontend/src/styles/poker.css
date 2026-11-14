@@ -1561,6 +1561,12 @@
 .poker-tv p {
   margin: 0;
 }
+/* Contorno negro para que las letras se lean sobre el vídeo. */
+.poker-tv {
+  -webkit-text-stroke: 0.05em #000;
+  paint-order: stroke fill;
+  text-shadow: 0 0 0.25em rgb(0 0 0 / 0.7);
+}
 .poker-tv-close {
   position: absolute;
   top: 1rem;
@@ -1712,15 +1718,24 @@
 }
 
 .poker-tv-video {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 12px;
+  /* Vídeo de fondo a pantalla completa y a medias de opacidad, detrás de todo el reloj. */
+  position: fixed;
+  inset: 0;
+  z-index: -1;
   overflow: hidden;
+  opacity: 0.5;
+  pointer-events: none;
 }
 .poker-tv-video iframe {
-  width: 100%;
-  height: 100%;
+  /* «cover»: el vídeo 16:9 llena la pantalla recortando lo que sobre. */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.78vh);
+  height: max(100vh, 56.25vw);
+  transform: translate(-50%, -50%);
   border: 0;
+  border-radius: 0;
 }
 .poker-tv-queue {
   width: min(32rem, calc(100% - 2rem));
