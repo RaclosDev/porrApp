@@ -167,6 +167,14 @@ jobs:
           name: jacoco-${{ matrix.shard }}
           path: backend/target/jacoco.exec
           retention-days: 1
+      # El informe de cobertura necesita las clases compiladas; as� backend-test no recompila.
+      - name: Guardar clases compiladas
+        if: matrix.shard == 0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backend-classes
+          path: backend/target/classes
+          retention-days: 1
 
   backend-test:
     name: backend-test
@@ -196,12 +204,17 @@ jobs:
         with:
           pattern: jacoco-*
           path: ${{ runner.temp }}/jacoco
+      - name: Descargar clases compiladas
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: backend-classes
+          path: backend/target/classes
       - name: Cobertura conjunta (mínimo exigido)
         run: |
           # Los .exec son flujos de sesiones: concatenados equivalen a una sola ejecución.
           mkdir -p target
           cat "$RUNNER_TEMP"/jacoco/*/jacoco.exec > target/jacoco.exec
-          ./mvnw -B compile jacoco:report jacoco:check@coverage-floor
+          ./mvnw -B jacoco:report jacoco:check@coverage-floor
       - name: Coverage summary
         if: always()
         run: |
