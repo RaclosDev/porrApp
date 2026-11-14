@@ -1556,7 +1556,7 @@
   background: #0b1f16;
   color: #f6f1e4;
   text-align: center;
-  overflow-y: auto;
+  overflow: hidden; /* A pantalla completa no hay scroll. */
 }
 .poker-tv p {
   margin: 0;
@@ -1798,6 +1798,41 @@
   border: 1px solid rgb(0 0 0 / 0.25);
   border-radius: 8px;
   font: inherit;
+}
+.poker-music-now {
+  display: flex;
+  flex-direction: column;
+  margin: 0.6rem 0 0;
+}
+.poker-music-now small {
+  opacity: 0.7;
+}
+.poker-music-toggle {
+  margin-top: 0.4rem;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.poker-music-queue {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.poker-music-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(92vw, 520px);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+.poker-music-dialog h2 {
+  margin: 0;
 }
 .poker-music-results,
 .poker-music-queue {
