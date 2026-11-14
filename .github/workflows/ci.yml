@@ -1,4 +1,4 @@
-\name: PorrApp CI/CD
+name: PorrApp CI/CD
 
 on:
   push:
