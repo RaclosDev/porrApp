@@ -1740,22 +1740,71 @@
   border: 0;
   border-radius: 0;
 }
+.poker-tv:has(.poker-tv-queue) {
+  padding-bottom: 8rem;
+}
 .poker-tv-queue {
-  width: min(32rem, calc(100% - 2rem));
-}
-.poker-tv-now {
+  /* Cola de canciones en una tira pegada al borde de abajo. */
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-.poker-tv-now small {
-  opacity: 0.75;
-}
-.poker-tv-queue ol {
+  align-items: center;
+  gap: 0.75rem;
+  width: auto;
   margin: 0;
-  padding-left: 1.2rem;
-  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent);
+}
+.poker-tv-carousel {
+  display: flex;
+  flex: 1;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.poker-tv-carousel li {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: min(16rem, 70vw);
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.45);
+  text-align: left;
+  scroll-snap-align: start;
+}
+.poker-tv-carousel li.is-playing {
+  border-color: #f0c94c;
+}
+.poker-tv-carousel strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poker-tv-carousel small,
+.poker-tv-carousel span {
+  font-size: 0.8rem;
   opacity: 0.85;
+}
+.poker-tv-skip {
+  flex: none;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.45);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .poker-music-search {

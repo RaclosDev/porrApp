@@ -20,30 +20,24 @@ export default function PokerTvQueue({ leagueId }: { leagueId: string | number }
           onDone={() => remove.mutate(playing.id)}
         />
       )}
-      <p className="poker-tv-now">
-        <span>Suena</span>
-        <strong>{playing.title}</strong>
-        <small>Pedida por {playing.addedBy}</small>
-      </p>
-      {next.length > 0 && (
-        <ol aria-label="Siguientes canciones">
-          {next.slice(0, 3).map((track) => (
-            <li key={track.id}>
-              {track.title} <small>· {track.addedBy}</small>
-            </li>
-          ))}
-        </ol>
-      )}
+      <ol className="poker-tv-carousel" aria-label="Cola de canciones">
+        {[playing, ...next].map((track, index) => (
+          <li key={track.id} className={index === 0 ? 'is-playing' : undefined}>
+            <small>{index === 0 ? 'Sonando' : `En cola · ${index}`}</small>
+            <strong>{track.title}</strong>
+            <span>Pedida por {track.addedBy}</span>
+          </li>
+        ))}
+      </ol>
       {queue?.organizer && (
-        <div className="poker-tv-music-actions">
-          <button
-            type="button"
-            disabled={remove.isPending}
-            onClick={() => remove.mutate(playing.id)}
-          >
-            Siguiente canción
-          </button>
-        </div>
+        <button
+          type="button"
+          className="poker-tv-skip"
+          disabled={remove.isPending}
+          onClick={() => remove.mutate(playing.id)}
+        >
+          Siguiente canción
+        </button>
       )}
     </div>
   );
