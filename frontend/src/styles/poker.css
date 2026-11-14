@@ -1565,9 +1565,6 @@
 .poker-tv {
   -webkit-text-stroke: 0.16em #000;
   paint-order: stroke fill;
-  text-shadow:
-    0 0 0.15em #000,
-    0 0 0.4em #000;
 }
 .poker-tv-close {
   position: absolute;
