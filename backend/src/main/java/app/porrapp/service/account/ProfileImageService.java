@@ -44,6 +44,7 @@ public class ProfileImageService {
     private final LeagueImageRepository leagueImageRepository;
     private final UserAccountRepository userAccountRepository;
     private final UserAvatarRepository userAvatarRepository;
+    private final app.porrapp.service.league.ScoreboardRoster scoreboardRoster;
 
     /** Imagen lista para servir. */
     public record StoredImage(byte[] data, String contentType, Instant updatedAt) {
@@ -185,8 +186,11 @@ public class ProfileImageService {
         if (userAccountRepository.existsByParticipantNameIgnoreCaseAndIdNot(name, user.getId())) {
             throw BusinessException.conflict("Ese nombre ya está en uso. Elige otro.");
         }
+        String oldName = user.getParticipantName();
         user.setParticipantName(name);
-        return userAccountRepository.save(user);
+        UserAccount saved = userAccountRepository.save(user);
+        scoreboardRoster.memberRenamed(saved, oldName);
+        return saved;
     }
 
     /** Normaliza y valida el nombre público. Lanza BusinessException si no es válido. */
