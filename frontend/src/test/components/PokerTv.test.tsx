@@ -1,13 +1,16 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PokerTv from '../../components/poker/PokerTv';
+import type { BlindClock } from '../../services/endpoints/poker';
 
 const levels = [
   { minutes: 15, small: 25, big: 50, ante: 0 },
   { minutes: 15, small: 50, big: 100, ante: 10 },
 ];
 
-function renderTv(clock = { level: 0, endsAt: Date.now() + 90_000, remainingMs: 90_000 }) {
+function renderTv(
+  clock: BlindClock = { level: 0, endsAt: Date.now() + 90_000, remainingMs: 90_000 },
+) {
   const onClose = vi.fn();
   render(
     <PokerTv
