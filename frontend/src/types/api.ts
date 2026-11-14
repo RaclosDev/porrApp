@@ -27,6 +27,8 @@ export interface LoginResponse {
 }
 
 export interface Me {
+  /** La cuenta puede abrir el panel de gestión. */
+  admin?: boolean;
   profileSetupCompleted: boolean;
   userId: number;
   participantName: string;

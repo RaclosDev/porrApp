@@ -126,6 +126,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           // El id del servidor manda: es la semilla del avatar y la clave de los borradores.
           setUserId(String(me.userId));
           setUserAvatarUrl(me.avatarUrl || '');
+          useAppStore.getState().setIsAdmin(me.admin === true);
           if (typeof me.profileSetupCompleted === 'boolean')
             useAppStore.getState().setProfileSetupCompleted(me.profileSetupCompleted);
           if (me.participantName && me.participantName !== userName)

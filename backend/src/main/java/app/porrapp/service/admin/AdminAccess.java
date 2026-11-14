@@ -34,13 +34,19 @@ public class AdminAccess {
 
     /** @throws ResponseStatusException 404 si quien llama no es administrador. */
     public void requireAdmin(String email) {
+        if (!isAdmin(email)) {
+            throw notFound();
+        }
+    }
+
+    /** Si la cuenta es de administrador; no lanza, para poder avisar a la propia interfaz. */
+    public boolean isAdmin(String email) {
         if (email == null || !adminEmails.contains(email.trim().toLowerCase(Locale.ROOT))) {
-            throw notFound();
+            return false;
         }
-        UserAccount account = users.findByGoogleEmail(email).orElseThrow(AdminAccess::notFound);
-        if (account.getGoogleSub() == null && account.getAppleSub() == null) {
-            throw notFound();
-        }
+        return users.findByGoogleEmail(email)
+                .map(a -> a.getGoogleSub() != null || a.getAppleSub() != null)
+                .orElse(false);
     }
 
     private static ResponseStatusException notFound() {

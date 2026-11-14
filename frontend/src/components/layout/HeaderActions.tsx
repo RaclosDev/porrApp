@@ -22,6 +22,8 @@ interface HeaderActionsProps {
   /** Campana de avisos: solo con sesión real, no en la demo. */
   showNotificationBell: boolean;
   userAvatarUrl: string;
+  /** Cuenta de administrador: el menú ofrece el panel de gestión. */
+  isAdmin?: boolean;
   userId: string;
   userName: string;
 }
@@ -72,6 +74,7 @@ export default function HeaderActions({
   showProfileMenu,
   showNotificationBell,
   userAvatarUrl,
+  isAdmin = false,
   userId,
   userName,
 }: HeaderActionsProps) {
@@ -159,6 +162,19 @@ export default function HeaderActions({
                   {label}
                 </button>
               ))}
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate('/gestion-7k2q');
+                  }}
+                  className="glass-btn py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] font-bold w-full flex items-center justify-center gap-2"
+                >
+                  Panel de gestión
+                </button>
+              )}
 
               <button
                 className="bg-[rgba(185,_28,_28,_0.08)] bg-none border border-[var(--miss)] text-[var(--miss)] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"
