@@ -18,7 +18,7 @@
     <description>PorrApp: porras de predicciones multideporte</description>
 
     <properties>
-        <surefire.forks>3</surefire.forks>
+        <surefire.forks>2</surefire.forks>
         <shedlock.version>7.10.1</shedlock.version>
         <sentry.version>8.63.0</sentry.version>
         <java.version>21</java.version>
@@ -249,6 +249,8 @@
                          así que no comparten estado. JaCoCo agrega la cobertura de todas en el mismo fichero. -->
                     <forkCount>${surefire.forks}</forkCount>
                     <reuseForks>true</reuseForks>
+                    <!-- Las JVM de test viven poco: solo el compilador C1 y GC serie arrancan los contextos de Spring antes. -->
+                    <argLine>@{argLine} -XX:TieredStopAtLevel=1 -XX:+UseSerialGC</argLine>
                 </configuration>
             </plugin>
             <plugin>
