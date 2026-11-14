@@ -16,7 +16,7 @@ export default function PokerMusicPanel({ leagueId }: { leagueId: string | numbe
     const query = text.trim();
     if (query.length >= 2) search.mutate(query);
   };
-  const pick = (track: MusicTrack) => add.mutate(track, { onSuccess: () => search.reset() });
+  const pick = (track: MusicTrack) => add.mutate(track);
 
   return (
     <section
