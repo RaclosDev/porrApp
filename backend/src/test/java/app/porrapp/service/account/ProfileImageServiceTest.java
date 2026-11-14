@@ -37,6 +37,7 @@ class ProfileImageServiceTest {
     @Mock private LeagueImageRepository leagueImageRepository;
     @Mock private UserAccountRepository userAccountRepository;
     @Mock private UserAvatarRepository userAvatarRepository;
+    @Mock private app.porrapp.service.league.ScoreboardRoster scoreboardRoster;
 
     @InjectMocks private ProfileImageService service;
 
