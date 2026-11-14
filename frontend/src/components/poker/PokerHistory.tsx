@@ -8,6 +8,7 @@ import {
   euros,
   percent,
   pokerStandings,
+  settlements,
   shortDate,
   signedEuros,
   standingLabel,
@@ -32,6 +33,7 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
   const session = ordered[index];
   // Solo los torneos finalizados por fichas tienen esa columna; en móvil va bajo el nombre.
   const hasChips = session?.results.some((result) => result.finalChips != null) ?? false;
+  const payments = session ? settlements(session.results) : [];
 
   return (
     <section className="paper-panel album-sheet poker-panel">
@@ -159,6 +161,23 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
               </tbody>
             </table>
           </div>
+          {payments.length > 0 && (
+            <>
+              <h3>Quién paga a quién</h3>
+              <ul className="poker-payments" aria-label="Pagos para saldar el torneo">
+                {payments.map((payment) => (
+                  <li key={`${payment.fromId}-${payment.toId}`}>
+                    <strong>{payment.from}</strong> paga <strong>{euros(payment.cents)}</strong> a{' '}
+                    <strong>{payment.to}</strong>
+                  </li>
+                ))}
+              </ul>
+              <p className="poker-note">
+                Pagos mínimos según lo aportado y el premio de cada jugador. Si ya pagasteis en la
+                mesa, no hace falta nada.
+              </p>
+            </>
+          )}
         </>
       )}
     </section>
@@ -179,7 +198,13 @@ const statisticColumns: { label: string; value: (row: Standing) => number | stri
   { label: 'Puesto medio', value: (row) => row.places / row.played },
   { label: 'Premios', value: (row) => row.prizes },
   { label: 'Neto', value: (row) => row.prizes - row.paid },
+  { label: 'ROI', value: (row) => roi(row) ?? -Infinity },
+  { label: 'Racha', value: (row) => row.streak },
+  { label: 'Mejor racha', value: (row) => row.bestStreak },
 ];
+
+/** Rentabilidad: neto entre lo aportado; no existe si el jugador nunca puso dinero. */
+const roi = (row: Standing) => (row.paid > 0 ? (row.prizes - row.paid) / row.paid : null);
 
 export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
   const standings = pokerStandings(sessions);
@@ -285,6 +310,9 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                     <td>{formatPlace.format(row.places / row.played)}.º</td>
                     <td>{euros(row.prizes)}</td>
                     <Net cents={row.prizes - row.paid} />
+                    <td>{roi(row) === null ? '—' : percent(roi(row)!)}</td>
+                    <td>{row.streak}</td>
+                    <td>{row.bestStreak}</td>
                   </tr>
                 ))}
               </tbody>
@@ -294,7 +322,8 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
             Los porcentajes se calculan sobre los torneos jugados por cada persona. El neto
             descuenta entradas, recompras y add-ons. Un aplauso es quedar en el primer puesto sin
             premio. Las recompras y los add-ons acumulan las compras de cada jugador en los torneos
-            cerrados.
+            cerrados. El ROI es el neto dividido entre lo aportado. La racha son los podios seguidos
+            hasta el último torneo que jugó cada persona.
           </p>
         </>
       )}
