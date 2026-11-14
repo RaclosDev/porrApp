@@ -93,7 +93,7 @@ jobs:
         run: |
           node -e "const t=require('./coverage/coverage-summary.json').total;
           const row=k=>'| '+k+' | '+t[k].pct+' % | '+t[k].covered+' / '+t[k].total+' |';
-          console.log(['### Cobertura del frontend','','| | % | Cubierto |','| --- | --- | --- |',row('lines'),row('branches'),row('functions')].join('\n'))" >> "$GITHUB_STEP_SUMMARY"
+          console.log(['### Cobertura del frontend','','| | % | Cubierto |','| --- | --- | --- |',row('lines'),row('branches'),row('functions')].join('n'))" >> "$GITHUB_STEP_SUMMARY"
 
   frontend-e2e:
     needs: changes
@@ -130,11 +130,17 @@ jobs:
             [ "$result" = "success" ] || exit 1
           done
 
-  backend-test:
+  # Los tests del backend van en 2 runners en paralelo (cada uno paga su arranque de Spring, pero con CPU propia);
+  # `backend-test` junta la cobertura de ambos, aplica el mínimo y es el check que exige la rama.
+  backend-shard:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1]
     defaults:
       run:
         working-directory: backend
@@ -149,8 +155,53 @@ jobs:
           cache-dependency-path: backend/pom.xml
       - name: Require Docker for PostgreSQL integration tests
         run: docker info > /dev/null
-      - name: Build and Test with Maven
-        run: ./mvnw -B test
+      - name: Test shard ${{ matrix.shard }}
+        run: |
+          # Reparto por tamaño del fichero (aproxima el coste) alternando entre los 2 grupos.
+          tests=$(find src/test -name '*Test.java' -printf '%s %f\n' | sort -rn | awk -v s=${{ matrix.shard }} '(NR+s)%2==0 {sub(/\.java$/,"",$2); print $2}' | paste -sd,)
+          echo "Clases: $tests"
+          ./mvnw -B test-compile surefire:test -Dtest="$tests" -Dsurefire.failIfNoSpecifiedTests=false
+      - name: Guardar datos de cobertura
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: jacoco-${{ matrix.shard }}
+          path: backend/target/jacoco.exec
+          retention-days: 1
+
+  backend-test:
+    name: backend-test
+    needs: [changes, backend-shard]
+    if: always() && needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Todos los grupos de tests deben pasar
+        working-directory: .
+        env:
+          RESULT: ${{ needs.backend-shard.result }}
+        run: '[ "$RESULT" = "success" ]'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: backend/pom.xml
+      - name: Descargar datos de cobertura
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: jacoco-*
+          path: ${{ runner.temp }}/jacoco
+      - name: Cobertura conjunta (mínimo exigido)
+        run: |
+          # Los .exec son flujos de sesiones: concatenados equivalen a una sola ejecución.
+          mkdir -p target
+          cat "$RUNNER_TEMP"/jacoco/*/jacoco.exec > target/jacoco.exec
+          ./mvnw -B compile jacoco:report jacoco:check@coverage-floor
       - name: Coverage summary
         if: always()
         run: |
