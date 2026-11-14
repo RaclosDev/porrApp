@@ -1620,3 +1620,37 @@
   font-size: clamp(0.9rem, 2.5vmin, 1.5rem);
   opacity: 0.7;
 }
+
+.poker-clock-tools {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.poker-tool-btn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.08);
+  color: inherit;
+  cursor: pointer;
+}
+
+.poker-tool-btn[aria-pressed='false'] {
+  opacity: 0.6;
+}
+
+.poker-tool-btn svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
