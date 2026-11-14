@@ -48,10 +48,18 @@ export default function PokerTv({
     const onFullscreen = () => {
       if (!document.fullscreenElement) closeRef.current();
     };
+    // Sin scroll de la página de fondo (ni su barra a la derecha) mientras el reloj está abierto.
+    const html = document.documentElement;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    html.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', onKey);
     document.addEventListener('fullscreenchange', onFullscreen);
     void document.documentElement.requestFullscreen?.().catch(() => undefined);
     return () => {
+      html.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('fullscreenchange', onFullscreen);
       if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
