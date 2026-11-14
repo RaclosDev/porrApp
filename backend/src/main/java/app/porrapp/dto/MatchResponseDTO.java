@@ -22,6 +22,9 @@ public record MatchResponseDTO(
         String awayLogo,
         String homeTeamLogo,
         String awayTeamLogo,
+        /** Bandera del país del tenista; solo en tenis, donde el escudo es su foto. */
+        @JsonInclude(JsonInclude.Include.NON_NULL) String homeFlag,
+        @JsonInclude(JsonInclude.Include.NON_NULL) String awayFlag,
         Integer homeScore,
         Integer awayScore,
         Integer home_score,
@@ -69,6 +72,8 @@ public record MatchResponseDTO(
                 awayLogo,
                 homeLogo,
                 awayLogo,
+                m.getHomeTeam() != null ? m.getHomeTeam().getFlagUrl() : null,
+                m.getAwayTeam() != null ? m.getAwayTeam().getFlagUrl() : null,
                 m.getHomeScore(),
                 m.getAwayScore(),
                 m.getHomeScore(), // Duplicado para retrocompatibilidad

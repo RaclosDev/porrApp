@@ -46,6 +46,10 @@ public class Team {
     @Column(name = "logo_url", length = 500)
     private String logoUrl;
 
+    /** Bandera del país (tenistas, cuyo escudo es su foto); null en el resto de equipos. */
+    @Column(name = "flag_url", length = 500)
+    private String flagUrl;
+
     /** Probabilidad de ganar el partido (cuota para lógica del simulador). */
     private Double winOdds;
     
