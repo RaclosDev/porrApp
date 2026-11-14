@@ -1726,6 +1726,7 @@
   z-index: -1;
   overflow: hidden;
   opacity: 0.5;
+  filter: blur(4px);
   pointer-events: none;
 }
 .poker-tv-video iframe {
