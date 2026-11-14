@@ -1669,33 +1669,6 @@
   width: min(22rem, calc(100% - 2rem));
   text-align: left;
 }
-.poker-tv-music iframe {
-  width: 100%;
-  border: 0;
-  border-radius: 12px;
-}
-.poker-tv-music form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 0.5rem;
-}
-.poker-tv-music label {
-  display: flex;
-  flex: 1 1 12rem;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-  opacity: 0.85;
-}
-.poker-tv-music input {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid rgb(255 255 255 / 0.3);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 0.08);
-  color: inherit;
-  font: inherit;
-}
 .poker-tv-music button {
   padding: 0.35rem 0.8rem;
   border: 1px solid currentColor;
@@ -1705,15 +1678,6 @@
   font: inherit;
   font-size: 0.85rem;
   cursor: pointer;
-}
-.poker-tv-music-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-.poker-tv-music [role='alert'] {
-  flex-basis: 100%;
-  color: #f0c94c;
-  font-size: 0.85rem;
 }
 
 .poker-tv-video {

@@ -1,15 +1,14 @@
-import PokerTvMusic from './PokerTvMusic';
 import { usePokerMusic } from './usePokerMusic';
 import YoutubePlayer from './YoutubePlayer';
 
 /**
  * Música del modo TV: si los jugadores han pedido canciones, suena la cola (la reproduce la pantalla del
- * organizador, que es quien puede pasar a la siguiente). Sin cola, queda el enlace de YouTube o Spotify.
+ * organizador, que es quien puede pasar a la siguiente). Sin cola, no se muestra nada.
  */
 export default function PokerTvQueue({ leagueId }: { leagueId: string | number }) {
   const { queue, remove } = usePokerMusic(leagueId);
   const [playing, ...next] = queue?.items ?? [];
-  if (!playing) return <PokerTvMusic />;
+  if (!playing) return null;
 
   return (
     <>

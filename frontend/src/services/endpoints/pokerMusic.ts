@@ -6,7 +6,7 @@ export interface MusicTrack {
   channel: string;
 }
 
-export interface QueuedTrack extends MusicTrack {
+interface QueuedTrack extends MusicTrack {
   id: number;
   addedBy: string;
   /** El organizador puede quitar cualquiera; cada jugador, solo las suyas. */

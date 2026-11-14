@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
 import { BagIcon, BulletIcon } from './PokerBadges';
 import { chips, euros, timeLabel } from './pokerFormat';
-import PokerTvMusic from './PokerTvMusic';
 import PokerTvQueue from './PokerTvQueue';
 
 interface Props {
@@ -12,7 +11,7 @@ interface Props {
   playersTotal: number;
   potCents: number;
   buyTimers: { key: string; label: string; ms: number; icons?: string[] }[];
-  /** Con la liga suena la cola de canciones pedidas; sin ella, solo el enlace manual. */
+  /** Con la liga suena la cola de canciones pedidas desde los móviles. */
   leagueId?: string | number;
   onClose: () => void;
 }
@@ -93,7 +92,7 @@ export default function PokerTv({
           </li>
         ))}
       </ul>
-      {leagueId === undefined ? <PokerTvMusic /> : <PokerTvQueue leagueId={leagueId} />}
+      {leagueId !== undefined && <PokerTvQueue leagueId={leagueId} />}
     </div>
   );
 }
