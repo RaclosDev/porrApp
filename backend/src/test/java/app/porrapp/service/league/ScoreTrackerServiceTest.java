@@ -82,7 +82,7 @@ class ScoreTrackerServiceTest {
     private final ScoreGame mus = ScoreGame.builder().id(50L).leagueId(10L).name("Mus").build();
     private final ScoreGame parchis = ScoreGame.builder().id(51L).leagueId(10L).name("Parchís").build();
     private final ScoreTrackerService service = new ScoreTrackerService(leagues, memberships, membershipService,
-            leagueService, new ScoreboardRoster(players), games, players, sessions, rounds, roundChanges, scores, days, dayPlayers,
+            leagueService, new ScoreboardRoster(players, org.mockito.Mockito.mock(app.porrapp.repository.PokerSessionRepository.class)), games, players, sessions, rounds, roundChanges, scores, days, dayPlayers,
             sessionPlayers, users, webSocket, events);
 
     private static UserAccount user(Long id, String name) {
