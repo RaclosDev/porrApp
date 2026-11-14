@@ -43,6 +43,10 @@ async function mockLeague(page: Page, owner = true, existing = true) {
     const current = league.current;
     league.serverNow = Date.now();
 
+    if (path === `${base}/music`) {
+      return route.fulfill({ json: { organizer: true, searchAvailable: true, items: [] } });
+    }
+
     if (path === '/api/poker' && method === 'POST') {
       const { name } = request.postDataJSON() as { name: string };
       group.name = name;

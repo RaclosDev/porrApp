@@ -720,6 +720,8 @@ it('al cerrar el torneo ofrece una propina para el crupier con las formas de apo
   const live: PokerSession = { ...session, startedAt: 1_000, eliminations: [3, 2] };
   api.mockImplementation((url: string, options?: { method?: string }) => {
     if (url === '/poker/8/history') return Promise.resolve([]);
+    if (url === '/poker/8/music')
+      return Promise.resolve({ organizer: true, searchAvailable: true, items: [] });
     if (options?.method === 'POST') return Promise.resolve({ ...league, current: null });
     return Promise.resolve({ ...league, current: live });
   });
