@@ -130,7 +130,7 @@ jobs:
             [ "$result" = "success" ] || exit 1
           done
 
-  # Los tests del backend van en 2 runners en paralelo (cada uno paga su arranque de Spring, pero con CPU propia);
+  # Los tests del backend van en 3 runners en paralelo (cada uno paga su arranque de Spring, pero con CPU propia);
   # `backend-test` junta la cobertura de ambos, aplica el mínimo y es el check que exige la rama.
   backend-shard:
     needs: changes
@@ -140,7 +140,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1]
+        shard: [0, 1, 2]
     defaults:
       run:
         working-directory: backend
@@ -157,8 +157,8 @@ jobs:
         run: docker info > /dev/null
       - name: Test shard ${{ matrix.shard }}
         run: |
-          # Reparto por tamaño del fichero (aproxima el coste) alternando entre los 2 grupos.
-          tests=$(find src/test -name '*Test.java' -printf '%s %f\n' | sort -rn | awk -v s=${{ matrix.shard }} '(NR+s)%2==0 {sub(/\.java$/,"",$2); print $2}' | paste -sd,)
+          # Reparto por tamaño del fichero (aproxima el coste) alternando entre los 3 grupos.
+          tests=$(find src/test -name '*Test.java' -printf '%s %f\n' | sort -rn | awk -v s=${{ matrix.shard }} 'NR%3==s {sub(/\.java$/,"",$2); print $2}' | paste -sd,)
           echo "Clases: $tests"
           ./mvnw -B test-compile surefire:test -Dtest="$tests" -Dsurefire.failIfNoSpecifiedTests=false
       - name: Guardar datos de cobertura
