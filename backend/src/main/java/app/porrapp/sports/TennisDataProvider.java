@@ -54,6 +54,7 @@ public class TennisDataProvider implements SportsDataProvider {
 
     private static final String SITE_URL = "https://site.api.espn.com/apis/site/v2/sports/tennis/";
     private static final String CORE_URL = "https://sports.core.api.espn.com/v2/sports/tennis/leagues/";
+    private static final String ATHLETE_URL = "https://sports.core.api.espn.com/v2/sports/tennis/athletes/";
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final Pattern NUMBERED_ROUND = Pattern.compile("round (\\d{1,2})");
     /** El calendario de un torneo casi no cambia: se consulta como mucho cada doce horas. */
@@ -73,6 +74,8 @@ public class TennisDataProvider implements SportsDataProvider {
     private final Clock clock;
     private final Map<String, Cached<Edition>> editions = new ConcurrentHashMap<>();
     private final Map<String, Cached<JsonNode>> events = new ConcurrentHashMap<>();
+    /** Foto de cada jugador por su id de ESPN; vacía si ESPN no tiene (no se vuelve a preguntar). */
+    private final Map<String, String> headshots = new ConcurrentHashMap<>();
 
     /** Fechas de una edición de un torneo, tal como las da ESPN. */
     public record Edition(String eventId, Instant start, Instant end) {
@@ -387,7 +390,7 @@ public class TennisDataProvider implements SportsDataProvider {
         return won;
     }
 
-    /** Jugador como equipo, con la bandera de su país como escudo; null si aún está por decidir. */
+    /** Jugador como equipo, con su foto como escudo (la bandera de su país si ESPN no tiene foto); null si aún está por decidir. */
     private ObjectNode player(JsonNode competitor) {
         JsonNode athlete = competitor.path("athlete");
         String id = competitor.path("id").asText("");
@@ -400,9 +403,36 @@ public class TennisDataProvider implements SportsDataProvider {
                 .put("id", ID_PREFIX + id)
                 .put("displayName", name)
                 .put("abbreviation", name);
-        String flag = athlete.path("flag").path("href").asText(null);
-        if (flag != null && flag.startsWith("https://")) player.put("logo", flag);
+        String image = headshot(id);
+        if (image.isEmpty()) {
+            String flag = athlete.path("flag").path("href").asText(null);
+            if (flag != null && flag.startsWith("https://")) image = flag;
+        }
+        if (!image.isEmpty()) player.put("logo", image);
         return player;
+    }
+
+    /** Foto del jugador según ESPN, o vacío si no la tiene o ESPN no responde (en ese caso se reintenta luego). */
+    private String headshot(String athleteId) {
+        String cached = headshots.get(athleteId);
+        if (cached != null) return cached;
+        try {
+            JsonNode athlete = get(ATHLETE_URL + athleteId);
+            if (athlete == null) {
+                headshots.put(athleteId, "");
+                return "";
+            }
+            String href = athlete.path("headshot").path("href").asText("");
+            String image = href.startsWith("https://") ? href : "";
+            headshots.put(athleteId, image);
+            return image;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "";
+        } catch (Exception e) {
+            log.debug("Sin foto de tenista {}: {}", athleteId, e.toString());
+            return "";
+        }
     }
 
     private static TennisTournaments.Ref ref(String externalId) {
