@@ -1848,3 +1848,13 @@
 .poker-music-queue small {
   opacity: 0.7;
 }
+
+.poker-tv-facts .poker-tv-fact-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.poker-tv-facts .poker-icon {
+  width: auto;
+  height: clamp(1.1rem, 3.2vmin, 2rem);
+}

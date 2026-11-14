@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
+import { BagIcon, BulletIcon } from './PokerBadges';
 import { chips, euros, timeLabel } from './pokerFormat';
 import PokerTvMusic from './PokerTvMusic';
 import PokerTvQueue from './PokerTvQueue';
@@ -10,7 +11,7 @@ interface Props {
   playersLeft: number;
   playersTotal: number;
   potCents: number;
-  buyTimers: { key: string; label: string; ms: number }[];
+  buyTimers: { key: string; label: string; ms: number; icons?: string[] }[];
   /** Con la liga suena la cola de canciones pedidas; sin ella, solo el enlace manual. */
   leagueId?: string | number;
   onClose: () => void;
@@ -84,7 +85,11 @@ export default function PokerTv({
         {buyTimers.map((timer) => (
           <li key={timer.key}>
             <strong>{timeLabel(timer.ms)}</strong>
-            <span>{timer.label}</span>
+            <span className="poker-tv-fact-label">
+              {timer.icons?.includes('bullet') && <BulletIcon />}
+              {timer.icons?.includes('bag') && <BagIcon />}
+              {timer.label}
+            </span>
           </li>
         ))}
       </ul>
