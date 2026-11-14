@@ -11,15 +11,16 @@ vi.mock('../../components/layout/NotificationBell', () => ({
   ),
 }));
 
-const setup = () => {
+const setup = (isAdmin = false) => {
   const onOpenSettings = vi.fn();
   const setShowProfileMenu = vi.fn();
+  const navigate = vi.fn();
   render(
     <HeaderActions
       enterDemoMode={vi.fn()}
       isLanding={false}
       isUserLoggedIn
-      navigate={vi.fn()}
+      navigate={navigate}
       onLogout={vi.fn()}
       setShowLoginModal={vi.fn()}
       setShowProfileMenu={setShowProfileMenu}
@@ -27,11 +28,12 @@ const setup = () => {
       showProfileMenu
       showNotificationBell
       userAvatarUrl=""
+      isAdmin={isAdmin}
       userId="1"
       userName="Ana"
     />,
   );
-  return { onOpenSettings, setShowProfileMenu };
+  return { onOpenSettings, setShowProfileMenu, navigate };
 };
 
 it('el menú de cuenta tiene «Avisos», que abre los ajustes en esa sección', () => {
@@ -73,4 +75,18 @@ it('el botón de apoyar abre una ventana con Ko-fi, Revolut y PayPal en otra pes
 
   fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
   expect(screen.queryByRole('dialog')).toBeNull();
+});
+
+it('solo la cuenta de administrador ve «Panel de gestión» y lleva al panel', () => {
+  setup();
+  expect(screen.queryByRole('button', { name: 'Panel de gestión' })).toBeNull();
+});
+
+it('el administrador abre el panel desde el menú', () => {
+  const { navigate, setShowProfileMenu } = setup(true);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Panel de gestión' }));
+
+  expect(navigate).toHaveBeenCalledWith('/gestion-7k2q');
+  expect(setShowProfileMenu).toHaveBeenCalledWith(false);
 });
