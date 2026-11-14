@@ -43,7 +43,9 @@ class PasswordResetServiceTest {
 
     @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
+            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
 
     private static final String LINK_PREFIX = "https://porrapp.app/restablecer-contrasena#token=";
 
