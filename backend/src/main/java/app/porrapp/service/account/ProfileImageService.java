@@ -173,6 +173,8 @@ public class ProfileImageService {
      * Los datos de identidad de Google (email y nombre) y la vinculación de la cuenta no se modifican.
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(
+            value = {"leaderboard", "userGroups", "groupById", "groupByCode"}, allEntries = true)
     public UserAccount updateParticipantName(String email, String rawName) {
         UserAccount user = requireUser(email);
         String name = normalizeParticipantName(rawName);
