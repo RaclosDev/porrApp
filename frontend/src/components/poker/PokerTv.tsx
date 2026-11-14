@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
 import { BagIcon, BulletIcon } from './PokerBadges';
 import { chips, euros, timeLabel } from './pokerFormat';
@@ -38,6 +38,7 @@ export default function PokerTv({
   const level = levels[clock.level];
   const next = levels[clock.level + 1];
   const paused = clock.endsAt === null;
+  const [tv, setTv] = useState(false);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -59,6 +60,17 @@ export default function PokerTv({
 
   return (
     <div className="poker-tv" role="dialog" aria-modal="true" aria-label="Reloj del torneo">
+      {leagueId !== undefined && (
+        <button
+          type="button"
+          className="poker-tv-toggle"
+          aria-pressed={tv}
+          title="Es la pantalla donde suena la música de la mesa"
+          onClick={() => setTv(!tv)}
+        >
+          TV {tv ? 'activada' : 'apagada'}
+        </button>
+      )}
       <button type="button" className="poker-tv-close" onClick={onClose}>
         Cerrar
       </button>
@@ -92,7 +104,7 @@ export default function PokerTv({
           </li>
         ))}
       </ul>
-      {leagueId !== undefined && <PokerTvQueue leagueId={leagueId} />}
+      {leagueId !== undefined && <PokerTvQueue leagueId={leagueId} tv={tv} />}
     </div>
   );
 }

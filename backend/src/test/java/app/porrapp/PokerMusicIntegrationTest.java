@@ -97,7 +97,12 @@ class PokerMusicIntegrationTest {
         assertThat(send("DELETE", music + "/" + ownersItem, owner, null).statusCode()).isEqualTo(200);
         // Quitar algo que ya no está no es un error: dos pantallas pueden pasar de canción a la vez.
         assertThat(send("DELETE", music + "/" + itemId, owner, null).statusCode()).isEqualTo(200);
-        assertThat(json.readTree(send("GET", music, owner, null).body()).get("items")).hasSize(2);
+        // La que suena la puede pasar cualquier miembro (la tele puede ser la de cualquiera).
+        JsonNode rest = json.readTree(send("GET", music, owner, null).body());
+        assertThat(rest.get("items")).hasSize(2);
+        assertThat(send("DELETE", music + "/" + rest.get("items").get(0).get("id").asLong(), guest, null)
+                .statusCode()).isEqualTo(200);
+        assertThat(json.readTree(send("GET", music, owner, null).body()).get("items")).hasSize(1);
     }
 
     private UserAccount user(String label) {

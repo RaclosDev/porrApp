@@ -126,13 +126,18 @@ public class PokerMusicService {
         return view(league, userId);
     }
 
-    /** Quita una canción (o pasa a la siguiente si es la que suena). Quien la pidió o el organizador; sin error si ya no está. */
+    /**
+     * Quita una canción. Quien la pidió o el organizador; la que suena (la primera de la cola) la puede pasar cualquier
+     * miembro, porque la pantalla en modo TV puede ser la de cualquiera. Sin error si ya no está.
+     */
     @Transactional
     public MusicQueue remove(String email, Long leagueId, Long itemId) {
         Long userId = account(email);
         League league = member(leagueId, userId, true);
         queue.findByIdAndLeagueId(itemId, leagueId).ifPresent(item -> {
-            if (!league.canOrganize(userId) && !item.getAddedBy().equals(userId)) {
+            boolean playing = queue.findByLeagueIdOrderByIdAsc(leagueId).stream().findFirst()
+                    .map(first -> first.getId().equals(item.getId())).orElse(false);
+            if (!playing && !league.canOrganize(userId) && !item.getAddedBy().equals(userId)) {
                 throw BusinessException.forbidden("Solo puedes quitar tus canciones");
             }
             queue.delete(item);

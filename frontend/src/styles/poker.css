@@ -1578,6 +1578,23 @@
   font: inherit;
   cursor: pointer;
 }
+.poker-tv-toggle {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.poker-tv-toggle[aria-pressed='true'] {
+  border-color: #f0c94c;
+  background: #f0c94c;
+  color: #1a1a1a;
+}
 .poker-tv-level {
   font-size: clamp(1.25rem, 4vw, 2.5rem);
   letter-spacing: 0.1em;

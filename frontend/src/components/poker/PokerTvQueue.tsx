@@ -2,17 +2,24 @@ import { usePokerMusic } from './usePokerMusic';
 import YoutubePlayer from './YoutubePlayer';
 
 /**
- * Música del modo TV: si los jugadores han pedido canciones, suena la cola (la reproduce la pantalla del
- * organizador, que es quien puede pasar a la siguiente). Sin cola, no se muestra nada.
+ * Música del modo TV: si los jugadores han pedido canciones, suena la cola (la reproduce la pantalla que tiene
+ * activado el botón «TV»). Sin cola, no se muestra nada.
  */
-export default function PokerTvQueue({ leagueId }: { leagueId: string | number }) {
+export default function PokerTvQueue({
+  leagueId,
+  tv,
+}: {
+  leagueId: string | number;
+  /** Esta pantalla es «la tele»: aquí suena la cola y se pasa de canción. */
+  tv: boolean;
+}) {
   const { queue, remove } = usePokerMusic(leagueId);
   const [playing, ...next] = queue?.items ?? [];
   if (!playing) return null;
 
   return (
     <>
-      {queue?.organizer && (
+      {tv && (
         <YoutubePlayer
           key="player"
           videoId={playing.videoId}
@@ -29,7 +36,7 @@ export default function PokerTvQueue({ leagueId }: { leagueId: string | number }
             </li>
           ))}
         </ol>
-        {queue?.organizer && (
+        {tv && (
           <button
             type="button"
             className="poker-tv-skip"
