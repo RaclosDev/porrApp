@@ -36,7 +36,7 @@ export default function FixtureSheet({ fixtures, onPick }: FixtureSheetProps) {
             className="grid grid-cols-[1fr_auto_1fr] gap-x-2 gap-y-2 py-3 items-center"
           >
             <span className="flex items-center gap-2 min-w-0 text-[#111827] font-semibold">
-              <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} />
+              <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} badge={m.homeFlag} />
               <span className="truncate">{m.home}</span>
             </span>
             <span className="text-xs text-[#4b5563]" aria-hidden="true">
@@ -44,7 +44,7 @@ export default function FixtureSheet({ fixtures, onPick }: FixtureSheetProps) {
             </span>
             <span className="flex items-center gap-2 min-w-0 justify-end text-[#111827] font-semibold">
               <span className="truncate">{m.away}</span>
-              <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} />
+              <Flag team={m.away} logo={m.awayLogo || m.awayTeamLogo} badge={m.awayFlag} />
             </span>
             <span className="col-span-3 flex items-center justify-between gap-3">
               <span className="text-xs text-[#4b5563]">{formatKickoff(m.date)}</span>
