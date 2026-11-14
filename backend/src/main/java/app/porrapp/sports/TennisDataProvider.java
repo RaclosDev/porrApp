@@ -403,12 +403,12 @@ public class TennisDataProvider implements SportsDataProvider {
                 .put("id", ID_PREFIX + id)
                 .put("displayName", name)
                 .put("abbreviation", name);
+        String flag = athlete.path("flag").path("href").asText("");
+        if (!flag.startsWith("https://")) flag = "";
         String image = headshot(id);
-        if (image.isEmpty()) {
-            String flag = athlete.path("flag").path("href").asText(null);
-            if (flag != null && flag.startsWith("https://")) image = flag;
-        }
+        if (image.isEmpty()) image = flag;
         if (!image.isEmpty()) player.put("logo", image);
+        if (!flag.isEmpty()) player.put("flag", flag);
         return player;
     }
 

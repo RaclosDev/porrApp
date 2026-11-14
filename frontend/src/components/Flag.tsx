@@ -5,13 +5,15 @@ import { smallTeamLogo } from '../utils/teamLogo';
 interface FlagProps {
   team: string | null | undefined;
   logo?: string | null;
+  /** Bandera pequeña sobre la esquina de la foto (tenistas). */
+  badge?: string | null;
   size?: string;
   style?: React.CSSProperties;
   className?: string;
 }
 
 /** Bandera o escudo de un equipo; sin logo usa la bandera por código o un emoji. */
-const Flag = ({ team, logo, size = 'w40', style = {}, className = '' }: FlagProps) => {
+const Flag = ({ team, logo, badge, size = 'w40', style = {}, className = '' }: FlagProps) => {
   const [hasError, setHasError] = useState(false);
   const [logoError, setLogoError] = useState(false);
 
@@ -22,6 +24,38 @@ const Flag = ({ team, logo, size = 'w40', style = {}, className = '' }: FlagProp
 
   if (!team && !logo) return null;
   const cleanTeam = normalizeCountryName(team || '');
+
+  if (logo && !logoError && badge && badge !== logo) {
+    return (
+      <span className="relative inline-flex shrink-0" style={{ width: '24px', height: '24px' }}>
+        <img
+          src={smallTeamLogo(logo)}
+          alt={cleanTeam || 'Foto'}
+          width={24}
+          height={24}
+          loading="lazy"
+          onError={() => setLogoError(true)}
+          style={{
+            width: '24px',
+            height: '24px',
+            objectFit: 'cover',
+            borderRadius: '50%',
+            ...style,
+          }}
+          className={className}
+        />
+        <img
+          src={badge}
+          alt=""
+          width={12}
+          height={12}
+          loading="lazy"
+          className="absolute -bottom-0.5 -right-1 rounded-full object-cover ring-1 ring-white"
+          style={{ width: '12px', height: '12px' }}
+        />
+      </span>
+    );
+  }
 
   if (logo && !logoError) {
     return (
