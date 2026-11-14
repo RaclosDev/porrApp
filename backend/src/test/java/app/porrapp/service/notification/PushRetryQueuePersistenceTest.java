@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
@@ -28,10 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(PushRetryQueue.class)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PushRetryQueuePersistenceTest {
-    @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
-            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
+    @ServiceConnection
+    static final PostgreSQLContainer<?> POSTGRES = app.porrapp.SharedPostgres.committing();
     @Autowired private PushRetryQueue queue;
     @Autowired private PushDeliveryRetryRepository retries;
     @Autowired private PushSubscriptionRepository subscriptions;

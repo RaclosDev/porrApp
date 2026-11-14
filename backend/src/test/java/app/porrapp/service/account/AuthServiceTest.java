@@ -16,8 +16,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ResponseStatusException;
+import app.porrapp.SharedPostgres;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,11 +31,8 @@ import static org.mockito.Mockito.when;
 @Import({AuthService.class, SessionService.class, JwtUtil.class})
 class AuthServiceTest {
 
-    @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
-            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
+    static final PostgreSQLContainer<?> POSTGRES = SharedPostgres.rollback();
 
     @Autowired
     private AuthService authService;

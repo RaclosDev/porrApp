@@ -34,7 +34,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Duration;
@@ -59,11 +58,8 @@ class CompetitionSeasonServiceTest {
         }
     }
 
-    @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
-            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
+    static final PostgreSQLContainer<?> POSTGRES = app.porrapp.SharedPostgres.committing();
 
     private static final Season SEASON_26_27 = Season.of(new SeasonWindow("2026-08-14T04:00Z", "2027-06-01T03:59Z"));
 

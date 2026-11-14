@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.test.context.jdbc.Sql;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -33,10 +32,8 @@ import static org.mockito.Mockito.*;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({LegacyFixtureRepairService.class, MatchEventProcessor.class, FightCardService.class})
 class LegacyFixtureRepairPersistenceTest {
-    @Container @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
-            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
+    @ServiceConnection
+    static final PostgreSQLContainer<?> POSTGRES = app.porrapp.SharedPostgres.committing();
     @Autowired LegacyFixtureRepairService repair;
     @Autowired MatchRepository matches;
     @Autowired TeamRepository teams;

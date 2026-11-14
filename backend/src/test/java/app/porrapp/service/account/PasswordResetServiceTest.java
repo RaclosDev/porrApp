@@ -19,8 +19,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ResponseStatusException;
+import app.porrapp.SharedPostgres;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
@@ -41,11 +41,8 @@ import static org.mockito.Mockito.when;
         JwtUtil.class})
 class PasswordResetServiceTest {
 
-    @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withTmpFs(java.util.Map.of("/var/lib/postgresql/data", "rw"))
-            .withCommand("postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off");
+    static final PostgreSQLContainer<?> POSTGRES = SharedPostgres.rollback();
 
     private static final String LINK_PREFIX = "https://porrapp.app/restablecer-contrasena#token=";
 
