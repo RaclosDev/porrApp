@@ -127,7 +127,9 @@ public class SecurityConfig {
                             "connect-src 'self' https://accounts.google.com https://site.api.espn.com https://a.espncdn.com"
                             + " https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com"
                             + " https://appleid.apple.com; " +
-                            "frame-src 'self' https://accounts.google.com https://appleid.apple.com; " +
+                            // Reproductor de música del modo TV del póker (YouTube y Spotify incrustados).
+                            "frame-src 'self' https://accounts.google.com https://appleid.apple.com"
+                            + " https://www.youtube-nocookie.com https://open.spotify.com; " +
                             "frame-ancestors 'none';")
                 )
                 .permissionsPolicyHeader(perm -> perm

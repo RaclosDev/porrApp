@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
 import { chips, euros, timeLabel } from './pokerFormat';
+import PokerTvMusic from './PokerTvMusic';
 
 interface Props {
   clock: BlindClock;
@@ -83,6 +84,7 @@ export default function PokerTv({
           </li>
         ))}
       </ul>
+      <PokerTvMusic />
     </div>
   );
 }
