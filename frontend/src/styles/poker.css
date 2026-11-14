@@ -1710,3 +1710,77 @@
   color: #f0c94c;
   font-size: 0.85rem;
 }
+
+.poker-tv-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.poker-tv-video iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.poker-tv-queue {
+  width: min(32rem, calc(100% - 2rem));
+}
+.poker-tv-now {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.poker-tv-now small {
+  opacity: 0.75;
+}
+.poker-tv-queue ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.poker-music-search {
+  display: flex;
+  gap: 0.5rem;
+}
+.poker-music-search label {
+  flex: 1;
+}
+.poker-music-search input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgb(0 0 0 / 0.25);
+  border-radius: 8px;
+  font: inherit;
+}
+.poker-music-results,
+.poker-music-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.poker-music-results li,
+.poker-music-queue li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.poker-music-results img {
+  border-radius: 6px;
+  flex: none;
+}
+.poker-music-results li > span,
+.poker-music-queue li > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.poker-music-results small,
+.poker-music-queue small {
+  opacity: 0.7;
+}

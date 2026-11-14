@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
 import { chips, euros, timeLabel } from './pokerFormat';
 import PokerTvMusic from './PokerTvMusic';
+import PokerTvQueue from './PokerTvQueue';
 
 interface Props {
   clock: BlindClock;
@@ -10,6 +11,8 @@ interface Props {
   playersTotal: number;
   potCents: number;
   buyTimers: { key: string; label: string; ms: number }[];
+  /** Con la liga suena la cola de canciones pedidas; sin ella, solo el enlace manual. */
+  leagueId?: string | number;
   onClose: () => void;
 }
 
@@ -25,6 +28,7 @@ export default function PokerTv({
   playersTotal,
   potCents,
   buyTimers,
+  leagueId,
   onClose,
 }: Props) {
   const closeRef = useRef(onClose);
@@ -84,7 +88,7 @@ export default function PokerTv({
           </li>
         ))}
       </ul>
-      <PokerTvMusic />
+      {leagueId === undefined ? <PokerTvMusic /> : <PokerTvQueue leagueId={leagueId} />}
     </div>
   );
 }

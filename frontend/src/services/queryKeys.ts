@@ -25,6 +25,7 @@ export const queryKeys = {
   trackers: () => key('trackers'),
   poker: (id: Id) => key('poker', asText(id)),
   pokerHistory: (id: Id) => key('poker', asText(id), 'history'),
+  pokerMusic: (id: Id) => key('poker', asText(id), 'music'),
   tracker: (id: Id) => key('trackers', asText(id)),
   myGroups: (isAuthenticated?: boolean) => key('myGroups', isAuthenticated),
   /** Cuelga de `myGroups`: invalidar las ligas también refresca el resumen. */

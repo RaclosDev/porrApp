@@ -118,7 +118,9 @@ public class SecurityConfig {
                             // Google Analytics: solo se carga si el visitante acepta la analítica.
                             + " https://www.googletagmanager.com"
                             // «Iniciar sesión con Apple»: su script solo se carga al pintar el botón.
-                            + " https://appleid.cdn-apple.com; " +
+                            + " https://appleid.cdn-apple.com"
+                            // API de reproductor de YouTube: avisa al modo TV del póker cuando acaba cada canción.
+                            + " https://www.youtube.com; " +
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                             "font-src 'self' https://fonts.gstatic.com; " +
                             // blob: para la vista previa local de una foto antes de subirla.

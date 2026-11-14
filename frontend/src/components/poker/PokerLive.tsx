@@ -19,10 +19,13 @@ import PokerPrizeShares, {
   type PrizeDraft,
 } from './PokerPrizeShares';
 import { chips, clockAt, euros, timeLabel } from './pokerFormat';
+import PokerMusicPanel from './PokerMusicPanel';
 import PokerTv from './PokerTv';
 import { usePokerAlerts } from './usePokerAlerts';
 
 interface Props {
+  /** Liga del torneo; con ella se activa la cola de música. */
+  leagueId?: string | number;
   session: PokerSession;
   owner: boolean;
   busy: boolean;
@@ -39,6 +42,7 @@ function blinds(level: BlindLevel) {
 }
 
 export default function PokerLive({
+  leagueId,
   session,
   owner,
   busy,
@@ -388,6 +392,7 @@ export default function PokerLive({
                   playersTotal={session.entries.length}
                   potCents={session.potCents}
                   buyTimers={buyTimers}
+                  leagueId={leagueId}
                   onClose={() => setTv(false)}
                 />
               )}
@@ -500,6 +505,8 @@ export default function PokerLive({
           </div>
         </dl>
       </section>
+
+      {leagueId !== undefined && <PokerMusicPanel leagueId={leagueId} />}
 
       {owner && finishing && !winner && (
         <form
