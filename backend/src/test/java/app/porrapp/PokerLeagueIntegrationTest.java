@@ -104,6 +104,33 @@ class PokerLeagueIntegrationTest {
     }
 
     @Test
+    void latecomersCanJoinAStartedTableButNobodyLeavesIt() throws Exception {
+        var organizer = user("Ana");
+        var member = user("Luis");
+        var league = decode(send("POST", "/api/poker", organizer,
+                new CreateLeague("Póker de los viernes", UUID.randomUUID())), 201);
+        String path = "/api/poker/" + league.id();
+        memberships.join(league.id(), member.getGoogleEmail());
+        var settings = new Settings(1000, 10000, null, null, List.of(100), List.of(new BlindLevel(15, 25, 50, 0)));
+        var current = decode(send("POST", path + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2026, 11, 20), settings)), 201).current();
+        String tournament = path + "/sessions/" + current.id();
+        decode(send("PUT", tournament + "/attendance", organizer, new Attendance(null, true)), 200);
+        var ready = decode(send("POST", tournament + "/guests", organizer, new Guest("Marta")), 201).current();
+        var playing = command(tournament, organizer, ready, Action.START, null);
+        assertThat(playing.potCents()).isEqualTo(2000);
+
+        var late = decode(send("PUT", tournament + "/attendance", member, new Attendance(null, true)), 200).current();
+        assertThat(late.entries()).hasSize(3);
+        assertThat(late.potCents()).isEqualTo(3000);
+        var withGuest = decode(send("POST", tournament + "/guests", organizer, new Guest("Paz")), 201).current();
+        assertThat(withGuest.entries()).hasSize(4);
+        assertThat(send("POST", tournament + "/guests", member, new Guest("Bea")).statusCode()).isEqualTo(403);
+        assertThat(send("PUT", tournament + "/attendance", member, new Attendance(null, false))
+                .statusCode()).isEqualTo(409);
+    }
+
+    @Test
     void membersAndGuestsCanPlayAgainWithOneHistoryAndCorrectPayouts() throws Exception {
         var organizer = user("Ana");
         var member = user("Luis");
@@ -155,18 +182,20 @@ class PokerLeagueIntegrationTest {
         assertThat(paused.clock().endsAt()).isNull();
         assertThat(send("POST", tournament + "/commands", organizer, new Command(Action.NEXT_LEVEL, playing.revision(), null))
                 .statusCode()).isEqualTo(409);
-        var rebought = command(tournament, organizer, paused, Action.REBUY, memberId);
+        // Cualquier jugador apunta recompras, add-ons y eliminaciones; el reloj sigue siendo del organizador.
+        var rebought = command(tournament, member, paused, Action.REBUY, memberId);
         assertThat(rebought.potCents()).isEqualTo(3503);
-        var corrected = command(tournament, organizer, rebought, Action.UNDO_REBUY, memberId);
+        var corrected = command(tournament, member, rebought, Action.UNDO_REBUY, memberId);
         assertThat(corrected.potCents()).isEqualTo(3003);
         rebought = command(tournament, organizer, corrected, Action.REBUY, memberId);
         var breakLevel = command(tournament, organizer, rebought, Action.NEXT_LEVEL, null);
         assertThat(breakLevel.clock().level()).isEqualTo(1);
         assertThat(breakLevel.clock().endsAt()).isNull();
-        assertThat(send("POST", tournament + "/commands", organizer, new Command(Action.REBUY, breakLevel.revision(), guestId))
-                .statusCode()).isEqualTo(409);
+        // El descanso que sigue al corte de recompras aún deja recomprar.
+        var boughtOnBreak = command(tournament, organizer, breakLevel, Action.REBUY, guestId);
+        breakLevel = command(tournament, organizer, boughtOnBreak, Action.UNDO_REBUY, guestId);
         var withAddOn = command(tournament, organizer, breakLevel, Action.ADD_ON, guestId);
-        var eliminated = command(tournament, organizer, withAddOn, Action.ELIMINATE, memberId);
+        var eliminated = command(tournament, member, withAddOn, Action.ELIMINATE, memberId);
         var restored = command(tournament, organizer, eliminated, Action.UNDO_ELIMINATION, null);
         assertThat(restored.eliminations()).isEmpty();
         eliminated = command(tournament, organizer, restored, Action.ELIMINATE, guestId);
@@ -192,6 +221,30 @@ class PokerLeagueIntegrationTest {
         decode(send("PUT", path + "/sessions/" + next.current().id() + "/attendance", member,
                 new Attendance(null, true)), 200);
         assertThat(service.history(member.getGoogleEmail(), league.id())).containsExactly(finished);
+
+        // Solo la administración corrige o borra el histórico; un torneo abierto no se toca desde ahí.
+        String closedPath = path + "/history/" + finished.id();
+        var edit = new EditResults(saturday.minusDays(1), finished.revision(), List.of(
+                new ResultEdit(memberId, 0, 0), new ResultEdit(guestId, 0, 1),
+                new ResultEdit(league.myPlayerId(), 0, 0)));
+        assertThat(send("PUT", closedPath, member, edit).statusCode()).isEqualTo(403);
+        assertThat(send("DELETE", closedPath, member, null).statusCode()).isEqualTo(403);
+        assertThat(send("DELETE", path + "/history/" + next.current().id(), organizer, null).statusCode())
+                .isEqualTo(409);
+        assertThat(send("PUT", closedPath, organizer, new EditResults(saturday, finished.revision(),
+                List.of(new ResultEdit(memberId, 0, 0)))).statusCode()).isEqualTo(400);
+        var edited = history(send("PUT", closedPath, organizer, edit)).getFirst();
+        assertThat(edited.date()).isEqualTo(saturday.minusDays(1));
+        assertThat(edited.potCents()).isEqualTo(3253);
+        assertThat(edited.results()).extracting(Result::playerId).containsExactly(memberId, guestId, league.myPlayerId());
+        assertThat(edited.results()).extracting(Result::prizeCents).containsExactly(2115L, 1138L, 0L);
+        assertThat(send("PUT", closedPath, organizer, edit).statusCode()).isEqualTo(409);
+        assertThat(history(send("DELETE", closedPath, organizer, null))).isEmpty();
+    }
+
+    private List<Session> history(HttpResponse<String> response) throws Exception {
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        return List.of(json.readValue(response.body(), Session[].class));
     }
 
     private Session command(String tournament, UserAccount owner, Session current, Action action, Long player) throws Exception {

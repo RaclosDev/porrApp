@@ -1,5 +1,6 @@
 package app.porrapp.service.sync;
 
+import app.porrapp.util.AfterCommit;
 import app.porrapp.model.Competition;
 import app.porrapp.model.Match;
 import app.porrapp.repository.CompetitionRepository;
@@ -15,8 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -254,15 +253,6 @@ public class CompetitionSeasonService {
             var cache = cacheManager.getCache(name);
             if (cache != null) cache.clear();
         });
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            evict.run();
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                evict.run();
-            }
-        });
+        AfterCommit.run(evict);
     }
 }

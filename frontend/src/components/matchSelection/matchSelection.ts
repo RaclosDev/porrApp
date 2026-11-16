@@ -5,6 +5,7 @@ import type {
   SelectableMatch,
   SelectableTeam,
 } from '../../types/api';
+import { foldText } from '../../utils/text';
 
 /** Cómo se eligen los partidos: todos, los de unos equipos o uno a uno. */
 export type PickMode = 'ALL' | 'TEAMS' | 'PICK';
@@ -309,16 +310,14 @@ export function groupByRound(matches: SelectableMatch[]): RoundGroup[] {
   }));
 }
 
-const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-
 /** Partidos en los que juega un equipo cuyo nombre contiene el texto. */
 export function matchesQuery(match: SelectableMatch, query: string): boolean {
-  const wanted = normalize(query.trim());
+  const wanted = foldText(query.trim());
   if (!wanted) return true;
-  return normalize(match.home).includes(wanted) || normalize(match.away).includes(wanted);
+  return foldText(match.home).includes(wanted) || foldText(match.away).includes(wanted);
 }
 
 export function teamsQuery(team: SelectableTeam, query: string): boolean {
-  const wanted = normalize(query.trim());
-  return !wanted || normalize(team.name).includes(wanted);
+  const wanted = foldText(query.trim());
+  return !wanted || foldText(team.name).includes(wanted);
 }
