@@ -160,6 +160,8 @@ jobs:
           # Reparto por tiempos medidos (.github/ci/backend-test-weights.txt).
           tests=$(bash ../.github/scripts/backend-shard.sh ${{ matrix.shard }} 3)
           echo "Clases: $tests"
+          # La descarga de Maven falla a veces en el runner: se reintenta antes de usarlo.
+          for intento in 1 2 3; do ./mvnw -B -v > /dev/null && break; sleep 15; done
           ./mvnw -B test-compile surefire:test -Dtest="$tests" -Dsurefire.failIfNoSpecifiedTests=false
       - name: Guardar datos de cobertura
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -214,6 +216,8 @@ jobs:
           # Los .exec son flujos de sesiones: concatenados equivalen a una sola ejecución.
           mkdir -p target
           cat "$RUNNER_TEMP"/jacoco/*/jacoco.exec > target/jacoco.exec
+          # La descarga de Maven falla a veces en el runner: se reintenta antes de usarlo.
+          for intento in 1 2 3; do ./mvnw -B -v > /dev/null && break; sleep 15; done
           ./mvnw -B jacoco:report jacoco:check@coverage-floor
       - name: Coverage summary
         if: always()
