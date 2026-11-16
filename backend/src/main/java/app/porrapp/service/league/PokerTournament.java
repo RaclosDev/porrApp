@@ -112,6 +112,44 @@ final class PokerTournament {
                 amounts ? List.copyOf(command.prizeAmounts()) : null));
     }
 
+    /**
+     * Corrige un torneo cerrado. Si el orden no cambia se conservan las fichas finales (y los empates);
+     * si cambia, el orden enviado pasa a ser la clasificación y las fichas finales dejan de contar.
+     */
+    static void editResults(PokerSession session, EditResults request) {
+        List<Entry> entries = session.getEntries();
+        List<Long> ids = request.standings().stream().map(ResultEdit::playerId).toList();
+        if (ids.size() != entries.size() || ids.stream().distinct().count() != ids.size()
+                || !entries.stream().map(Entry::playerId).toList().containsAll(ids)) {
+            throw BusinessException.badRequest("La clasificación tiene que incluir a todos los jugadores del torneo");
+        }
+        Settings settings = session.getSettings();
+        for (ResultEdit edit : request.standings()) {
+            if (!allowed(settings.rebuy(), edit.rebuys()) || !allowed(settings.addOn(), edit.addOns())) {
+                throw BusinessException.badRequest("Hay más recompras o add-ons de los que permite el torneo");
+            }
+        }
+        List<Long> current = view(session, 0).results().stream().map(Result::playerId).toList();
+        boolean sameOrder = current.equals(ids);
+        session.setEntries(request.standings().stream().map(edit -> {
+            Entry entry = entries.stream().filter(candidate -> candidate.playerId() == edit.playerId())
+                    .findFirst().orElseThrow();
+            return new Entry(entry.playerId(), entry.name(), edit.rebuys(), edit.addOns(),
+                    sameOrder ? entry.finalChips() : null);
+        }).toList());
+        if (!sameOrder) {
+            var eliminations = new ArrayList<>(ids.subList(1, ids.size()));
+            java.util.Collections.reverse(eliminations);
+            session.setEliminations(List.copyOf(eliminations));
+        }
+        session.setScheduledOn(request.date());
+        checkAmountsFit(session.getSettings().prizeAmounts(), pot(session));
+    }
+
+    private static boolean allowed(Extra extra, int count) {
+        return count == 0 || extra != null && (extra.limit() == null || count <= extra.limit());
+    }
+
     private static void checkAmountsFit(List<Long> amounts, long pot) {
         if (amounts != null && amounts.stream().mapToLong(Long::longValue).sum() > pot) {
             throw BusinessException.badRequest("Las cantidades del reparto superan el bote. Ajusta el reparto");
