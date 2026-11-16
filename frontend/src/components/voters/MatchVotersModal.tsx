@@ -3,6 +3,7 @@ import SheetDialog from '../SheetDialog';
 import { PeopleList } from '../PeopleListDialog';
 import Flag from '../Flag';
 import type { MatchVoter, MatchVoters } from '../../types/api';
+import { foldText } from '../../utils/text';
 
 interface MatchVotersModalProps {
   voters: MatchVoters | null;
@@ -74,7 +75,7 @@ type Filter = 'all' | Side;
 const SEARCH_FROM = 8;
 
 /** Sin mayúsculas ni tildes, para buscar «jose» y encontrar a «José». */
-const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const normalize = (text: string) => foldText(text).trim();
 
 /**
  * Quién ha votado cada signo de un partido cerrado, agrupado por opción, con el porcentaje de cada

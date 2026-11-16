@@ -1,5 +1,6 @@
 package app.porrapp.service.league;
 
+import app.porrapp.util.AfterCommit;
 import app.porrapp.dto.ScoreGameNameRequest;
 import app.porrapp.dto.ScoreGameRequest;
 import app.porrapp.dto.ScoreTrackerDTO;
@@ -44,8 +45,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,7 +52,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -88,8 +86,6 @@ public class ScoreTrackerService {
     static final int MAX_NAME_LENGTH = 40;
     static final int MAX_ROUNDS = 2000;
     static final int MAX_POINTS = 1_000_000;
-    /** Un día de juego sin actividad durante este tiempo se da por terminado. */
-    static final Duration STALE_DAY = Duration.ofHours(12);
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int CODE_LENGTH = 8;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -545,20 +541,6 @@ public class ScoreTrackerService {
         return days.findFirstByLeagueIdAndClosedAtIsNullOrderByIdDesc(leagueId).orElse(null);
     }
 
-    static Instant lastActivity(ScoreDay day, List<ScoreTrackerSession> leagueSessions,
-                                List<ScoreTrackerRound> leagueRounds) {
-        Set<Long> own = leagueSessions.stream().filter(session -> session.getDayId().equals(day.getId()))
-                .map(ScoreTrackerSession::getId).collect(Collectors.toSet());
-        Instant last = day.getStartedAt();
-        for (ScoreTrackerSession session : leagueSessions) {
-            if (own.contains(session.getId()) && session.getStartedAt().isAfter(last)) last = session.getStartedAt();
-        }
-        for (ScoreTrackerRound round : leagueRounds) {
-            if (own.contains(round.getSessionId()) && round.getCreatedAt().isAfter(last)) last = round.getCreatedAt();
-        }
-        return last;
-    }
-
     /**
      * Cierra el día: termina sus partidas abiertas y quita las que no tienen ninguna ronda. Un día que se
      * queda sin partidas no se guarda en el histórico.
@@ -915,16 +897,7 @@ public class ScoreTrackerService {
 
     /** El aviso sale cuando los datos ya están guardados: si no, el cliente recargaría lo de antes. */
     private void notifyAfterCommit(Long leagueId, Set<Long> audience) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            webSocketService.notifyTrackerChanged(leagueId, audience);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                webSocketService.notifyTrackerChanged(leagueId, audience);
-            }
-        });
+        AfterCommit.run(() -> webSocketService.notifyTrackerChanged(leagueId, audience));
     }
 
     public ScoreTrackerDTO view(League league, Long userId) {
