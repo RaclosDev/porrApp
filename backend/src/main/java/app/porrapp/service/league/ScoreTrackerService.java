@@ -873,7 +873,7 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO claimPlayer(String email, Long leagueId, Long playerId) {
         Long userId = userId(email);
         League league = visible(userId, leagueId);
-        ScoreTrackerPlayer target = players.findById(playerId)
+        ScoreTrackerPlayer target = players.findWithLockById(playerId)
                 .filter(found -> found.getLeagueId().equals(leagueId))
                 .orElseThrow(() -> BusinessException.badRequest("Jugador no válido"));
         if (target.getUserId() != null && !target.getUserId().equals(userId)) {

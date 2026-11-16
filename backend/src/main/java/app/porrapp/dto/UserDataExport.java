@@ -16,7 +16,12 @@ public record UserDataExport(
         List<PushDevice> pushDevices,
         List<SentNotification> pushNotifications,
         List<PasskeyExport> passkeys,
-        List<BoardGamePlayer> boardGames) {
+        List<BoardGamePlayer> boardGames,
+        List<PokerSong> pokerSongs) {
+
+    /** Canción que la cuenta tiene pedida en la cola de música de una liga de póker. */
+    public record PokerSong(Long leagueId, String title, String channel, String videoId, Instant requestedAt) {
+    }
 
     /** El jugador que la cuenta tiene en cada liga de juegos de mesa, con lo que ha jugado y sumado. */
     public record BoardGamePlayer(Long leagueId, String name, int roundsPlayed, int totalPoints) {
@@ -37,7 +42,7 @@ public record UserDataExport(
 
     public record PredictionExport(Long id, Long leagueId, String leagueName, String name, String paymentStatus,
                                    BigDecimal paymentAmount, Integer totalPoints, Instant createdAt,
-                                   PredictionDataDTO bracket, List<MatchPick> matchPicks) {
+                                   PredictionDataDTO bracket, String topScorer, List<MatchPick> matchPicks) {
     }
 
     public record MatchPick(Long matchId, Integer homeScore, Integer awayScore, String sign, Integer points,

@@ -6,15 +6,18 @@ import app.porrapp.model.MatchPrediction;
 import app.porrapp.model.Prediction;
 import app.porrapp.model.ScoreTrackerPlayer;
 import app.porrapp.model.ScoreTrackerScore;
+import app.porrapp.model.ScorerPick;
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.MatchPredictionRepository;
 import app.porrapp.repository.MembershipRepository;
 import app.porrapp.repository.PasskeyRepository;
+import app.porrapp.repository.PokerMusicRepository;
 import app.porrapp.repository.PredictionRepository;
 import app.porrapp.repository.PushNotificationLogRepository;
 import app.porrapp.repository.PushSubscriptionRepository;
 import app.porrapp.repository.ScoreTrackerPlayerRepository;
 import app.porrapp.repository.ScoreTrackerScoreRepository;
+import app.porrapp.repository.ScorerPickRepository;
 import app.porrapp.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,6 +43,8 @@ public class UserDataExportService {
     private final PasskeyRepository passkeyRepository;
     private final ScoreTrackerPlayerRepository scoreTrackerPlayerRepository;
     private final ScoreTrackerScoreRepository scoreTrackerScoreRepository;
+    private final ScorerPickRepository scorerPickRepository;
+    private final PokerMusicRepository pokerMusicRepository;
 
     @Transactional(readOnly = true)
     public UserDataExport export(String email) {
@@ -61,12 +66,15 @@ public class UserDataExportService {
                 : matchPredictionRepository.findWithMatchByPredictionIdIn(
                                 predictions.stream().map(Prediction::getId).toList()).stream()
                         .collect(Collectors.groupingBy(mp -> mp.getPrediction().getId()));
+        Map<Long, String> scorerByPrediction = scorerPickRepository.findAllById(
+                        predictions.stream().map(Prediction::getId).toList()).stream()
+                .collect(Collectors.toMap(ScorerPick::getPredictionId, ScorerPick::getWrittenName));
 
         var predictionExports = predictions.stream()
                 .sorted(Comparator.comparing(Prediction::getId))
                 .map(p -> new UserDataExport.PredictionExport(p.getId(), p.getEdition().getLeague().getId(),
                         p.getEdition().getLeague().getName(), p.getName(), p.getPaymentStatus(), p.getPaymentAmount(),
-                        p.getTotalPoints(), p.getCreatedAt(), p.getBracketData(),
+                        p.getTotalPoints(), p.getCreatedAt(), p.getBracketData(), scorerByPrediction.get(p.getId()),
                         picksByPrediction.getOrDefault(p.getId(), List.of()).stream()
                                 .sorted(Comparator.comparing(mp -> mp.getMatch().getId()))
                                 .map(mp -> new UserDataExport.MatchPick(mp.getMatch().getId(), mp.getHomeScore(),
@@ -100,7 +108,12 @@ public class UserDataExportService {
                 })
                 .toList();
 
+        var pokerSongs = pokerMusicRepository.findByAddedByOrderByIdAsc(user.getId()).stream()
+                .map(m -> new UserDataExport.PokerSong(m.getLeagueId(), m.getTitle(), m.getChannel(), m.getVideoId(),
+                        Instant.ofEpochMilli(m.getCreatedAt())))
+                .toList();
+
         return new UserDataExport(Instant.now(), profile, leagues, predictionExports, devices, notifications, passkeys,
-                boardGames);
+                boardGames, pokerSongs);
     }
 }
