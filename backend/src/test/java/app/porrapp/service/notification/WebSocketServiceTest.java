@@ -238,6 +238,29 @@ class WebSocketServiceTest {
     }
 
     @Test
+    @DisplayName("Un cambio de perfil con sus ligas solo borra y avisa esas ligas y la general")
+    void profileChangeOnlyTouchesTheUsersLeagues() throws Exception {
+        var caches = new ConcurrentMapCacheManager();
+        caches.getCache("leaderboard").put(0L, "general");
+        caches.getCache("leaderboard").put(10L, "ranking 10");
+        caches.getCache("leaderboard").put(20L, "ranking 20");
+        service = newService(caches, id -> WebSocketService.Audience.EVERYONE);
+        WebSocketSession session = openSession("s1");
+        service.addSession(session);
+
+        service.notifyProfileChanged(java.util.List.of(10L));
+
+        assertEquals(null, caches.getCache("leaderboard").get(0L));
+        assertEquals(null, caches.getCache("leaderboard").get(10L));
+        assertEquals("ranking 20", caches.getCache("leaderboard").get(20L).get());
+        var sent = org.mockito.ArgumentCaptor.forClass(org.springframework.web.socket.TextMessage.class);
+        org.mockito.Mockito.verify(session).sendMessage(sent.capture());
+        String payload = sent.getValue().getPayload();
+        org.junit.jupiter.api.Assertions.assertTrue(payload.contains("\"LEAGUE_UPDATED\"")
+                && payload.contains("\"leagueId\":10"), payload);
+    }
+
+    @Test
     @DisplayName("El aviso de una liga privada solo llega a sus miembros identificados")
     void privateLeagueNoticeOnlyReachesMembers() throws Exception {
         service = newService(new ConcurrentMapCacheManager(),

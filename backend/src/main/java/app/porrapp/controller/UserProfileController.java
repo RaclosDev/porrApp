@@ -3,6 +3,7 @@ package app.porrapp.controller;
 import app.porrapp.dto.ProfileResponse;
 import app.porrapp.dto.ProfileUpdateDTO;
 import app.porrapp.model.UserAccount;
+import app.porrapp.repository.MembershipRepository;
 import app.porrapp.service.account.ProfileImageService;
 import app.porrapp.service.notification.WebSocketService;
 import jakarta.validation.Valid;
@@ -28,11 +29,17 @@ public class UserProfileController {
 
     private final ProfileImageService profileImageService;
     private final WebSocketService webSocketService;
+    private final MembershipRepository membershipRepository;
+
+    private void notifyLeaguesOf(UserAccount user) {
+        webSocketService.notifyProfileChanged(membershipRepository.findByUserId(user.getId()).stream()
+                .map(m -> m.getId().getLeagueId()).toList());
+    }
 
     @PutMapping("/me/profile")
     public ProfileResponse updateProfile(@Valid @RequestBody ProfileUpdateDTO payload, Principal principal) {
         UserAccount user = profileImageService.updateParticipantName(principal.getName(), payload.getParticipantName());
-        webSocketService.notifyProfileChanged();
+        notifyLeaguesOf(user);
         return ProfileResponse.of(user);
     }
 
@@ -40,14 +47,14 @@ public class UserProfileController {
     public ProfileResponse uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal)
             throws IOException {
         UserAccount user = profileImageService.saveAvatar(principal.getName(), file.getBytes());
-        webSocketService.notifyProfileChanged();
+        notifyLeaguesOf(user);
         return ProfileResponse.of(user);
     }
 
     @DeleteMapping("/me/avatar")
     public ProfileResponse deleteAvatar(Principal principal) {
         UserAccount user = profileImageService.deleteAvatar(principal.getName());
-        webSocketService.notifyProfileChanged();
+        notifyLeaguesOf(user);
         return ProfileResponse.of(user);
     }
 

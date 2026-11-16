@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
  * caen con la cuenta por {@code ON DELETE CASCADE}. Quien administra una liga con más miembros
  * debe cederla o borrarla antes; las ligas en las que está solo se borran con la cuenta.
  * Las cuentas inactivas se borran igual, pero sus ligas compartidas pasan al miembro más antiguo.
+ * Decisión: en los marcadores de juegos de mesa el jugador queda con su nombre y sin vínculo
+ * ({@code user_id ON DELETE SET NULL}) para no romper el histórico del grupo; la política de privacidad lo explica.
  */
 @Service
 @RequiredArgsConstructor

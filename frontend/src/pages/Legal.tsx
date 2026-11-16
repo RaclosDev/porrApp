@@ -151,7 +151,10 @@ function PrivacyContent() {
         las ligas que administres con más miembros pasan al miembro más antiguo. Las sesiones
         caducadas se borran a diario y la suscripción de avisos de un navegador se borra en cuanto
         el navegador la da de baja. Si borras tu cuenta, se eliminan en ese momento tu perfil, tu
-        foto, tus predicciones, tus ligas sin más miembros, tus avisos y tus sesiones.
+        foto, tus predicciones, tus ligas sin más miembros, tus avisos y tus sesiones. En los
+        marcadores de juegos de mesa de otras personas se conserva el nombre de jugador con tus
+        partidas, para no descuadrar su histórico, pero deja de estar vinculado a ti; si quieres
+        que lo cambien, pídeselo a quien administra ese marcador.
       </p>
 
       <h2>Tus derechos</h2>
