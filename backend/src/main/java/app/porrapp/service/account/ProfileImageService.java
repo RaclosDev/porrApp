@@ -45,6 +45,12 @@ public class ProfileImageService {
     private final UserAccountRepository userAccountRepository;
     private final UserAvatarRepository userAvatarRepository;
     private final app.porrapp.service.league.ScoreboardRoster scoreboardRoster;
+    private final app.porrapp.repository.MembershipRepository membershipRepository;
+
+    /** Las ligas del usuario, para avisar solo a ellas cuando cambia su nombre o su foto. */
+    public java.util.List<Long> leagueIdsOf(Long userId) {
+        return membershipRepository.findByUserId(userId).stream().map(m -> m.getId().getLeagueId()).toList();
+    }
 
     /** Imagen lista para servir. */
     public record StoredImage(byte[] data, String contentType, Instant updatedAt) {

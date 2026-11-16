@@ -188,7 +188,7 @@ class ScoreTrackerServiceTest {
         ScoreTrackerPlayer ana = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Ana").build();
         ScoreTrackerPlayer berto = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Berto").build();
         ana.setUserId(2L);
-        when(players.findById(101L)).thenReturn(Optional.of(berto));
+        when(players.findWithLockById(101L)).thenReturn(Optional.of(berto));
         when(players.findByLeagueIdAndUserId(10L, 2L)).thenReturn(Optional.of(ana));
 
         ScoreTrackerDTO view = service.claimPlayer("miembro@x.com", 10L, 101L);
@@ -202,7 +202,7 @@ class ScoreTrackerServiceTest {
     @Test
     void aPlayerAlreadyClaimedBySomeoneElseCannotBeTaken() {
         ScoreTrackerPlayer ana = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Ana").userId(1L).build();
-        when(players.findById(100L)).thenReturn(Optional.of(ana));
+        when(players.findWithLockById(100L)).thenReturn(Optional.of(ana));
 
         assertThatThrownBy(() -> service.claimPlayer("miembro@x.com", 10L, 100L)).isInstanceOf(BusinessException.class);
         assertThat(ana.getUserId()).isEqualTo(1L);
@@ -211,7 +211,7 @@ class ScoreTrackerServiceTest {
     @Test
     void strangersAndPlayersOfAnotherLeagueCannotBeClaimed() {
         ScoreTrackerPlayer other = ScoreTrackerPlayer.builder().id(200L).leagueId(11L).name("Zoe").build();
-        when(players.findById(200L)).thenReturn(Optional.of(other));
+        when(players.findWithLockById(200L)).thenReturn(Optional.of(other));
 
         assertThatThrownBy(() -> service.claimPlayer("ajeno@x.com", 10L, 100L)).isInstanceOf(BusinessException.class)
                 .hasMessage("Marcador no encontrado");
@@ -874,7 +874,7 @@ class ScoreTrackerServiceTest {
     void claimingDropsThePlayerCreatedOnJoinIfItNeverPlayed() {
         ScoreTrackerPlayer joined = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Berto").userId(2L).build();
         ScoreTrackerPlayer guest = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Bertito").build();
-        when(players.findById(101L)).thenReturn(Optional.of(guest));
+        when(players.findWithLockById(101L)).thenReturn(Optional.of(guest));
         when(players.findByLeagueIdAndUserId(10L, 2L)).thenReturn(Optional.of(joined));
 
         service.claimPlayer("miembro@x.com", 10L, 101L);
@@ -887,7 +887,7 @@ class ScoreTrackerServiceTest {
     void claimingKeepsThePreviousPlayerIfItHasPlayed() {
         ScoreTrackerPlayer joined = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Berto").userId(2L).build();
         ScoreTrackerPlayer guest = ScoreTrackerPlayer.builder().id(101L).leagueId(10L).name("Bertito").build();
-        when(players.findById(101L)).thenReturn(Optional.of(guest));
+        when(players.findWithLockById(101L)).thenReturn(Optional.of(guest));
         when(players.findByLeagueIdAndUserId(10L, 2L)).thenReturn(Optional.of(joined));
         when(sessionPlayers.findByPlayerId(100L)).thenReturn(List.of(new ScoreSessionPlayer(70L, 100L)));
 

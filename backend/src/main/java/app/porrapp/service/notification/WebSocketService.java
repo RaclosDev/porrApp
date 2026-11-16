@@ -247,7 +247,17 @@ public class WebSocketService {
         noticeExecutor.shutdownNow();
     }
 
-    /** El nombre o la foto de un usuario salen en todas sus ligas. */
+    /**
+     * Ha cambiado el nombre o la foto de un usuario: solo se refrescan sus ligas y la clasificación
+     * general, no las de todo el mundo.
+     */
+    public void notifyProfileChanged(Collection<Long> leagueIds) {
+        clearCaches(List.of("userGroups"));
+        evictKey("leaderboard", 0L);
+        leagueIds.forEach(this::notifyPredictionsChanged);
+    }
+
+    /** Para cuando ya no se sabe en qué ligas estaba (cuenta borrada): se refresca todo. */
     public void notifyProfileChanged() {
         clearCaches(List.of("leaderboard", "groupById", "userGroups"));
         broadcastUpdate("DATA_UPDATED");
