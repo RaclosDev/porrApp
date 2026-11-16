@@ -4,15 +4,7 @@ import app.porrapp.util.AfterCommit;
 import app.porrapp.dto.ScoreGameNameRequest;
 import app.porrapp.dto.ScoreGameRequest;
 import app.porrapp.dto.ScoreTrackerDTO;
-import app.porrapp.dto.ScoreTrackerDTO.Day;
-import app.porrapp.dto.ScoreTrackerDTO.Game;
-import app.porrapp.dto.ScoreTrackerDTO.GameStandings;
-import app.porrapp.dto.ScoreTrackerDTO.Player;
-import app.porrapp.dto.ScoreTrackerDTO.Round;
-import app.porrapp.dto.ScoreTrackerDTO.Session;
-import app.porrapp.dto.ScoreTrackerDTO.Standing;
 import app.porrapp.dto.ScoreTrackerRequest;
-import app.porrapp.dto.ScoreTrackerRoundRequest;
 import app.porrapp.dto.ScoreTrackerSummaryDTO;
 import app.porrapp.exception.BusinessException;
 import app.porrapp.model.League;
@@ -23,8 +15,6 @@ import app.porrapp.model.ScoreGame;
 import app.porrapp.model.ScoreSessionPlayer;
 import app.porrapp.model.ScoreTrackerPlayer;
 import app.porrapp.model.ScoreTrackerRound;
-import app.porrapp.model.ScoreTrackerRoundChange;
-import app.porrapp.model.ScoreTrackerScore;
 import app.porrapp.model.ScoreTrackerSession;
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.LeagueRepository;
@@ -34,7 +24,6 @@ import app.porrapp.repository.ScoreDayRepository;
 import app.porrapp.repository.ScoreGameRepository;
 import app.porrapp.repository.ScoreSessionPlayerRepository;
 import app.porrapp.repository.ScoreTrackerPlayerRepository;
-import app.porrapp.repository.ScoreTrackerRoundChangeRepository;
 import app.porrapp.repository.ScoreTrackerRoundRepository;
 import app.porrapp.repository.ScoreTrackerScoreRepository;
 import app.porrapp.repository.ScoreTrackerSessionRepository;
@@ -46,28 +35,17 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -89,7 +67,6 @@ public class ScoreTrackerService {
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int CODE_LENGTH = 8;
     private static final SecureRandom RANDOM = new SecureRandom();
-    private static final ObjectMapper JSON = new ObjectMapper();
 
     private final LeagueRepository leagues;
     private final MembershipRepository memberships;
@@ -100,7 +77,6 @@ public class ScoreTrackerService {
     private final ScoreTrackerPlayerRepository players;
     private final ScoreTrackerSessionRepository sessions;
     private final ScoreTrackerRoundRepository rounds;
-    private final ScoreTrackerRoundChangeRepository roundChanges;
     private final ScoreTrackerScoreRepository scores;
     private final ScoreDayRepository days;
     private final ScoreDayPlayerRepository dayPlayers;
@@ -108,6 +84,8 @@ public class ScoreTrackerService {
     private final UserAccountRepository users;
     private final WebSocketService webSocketService;
     private final ApplicationEventPublisher events;
+    private final ScoreTrackerLookup lookup;
+    private final ScoreTrackerViewBuilder viewBuilder;
 
     private UserAccount account(String email) {
         return users.findByGoogleEmail(email).orElseThrow(() -> BusinessException.forbidden("Usuario no encontrado"));
@@ -151,6 +129,13 @@ public class ScoreTrackerService {
 
     static boolean administers(League league, Long userId) {
         return league.isAdmin(userId);
+    }
+
+    /** Una partida terminada solo la corrige el administrador. */
+    static void requireEditable(League league, Long userId, ScoreTrackerSession session) {
+        if (!session.isOpen() && !administers(league, userId)) {
+            throw BusinessException.conflict("La partida está terminada: reábrela para corregirla");
+        }
     }
 
     public League owned(Long userId, Long leagueId) {
@@ -271,267 +256,12 @@ public class ScoreTrackerService {
         return changed(league, userId);
     }
 
-    /**
-     * Apunta una ronda en una partida abierta. Sin partida, va a la última; si ya está terminada se
-     * empieza otra del mismo juego (así sigue funcionando quien apunta sin elegir partida).
-     */
-    @Transactional
-    public ScoreTrackerDTO addRound(String email, Long leagueId, ScoreTrackerRoundRequest request) {
-        Long userId = userId(email);
-        League league = visible(userId, leagueId);
-        String fingerprint = requestFingerprint(request);
-        if (request.clientRequestId() != null) {
-            ScoreTrackerRound previous = rounds.findByLeagueIdAndClientRequestId(leagueId, request.clientRequestId())
-                    .orElse(null);
-            if (previous != null) {
-                if (!fingerprint.equals(previous.getRequestFingerprint())) {
-                    throw BusinessException.conflict("Esta ronda tiene un identificador ya usado para otros datos");
-                }
-                return view(league, userId);
-            }
-        }
-        if (rounds.countByLeagueId(leagueId) >= MAX_ROUNDS) {
-            throw BusinessException.badRequest("Esta liga ha llegado al máximo de rondas");
-        }
-        ScoreTrackerSession session;
-        if (request.sessionId() != null) {
-            session = sessionOf(leagueId, request.sessionId());
-            if (!session.isOpen()) {
-                throw BusinessException.conflict("La partida está terminada: reábrela para apuntar");
-            }
-            ScoreDay day = dayOf(leagueId, session.getDayId());
-            if (!day.isOpen()) throw BusinessException.conflict("El día de juego está terminado");
-        } else {
-            currentDay(leagueId);
-            ScoreTrackerSession last = sessions.findFirstByLeagueIdOrderByIdDesc(leagueId).orElse(null);
-            session = last != null && last.isOpen() ? last
-                    : startSession(leagueId, last != null ? last.getGameId() : firstGame(leagueId).getId(), null, null, userId);
-        }
-        Map<Long, Integer> points = roundPoints(leagueId, session, request);
-        ScoreGame sessionGame = gameOf(leagueId, session.getGameId());
-        if (sessionGame.isDirect() && rounds.findByLeagueIdOrderByIdAsc(leagueId).stream()
-                .anyMatch(existing -> existing.getSessionId().equals(session.getId()))) {
-            throw BusinessException.conflict("Esta partida ya tiene ganador");
-        }
-        String note = clean(request.note());
-        ScoreTrackerRound round = rounds.save(ScoreTrackerRound.builder().leagueId(leagueId)
-                .sessionId(session.getId()).note(note.isEmpty() ? null : note).createdByUserId(userId)
-                .clientRequestId(request.clientRequestId()).requestFingerprint(fingerprint).build());
-        points.forEach((playerId, value) -> scores.save(ScoreTrackerScore.builder().roundId(round.getId())
-                .playerId(playerId).points(value).build()));
-        recordRoundChange(leagueId, round.getId(), userId, "CREATED", null, roundState(round, points));
-        if (sessionGame.isDirect() || targetReached(session, sessionGame)) {
-            session.setEndedAt(Instant.now());
-            sessions.save(session);
-        }
-        return changed(league, userId);
-    }
-
-    private boolean targetReached(ScoreTrackerSession session, ScoreGame game) {
-        if (game.getTargetWins() == null) return false;
-        List<Long> roundIds = rounds.findBySessionIdOrderByIdAsc(session.getId()).stream()
-                .map(ScoreTrackerRound::getId).toList();
-        if (roundIds.isEmpty()) return false;
-        Map<Long, Map<Long, Integer>> pointsByRound = new LinkedHashMap<>();
-        Set<Long> scored = new HashSet<>();
-        for (ScoreTrackerScore score : scores.findByRoundIdIn(roundIds)) {
-            pointsByRound.computeIfAbsent(score.getRoundId(), key -> new LinkedHashMap<>())
-                    .put(score.getPlayerId(), score.getPoints());
-            scored.add(score.getPlayerId());
-        }
-        List<Player> participants = scored.stream().map(id -> new Player(id, "")).toList();
-        return ScoreTrackerStandings.rank(participants, !game.isWins() && game.isLowerWins(),
-                        new ArrayList<>(pointsByRound.values()), true).stream()
-                .anyMatch(row -> row.roundsWon() >= game.getTargetWins());
-    }
-
-    /** Corrige una ronda: sustituye sus puntos (o quién la ganó) y su nota. */
-    @Transactional
-    public ScoreTrackerDTO editRound(String email, Long leagueId, Long roundId, ScoreTrackerRoundRequest request) {
-        Long userId = userId(email);
-        League league = visible(userId, leagueId);
-        ScoreTrackerRound round = roundOf(leagueId, roundId);
-        ScoreTrackerSession session = sessionOf(leagueId, round.getSessionId());
-        requireEditable(league, userId, session);
-        requireRevision(round, request.expectedRevision());
-        Map<Long, Integer> points = roundPoints(leagueId, session, request);
-        List<ScoreTrackerScore> oldScores = scores.findByRoundIdIn(List.of(roundId));
-        Map<Long, Integer> beforePoints = oldScores.stream().collect(Collectors.toMap(
-                ScoreTrackerScore::getPlayerId, ScoreTrackerScore::getPoints));
-        String before = roundState(round, beforePoints);
-        Map<Long, Integer> afterPoints = new LinkedHashMap<>(points);
-        for (ScoreTrackerScore score : oldScores) {
-            Integer value = points.remove(score.getPlayerId());
-            if (value == null) {
-                scores.delete(score);
-            } else {
-                score.setPoints(value);
-                scores.save(score);
-            }
-        }
-        points.forEach((playerId, value) -> scores.save(ScoreTrackerScore.builder().roundId(roundId)
-                .playerId(playerId).points(value).build()));
-        String note = clean(request.note());
-        round.setNote(note.isEmpty() ? null : note);
-        Instant editedAt = Instant.now();
-        round.setUpdatedAt(editedAt.isAfter(round.getUpdatedAt())
-                ? editedAt : round.getUpdatedAt().plusNanos(1));
-        rounds.save(round);
-        rounds.flush();
-        recordRoundChange(leagueId, roundId, userId, "UPDATED", before, roundState(round, afterPoints));
-        if (session.isOpen() && targetReached(session, gameOf(leagueId, session.getGameId()))) {
-            session.setEndedAt(Instant.now());
-            sessions.save(session);
-        }
-        return changed(league, userId);
-    }
-
-    /** Cualquier miembro borra rondas de una partida abierta; en una terminada, solo el administrador. */
-    @Transactional
-    public ScoreTrackerDTO deleteRound(String email, Long leagueId, Long roundId, Integer expectedRevision) {
-        Long userId = userId(email);
-        League league = visible(userId, leagueId);
-        ScoreTrackerRound round = roundOf(leagueId, roundId);
-        requireEditable(league, userId, sessionOf(leagueId, round.getSessionId()));
-        requireRevision(round, expectedRevision);
-        Map<Long, Integer> beforePoints = scores.findByRoundIdIn(List.of(roundId)).stream()
-                .collect(Collectors.toMap(ScoreTrackerScore::getPlayerId, ScoreTrackerScore::getPoints));
-        recordRoundChange(leagueId, roundId, userId, "DELETED", roundState(round, beforePoints), null);
-        rounds.delete(round);
-        return changed(league, userId);
-    }
-
-    private static String roundState(ScoreTrackerRound round, Map<Long, Integer> points) {
-        Map<String, Object> state = new LinkedHashMap<>();
-        state.put("sessionId", round.getSessionId());
-        state.put("note", round.getNote());
-        state.put("scores", new TreeMap<>(points));
-        try {
-            return JSON.writeValueAsString(state);
-        } catch (JsonProcessingException failure) {
-            throw new IllegalStateException(failure);
-        }
-    }
-
-    private void recordRoundChange(Long leagueId, Long roundId, Long actorId, String action,
-                                   String before, String after) {
-        roundChanges.save(ScoreTrackerRoundChange.builder().leagueId(leagueId).roundId(roundId)
-                .actorUserId(actorId).action(action).beforeState(before).afterState(after).build());
-    }
-
-    @Transactional(readOnly = true)
-    public List<ScoreTrackerRoundChange> roundHistory(String email, Long leagueId, Long roundId) {
-        visible(userId(email), leagueId);
-        return roundChanges.findByLeagueIdAndRoundIdOrderByIdAsc(leagueId, roundId);
-    }
-
-    private static void requireRevision(ScoreTrackerRound round, Integer expected) {
-        if (expected == null || expected != round.getRevision()) {
-            throw BusinessException.conflict("La ronda ha cambiado. Actualiza la partida antes de corregirla");
-        }
-    }
-
-    private static String requestFingerprint(ScoreTrackerRoundRequest request) {
-        String data = Objects.toString(request.sessionId(), "") + "|" + Objects.toString(request.note(), "")
-                + "|" + new TreeMap<>(request.scores() == null ? Map.of() : request.scores())
-                + "|" + (request.winners() == null ? List.of() : request.winners().stream().sorted().toList());
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(data.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException failure) {
-            throw new IllegalStateException(failure);
-        }
-    }
-
-    private void requireEditable(League league, Long userId, ScoreTrackerSession session) {
-        if (!session.isOpen() && !administers(league, userId)) {
-            throw BusinessException.conflict("La partida está terminada: reábrela para corregirla");
-        }
-    }
-
-    /**
-     * Puntos que guarda una ronda, solo de quienes la jugaron. En los juegos por puntos, los que vienen en la
-     * petición; en los de victorias, 1 a quien ganó y 0 al resto de participantes. Quien apunta puntos sin
-     * ser participante pasa a serlo.
-     */
-    private Map<Long, Integer> roundPoints(Long leagueId, ScoreTrackerSession session,
-                                           ScoreTrackerRoundRequest request) {
-        Set<Long> leaguePlayers = playerIds(leagueId);
-        ScoreGame game = gameOf(leagueId, session.getGameId());
-        Map<Long, Integer> given = request.scores() == null ? Map.of() : request.scores();
-        for (Map.Entry<Long, Integer> entry : given.entrySet()) {
-            if (!leaguePlayers.contains(entry.getKey()) || entry.getValue() == null) {
-                throw BusinessException.badRequest("Jugador no válido");
-            }
-            if (Math.abs((long) entry.getValue()) > MAX_POINTS) {
-                throw BusinessException.badRequest("Los puntos tienen que estar entre -" + MAX_POINTS + " y " + MAX_POINTS);
-            }
-        }
-        Set<Long> participants = participantIds(session.getId());
-        Map<Long, Integer> points = new LinkedHashMap<>();
-        if (game.isWins()) {
-            Set<Long> winners = new LinkedHashSet<>(request.winners() != null && !request.winners().isEmpty()
-                    ? request.winners()
-                    : given.entrySet().stream().filter(entry -> entry.getValue() > 0).map(Map.Entry::getKey).toList());
-            if (winners.isEmpty()) throw BusinessException.badRequest("Marca quién ha ganado la ronda");
-            if (!leaguePlayers.containsAll(winners)) throw BusinessException.badRequest("Jugador no válido");
-            addParticipants(session.getId(), participants, winners);
-            participants.forEach(id -> points.put(id, winners.contains(id) ? 1 : 0));
-        } else {
-            if (given.isEmpty()) throw BusinessException.badRequest("Apunta los puntos de al menos un jugador");
-            addParticipants(session.getId(), participants, given.keySet());
-            points.putAll(given);
-        }
-        return points;
-    }
-
-    private void addParticipants(Long sessionId, Set<Long> participants, Collection<Long> wanted) {
-        for (Long id : wanted) {
-            if (participants.add(id)) sessionPlayers.save(new ScoreSessionPlayer(sessionId, id));
-        }
-    }
-
-    private Set<Long> participantIds(Long sessionId) {
-        return sessionPlayers.findBySessionId(sessionId).stream().map(ScoreSessionPlayer::getPlayerId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    private Set<Long> playerIds(Long leagueId) {
-        return players.findByLeagueIdOrderByPositionAsc(leagueId).stream().map(ScoreTrackerPlayer::getId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    /** Jugadores pedidos, comprobando que son de la liga; al menos uno. */
-    private List<Long> chosenPlayers(Long leagueId, List<Long> wanted) {
-        List<Long> ids = wanted == null ? List.of() : wanted.stream().filter(Objects::nonNull).distinct().toList();
-        if (ids.isEmpty()) throw BusinessException.badRequest("Elige al menos un jugador");
-        if (!playerIds(leagueId).containsAll(ids)) throw BusinessException.badRequest("Jugador no válido");
-        return ids;
-    }
-
-    private ScoreTrackerRound roundOf(Long leagueId, Long roundId) {
-        return rounds.findById(roundId).filter(found -> found.getLeagueId().equals(leagueId))
-                .orElseThrow(() -> BusinessException.notFound("Ronda no encontrada"));
-    }
-
-    private ScoreTrackerSession sessionOf(Long leagueId, Long sessionId) {
-        return sessions.findById(sessionId).filter(found -> found.getLeagueId().equals(leagueId))
-                .orElseThrow(() -> BusinessException.notFound("Partida no encontrada"));
-    }
-
-    private ScoreDay dayOf(Long leagueId, Long dayId) {
-        return days.findById(dayId).filter(found -> found.getLeagueId().equals(leagueId))
-                .orElseThrow(() -> BusinessException.notFound("Día de juego no encontrado"));
-    }
-
-    private ScoreGame firstGame(Long leagueId) {
-        return games.findByLeagueIdOrderByIdAsc(leagueId).stream().findFirst()
-                .orElseThrow(() -> BusinessException.badRequest("La liga no tiene ningún juego"));
-    }
-
-    private ScoreGame gameOf(Long leagueId, Long gameId) {
-        return games.findById(gameId).filter(game -> game.getLeagueId().equals(leagueId))
-                .orElseThrow(() -> BusinessException.badRequest("Juego no válido"));
+    /** Partida en la que cae una ronda apuntada sin elegirla: la última si sigue abierta; si no, otra del mismo juego. */
+    public ScoreTrackerSession sessionForRound(Long leagueId, Long userId) {
+        currentDay(leagueId);
+        ScoreTrackerSession last = sessions.findFirstByLeagueIdOrderByIdDesc(leagueId).orElse(null);
+        return last != null && last.isOpen() ? last
+                : startSession(leagueId, last != null ? last.getGameId() : lookup.firstGame(leagueId).getId(), null, null, userId);
     }
 
     // ---- Días de juego ----
@@ -583,7 +313,7 @@ public class ScoreTrackerService {
         Long userId = userId(email);
         League league = visible(userId, leagueId);
         boolean chosen = playerIds != null && !playerIds.isEmpty();
-        List<Long> attendees = chosen ? chosenPlayers(leagueId, playerIds) : List.copyOf(playerIds(leagueId));
+        List<Long> attendees = chosen ? lookup.chosenPlayers(leagueId, playerIds) : List.copyOf(lookup.playerIds(leagueId));
         ScoreDay day = currentDay(leagueId);
         if (day == null) {
             newDay(leagueId, attendees, userId);
@@ -597,8 +327,8 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO setDayPlayers(String email, Long leagueId, Long dayId, List<Long> playerIds) {
         Long userId = userId(email);
         League league = visible(userId, leagueId);
-        dayOf(leagueId, dayId);
-        replaceDayPlayers(dayId, chosenPlayers(leagueId, playerIds));
+        lookup.dayOf(leagueId, dayId);
+        replaceDayPlayers(dayId, lookup.chosenPlayers(leagueId, playerIds));
         return changed(league, userId);
     }
 
@@ -617,7 +347,7 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO closeDay(String email, Long leagueId, Long dayId) {
         Long userId = userId(email);
         League league = visible(userId, leagueId);
-        ScoreDay day = dayOf(leagueId, dayId);
+        ScoreDay day = lookup.dayOf(leagueId, dayId);
         if (day.isOpen()) {
             List<ScoreTrackerSession> leagueSessions = sessions.findByLeagueIdOrderByIdAsc(leagueId);
             List<ScoreTrackerRound> leagueRounds = rounds.findByLeagueIdOrderByIdAsc(leagueId);
@@ -646,9 +376,9 @@ public class ScoreTrackerService {
         League league = visible(userId, leagueId);
         ScoreDay day = currentDay(leagueId);
         ScoreTrackerSession last = sessions.findFirstByLeagueIdOrderByIdDesc(leagueId).orElse(null);
-        Long game = gameId != null ? gameOf(leagueId, gameId).getId()
-                : last != null ? last.getGameId() : firstGame(leagueId).getId();
-        List<Long> chosen = playerIds == null || playerIds.isEmpty() ? null : chosenPlayers(leagueId, playerIds);
+        Long game = gameId != null ? lookup.gameOf(leagueId, gameId).getId()
+                : last != null ? last.getGameId() : lookup.firstGame(leagueId).getId();
+        List<Long> chosen = playerIds == null || playerIds.isEmpty() ? null : lookup.chosenPlayers(leagueId, playerIds);
         boolean reuse = day != null && last != null && last.isOpen() && last.getDayId().equals(day.getId())
                 && rounds.findByLeagueIdOrderByIdAsc(leagueId).stream()
                 .noneMatch(round -> round.getSessionId().equals(last.getId()));
@@ -673,11 +403,11 @@ public class ScoreTrackerService {
     private ScoreTrackerSession startSession(Long leagueId, Long gameId, List<Long> chosen, Integer plannedRounds,
                                              Long userId) {
         ScoreDay day = currentDay(leagueId);
-        if (day == null) day = newDay(leagueId, chosen != null ? chosen : playerIds(leagueId), userId);
+        if (day == null) day = newDay(leagueId, chosen != null ? chosen : lookup.playerIds(leagueId), userId);
         List<Long> participants = chosen;
         if (participants == null) {
             participants = dayPlayers.findByDayId(day.getId()).stream().map(ScoreDayPlayer::getPlayerId).toList();
-            if (participants.isEmpty()) participants = List.copyOf(playerIds(leagueId));
+            if (participants.isEmpty()) participants = List.copyOf(lookup.playerIds(leagueId));
         } else {
             addDayPlayers(day.getId(), participants);
         }
@@ -710,9 +440,9 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO setSessionPlayers(String email, Long leagueId, Long sessionId, List<Long> playerIds) {
         Long userId = userId(email);
         League league = visible(userId, leagueId);
-        ScoreTrackerSession session = sessionOf(leagueId, sessionId);
+        ScoreTrackerSession session = lookup.sessionOf(leagueId, sessionId);
         requireEditable(league, userId, session);
-        List<Long> chosen = chosenPlayers(leagueId, playerIds);
+        List<Long> chosen = lookup.chosenPlayers(leagueId, playerIds);
         List<Long> roundIds = rounds.findByLeagueIdOrderByIdAsc(leagueId).stream()
                 .filter(round -> round.getSessionId().equals(sessionId)).map(ScoreTrackerRound::getId).toList();
         if (!roundIds.isEmpty() && scores.findByRoundIdIn(roundIds).stream()
@@ -728,7 +458,7 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO endSession(String email, Long leagueId, Long sessionId) {
         Long userId = userId(email);
         League league = visible(userId, leagueId);
-        ScoreTrackerSession session = sessionOf(leagueId, sessionId);
+        ScoreTrackerSession session = lookup.sessionOf(leagueId, sessionId);
         if (session.isOpen()) {
             session.setEndedAt(Instant.now());
             sessions.save(session);
@@ -741,10 +471,10 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO reopenSession(String email, Long leagueId, Long sessionId) {
         Long userId = userId(email);
         League league = visible(userId, leagueId);
-        ScoreTrackerSession session = sessionOf(leagueId, sessionId);
+        ScoreTrackerSession session = lookup.sessionOf(leagueId, sessionId);
         if (!session.isOpen()) {
             if (!administers(league, userId)) throw BusinessException.forbidden("Solo quien administra puede reabrir partidas");
-            if (!dayOf(leagueId, session.getDayId()).isOpen()) {
+            if (!lookup.dayOf(leagueId, session.getDayId()).isOpen()) {
                 throw BusinessException.conflict("El día ya está cerrado; puedes corregir sus rondas sin reabrirlo");
             }
             if (sessions.findByLeagueIdOrderByIdAsc(leagueId).stream().anyMatch(ScoreTrackerSession::isOpen)) {
@@ -790,7 +520,7 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO renameGame(String email, Long leagueId, Long gameId, ScoreGameNameRequest request) {
         Long userId = userId(email);
         League league = owned(userId, leagueId);
-        ScoreGame game = gameOf(leagueId, gameId);
+        ScoreGame game = lookup.gameOf(leagueId, gameId);
         String name = gameName(request.name(), "");
         if (name.isEmpty()) throw BusinessException.badRequest("Ponle nombre al juego");
         requireFreeGameName(games.findByLeagueIdOrderByIdAsc(leagueId), name, gameId);
@@ -806,7 +536,7 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO deleteGame(String email, Long leagueId, Long gameId) {
         Long userId = userId(email);
         League league = owned(userId, leagueId);
-        ScoreGame game = gameOf(leagueId, gameId);
+        ScoreGame game = lookup.gameOf(leagueId, gameId);
         Set<Long> gameSessions = sessions.findByLeagueIdOrderByIdAsc(leagueId).stream()
                 .filter(session -> session.getGameId().equals(gameId)).map(ScoreTrackerSession::getId)
                 .collect(Collectors.toSet());
@@ -837,7 +567,7 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO deleteDay(String email, Long leagueId, Long dayId) {
         Long userId = userId(email);
         League league = owned(userId, leagueId);
-        days.delete(dayOf(leagueId, dayId));
+        days.delete(lookup.dayOf(leagueId, dayId));
         days.flush();
         return changed(league, userId);
     }
@@ -850,7 +580,7 @@ public class ScoreTrackerService {
     public ScoreTrackerDTO moveDay(String email, Long leagueId, Long dayId, LocalDate date) {
         Long userId = userId(email);
         League league = owned(userId, leagueId);
-        ScoreDay day = dayOf(leagueId, dayId);
+        ScoreDay day = lookup.dayOf(leagueId, dayId);
         if (day.isOpen()) throw BusinessException.badRequest("Cierra el día antes de cambiarle la fecha");
         if (date.isAfter(LocalDate.now(ZoneId.of("Europe/Madrid"))))
             throw BusinessException.badRequest("La fecha no puede ser futura");
@@ -901,152 +631,6 @@ public class ScoreTrackerService {
     }
 
     public ScoreTrackerDTO view(League league, Long userId) {
-        Long leagueId = league.getId();
-        List<ScoreTrackerPlayer> playerRows = players.findByLeagueIdOrderByPositionAsc(leagueId);
-        List<Player> playerList = playerRows.stream()
-                .map(player -> new Player(player.getId(), player.getName())).toList();
-        Map<Long, String> nameByUser = new HashMap<>();
-        playerRows.stream().filter(player -> player.getUserId() != null)
-                .forEach(player -> nameByUser.put(player.getUserId(), player.getName()));
-        Long myPlayerId = playerRows.stream().filter(player -> userId.equals(player.getUserId()))
-                .map(ScoreTrackerPlayer::getId).findFirst().orElse(null);
-        List<Long> claimed = playerRows.stream().filter(player -> player.getUserId() != null)
-                .map(ScoreTrackerPlayer::getId).toList();
-        List<ScoreGame> gameRows = games.findByLeagueIdOrderByIdAsc(leagueId);
-        Map<Long, ScoreGame> gameById = gameRows.stream()
-                .collect(Collectors.toMap(ScoreGame::getId, game -> game, (a, b) -> a, LinkedHashMap::new));
-        List<ScoreTrackerSession> sessionList = sessions.findByLeagueIdOrderByIdAsc(leagueId);
-        List<ScoreTrackerRound> roundList = rounds.findByLeagueIdOrderByIdAsc(leagueId);
-        Map<Long, Map<Long, Integer>> pointsByRound = new HashMap<>();
-        Collection<Long> roundIds = roundList.stream().map(ScoreTrackerRound::getId).toList();
-        if (!roundIds.isEmpty()) {
-            for (ScoreTrackerScore score : scores.findByRoundIdIn(roundIds)) {
-                pointsByRound.computeIfAbsent(score.getRoundId(), key -> new LinkedHashMap<>())
-                        .put(score.getPlayerId(), score.getPoints());
-            }
-        }
-        Map<Long, List<ScoreTrackerRound>> roundsBySession = roundList.stream()
-                .collect(Collectors.groupingBy(ScoreTrackerRound::getSessionId));
-        Map<Long, Set<Long>> participantsBySession = new HashMap<>();
-        List<Long> sessionIds = sessionList.stream().map(ScoreTrackerSession::getId).toList();
-        if (!sessionIds.isEmpty()) {
-            for (ScoreSessionPlayer row : sessionPlayers.findBySessionIdIn(sessionIds)) {
-                participantsBySession.computeIfAbsent(row.getSessionId(), key -> new HashSet<>())
-                        .add(row.getPlayerId());
-            }
-        }
-
-        List<Session> sessionViews = new ArrayList<>();
-        Map<Long, Map<Long, Integer>> totalsByGame = new HashMap<>();
-        Map<Long, Map<Long, Integer>> roundsWonByGame = new HashMap<>();
-        Map<Long, Map<Long, Integer>> wonByGame = new HashMap<>();
-        Map<Long, Map<Long, Integer>> playedByGame = new HashMap<>();
-        Map<Long, Integer> roundCountByGame = new HashMap<>();
-        Map<Long, Integer> sessionCountByGame = new HashMap<>();
-        int number = 1;
-        for (ScoreTrackerSession session : sessionList) {
-            ScoreGame game = gameById.get(session.getGameId());
-            List<ScoreTrackerRound> own = roundsBySession.getOrDefault(session.getId(), List.of());
-            List<Map<Long, Integer>> ownPoints = own.stream()
-                    .map(round -> pointsByRound.getOrDefault(round.getId(), Map.<Long, Integer>of())).toList();
-            Set<Long> scored = new HashSet<>();
-            ownPoints.forEach(points -> scored.addAll(points.keySet()));
-            Set<Long> participants = new HashSet<>(participantsBySession.getOrDefault(session.getId(), Set.of()));
-            participants.addAll(scored);
-            List<Player> sessionPlayerList = playerList.stream()
-                    .filter(player -> participants.contains(player.id())).toList();
-            boolean lowerWins = game != null && !game.isWins() && game.isLowerWins();
-            List<Standing> standings = ScoreTrackerStandings.rank(sessionPlayerList, lowerWins, ownPoints,
-                    game != null && ScoreGame.MODE_ROUNDS.equals(game.getMode()));
-            List<Long> winners = ScoreTrackerStandings.leaders(standings, own.size());
-            if (game != null && game.getTargetWins() != null) {
-                Set<Long> reached = standings.stream().filter(row -> row.roundsWon() >= game.getTargetWins())
-                        .map(Standing::playerId).collect(Collectors.toSet());
-                winners = winners.stream().filter(reached::contains).toList();
-            }
-            Long gameKey = session.getGameId();
-            Map<Long, Integer> totals = totalsByGame.computeIfAbsent(gameKey, key -> new HashMap<>());
-            Map<Long, Integer> roundsWon = roundsWonByGame.computeIfAbsent(gameKey, key -> new HashMap<>());
-            Map<Long, Integer> won = wonByGame.computeIfAbsent(gameKey, key -> new HashMap<>());
-            Map<Long, Integer> played = playedByGame.computeIfAbsent(gameKey, key -> new HashMap<>());
-            for (Standing standing : standings) {
-                if (!scored.contains(standing.playerId())) continue;
-                totals.merge(standing.playerId(), standing.total(), Integer::sum);
-                roundsWon.merge(standing.playerId(), standing.roundsWon(), Integer::sum);
-                if (!session.isOpen()) played.merge(standing.playerId(), 1, Integer::sum);
-            }
-            if (!session.isOpen()) winners.forEach(id -> won.merge(id, 1, Integer::sum));
-            roundCountByGame.merge(gameKey, own.size(), Integer::sum);
-            sessionCountByGame.merge(gameKey, 1, Integer::sum);
-            sessionViews.add(new Session(session.getId(), number++, gameKey, session.getStartedAt().toString(),
-                    own.size(), standings, winners, session.getDayId(),
-                    playerList.stream().map(Player::id).filter(participants::contains).toList(),
-                    session.getEndedAt() == null ? null : session.getEndedAt().toString(),
-                    session.getPlannedRounds()));
-        }
-        int roundNumber = 1;
-        List<Round> roundViews = new ArrayList<>();
-        for (ScoreTrackerRound round : roundList) {
-            roundViews.add(new Round(round.getId(), round.getSessionId(), roundNumber++, round.getNote(),
-                    round.getCreatedAt().toString(), pointsByRound.getOrDefault(round.getId(), Map.of()),
-                    round.getCreatedByUserId() == null ? null : nameByUser.get(round.getCreatedByUserId()),
-                    round.getRevision()));
-        }
-
-        List<Game> gameViews = new ArrayList<>();
-        List<GameStandings> byGame = new ArrayList<>();
-        Map<Long, Integer> totals = new HashMap<>();
-        Map<Long, Integer> roundsWon = new HashMap<>();
-        Map<Long, Integer> sessionsWon = new HashMap<>();
-        Map<Long, Integer> sessionsPlayed = new HashMap<>();
-        for (ScoreGame game : gameRows) {
-            Map<Long, Integer> gameTotals = totalsByGame.getOrDefault(game.getId(), Map.of());
-            Map<Long, Integer> gameRoundsWon = roundsWonByGame.getOrDefault(game.getId(), Map.of());
-            Map<Long, Integer> gameWon = wonByGame.getOrDefault(game.getId(), Map.of());
-            Map<Long, Integer> gamePlayed = playedByGame.getOrDefault(game.getId(), Map.of());
-            List<Player> gamePlayers = playerList.stream()
-                    .filter(player -> gameTotals.containsKey(player.id())).toList();
-            byGame.add(new GameStandings(game.getId(),
-                    ScoreTrackerStandings.general(gamePlayers, gameTotals, gameRoundsWon, gameWon, gamePlayed)));
-            gameTotals.forEach((id, value) -> totals.merge(id, value, Integer::sum));
-            gameRoundsWon.forEach((id, value) -> roundsWon.merge(id, value, Integer::sum));
-            gameWon.forEach((id, value) -> sessionsWon.merge(id, value, Integer::sum));
-            gamePlayed.forEach((id, value) -> sessionsPlayed.merge(id, value, Integer::sum));
-            gameViews.add(new Game(game.getId(), game.getName(), game.getUnit(), game.isLowerWins(),
-                    sessionCountByGame.getOrDefault(game.getId(), 0),
-                    roundCountByGame.getOrDefault(game.getId(), 0), game.getMode(), game.getTargetWins()));
-        }
-        List<Standing> overall = ScoreTrackerStandings.general(playerList, totals, roundsWon, sessionsWon,
-                sessionsPlayed);
-
-        List<ScoreDay> dayRows = days.findByLeagueIdOrderByIdAsc(leagueId);
-        Map<Long, Set<Long>> attendeesByDay = new HashMap<>();
-        if (!dayRows.isEmpty()) {
-            for (ScoreDayPlayer row : dayPlayers.findByDayIdIn(dayRows.stream().map(ScoreDay::getId).toList())) {
-                attendeesByDay.computeIfAbsent(row.getDayId(), key -> new HashSet<>()).add(row.getPlayerId());
-            }
-        }
-        List<Day> dayViews = new ArrayList<>();
-        Long currentDayId = null;
-        for (ScoreDay day : dayRows) {
-            Set<Long> attendees = attendeesByDay.getOrDefault(day.getId(), Set.of());
-            dayViews.add(new Day(day.getId(), day.getStartedAt().toString(),
-                    day.getClosedAt() == null ? null : day.getClosedAt().toString(),
-                    playerList.stream().map(Player::id).filter(attendees::contains).toList(),
-                    sessionList.stream().filter(session -> session.getDayId().equals(day.getId()))
-                            .map(ScoreTrackerSession::getId).toList(), day.getPlayedOn().toString()));
-            if (day.isOpen()) {
-                currentDayId = day.getId();
-            }
-        }
-
-        ScoreTrackerSession currentSession = sessionList.isEmpty() ? null : sessionList.get(sessionList.size() - 1);
-        ScoreGame current = currentSession != null ? gameById.get(currentSession.getGameId())
-                : gameRows.isEmpty() ? null : gameRows.get(0);
-        return new ScoreTrackerDTO(leagueId, league.getName(), current == null ? "puntos" : current.getUnit(),
-                current != null && current.isLowerWins(), administers(league, userId), league.getJoinCode(),
-                myPlayerId, claimed, currentSession == null ? null : currentSession.getId(),
-                current == null ? null : current.getId(), gameViews, playerList, sessionViews, roundViews,
-                overall, byGame, currentDayId, dayViews);
+        return viewBuilder.build(league, userId);
     }
 }
