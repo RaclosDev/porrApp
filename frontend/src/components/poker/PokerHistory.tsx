@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import type { PokerSession } from '../../services/endpoints/poker';
+import type { PokerResultEdit, PokerSession } from '../../services/endpoints/poker';
+import { confirmAction } from '../../utils/confirmAction';
+import SheetDialog from '../SheetDialog';
 import PokerEmpty from './PokerEmpty';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
+import PokerResultEditor from './PokerResultEditor';
 import {
   chips,
   euros,
@@ -24,8 +27,24 @@ function Net({ cents }: { cents: number }) {
   );
 }
 
-export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
+interface HistoryProps {
+  sessions: PokerSession[];
+  /** Con `admin`, botones para corregir o borrar el torneo que se ve. */
+  admin?: boolean;
+  busy?: boolean;
+  onEdit?: (session: PokerSession, date: string, standings: PokerResultEdit[]) => Promise<boolean>;
+  onDelete?: (session: PokerSession) => Promise<boolean>;
+}
+
+export function PokerHistory({
+  sessions,
+  admin = false,
+  busy = false,
+  onEdit,
+  onDelete,
+}: HistoryProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [sheet, setSheet] = useState<'payments' | 'edit' | null>(null);
   // Orden cronológico, como las jornadas: «anterior» lleva al torneo más antiguo.
   const ordered = [...sessions].reverse();
   const found = ordered.findIndex((session) => session.id === selectedId);
@@ -34,6 +53,15 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
   // Solo los torneos finalizados por fichas tienen esa columna; en móvil va bajo el nombre.
   const hasChips = session?.results.some((result) => result.finalChips != null) ?? false;
   const payments = session ? settlements(session.results) : [];
+
+  async function remove(target: PokerSession) {
+    const confirmed = await confirmAction({
+      title: 'Borrar torneo',
+      message: `Se quitará el torneo del ${tournamentDate(target.date)} del histórico y de las estadísticas. No se puede deshacer.`,
+      confirmLabel: 'Borrar torneo',
+    });
+    if (confirmed && (await onDelete?.(target))) setSelectedId(null);
+  }
 
   return (
     <section className="paper-panel album-sheet poker-panel">
@@ -86,6 +114,76 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
             {euros(session.settings.buyInCents)} de entrada ·{' '}
             {chips(session.settings.startingChips)} fichas iniciales
           </p>
+          {(payments.length > 0 || admin) && (
+            <div className="poker-actions poker-history-actions">
+              {payments.length > 0 && (
+                <button
+                  type="button"
+                  className="glass-btn primary-btn"
+                  aria-haspopup="dialog"
+                  onClick={() => setSheet('payments')}
+                >
+                  Quién paga a quién · {payments.length} {payments.length === 1 ? 'pago' : 'pagos'}
+                </button>
+              )}
+              {admin && onEdit && (
+                <button
+                  type="button"
+                  className="glass-btn"
+                  aria-haspopup="dialog"
+                  disabled={busy}
+                  onClick={() => setSheet('edit')}
+                >
+                  Editar
+                </button>
+              )}
+              {admin && onDelete && (
+                <button
+                  type="button"
+                  className="glass-btn poker-out-btn"
+                  disabled={busy}
+                  onClick={() => void remove(session)}
+                >
+                  Borrar
+                </button>
+              )}
+            </div>
+          )}
+          {sheet === 'payments' && (
+            <SheetDialog
+              title="Quién paga a quién"
+              subtitle={tournamentDate(session.date)}
+              onClose={() => setSheet(null)}
+            >
+              <div className="sheet-dialog-body">
+                <ul className="poker-payments" aria-label="Pagos para saldar el torneo">
+                  {payments.map((payment) => (
+                    <li key={`${payment.fromId}-${payment.toId}`}>
+                      <PokerAvatar playerId={payment.fromId} name={payment.from} size={32} />
+                      <span>
+                        <strong>{payment.from}</strong> paga a <strong>{payment.to}</strong>
+                      </span>
+                      <strong className="poker-payment-amount">{euros(payment.cents)}</strong>
+                      <PokerAvatar playerId={payment.toId} name={payment.to} size={32} />
+                    </li>
+                  ))}
+                </ul>
+                <p className="poker-note">
+                  Pagos mínimos según lo aportado y el premio de cada jugador. Si ya pagasteis en la
+                  mesa, no hace falta nada.
+                </p>
+              </div>
+            </SheetDialog>
+          )}
+          {sheet === 'edit' && onEdit && (
+            <PokerResultEditor
+              key={session.id}
+              session={session}
+              busy={busy}
+              onSave={(date, standings) => onEdit(session, date, standings)}
+              onClose={() => setSheet(null)}
+            />
+          )}
           <PokerPodium
             label="Podio del torneo"
             places={session.results.slice(0, 3).map((result) => ({
@@ -161,23 +259,6 @@ export function PokerHistory({ sessions }: { sessions: PokerSession[] }) {
               </tbody>
             </table>
           </div>
-          {payments.length > 0 && (
-            <>
-              <h3>Quién paga a quién</h3>
-              <ul className="poker-payments" aria-label="Pagos para saldar el torneo">
-                {payments.map((payment) => (
-                  <li key={`${payment.fromId}-${payment.toId}`}>
-                    <strong>{payment.from}</strong> paga <strong>{euros(payment.cents)}</strong> a{' '}
-                    <strong>{payment.to}</strong>
-                  </li>
-                ))}
-              </ul>
-              <p className="poker-note">
-                Pagos mínimos según lo aportado y el premio de cada jugador. Si ya pagasteis en la
-                mesa, no hace falta nada.
-              </p>
-            </>
-          )}
         </>
       )}
     </section>

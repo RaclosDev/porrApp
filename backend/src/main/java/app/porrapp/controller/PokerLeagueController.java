@@ -59,6 +59,17 @@ public class PokerLeagueController {
         return service.attendance(principal.getName(), id, sessionId, request);
     }
 
+    @PutMapping("/{id}/history/{sessionId}")
+    public List<Session> editResults(Principal principal, @PathVariable Long id, @PathVariable Long sessionId,
+                                     @Valid @RequestBody EditResults request) {
+        return service.editResults(principal.getName(), id, sessionId, request);
+    }
+
+    @DeleteMapping("/{id}/history/{sessionId}")
+    public List<Session> deleteResult(Principal principal, @PathVariable Long id, @PathVariable Long sessionId) {
+        return service.deleteResult(principal.getName(), id, sessionId);
+    }
+
     @PostMapping("/{id}/sessions/{sessionId}/commands")
     public LeagueView command(Principal principal, @PathVariable Long id, @PathVariable Long sessionId,
                               @Valid @RequestBody Command command) {
