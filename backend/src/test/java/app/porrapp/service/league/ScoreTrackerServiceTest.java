@@ -805,7 +805,7 @@ class ScoreTrackerServiceTest {
     @Test
     void anOldDayRemainsOpenUntilItIsExplicitlyClosed() {
         threePlayers();
-        Instant old = Instant.now().minus(ScoreTrackerService.STALE_DAY).minus(Duration.ofHours(1));
+        Instant old = Instant.now().minus(Duration.ofDays(2));
         ScoreDay stale = ScoreDay.builder().id(89L).leagueId(10L).startedAt(old).build();
         when(days.findFirstByLeagueIdAndClosedAtIsNullOrderByIdDesc(10L)).thenReturn(Optional.of(stale));
         ScoreTrackerSession played = ScoreTrackerSession.builder().id(70L).leagueId(10L).gameId(50L).dayId(89L)

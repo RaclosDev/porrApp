@@ -1,15 +1,10 @@
 /** Pichichi más elegido de la liga, en las competiciones en las que se predice. */
 import type { PredictionData, ScorerCandidate } from '../types/api';
 import { percent } from './pickStats';
+import { foldText } from './text';
 
 /** Nombre de jugador comparable: sin tildes, en minúsculas y con espacios simples. */
-const normalizePlayer = (name: string) =>
-  name
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
+const normalizePlayer = (name: string) => foldText(name).replace(/\s+/g, ' ').trim();
 
 interface ScorerPick {
   /** La forma de escribirlo que más se repite. */
