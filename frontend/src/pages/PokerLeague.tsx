@@ -9,6 +9,7 @@ import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import PokerRegistration from '../components/poker/PokerRegistration';
 import PokerSettingsForm from '../components/poker/PokerSettingsForm';
 import PokerLive from '../components/poker/PokerLive';
+import PokerLateEntry from '../components/poker/PokerLateEntry';
 import PokerHome from '../components/poker/PokerHome';
 import { lastWinnerIds } from '../components/poker/PokerBadges';
 import { PokerFaces } from '../components/poker/PokerFaces';
@@ -16,6 +17,8 @@ import { PokerHistory, PokerStatistics } from '../components/poker/PokerHistory'
 import { defaultSettings, today } from '../components/poker/pokerFormat';
 import { pokerRoutes, type PokerSection } from '../components/poker/pokerRoutes';
 import {
+  deletePokerResult,
+  editPokerResult,
   fetchPokerHistory,
   fetchPokerLeague,
   pokerCommand,
@@ -80,6 +83,25 @@ export default function PokerLeague({
       void client.invalidateQueries({ queryKey: key, exact: true });
     },
   });
+
+  const historyMutation = useMutation({
+    mutationFn: (request: () => Promise<PokerSession[]>) => request(),
+    onSuccess: (data) => client.setQueryData(historyKey, data),
+    onError: (reason) => {
+      toast.error(errorMessage(reason, 'No se pudo cambiar el histórico.'));
+      void client.invalidateQueries({ queryKey: historyKey });
+    },
+  });
+
+  async function changeHistory(request: () => Promise<PokerSession[]>) {
+    if (historyMutation.isPending) return false;
+    try {
+      await historyMutation.mutateAsync(request);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   if (query.isPending) return <PaperLoading label="Cargando la liga de póker" />;
   if (!query.data) return <TrackerUnavailable error={query.error} />;
@@ -186,23 +208,26 @@ export default function PokerLeague({
                   onEdit={() => setForm('edit')}
                 />
               ) : (
-                <PokerLive
-                  leagueId={league.id}
-                  session={current}
-                  owner={league.owner}
-                  busy={busy}
-                  serverNow={league.serverNow}
-                  receivedAt={query.dataUpdatedAt}
-                  lastWinnerIds={lastWinnerIds(history.data)}
-                  onCommand={async (action, playerId, extra) => {
-                    const saved = await change(() =>
-                      pokerCommand(league.id, current, action, playerId, extra),
-                    );
-                    if (saved && action === 'CLOSE') {
-                      navigate(pokerRoutes.history.to, { state: { pokerTip: true } });
-                    }
-                  }}
-                />
+                <>
+                  <PokerLive
+                    leagueId={league.id}
+                    session={current}
+                    owner={league.owner}
+                    busy={busy}
+                    serverNow={league.serverNow}
+                    receivedAt={query.dataUpdatedAt}
+                    lastWinnerIds={lastWinnerIds(history.data)}
+                    onCommand={async (action, playerId, extra) => {
+                      const saved = await change(() =>
+                        pokerCommand(league.id, current, action, playerId, extra),
+                      );
+                      if (saved && action === 'CLOSE') {
+                        navigate(pokerRoutes.history.to, { state: { pokerTip: true } });
+                      }
+                    }}
+                  />
+                  <PokerLateEntry league={league} session={current} busy={busy} change={change} />
+                </>
               )
             ) : (
               <section className="poker-felt poker-empty" aria-labelledby="poker-empty-title">
@@ -260,7 +285,15 @@ export default function PokerLeague({
               </button>
             </section>
           ) : view === 'history' ? (
-            <PokerHistory sessions={history.data ?? []} />
+            <PokerHistory
+              sessions={history.data ?? []}
+              admin={league.admin}
+              busy={historyMutation.isPending}
+              onEdit={(session, date, standings) =>
+                changeHistory(() => editPokerResult(league.id, session, date, standings))
+              }
+              onDelete={(session) => changeHistory(() => deletePokerResult(league.id, session.id))}
+            />
           ) : (
             <PokerStatistics sessions={history.data ?? []} />
           ))}

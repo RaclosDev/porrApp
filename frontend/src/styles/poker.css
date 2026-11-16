@@ -1874,3 +1874,121 @@
   width: auto;
   height: clamp(1.1rem, 3.2vmin, 2rem);
 }
+
+/* Histórico: pagos y corrección del torneo en hojas, a mano bajo el resumen. */
+.poker-history-actions {
+  margin: 0.4rem 0 0.8rem;
+}
+
+.poker-payments {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 0.8rem;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-payments li {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line, rgb(0 0 0 / 12%));
+  border-radius: 10px;
+}
+
+.poker-payment-amount {
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.poker-result-editor {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.poker-edit-date {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 14rem;
+}
+
+.poker-edit-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-edit-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line, rgb(0 0 0 / 12%));
+  border-radius: 10px;
+}
+
+.poker-edit-list .poker-player {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.poker-edit-place {
+  min-width: 2rem;
+  font-weight: 700;
+}
+
+.poker-edit-move {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.poker-edit-move .poker-icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  padding-inline: 0.6rem;
+}
+
+.poker-edit-count {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.poker-edit-count input {
+  width: 4.2rem;
+}
+
+.poker-late-entry {
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+.poker-late-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.poker-late-list li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.poker-late-list li span {
+  display: grid;
+}
+
+.poker-late-list button {
+  min-height: 44px;
+}
