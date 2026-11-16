@@ -11,6 +11,8 @@ public interface PokerMusicRepository extends JpaRepository<PokerMusicItem, Long
 
     Optional<PokerMusicItem> findByIdAndLeagueId(Long id, Long leagueId);
 
+    List<PokerMusicItem> findByAddedByOrderByIdAsc(Long addedBy);
+
     long countByLeagueId(Long leagueId);
 
     long countByLeagueIdAndAddedBy(Long leagueId, Long addedBy);

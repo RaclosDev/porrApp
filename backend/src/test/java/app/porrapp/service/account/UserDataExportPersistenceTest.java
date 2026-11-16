@@ -5,6 +5,7 @@ import app.porrapp.model.Competition;
 import app.porrapp.model.Edition;
 import app.porrapp.model.League;
 import app.porrapp.model.Membership;
+import app.porrapp.model.PokerMusicItem;
 import app.porrapp.model.PoolFormat;
 import app.porrapp.model.Prediction;
 import app.porrapp.model.PushNotificationLog;
@@ -15,6 +16,7 @@ import app.porrapp.model.ScoreTrackerPlayer;
 import app.porrapp.model.ScoreTrackerRound;
 import app.porrapp.model.ScoreTrackerScore;
 import app.porrapp.model.ScoreTrackerSession;
+import app.porrapp.model.ScorerPick;
 import app.porrapp.model.UserAccount;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,8 @@ import org.springframework.context.annotation.Import;
 import app.porrapp.SharedPostgres;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -117,5 +121,47 @@ class UserDataExportPersistenceTest {
             assertThat(p.totalPoints()).isEqualTo(8);
         });
         assertThat(export.toString()).doesNotContain("Invitada");
+    }
+
+    @Test
+    void exportIncludesTheUsersTopScorerAndPokerSongsButNotTheOthers() {
+        UserAccount ana = em.persist(UserAccount.builder().googleEmail("extra-ana@test.invalid")
+                .participantName("Ana").build());
+        UserAccount other = em.persist(UserAccount.builder().googleEmail("extra-other@test.invalid")
+                .participantName("Otro").build());
+        Competition competition = em.getEntityManager().createQuery(
+                        "select c from Competition c where c.externalId = :id", Competition.class)
+                .setParameter("id", Competition.WORLD_CUP_EXTERNAL_ID).getSingleResult();
+        League league = em.persist(League.builder().name("Extra League").joinCode("TESTEXT1")
+                .adminUser(ana).build());
+        Edition edition = em.persist(Edition.builder().league(league).competition(competition)
+                .poolFormat(PoolFormat.KNOCKOUTS_ONLY).build());
+        for (UserAccount u : new UserAccount[]{ana, other}) {
+            Prediction p = em.persist(Prediction.builder().user(u).edition(edition).name(u.getParticipantName())
+                    .paymentStatus("PENDING").build());
+            em.persist(ScorerPick.builder().predictionId(p.getId()).writtenName("Pichichi de " + u.getParticipantName())
+                    .updatedAt(Instant.now()).build());
+            PokerMusicItem song = new PokerMusicItem();
+            song.setLeagueId(league.getId());
+            song.setVideoId(u == ana ? "aaaaaaaaaaa" : "bbbbbbbbbbb");
+            song.setTitle("Canción de " + u.getParticipantName());
+            song.setChannel("Canal");
+            song.setAddedBy(u.getId());
+            song.setAddedByName(u.getParticipantName());
+            song.setCreatedAt(1_700_000_000_000L);
+            em.persist(song);
+        }
+        em.flush();
+        em.clear();
+
+        UserDataExport export = exports.export("extra-ana@test.invalid");
+
+        assertThat(export.predictions()).singleElement()
+                .satisfies(p -> assertThat(p.topScorer()).isEqualTo("Pichichi de Ana"));
+        assertThat(export.pokerSongs()).singleElement().satisfies(s -> {
+            assertThat(s.title()).isEqualTo("Canción de Ana");
+            assertThat(s.requestedAt()).isEqualTo(Instant.ofEpochMilli(1_700_000_000_000L));
+        });
+        assertThat(export.toString()).doesNotContain("Otro", "bbbbbbbbbbb");
     }
 }
