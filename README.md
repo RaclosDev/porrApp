@@ -17,7 +17,7 @@ Java 21 · Spring Boot 4.1 · React 19 · TypeScript · PostgreSQL
 
 Proyecto personal de **Carlos Sanz Tomero**, desarrollador full-stack. PorrApp reúne invitaciones, predicciones, resultados y clasificación para que un grupo pueda llevar su liga desde el móvil. Las competiciones oficiales compatibles sincronizan sus resultados; los torneos propios y las partidas tienen gestión manual.
 
-**Para conocer el proyecto:** [abre la demo sin registro](https://porrapp.app/demo), consulta las decisiones técnicas de abajo o entra en la [arquitectura](docs/architecture.md). La demo pública muestra una liga del Mundial en modo de solo lectura; las capturas enseñan además las ligas por jornadas y el póker.
+**Para conocer el proyecto:** [abre la demo sin registro](https://porrapp.app/demo), consulta las decisiones técnicas de abajo o entra en la [arquitectura](docs/arquitectura.md). La demo pública muestra una liga del Mundial en modo de solo lectura; las capturas enseñan además las ligas por jornadas y el póker.
 
 ## La app actual
 
@@ -71,7 +71,7 @@ flowchart LR
     API -- sincronización --> Sports[ESPN · LoL Esports]
 ```
 
-El despliegue actual utiliza **una instancia de backend**: las conexiones WebSocket y las cachés están en memoria. La [guía de arquitectura](docs/architecture.md#despliegue) detalla qué habría que compartir antes de escalar horizontalmente.
+El despliegue actual utiliza **una instancia de backend**: las conexiones WebSocket y las cachés están en memoria. La [guía de arquitectura](docs/arquitectura.md#despliegue) detalla qué habría que compartir antes de escalar horizontalmente.
 
 ## Calidad y stack
 
@@ -81,7 +81,7 @@ El despliegue actual utiliza **una instancia de backend**: las conexiones WebSoc
 | Backend  | Java 21, Spring Boot 4.1, Spring Security y JPA. JUnit, Mockito y Testcontainers con PostgreSQL; JaCoCo exige al menos un 80 % de cobertura de líneas.                               |
 | Entrega  | GitHub Actions selecciona los jobs según el área modificada. ESLint, Prettier, comprobación de tipos, tests y construcción Docker forman parte del flujo de validación.              |
 
-Los comandos y requisitos están en la [guía de desarrollo](docs/development.md); la [CI](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml) permite comprobar su estado actual.
+Los comandos y requisitos están en la [guía de desarrollo](docs/desarrollo.md); la [CI](https://github.com/RaclosDev/porrApp/actions/workflows/ci.yml) permite comprobar su estado actual.
 
 ## Ejecutarla en local
 
@@ -92,7 +92,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-La aplicación se sirve en [localhost:8080](http://localhost:8080). Para trabajar con Java y Node por separado, configurar proveedores o ejecutar tests, consulta [docs/development.md](docs/development.md).
+La aplicación se sirve en [localhost:8080](http://localhost:8080). Para trabajar con Java y Node por separado, configurar proveedores o ejecutar tests, consulta [docs/desarrollo.md](docs/desarrollo.md).
 
 ## Autor
 
