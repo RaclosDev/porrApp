@@ -155,9 +155,10 @@ class PokerLeagueIntegrationTest {
         assertThat(paused.clock().endsAt()).isNull();
         assertThat(send("POST", tournament + "/commands", organizer, new Command(Action.NEXT_LEVEL, playing.revision(), null))
                 .statusCode()).isEqualTo(409);
-        var rebought = command(tournament, organizer, paused, Action.REBUY, memberId);
+        // Cualquier jugador apunta recompras, add-ons y eliminaciones; el reloj sigue siendo del organizador.
+        var rebought = command(tournament, member, paused, Action.REBUY, memberId);
         assertThat(rebought.potCents()).isEqualTo(3503);
-        var corrected = command(tournament, organizer, rebought, Action.UNDO_REBUY, memberId);
+        var corrected = command(tournament, member, rebought, Action.UNDO_REBUY, memberId);
         assertThat(corrected.potCents()).isEqualTo(3003);
         rebought = command(tournament, organizer, corrected, Action.REBUY, memberId);
         var breakLevel = command(tournament, organizer, rebought, Action.NEXT_LEVEL, null);
@@ -166,7 +167,7 @@ class PokerLeagueIntegrationTest {
         assertThat(send("POST", tournament + "/commands", organizer, new Command(Action.REBUY, breakLevel.revision(), guestId))
                 .statusCode()).isEqualTo(409);
         var withAddOn = command(tournament, organizer, breakLevel, Action.ADD_ON, guestId);
-        var eliminated = command(tournament, organizer, withAddOn, Action.ELIMINATE, memberId);
+        var eliminated = command(tournament, member, withAddOn, Action.ELIMINATE, memberId);
         var restored = command(tournament, organizer, eliminated, Action.UNDO_ELIMINATION, null);
         assertThat(restored.eliminations()).isEmpty();
         eliminated = command(tournament, organizer, restored, Action.ELIMINATE, guestId);
