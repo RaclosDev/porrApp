@@ -122,7 +122,6 @@ class PushSubscriptionServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void aNewDeviceBeyondTheLimitDropsTheOldestOnes() {
         List<PushSubscription> current = new ArrayList<>(IntStream.range(0, PushSubscriptionService.MAX_SUBSCRIPTIONS_PER_USER)
                 .mapToObj(i -> PushSubscription.builder().id((long) i).user(ana).build())
@@ -132,7 +131,7 @@ class PushSubscriptionServiceTest {
 
         service.subscribe("ana@test.com", new PushSubscriptionRequest(ENDPOINT, P256DH, AUTH));
 
-        ArgumentCaptor<Iterable<PushSubscription>> dropped = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<PushSubscription>> dropped = ArgumentCaptor.captor();
         verify(subscriptions).deleteAll(dropped.capture());
         assertThat(dropped.getValue()).containsExactly(current.get(0));
         verify(subscriptions).save(any(PushSubscription.class));

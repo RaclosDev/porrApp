@@ -345,8 +345,7 @@ class SyncServiceTest {
     @Test
     void actualProviderHttpFailureDegradesHealthAndNextSuccessRecovers() throws Exception {
         var client = org.mockito.Mockito.mock(java.net.http.HttpClient.class);
-        @SuppressWarnings("unchecked")
-        var response = (java.net.http.HttpResponse<byte[]>) org.mockito.Mockito.mock(java.net.http.HttpResponse.class);
+        java.net.http.HttpResponse<byte[]> response = org.mockito.Mockito.mock();
         when(response.statusCode()).thenReturn(503, 200);
         when(response.body()).thenReturn("{\"events\":[]}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         when(response.headers()).thenReturn(java.net.http.HttpHeaders.of(java.util.Map.of(), (key, value) -> true));
