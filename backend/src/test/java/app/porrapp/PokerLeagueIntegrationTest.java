@@ -164,8 +164,9 @@ class PokerLeagueIntegrationTest {
         var breakLevel = command(tournament, organizer, rebought, Action.NEXT_LEVEL, null);
         assertThat(breakLevel.clock().level()).isEqualTo(1);
         assertThat(breakLevel.clock().endsAt()).isNull();
-        assertThat(send("POST", tournament + "/commands", organizer, new Command(Action.REBUY, breakLevel.revision(), guestId))
-                .statusCode()).isEqualTo(409);
+        // El descanso que sigue al corte de recompras aún deja recomprar.
+        var boughtOnBreak = command(tournament, organizer, breakLevel, Action.REBUY, guestId);
+        breakLevel = command(tournament, organizer, boughtOnBreak, Action.UNDO_REBUY, guestId);
         var withAddOn = command(tournament, organizer, breakLevel, Action.ADD_ON, guestId);
         var eliminated = command(tournament, member, withAddOn, Action.ELIMINATE, memberId);
         var restored = command(tournament, organizer, eliminated, Action.UNDO_ELIMINATION, null);
