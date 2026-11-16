@@ -71,11 +71,46 @@ public class PokerLeagueService {
     }
 
     @Transactional
+    public List<Session> editResults(String email, Long leagueId, Long sessionId, EditResults request) {
+        Long userId = account(email).getId();
+        PokerSession session = closedSession(administered(leagueId, userId), sessionId);
+        checkRevision(session, request.revision());
+        PokerTournament.editResults(session, request);
+        session.setRevision(session.getRevision() + 1);
+        sessions.flush();
+        return history(email, leagueId);
+    }
+
+    @Transactional
+    public List<Session> deleteResult(String email, Long leagueId, Long sessionId) {
+        Long userId = account(email).getId();
+        sessions.delete(closedSession(administered(leagueId, userId), sessionId));
+        sessions.flush();
+        return history(email, leagueId);
+    }
+
+    /** El histórico solo lo corrigen quien creó la liga y sus administradores. */
+    private League administered(Long leagueId, Long userId) {
+        League league = visible(leagueId, userId, true);
+        if (!league.isAdmin(userId)) {
+            throw BusinessException.forbidden("Solo la administración de la liga puede cambiar el histórico");
+        }
+        return league;
+    }
+
+    private PokerSession closedSession(League league, Long sessionId) {
+        PokerSession session = sessions.findByIdAndLeagueId(sessionId, league.getId())
+                .orElseThrow(() -> BusinessException.notFound("Torneo no encontrado"));
+        if (session.getClosedAt() == null) throw BusinessException.conflict("El torneo todavía no está cerrado");
+        return session;
+    }
+
+    @Transactional
     public LeagueView addGuest(String email, Long leagueId, Long sessionId, String name) {
         Long userId = account(email).getId();
         League league = owned(leagueId, userId);
+        // Con la mesa empezada también se puede sumar a quien llega tarde.
         PokerSession session = openSession(leagueId, sessionId);
-        registration(session);
         requireSeat(session);
         List<ScoreTrackerPlayer> existing = players.findByLeagueIdOrderByPositionAsc(leagueId);
         if (existing.size() >= ScoreboardRoster.MAX_POKER_ROSTER) {
@@ -136,7 +171,8 @@ public class PokerLeagueService {
         Long userId = account(email).getId();
         League league = visible(leagueId, userId, true);
         PokerSession session = openSession(leagueId, sessionId);
-        registration(session);
+        // Quien llega tarde puede entrar con la mesa empezada; salir solo antes de empezar.
+        if (!request.attending()) registration(session);
         ScoreTrackerPlayer player;
         if (request.playerId() == null) {
             player = players.findByLeagueIdAndUserId(leagueId, userId)
@@ -160,10 +196,16 @@ public class PokerLeagueService {
         return changed(league, userId, session);
     }
 
+    private static final java.util.Set<Action> PLAYER_MARKS = java.util.EnumSet.of(Action.REBUY, Action.ADD_ON,
+            Action.UNDO_REBUY, Action.UNDO_ADD_ON, Action.ELIMINATE, Action.UNDO_ELIMINATION);
+
     @Transactional
     public LeagueView command(String email, Long leagueId, Long sessionId, Command command) {
         Long userId = account(email).getId();
-        League league = owned(leagueId, userId);
+        // Recompras, add-ons y eliminaciones los apunta cualquier miembro; el resto, solo quien organiza.
+        League league = PLAYER_MARKS.contains(command.action())
+                ? visible(leagueId, userId, true)
+                : owned(leagueId, userId);
         PokerSession session = openSession(leagueId, sessionId);
         checkRevision(session, command.revision());
         if (command.action() == Action.CANCEL) {
@@ -292,6 +334,7 @@ public class PokerLeagueService {
         users.findAllById(rosterEntries.stream().map(ScoreTrackerPlayer::getUserId).filter(Objects::nonNull).toList())
                 .forEach(user -> avatars.put(user.getId(), user.getAvatarUrl()));
         return new LeagueView(id, league.getName(), league.getJoinCode(), league.canOrganize(userId),
+                league.isAdmin(userId),
                 myPlayerId, rosterEntries.stream()
                 .map(player -> new Player(player.getId(), player.getName(), player.getUserId() == null,
                         player.getUserId(), avatars.get(player.getUserId()))).toList(),

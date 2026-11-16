@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import PokerHome from '../../components/poker/PokerHome';
 import PokerLive from '../../components/poker/PokerLive';
+import PokerLateEntry from '../../components/poker/PokerLateEntry';
 import { PokerHistory, PokerStatistics } from '../../components/poker/PokerHistory';
 import PokerSettingsForm from '../../components/poker/PokerSettingsForm';
 import PokerLeague from '../../pages/PokerLeague';
@@ -54,6 +55,7 @@ const league: PokerLeagueData = {
   name: 'Sábados',
   joinCode: 'P0KER8',
   owner: true,
+  admin: true,
   myPlayerId: 1,
   players: entries.map(({ playerId: id, name }) => ({ id, name, guest: id !== 1 })),
   current: session,
@@ -147,6 +149,117 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   );
   click('Volver');
   expect(cancel).toHaveBeenCalledOnce();
+});
+
+it('sienta a quien llega tarde con la mesa empezada', async () => {
+  api.mockResolvedValue(league);
+  const change = vi.fn(async (send: () => Promise<PokerLeagueData>) => {
+    await send();
+    return true;
+  });
+  const started = { ...session, startedAt: 1 };
+  const players = [...league.players, { id: 4, name: 'Bea', guest: false }];
+  const { rerender } = render(
+    <PokerLateEntry
+      league={{ ...league, players }}
+      session={started}
+      busy={false}
+      change={change}
+    />,
+  );
+  click('Añadir jugador');
+  click('Sentar a Bea');
+  await waitFor(() =>
+    expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13/attendance', {
+      method: 'PUT',
+      json: { attending: true, playerId: 4 },
+    }),
+  );
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+  rerender(
+    <PokerLateEntry
+      league={{ ...league, owner: false, myPlayerId: 4, players }}
+      session={started}
+      busy={false}
+      change={change}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: /Unirme a la mesa/ }));
+  await waitFor(() =>
+    expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13/attendance', {
+      method: 'PUT',
+      json: { attending: true, playerId: undefined },
+    }),
+  );
+  rerender(
+    <PokerLateEntry
+      league={{ ...league, owner: false }}
+      session={started}
+      busy={false}
+      change={change}
+    />,
+  );
+  expect(screen.queryByRole('button', { name: /Unirme a la mesa/ })).toBeNull();
+});
+
+it('añade un descanso tras el corte de recompras para comprar en él', async () => {
+  const save = vi.fn().mockResolvedValue(true);
+  const three = {
+    ...settings,
+    levels: [...settings.levels, { ...settings.levels[1], small: 75, big: 150 }],
+  };
+  render(
+    <PokerSettingsForm
+      date={date}
+      settings={{ ...three, addOn: { costCents: 500, chips: 5000, limit: 1, throughLevel: 2 } }}
+      editing={false}
+      busy={false}
+      onCancel={vi.fn()}
+      onSave={save}
+    />,
+  );
+  fireEvent.click(screen.getByText('Ciegas, recompras y add-on'));
+  fireEvent.click(screen.getByLabelText('Activar recompras'));
+  set('Hasta el final de', '1', within(screen.getByRole('group', { name: 'Permitir recompras' })));
+  click('Abrir inscripciones');
+  const pause = { small: 0, big: 0, ante: 0, minutes: 10 };
+  await waitFor(() =>
+    expect(save).toHaveBeenCalledWith(
+      date,
+      expect.objectContaining({
+        levels: [three.levels[0], pause, three.levels[1], pause, three.levels[2]],
+        rebuy: expect.objectContaining({ throughLevel: 1 }),
+        addOn: expect.objectContaining({ throughLevel: 3 }),
+      }),
+    ),
+  );
+});
+
+it('deja comprar en el descanso que sigue al corte', () => {
+  const pause = { small: 0, big: 0, ante: 0, minutes: 10 };
+  const extra = { costCents: 500, chips: 5000, limit: null, throughLevel: 1 };
+  render(
+    <PokerLive
+      session={{
+        ...session,
+        startedAt: 1,
+        clock: { level: 1, endsAt: null, remainingMs: 60_000 },
+        settings: {
+          ...settings,
+          rebuy: extra,
+          levels: [settings.levels[0], pause, settings.levels[1]],
+        },
+      }}
+      owner
+      busy={false}
+      serverNow={1_000}
+      receivedAt={Date.now()}
+      onCommand={vi.fn()}
+    />,
+  );
+  expect(screen.getByRole('button', { name: 'Recompra de Ana' })).toBeEnabled();
+  expect(screen.getByText(/Hasta el nivel 1 y el descanso/)).toBeInTheDocument();
 });
 
 it('marca en la mesa las recompras, los extras y al último ganador', () => {
@@ -368,6 +481,43 @@ it('recorre el histórico torneo a torneo', () => {
   expect(screen.getByRole('button', { name: 'Torneo anterior' })).toBeDisabled();
   fireEvent.change(picker, { target: { value: '22' } });
   expect(screen.getByText(/sábado, 18 de julio/)).toBeVisible();
+});
+
+it('abre los pagos en una hoja y deja a la administración corregir o borrar', async () => {
+  const closed = {
+    ...session,
+    id: 22,
+    closedAt: 5000,
+    results: [
+      { ...entries[0], place: 1, paidCents: 1000, prizeCents: 2000 },
+      { ...entries[2], place: 2, paidCents: 1000, prizeCents: 0 },
+    ],
+  };
+  const onEdit = vi.fn().mockResolvedValue(true);
+  const onDelete = vi.fn().mockResolvedValue(true);
+  const { rerender } = render(<PokerHistory sessions={[closed]} />);
+  expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Borrar' })).toBeNull();
+  click('Quién paga a quién · 1 pago');
+  const payments = screen.getByRole('list', { name: 'Pagos para saldar el torneo' });
+  expect(payments).toHaveTextContent(`Paz paga a Ana${money(1000)}`);
+  click('Cerrar');
+
+  rerender(<PokerHistory sessions={[closed]} admin onEdit={onEdit} onDelete={onDelete} />);
+  click('Editar');
+  click('Bajar a Ana');
+  click('Guardar cambios');
+  await waitFor(() =>
+    expect(onEdit).toHaveBeenCalledWith(closed, closed.date, [
+      { playerId: 3, rebuys: 0, addOns: 0 },
+      { playerId: 1, rebuys: 0, addOns: 0 },
+    ]),
+  );
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+  vi.mocked(confirmAction).mockResolvedValueOnce(true);
+  click('Borrar');
+  await waitFor(() => expect(onDelete).toHaveBeenCalledWith(closed));
 });
 
 it('solo muestra el año de los torneos de otros años', () => {
@@ -606,9 +756,14 @@ it('abre las acciones desde la foto y respeta permisos y extras disponibles', ()
   expect(command).toHaveBeenLastCalledWith('REBUY', 3);
   fireEvent.click(out.getByRole('button', { name: 'Quitar la eliminación de Paz' }));
   expect(command).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
+  // Un jugador sin permisos de organizador también apunta recompras y eliminaciones.
   rerender(<PokerLive {...props} owner={false} />);
-  expect(screen.queryByRole('button', { name: 'Acciones de Ana' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('region', { name: 'Acciones de Luis' })).not.toBeInTheDocument();
+  click('Acciones de Ana');
+  const member = within(screen.getByRole('region', { name: 'Acciones de Ana' }));
+  fireEvent.click(member.getByRole('button', { name: 'Eliminar a Ana' }));
+  expect(command).toHaveBeenLastCalledWith('ELIMINATE', 1);
+  expect(screen.queryByRole('button', { name: 'Pausar' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Reanudar' })).not.toBeInTheDocument();
 });
 
 it('desactiva el ante de todos los niveles al guardar y permite recuperarlo antes de guardar', async () => {
