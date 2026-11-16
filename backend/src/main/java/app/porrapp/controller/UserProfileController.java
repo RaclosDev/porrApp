@@ -3,7 +3,6 @@ package app.porrapp.controller;
 import app.porrapp.dto.ProfileResponse;
 import app.porrapp.dto.ProfileUpdateDTO;
 import app.porrapp.model.UserAccount;
-import app.porrapp.repository.MembershipRepository;
 import app.porrapp.service.account.ProfileImageService;
 import app.porrapp.service.notification.WebSocketService;
 import jakarta.validation.Valid;
@@ -29,11 +28,9 @@ public class UserProfileController {
 
     private final ProfileImageService profileImageService;
     private final WebSocketService webSocketService;
-    private final MembershipRepository membershipRepository;
 
     private void notifyLeaguesOf(UserAccount user) {
-        webSocketService.notifyProfileChanged(membershipRepository.findByUserId(user.getId()).stream()
-                .map(m -> m.getId().getLeagueId()).toList());
+        webSocketService.notifyProfileChanged(profileImageService.leagueIdsOf(user.getId()));
     }
 
     @PutMapping("/me/profile")
