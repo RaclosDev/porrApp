@@ -79,6 +79,8 @@ export interface PokerLeagueData {
   name: string;
   joinCode: string;
   owner: boolean;
+  /** Creador o administrador: puede corregir y borrar torneos del histórico. */
+  admin: boolean;
   myPlayerId: number | null;
   players: PokerPlayer[];
   current: PokerSession | null;
@@ -110,6 +112,26 @@ export interface PokerCommandExtra {
 export const fetchPokerLeague = (id: string) => request<PokerLeagueData>(`/poker/${id}`);
 
 export const fetchPokerHistory = (id: string) => request<PokerSession[]>(`/poker/${id}/history`);
+
+export interface PokerResultEdit {
+  playerId: number;
+  rebuys: number;
+  addOns: number;
+}
+
+export const editPokerResult = (
+  id: number,
+  session: PokerSession,
+  date: string,
+  standings: PokerResultEdit[],
+) =>
+  request<PokerSession[]>(`/poker/${id}/history/${session.id}`, {
+    method: 'PUT',
+    json: { date, revision: session.revision, standings },
+  });
+
+export const deletePokerResult = (id: number, sessionId: number) =>
+  request<PokerSession[]>(`/poker/${id}/history/${sessionId}`, { method: 'DELETE' });
 
 export const createPokerLeague = (name: string, creationKey: string) =>
   request<PokerLeagueData>('/poker', { method: 'POST', json: { name, creationKey } });

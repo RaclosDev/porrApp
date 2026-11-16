@@ -28,6 +28,14 @@ public final class PokerDTO {
                               @NotNull @Min(0) Long revision) {
     }
 
+    /** Corrección de un torneo cerrado: fecha y jugadores en el orden final, del 1.º al último. */
+    public record EditResults(@NotNull LocalDate date, @NotNull @Min(0) Long revision,
+                              @NotNull @Size(min = 1, max = 100) List<@NotNull @Valid ResultEdit> standings) {
+    }
+
+    public record ResultEdit(@Min(1) long playerId, @Min(0) @Max(99) int rebuys, @Min(0) @Max(99) int addOns) {
+    }
+
     public record Attendance(@Min(1) Long playerId, @NotNull Boolean attending) {
     }
 
@@ -121,7 +129,7 @@ public final class PokerDTO {
                           BlindClock clock, long potCents, List<Long> prizes, List<Result> results) {
     }
 
-    public record LeagueView(long id, String name, String joinCode, boolean owner, Long myPlayerId,
+    public record LeagueView(long id, String name, String joinCode, boolean owner, boolean admin, Long myPlayerId,
                              List<Player> players, Session current, long serverNow) {
     }
 
