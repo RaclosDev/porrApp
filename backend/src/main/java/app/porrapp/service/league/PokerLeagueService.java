@@ -160,10 +160,16 @@ public class PokerLeagueService {
         return changed(league, userId, session);
     }
 
+    private static final java.util.Set<Action> PLAYER_MARKS = java.util.EnumSet.of(Action.REBUY, Action.ADD_ON,
+            Action.UNDO_REBUY, Action.UNDO_ADD_ON, Action.ELIMINATE, Action.UNDO_ELIMINATION);
+
     @Transactional
     public LeagueView command(String email, Long leagueId, Long sessionId, Command command) {
         Long userId = account(email).getId();
-        League league = owned(leagueId, userId);
+        // Recompras, add-ons y eliminaciones los apunta cualquier miembro; el resto, solo quien organiza.
+        League league = PLAYER_MARKS.contains(command.action())
+                ? visible(leagueId, userId, true)
+                : owned(leagueId, userId);
         PokerSession session = openSession(leagueId, sessionId);
         checkRevision(session, command.revision());
         if (command.action() == Action.CANCEL) {

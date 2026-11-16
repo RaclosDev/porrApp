@@ -606,9 +606,14 @@ it('abre las acciones desde la foto y respeta permisos y extras disponibles', ()
   expect(command).toHaveBeenLastCalledWith('REBUY', 3);
   fireEvent.click(out.getByRole('button', { name: 'Quitar la eliminación de Paz' }));
   expect(command).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
+  // Un jugador sin permisos de organizador también apunta recompras y eliminaciones.
   rerender(<PokerLive {...props} owner={false} />);
-  expect(screen.queryByRole('button', { name: 'Acciones de Ana' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('region', { name: 'Acciones de Luis' })).not.toBeInTheDocument();
+  click('Acciones de Ana');
+  const member = within(screen.getByRole('region', { name: 'Acciones de Ana' }));
+  fireEvent.click(member.getByRole('button', { name: 'Eliminar a Ana' }));
+  expect(command).toHaveBeenLastCalledWith('ELIMINATE', 1);
+  expect(screen.queryByRole('button', { name: 'Pausar' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Reanudar' })).not.toBeInTheDocument();
 });
 
 it('desactiva el ante de todos los niveles al guardar y permite recuperarlo antes de guardar', async () => {

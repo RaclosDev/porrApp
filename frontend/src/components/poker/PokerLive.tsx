@@ -431,29 +431,19 @@ export default function PokerLive({
           <ul className="poker-seats" aria-label="Jugadores en la mesa">
             {session.entries.map((entry) => (
               <li key={entry.playerId} className={eliminated.has(entry.playerId) ? 'is-out' : ''}>
-                {owner ? (
-                  <button
-                    type="button"
-                    className="poker-seat-button"
-                    aria-label={`Acciones de ${entry.name}`}
-                    aria-expanded={selectedPlayerId === entry.playerId}
-                    aria-controls="poker-seat-actions"
-                    disabled={busy}
-                    onClick={() =>
-                      setSelectedPlayerId(
-                        selectedPlayerId === entry.playerId ? null : entry.playerId,
-                      )
-                    }
-                  >
-                    <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
-                  </button>
-                ) : (
-                  <span
-                    aria-label={`${entry.name}${eliminated.has(entry.playerId) ? ' (eliminado)' : ''}`}
-                  >
-                    <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
-                  </span>
-                )}
+                <button
+                  type="button"
+                  className="poker-seat-button"
+                  aria-label={`Acciones de ${entry.name}`}
+                  aria-expanded={selectedPlayerId === entry.playerId}
+                  aria-controls="poker-seat-actions"
+                  disabled={busy}
+                  onClick={() =>
+                    setSelectedPlayerId(selectedPlayerId === entry.playerId ? null : entry.playerId)
+                  }
+                >
+                  <PokerAvatar playerId={entry.playerId} name={entry.name} size={44} />
+                </button>
                 <SeatBadges
                   rebuys={entry.rebuys}
                   addOns={entry.addOns}
@@ -463,7 +453,7 @@ export default function PokerLive({
             ))}
           </ul>
         )}
-        {owner && !winner && selectedPlayer && (
+        {!winner && selectedPlayer && (
           <section
             id="poker-seat-actions"
             className="poker-seat-actions"
@@ -593,13 +583,11 @@ export default function PokerLive({
                     )}
                   </div>
                 </div>
-                {owner && !winner && (
-                  <div className="poker-actions">{playerActions(entry, true)}</div>
-                )}
+                {!winner && <div className="poker-actions">{playerActions(entry, true)}</div>}
               </li>
             ))}
           </ul>
-          {owner && corrections.length > 0 && (
+          {corrections.length > 0 && (
             <details className="poker-details">
               <summary>Corregir</summary>
               <div className="poker-detail-content">
