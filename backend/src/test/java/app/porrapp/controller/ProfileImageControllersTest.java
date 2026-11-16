@@ -39,7 +39,6 @@ class ProfileImageControllersTest {
 
     @MockitoBean private ProfileImageService profileImageService;
     @MockitoBean private WebSocketService webSocketService;
-    @MockitoBean private app.porrapp.repository.MembershipRepository membershipRepository;
     @MockitoBean private JwtUtil jwtUtil;
 
     private Principal user(String email) {
