@@ -1,5 +1,6 @@
 package app.porrapp.service.prediction;
 
+import app.porrapp.util.AfterCommit;
 import app.porrapp.model.Competition;
 import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.PredictionRepository;
@@ -9,8 +10,6 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Invalida las puntuaciones guardadas de las porras ({@code predictions.score_calculated_at}).
@@ -83,16 +82,7 @@ public class ScoreInvalidationService {
             Cache cache = cacheManager.getCache(LEADERBOARD_CACHE);
             if (cache != null) cache.evict(leagueId);
         };
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    evict.run();
-                }
-            });
-        } else {
-            evict.run();
-        }
+        AfterCommit.run(evict);
     }
 
     public void evictStandingsAfterCommit() {
@@ -100,16 +90,7 @@ public class ScoreInvalidationService {
     }
 
     private void evictAfterCommit(String... cacheNames) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    clearCaches(cacheNames);
-                }
-            });
-        } else {
-            clearCaches(cacheNames);
-        }
+        AfterCommit.run(() -> clearCaches(cacheNames));
     }
 
     private void clearCaches(String... cacheNames) {

@@ -15,6 +15,7 @@ import app.porrapp.dto.ScoreTrackerSessionRequest;
 import app.porrapp.dto.ScoreTrackerSummaryDTO;
 import app.porrapp.model.ScoreTrackerRoundChange;
 import app.porrapp.dto.StatusResponse;
+import app.porrapp.service.league.ScoreTrackerPlayerService;
 import app.porrapp.service.league.ScoreTrackerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ import java.util.List;
 public class ScoreTrackerController {
 
     private final ScoreTrackerService service;
+    private final ScoreTrackerPlayerService playerService;
 
     @GetMapping
     public List<ScoreTrackerSummaryDTO> mine(Principal principal) {
@@ -150,25 +152,25 @@ public class ScoreTrackerController {
     @ResponseStatus(HttpStatus.CREATED)
     public ScoreTrackerDTO addPlayer(@PathVariable Long id, @Valid @RequestBody ScoreTrackerPlayerRequest request,
                                      Principal principal) {
-        return service.addPlayer(principal.getName(), id, request.name());
+        return playerService.addPlayer(principal.getName(), id, request.name());
     }
 
     @PutMapping("/{id}/players/{playerId}")
     public ScoreTrackerDTO renamePlayer(@PathVariable Long id, @PathVariable Long playerId,
                                         @Valid @RequestBody ScoreTrackerPlayerRequest request, Principal principal) {
-        return service.renamePlayer(principal.getName(), id, playerId, request.name());
+        return playerService.renamePlayer(principal.getName(), id, playerId, request.name());
     }
 
     @DeleteMapping("/{id}/players/{playerId}")
     public ScoreTrackerDTO deletePlayer(@PathVariable Long id, @PathVariable Long playerId, Principal principal) {
-        return service.deletePlayer(principal.getName(), id, playerId);
+        return playerService.deletePlayer(principal.getName(), id, playerId);
     }
 
     /** Junta un jugador con otro que era la misma persona. */
     @PostMapping("/{id}/players/{playerId}/merge")
     public ScoreTrackerDTO mergePlayer(@PathVariable Long id, @PathVariable Long playerId,
                                        @Valid @RequestBody ScorePlayerMergeRequest request, Principal principal) {
-        return service.mergePlayer(principal.getName(), id, playerId, request.intoPlayerId());
+        return playerService.mergePlayer(principal.getName(), id, playerId, request.intoPlayerId());
     }
 
     @DeleteMapping("/{id}/days/{dayId}")
@@ -187,12 +189,12 @@ public class ScoreTrackerController {
     @PutMapping("/{id}/me")
     public ScoreTrackerDTO claimPlayer(@PathVariable Long id, @Valid @RequestBody ScoreTrackerClaimRequest request,
                                        Principal principal) {
-        return service.claimPlayer(principal.getName(), id, request.playerId());
+        return playerService.claimPlayer(principal.getName(), id, request.playerId());
     }
 
     @DeleteMapping("/{id}/me")
     public ScoreTrackerDTO releasePlayer(@PathVariable Long id, Principal principal) {
-        return service.releasePlayer(principal.getName(), id);
+        return playerService.releasePlayer(principal.getName(), id);
     }
 
     @DeleteMapping("/{id}")

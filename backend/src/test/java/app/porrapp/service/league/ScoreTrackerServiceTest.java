@@ -81,9 +81,13 @@ class ScoreTrackerServiceTest {
             .kind(League.KIND_SCOREBOARD).adminUser(owner).build();
     private final ScoreGame mus = ScoreGame.builder().id(50L).leagueId(10L).name("Mus").build();
     private final ScoreGame parchis = ScoreGame.builder().id(51L).leagueId(10L).name("Parchís").build();
+    private final ScoreboardRoster roster =
+            new ScoreboardRoster(players, mock(app.porrapp.repository.PokerSessionRepository.class));
     private final ScoreTrackerService service = new ScoreTrackerService(leagues, memberships, membershipService,
-            leagueService, new ScoreboardRoster(players, org.mockito.Mockito.mock(app.porrapp.repository.PokerSessionRepository.class)), games, players, sessions, rounds, roundChanges, scores, days, dayPlayers,
+            leagueService, roster, games, players, sessions, rounds, roundChanges, scores, days, dayPlayers,
             sessionPlayers, users, webSocket, events);
+    private final ScoreTrackerPlayerService playerService =
+            new ScoreTrackerPlayerService(service, roster, players, scores, sessionPlayers, dayPlayers);
 
     private static UserAccount user(Long id, String name) {
         UserAccount user = new UserAccount();
@@ -191,7 +195,7 @@ class ScoreTrackerServiceTest {
         when(players.findWithLockById(101L)).thenReturn(Optional.of(berto));
         when(players.findByLeagueIdAndUserId(10L, 2L)).thenReturn(Optional.of(ana));
 
-        ScoreTrackerDTO view = service.claimPlayer("miembro@x.com", 10L, 101L);
+        ScoreTrackerDTO view = playerService.claimPlayer("miembro@x.com", 10L, 101L);
 
         assertThat(ana.getUserId()).isNull();
         assertThat(berto.getUserId()).isEqualTo(2L);
@@ -204,7 +208,7 @@ class ScoreTrackerServiceTest {
         ScoreTrackerPlayer ana = ScoreTrackerPlayer.builder().id(100L).leagueId(10L).name("Ana").userId(1L).build();
         when(players.findWithLockById(100L)).thenReturn(Optional.of(ana));
 
-        assertThatThrownBy(() -> service.claimPlayer("miembro@x.com", 10L, 100L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> playerService.claimPlayer("miembro@x.com", 10L, 100L)).isInstanceOf(BusinessException.class);
         assertThat(ana.getUserId()).isEqualTo(1L);
     }
 
@@ -213,9 +217,9 @@ class ScoreTrackerServiceTest {
         ScoreTrackerPlayer other = ScoreTrackerPlayer.builder().id(200L).leagueId(11L).name("Zoe").build();
         when(players.findWithLockById(200L)).thenReturn(Optional.of(other));
 
-        assertThatThrownBy(() -> service.claimPlayer("ajeno@x.com", 10L, 100L)).isInstanceOf(BusinessException.class)
+        assertThatThrownBy(() -> playerService.claimPlayer("ajeno@x.com", 10L, 100L)).isInstanceOf(BusinessException.class)
                 .hasMessage("Marcador no encontrado");
-        assertThatThrownBy(() -> service.claimPlayer("miembro@x.com", 10L, 200L)).isInstanceOf(BusinessException.class)
+        assertThatThrownBy(() -> playerService.claimPlayer("miembro@x.com", 10L, 200L)).isInstanceOf(BusinessException.class)
                 .hasMessage("Jugador no válido");
         assertThat(other.getUserId()).isNull();
     }
@@ -801,7 +805,7 @@ class ScoreTrackerServiceTest {
     @Test
     void anOldDayRemainsOpenUntilItIsExplicitlyClosed() {
         threePlayers();
-        Instant old = Instant.now().minus(ScoreTrackerService.STALE_DAY).minus(Duration.ofHours(1));
+        Instant old = Instant.now().minus(Duration.ofDays(2));
         ScoreDay stale = ScoreDay.builder().id(89L).leagueId(10L).startedAt(old).build();
         when(days.findFirstByLeagueIdAndClosedAtIsNullOrderByIdDesc(10L)).thenReturn(Optional.of(stale));
         ScoreTrackerSession played = ScoreTrackerSession.builder().id(70L).leagueId(10L).gameId(50L).dayId(89L)
@@ -877,7 +881,7 @@ class ScoreTrackerServiceTest {
         when(players.findWithLockById(101L)).thenReturn(Optional.of(guest));
         when(players.findByLeagueIdAndUserId(10L, 2L)).thenReturn(Optional.of(joined));
 
-        service.claimPlayer("miembro@x.com", 10L, 101L);
+        playerService.claimPlayer("miembro@x.com", 10L, 101L);
 
         verify(players).delete(joined);
         assertThat(guest.getUserId()).isEqualTo(2L);
@@ -891,7 +895,7 @@ class ScoreTrackerServiceTest {
         when(players.findByLeagueIdAndUserId(10L, 2L)).thenReturn(Optional.of(joined));
         when(sessionPlayers.findByPlayerId(100L)).thenReturn(List.of(new ScoreSessionPlayer(70L, 100L)));
 
-        service.claimPlayer("miembro@x.com", 10L, 101L);
+        playerService.claimPlayer("miembro@x.com", 10L, 101L);
 
         verify(players, never()).delete(any(ScoreTrackerPlayer.class));
         assertThat(joined.getUserId()).isNull();
@@ -905,13 +909,13 @@ class ScoreTrackerServiceTest {
         when(players.findById(101L)).thenReturn(Optional.of(berto));
         when(players.findByLeagueIdOrderByPositionAsc(10L)).thenReturn(List.of(ana, berto));
 
-        assertThatThrownBy(() -> service.renamePlayer("miembro@x.com", 10L, 100L, "Anita"))
+        assertThatThrownBy(() -> playerService.renamePlayer("miembro@x.com", 10L, 100L, "Anita"))
                 .isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> service.renamePlayer("dueno@x.com", 10L, 100L, "berto"))
+        assertThatThrownBy(() -> playerService.renamePlayer("dueno@x.com", 10L, 100L, "berto"))
                 .isInstanceOf(BusinessException.class).hasMessage("Ya hay un jugador con ese nombre");
 
-        service.renamePlayer("dueno@x.com", 10L, 100L, "  Anita ");
-        service.renamePlayer("miembro@x.com", 10L, 101L, "Bertín");
+        playerService.renamePlayer("dueno@x.com", 10L, 100L, "  Anita ");
+        playerService.renamePlayer("miembro@x.com", 10L, 101L, "Bertín");
 
         assertThat(ana.getName()).isEqualTo("Anita");
         assertThat(berto.getName()).isEqualTo("Bertín");
@@ -928,11 +932,11 @@ class ScoreTrackerServiceTest {
         when(scores.findByPlayerIdIn(List.of(102L)))
                 .thenReturn(List.of(ScoreTrackerScore.builder().roundId(80L).playerId(102L).points(3).build()));
 
-        assertThatThrownBy(() -> service.deletePlayer("miembro@x.com", 10L, 100L)).isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> service.deletePlayer("dueno@x.com", 10L, 101L)).isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> service.deletePlayer("dueno@x.com", 10L, 102L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> playerService.deletePlayer("miembro@x.com", 10L, 100L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> playerService.deletePlayer("dueno@x.com", 10L, 101L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> playerService.deletePlayer("dueno@x.com", 10L, 102L)).isInstanceOf(BusinessException.class);
 
-        service.deletePlayer("dueno@x.com", 10L, 100L);
+        playerService.deletePlayer("dueno@x.com", 10L, 100L);
 
         verify(players).delete(ana);
         verify(players, never()).delete(carla);
@@ -953,9 +957,9 @@ class ScoreTrackerServiceTest {
         when(sessionPlayers.findByPlayerId(101L)).thenReturn(List.of(new ScoreSessionPlayer(71L, 101L)));
         when(dayPlayers.findByPlayerId(100L)).thenReturn(List.of(new ScoreDayPlayer(90L, 100L)));
 
-        assertThatThrownBy(() -> service.mergePlayer("miembro@x.com", 10L, 100L, 101L))
+        assertThatThrownBy(() -> playerService.mergePlayer("miembro@x.com", 10L, 100L, 101L))
                 .isInstanceOf(BusinessException.class);
-        service.mergePlayer("dueno@x.com", 10L, 100L, 101L);
+        playerService.mergePlayer("dueno@x.com", 10L, 100L, 101L);
 
         ArgumentCaptor<ScoreTrackerScore> moved = ArgumentCaptor.forClass(ScoreTrackerScore.class);
         verify(scores).save(moved.capture());
@@ -978,13 +982,13 @@ class ScoreTrackerServiceTest {
         when(scores.findByPlayerIdIn(any()))
                 .thenReturn(List.of(ScoreTrackerScore.builder().roundId(80L).playerId(100L).points(1).build()));
 
-        assertThatThrownBy(() -> service.mergePlayer("dueno@x.com", 10L, 100L, 100L))
+        assertThatThrownBy(() -> playerService.mergePlayer("dueno@x.com", 10L, 100L, 100L))
                 .isInstanceOf(BusinessException.class).hasMessage("Elige otro jugador");
-        assertThatThrownBy(() -> service.mergePlayer("dueno@x.com", 10L, 100L, 101L))
+        assertThatThrownBy(() -> playerService.mergePlayer("dueno@x.com", 10L, 100L, 101L))
                 .isInstanceOf(BusinessException.class);
         ana.setUserId(1L);
         berto.setUserId(2L);
-        assertThatThrownBy(() -> service.mergePlayer("dueno@x.com", 10L, 100L, 101L))
+        assertThatThrownBy(() -> playerService.mergePlayer("dueno@x.com", 10L, 100L, 101L))
                 .isInstanceOf(BusinessException.class).hasMessage("Los dos jugadores son de personas distintas");
         verify(players, never()).delete(any(ScoreTrackerPlayer.class));
     }

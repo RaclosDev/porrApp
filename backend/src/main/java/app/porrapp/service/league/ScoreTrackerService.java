@@ -1,5 +1,6 @@
 package app.porrapp.service.league;
 
+import app.porrapp.util.AfterCommit;
 import app.porrapp.dto.ScoreGameNameRequest;
 import app.porrapp.dto.ScoreGameRequest;
 import app.porrapp.dto.ScoreTrackerDTO;
@@ -44,8 +45,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,7 +52,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -88,8 +86,6 @@ public class ScoreTrackerService {
     static final int MAX_NAME_LENGTH = 40;
     static final int MAX_ROUNDS = 2000;
     static final int MAX_POINTS = 1_000_000;
-    /** Un día de juego sin actividad durante este tiempo se da por terminado. */
-    static final Duration STALE_DAY = Duration.ofHours(12);
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int CODE_LENGTH = 8;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -117,7 +113,7 @@ public class ScoreTrackerService {
         return users.findByGoogleEmail(email).orElseThrow(() -> BusinessException.forbidden("Usuario no encontrado"));
     }
 
-    private Long userId(String email) {
+    public Long userId(String email) {
         return account(email).getId();
     }
 
@@ -144,7 +140,7 @@ public class ScoreTrackerService {
     }
 
     /** La liga de marcador, si el usuario es miembro; si no existe o no es suya, el mismo error (no se filtra su existencia). */
-    private League visible(Long userId, Long leagueId) {
+    public League visible(Long userId, Long leagueId) {
         League league = leagues.findById(leagueId).filter(League::isScoreboard)
                 .orElseThrow(() -> BusinessException.notFound("Marcador no encontrado"));
         if (!memberships.existsById(new Membership.MembershipId(userId, leagueId))) {
@@ -153,11 +149,11 @@ public class ScoreTrackerService {
         return league;
     }
 
-    private static boolean administers(League league, Long userId) {
+    static boolean administers(League league, Long userId) {
         return league.isAdmin(userId);
     }
 
-    private League owned(Long userId, Long leagueId) {
+    public League owned(Long userId, Long leagueId) {
         League league = visible(userId, leagueId);
         if (!administers(league, userId)) {
             throw BusinessException.forbidden("Solo quien creó el marcador puede cambiarlo");
@@ -165,7 +161,7 @@ public class ScoreTrackerService {
         return league;
     }
 
-    private static String clean(String value) {
+    static String clean(String value) {
         return value == null ? "" : value.trim().replaceAll("\\s+", " ");
     }
 
@@ -545,20 +541,6 @@ public class ScoreTrackerService {
         return days.findFirstByLeagueIdAndClosedAtIsNullOrderByIdDesc(leagueId).orElse(null);
     }
 
-    static Instant lastActivity(ScoreDay day, List<ScoreTrackerSession> leagueSessions,
-                                List<ScoreTrackerRound> leagueRounds) {
-        Set<Long> own = leagueSessions.stream().filter(session -> session.getDayId().equals(day.getId()))
-                .map(ScoreTrackerSession::getId).collect(Collectors.toSet());
-        Instant last = day.getStartedAt();
-        for (ScoreTrackerSession session : leagueSessions) {
-            if (own.contains(session.getId()) && session.getStartedAt().isAfter(last)) last = session.getStartedAt();
-        }
-        for (ScoreTrackerRound round : leagueRounds) {
-            if (own.contains(round.getSessionId()) && round.getCreatedAt().isAfter(last)) last = round.getCreatedAt();
-        }
-        return last;
-    }
-
     /**
      * Cierra el día: termina sus partidas abiertas y quita las que no tienen ninguna ronda. Un día que se
      * queda sin partidas no se guarda en el histórico.
@@ -850,157 +832,6 @@ public class ScoreTrackerService {
         }
     }
 
-    @Transactional
-    public ScoreTrackerDTO addPlayer(String email, Long leagueId, String name) {
-        Long userId = userId(email);
-        League league = visible(userId, leagueId);
-        String clean = clean(name);
-        if (clean.isEmpty()) throw BusinessException.badRequest("Escribe el nombre del jugador");
-        List<ScoreTrackerPlayer> all = players.findByLeagueIdOrderByPositionAsc(leagueId);
-        if (all.size() >= MAX_PLAYERS) throw BusinessException.badRequest("Máximo " + MAX_PLAYERS + " jugadores");
-        if (all.stream().anyMatch(player -> player.getName().equalsIgnoreCase(clean))) {
-            throw BusinessException.badRequest("Ya hay un jugador con ese nombre");
-        }
-        players.save(ScoreTrackerPlayer.builder().leagueId(leagueId).name(clean).position(all.size()).build());
-        return changed(league, userId);
-    }
-
-    /**
-     * El usuario dice cuál de los jugadores es él, para que en cada móvil se vea quién es quién. Solo uno
-     * por liga (cambiar de jugador libera el anterior) y nadie puede quitarle el suyo a otro.
-     */
-    @Transactional
-    public ScoreTrackerDTO claimPlayer(String email, Long leagueId, Long playerId) {
-        Long userId = userId(email);
-        League league = visible(userId, leagueId);
-        ScoreTrackerPlayer target = players.findWithLockById(playerId)
-                .filter(found -> found.getLeagueId().equals(leagueId))
-                .orElseThrow(() -> BusinessException.badRequest("Jugador no válido"));
-        if (target.getUserId() != null && !target.getUserId().equals(userId)) {
-            throw BusinessException.conflict("Ese jugador ya es de otra persona");
-        }
-        if (userId.equals(target.getUserId())) return view(league, userId);
-        players.findByLeagueIdAndUserId(leagueId, userId).ifPresent(previous -> {
-            previous.setUserId(null);
-            players.saveAndFlush(previous);
-            // El que se creó al unirse y nunca ha jugado sobra: ahora es el jugador que reclama.
-            if (!hasPlayed(previous.getId())) {
-                players.delete(previous);
-                players.flush();
-            }
-        });
-        target.setUserId(userId);
-        players.save(target);
-        return changed(league, userId);
-    }
-
-    @Transactional
-    public ScoreTrackerDTO releasePlayer(String email, Long leagueId) {
-        Long userId = userId(email);
-        League league = visible(userId, leagueId);
-        roster.memberLeft(leagueId, userId);
-        return changed(league, userId);
-    }
-
-    private boolean hasPlayed(Long playerId) {
-        return !scores.findByPlayerIdIn(List.of(playerId)).isEmpty()
-                || !sessionPlayers.findByPlayerId(playerId).isEmpty();
-    }
-
-    private ScoreTrackerPlayer playerOf(Long leagueId, Long playerId) {
-        return players.findById(playerId).filter(found -> found.getLeagueId().equals(leagueId))
-                .orElseThrow(() -> BusinessException.badRequest("Jugador no válido"));
-    }
-
-    /** Cambia el nombre de un jugador: lo hace el administrador o la persona que es ese jugador. */
-    @Transactional
-    public ScoreTrackerDTO renamePlayer(String email, Long leagueId, Long playerId, String name) {
-        Long userId = userId(email);
-        League league = visible(userId, leagueId);
-        ScoreTrackerPlayer player = playerOf(leagueId, playerId);
-        if (!administers(league, userId) && !userId.equals(player.getUserId())) {
-            throw BusinessException.forbidden("Solo el administrador o ese jugador pueden cambiarle el nombre");
-        }
-        String cleaned = clean(name);
-        if (cleaned.isEmpty()) throw BusinessException.badRequest("Escribe el nombre del jugador");
-        String wanted = cleaned.length() > MAX_NAME_LENGTH ? cleaned.substring(0, MAX_NAME_LENGTH) : cleaned;
-        if (players.findByLeagueIdOrderByPositionAsc(leagueId).stream()
-                .anyMatch(other -> !other.getId().equals(playerId) && other.getName().equalsIgnoreCase(wanted))) {
-            throw BusinessException.badRequest("Ya hay un jugador con ese nombre");
-        }
-        player.setName(wanted);
-        players.save(player);
-        return changed(league, userId);
-    }
-
-    /** Quita un jugador apuntado por error: solo el administrador y solo si no ha jugado ninguna partida. */
-    @Transactional
-    public ScoreTrackerDTO deletePlayer(String email, Long leagueId, Long playerId) {
-        Long userId = userId(email);
-        League league = owned(userId, leagueId);
-        ScoreTrackerPlayer player = playerOf(leagueId, playerId);
-        if (player.getUserId() != null) {
-            throw BusinessException.conflict("Ese jugador es de una persona de la liga: no se puede quitar");
-        }
-        if (hasPlayed(playerId)) {
-            throw BusinessException.conflict("Ese jugador ya ha jugado: júntalo con otro en vez de quitarlo");
-        }
-        players.delete(player);
-        players.flush();
-        return changed(league, userId);
-    }
-
-    /**
-     * Junta dos jugadores que eran la misma persona: las rondas, partidas y días de uno pasan al otro y el
-     * primero desaparece. Si el que se quita era de alguien, su cuenta pasa al que queda.
-     */
-    @Transactional
-    public ScoreTrackerDTO mergePlayer(String email, Long leagueId, Long playerId, Long intoPlayerId) {
-        Long userId = userId(email);
-        League league = owned(userId, leagueId);
-        if (playerId.equals(intoPlayerId)) throw BusinessException.badRequest("Elige otro jugador");
-        ScoreTrackerPlayer source = playerOf(leagueId, playerId);
-        ScoreTrackerPlayer target = playerOf(leagueId, intoPlayerId);
-        if (source.getUserId() != null && target.getUserId() != null) {
-            throw BusinessException.conflict("Los dos jugadores son de personas distintas");
-        }
-        List<ScoreTrackerScore> moved = scores.findByPlayerIdIn(List.of(playerId));
-        Set<Long> targetRounds = scores.findByPlayerIdIn(List.of(intoPlayerId)).stream()
-                .map(ScoreTrackerScore::getRoundId).collect(Collectors.toSet());
-        if (moved.stream().anyMatch(score -> targetRounds.contains(score.getRoundId()))) {
-            throw BusinessException.conflict("Los dos jugaron la misma ronda: no son la misma persona");
-        }
-        scores.deleteAll(moved);
-        scores.flush();
-        moved.forEach(score -> scores.save(ScoreTrackerScore.builder().roundId(score.getRoundId())
-                .playerId(intoPlayerId).points(score.getPoints()).build()));
-
-        List<ScoreSessionPlayer> sourceSessions = sessionPlayers.findByPlayerId(playerId);
-        Set<Long> targetSessions = sessionPlayers.findByPlayerId(intoPlayerId).stream()
-                .map(ScoreSessionPlayer::getSessionId).collect(Collectors.toSet());
-        sessionPlayers.deleteAll(sourceSessions);
-        sessionPlayers.flush();
-        sourceSessions.stream().map(ScoreSessionPlayer::getSessionId).filter(id -> !targetSessions.contains(id))
-                .forEach(id -> sessionPlayers.save(new ScoreSessionPlayer(id, intoPlayerId)));
-
-        List<ScoreDayPlayer> sourceDays = dayPlayers.findByPlayerId(playerId);
-        Set<Long> targetDays = dayPlayers.findByPlayerId(intoPlayerId).stream()
-                .map(ScoreDayPlayer::getDayId).collect(Collectors.toSet());
-        dayPlayers.deleteAll(sourceDays);
-        dayPlayers.flush();
-        sourceDays.stream().map(ScoreDayPlayer::getDayId).filter(id -> !targetDays.contains(id))
-                .forEach(id -> dayPlayers.save(new ScoreDayPlayer(id, intoPlayerId)));
-
-        Long account = source.getUserId();
-        players.delete(source);
-        players.flush();
-        if (account != null) {
-            target.setUserId(account);
-            players.save(target);
-        }
-        return changed(league, userId);
-    }
-
     /** Borra un día de juego apuntado por error, con sus partidas (solo el administrador). */
     @Transactional
     public ScoreTrackerDTO deleteDay(String email, Long leagueId, Long dayId) {
@@ -1052,7 +883,7 @@ public class ScoreTrackerService {
         notifyAfterCommit(leagueId, audience);
     }
 
-    private ScoreTrackerDTO changed(League league, Long userId) {
+    public ScoreTrackerDTO changed(League league, Long userId) {
         notifyAfterCommit(league.getId(), audience(league));
         return view(league, userId);
     }
@@ -1066,19 +897,10 @@ public class ScoreTrackerService {
 
     /** El aviso sale cuando los datos ya están guardados: si no, el cliente recargaría lo de antes. */
     private void notifyAfterCommit(Long leagueId, Set<Long> audience) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            webSocketService.notifyTrackerChanged(leagueId, audience);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                webSocketService.notifyTrackerChanged(leagueId, audience);
-            }
-        });
+        AfterCommit.run(() -> webSocketService.notifyTrackerChanged(leagueId, audience));
     }
 
-    private ScoreTrackerDTO view(League league, Long userId) {
+    public ScoreTrackerDTO view(League league, Long userId) {
         Long leagueId = league.getId();
         List<ScoreTrackerPlayer> playerRows = players.findByLeagueIdOrderByPositionAsc(leagueId);
         List<Player> playerList = playerRows.stream()
