@@ -44,8 +44,7 @@ class UfcDataProviderTest {
             HttpRequest request = invocation.getArgument(0);
             String url = request.uri().toString();
             requested.add(url);
-            @SuppressWarnings("unchecked")
-            HttpResponse<byte[]> response = org.mockito.Mockito.mock(HttpResponse.class);
+            HttpResponse<byte[]> response = org.mockito.Mockito.mock();
             when(response.statusCode()).thenReturn(url.contains("fightcenter/600061420") || url.contains("scoreboard") ? 200 : 404);
             when(response.body()).thenReturn(url.contains("scoreboard") ? scoreboard : fightcenter);
             return response;

@@ -56,6 +56,7 @@ class UserAccountRepositoryImpl implements UserAccountLookup {
         return Optional.of(user);
     }
 
+    // El recurso ligado a la transacción se guarda como Object: el cast es seguro porque solo esta clase usa MEMO_KEY.
     @SuppressWarnings("unchecked")
     private static Map<String, Long> transactionMemo() {
         if (!TransactionSynchronizationManager.isSynchronizationActive()

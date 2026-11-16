@@ -224,9 +224,8 @@ class CompetitionPlayerServiceTest {
                 .playerPosition("F").fetchedAt(Instant.now()).build();
     }
 
-    @SuppressWarnings("unchecked")
     private Collection<CompetitionPlayer> savedPlayers() {
-        ArgumentCaptor<Iterable<CompetitionPlayer>> saved = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Iterable<CompetitionPlayer>> saved = ArgumentCaptor.captor();
         verify(playerRepository).saveAll(saved.capture());
         return (Collection<CompetitionPlayer>) saved.getValue();
     }
