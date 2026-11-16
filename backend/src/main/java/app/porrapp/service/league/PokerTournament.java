@@ -181,7 +181,7 @@ final class PokerTournament {
                 : activeEntry(session, command.playerId());
         Extra option = rebuy ? session.getSettings().rebuy() : session.getSettings().addOn();
         int count = rebuy ? player.rebuys() : player.addOns();
-        if (option == null || (option.limit() != null && count >= option.limit()) || clock.level() >= option.throughLevel()
+        if (option == null || (option.limit() != null && count >= option.limit()) || clock.level() >= buyUntil(session.getSettings().levels(), option.throughLevel())
                 || clock.remainingMs() == 0) {
             throw BusinessException.conflict("Ese extra de fichas ya no está disponible para este jugador");
         }
@@ -219,6 +219,13 @@ final class PokerTournament {
 
     private static long duration(BlindLevel level) {
         return level.minutes() * 60_000L;
+    }
+
+    /** Nivel en que se cierra un extra: su corte más los descansos que lo siguen, para comprar en la pausa. */
+    static int buyUntil(List<BlindLevel> levels, int throughLevel) {
+        int end = throughLevel;
+        while (end < levels.size() && levels.get(end).big() == 0) end++;
+        return end;
     }
 
     static BlindClock clockAt(BlindClock clock, List<BlindLevel> levels, long now) {

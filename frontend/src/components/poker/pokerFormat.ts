@@ -80,6 +80,40 @@ export const defaultSettings: PokerSettings = {
   ],
 };
 
+/** Nivel en que se cierra un extra: su corte más los descansos que lo siguen, para comprar en la pausa. */
+export function buyUntil(levels: BlindLevel[], throughLevel: number) {
+  let end = throughLevel;
+  while (end < levels.length && levels[end].big === 0) end++;
+  return end;
+}
+
+/** Con el extra activo, deja un descanso justo después de su último nivel para comprar sin prisas. */
+export function withBreakAfterCutoff(
+  settings: PokerSettings,
+  extra: 'rebuy' | 'addOn',
+): PokerSettings {
+  const cutoff = settings[extra]?.throughLevel;
+  const next = cutoff === undefined ? undefined : settings.levels[cutoff];
+  // Si el corte cae en un descanso, o ya le sigue uno, ya hay pausa para comprar.
+  if (cutoff === undefined || !next || next.big === 0 || settings.levels[cutoff - 1]?.big === 0) {
+    return settings;
+  }
+  const shift = (other: PokerSettings['rebuy']) =>
+    other && other.throughLevel > cutoff
+      ? { ...other, throughLevel: other.throughLevel + 1 }
+      : other;
+  return {
+    ...settings,
+    levels: [
+      ...settings.levels.slice(0, cutoff),
+      { minutes: 10, small: 0, big: 0, ante: 0 },
+      ...settings.levels.slice(cutoff),
+    ],
+    rebuy: extra === 'rebuy' ? settings.rebuy : shift(settings.rebuy),
+    addOn: extra === 'addOn' ? settings.addOn : shift(settings.addOn),
+  };
+}
+
 export function clockAt(clock: BlindClock, levels: BlindLevel[], now: number): BlindClock {
   if (clock.endsAt === null) return clock;
   let deadline = clock.endsAt;

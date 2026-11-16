@@ -149,6 +149,65 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   expect(cancel).toHaveBeenCalledOnce();
 });
 
+it('añade un descanso tras el corte de recompras para comprar en él', async () => {
+  const save = vi.fn().mockResolvedValue(true);
+  const three = {
+    ...settings,
+    levels: [...settings.levels, { ...settings.levels[1], small: 75, big: 150 }],
+  };
+  render(
+    <PokerSettingsForm
+      date={date}
+      settings={{ ...three, addOn: { costCents: 500, chips: 5000, limit: 1, throughLevel: 2 } }}
+      editing={false}
+      busy={false}
+      onCancel={vi.fn()}
+      onSave={save}
+    />,
+  );
+  fireEvent.click(screen.getByText('Ciegas, recompras y add-on'));
+  fireEvent.click(screen.getByLabelText('Activar recompras'));
+  set('Hasta el final de', '1', within(screen.getByRole('group', { name: 'Permitir recompras' })));
+  click('Abrir inscripciones');
+  const pause = { small: 0, big: 0, ante: 0, minutes: 10 };
+  await waitFor(() =>
+    expect(save).toHaveBeenCalledWith(
+      date,
+      expect.objectContaining({
+        levels: [three.levels[0], pause, three.levels[1], pause, three.levels[2]],
+        rebuy: expect.objectContaining({ throughLevel: 1 }),
+        addOn: expect.objectContaining({ throughLevel: 3 }),
+      }),
+    ),
+  );
+});
+
+it('deja comprar en el descanso que sigue al corte', () => {
+  const pause = { small: 0, big: 0, ante: 0, minutes: 10 };
+  const extra = { costCents: 500, chips: 5000, limit: null, throughLevel: 1 };
+  render(
+    <PokerLive
+      session={{
+        ...session,
+        startedAt: 1,
+        clock: { level: 1, endsAt: null, remainingMs: 60_000 },
+        settings: {
+          ...settings,
+          rebuy: extra,
+          levels: [settings.levels[0], pause, settings.levels[1]],
+        },
+      }}
+      owner
+      busy={false}
+      serverNow={1_000}
+      receivedAt={Date.now()}
+      onCommand={vi.fn()}
+    />,
+  );
+  expect(screen.getByRole('button', { name: 'Recompra de Ana' })).toBeEnabled();
+  expect(screen.getByText(/Hasta el nivel 1 y el descanso/)).toBeInTheDocument();
+});
+
 it('marca en la mesa las recompras, los extras y al último ganador', () => {
   const { container } = render(
     <PokerLive

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { BlindLevel, PokerExtra, PokerSettings } from '../../services/endpoints/poker';
 import PokerPrizeShares, { sharesTotal } from './PokerPrizeShares';
-import { chips } from './pokerFormat';
+import { chips, withBreakAfterCutoff } from './pokerFormat';
 
 interface Props {
   date: string;
@@ -21,11 +21,20 @@ export default function PokerSettingsForm({
   onSave,
 }: Props) {
   const [day, setDay] = useState(date);
-  const [draft, setDraft] = useState(settings);
+  const [draft, setDraft] = useState(() =>
+    withBreakAfterCutoff(withBreakAfterCutoff(settings, 'rebuy'), 'addOn'),
+  );
   const [anteEnabled, setAnteEnabled] = useState(settings.levels.some((level) => level.ante > 0));
   const [error, setError] = useState('');
   const patch = (changes: Partial<PokerSettings>) =>
     setDraft((previous) => ({ ...previous, ...changes }));
+  /** Al activar un extra o mover su corte se añade un descanso detrás para comprar en él. */
+  const patchExtra = (key: 'rebuy' | 'addOn', extra: PokerExtra | null) =>
+    setDraft((previous) => {
+      const next = { ...previous, [key]: extra };
+      const moved = extra && extra.throughLevel !== previous[key]?.throughLevel;
+      return moved ? withBreakAfterCutoff(next, key) : next;
+    });
   const updateLevel = (index: number, changes: Partial<BlindLevel>) =>
     patch({
       levels: draft.levels.map((level, i) => (i === index ? { ...level, ...changes } : level)),
@@ -254,13 +263,13 @@ export default function PokerSettingsForm({
             extra={draft.rebuy}
             settings={draft}
             multiple
-            onChange={(rebuy) => patch({ rebuy })}
+            onChange={(rebuy) => patchExtra('rebuy', rebuy)}
           />
           <ExtraFields
             label="Ofrecer un add-on (extra de fichas)"
             extra={draft.addOn}
             settings={draft}
-            onChange={(addOn) => patch({ addOn })}
+            onChange={(addOn) => patchExtra('addOn', addOn)}
           />
         </div>
       </details>
