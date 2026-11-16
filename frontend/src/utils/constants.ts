@@ -1,3 +1,5 @@
+import { foldText } from './text';
+
 /**
  * Corrige mojibake UTF-8 decodificado erróneamente como Latin-1 / Windows-1252.
  */
@@ -216,17 +218,8 @@ export function getCountryCode(name: string | null | undefined): string {
   if (match) return countryCodeMap[match];
 
   // Coincidencia eliminando acentos/diacríticos
-  const stripped = normalized
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-  const strippedMatch = Object.keys(countryCodeMap).find(
-    (k) =>
-      k
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase() === stripped,
-  );
+  const stripped = foldText(normalized);
+  const strippedMatch = Object.keys(countryCodeMap).find((k) => foldText(k) === stripped);
   return strippedMatch ? countryCodeMap[strippedMatch] : 'xx';
 }
 
