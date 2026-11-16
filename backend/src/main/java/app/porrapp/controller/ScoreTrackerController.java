@@ -16,6 +16,7 @@ import app.porrapp.dto.ScoreTrackerSummaryDTO;
 import app.porrapp.model.ScoreTrackerRoundChange;
 import app.porrapp.dto.StatusResponse;
 import app.porrapp.service.league.ScoreTrackerPlayerService;
+import app.porrapp.service.league.ScoreTrackerRoundService;
 import app.porrapp.service.league.ScoreTrackerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class ScoreTrackerController {
 
     private final ScoreTrackerService service;
     private final ScoreTrackerPlayerService playerService;
+    private final ScoreTrackerRoundService roundService;
 
     @GetMapping
     public List<ScoreTrackerSummaryDTO> mine(Principal principal) {
@@ -62,25 +64,25 @@ public class ScoreTrackerController {
     @ResponseStatus(HttpStatus.CREATED)
     public ScoreTrackerDTO addRound(@PathVariable Long id, @Valid @RequestBody ScoreTrackerRoundRequest request,
                                     Principal principal) {
-        return service.addRound(principal.getName(), id, request);
+        return roundService.addRound(principal.getName(), id, request);
     }
 
     @PutMapping("/{id}/rounds/{roundId}")
     public ScoreTrackerDTO editRound(@PathVariable Long id, @PathVariable Long roundId,
                                      @Valid @RequestBody ScoreTrackerRoundRequest request, Principal principal) {
-        return service.editRound(principal.getName(), id, roundId, request);
+        return roundService.editRound(principal.getName(), id, roundId, request);
     }
 
     @DeleteMapping("/{id}/rounds/{roundId}")
     public ScoreTrackerDTO deleteRound(@PathVariable Long id, @PathVariable Long roundId,
                                        @RequestParam Integer revision, Principal principal) {
-        return service.deleteRound(principal.getName(), id, roundId, revision);
+        return roundService.deleteRound(principal.getName(), id, roundId, revision);
     }
 
     @GetMapping("/{id}/rounds/{roundId}/changes")
     public List<ScoreTrackerRoundChange> roundHistory(@PathVariable Long id, @PathVariable Long roundId,
                                                        Principal principal) {
-        return service.roundHistory(principal.getName(), id, roundId);
+        return roundService.roundHistory(principal.getName(), id, roundId);
     }
 
     @PostMapping("/{id}/sessions")

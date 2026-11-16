@@ -33,6 +33,7 @@ class ScoreTrackerCreateRequestTest {
     @Autowired private FilterChainProxy securityFilterChain;
     @MockitoBean private ScoreTrackerService service;
     @MockitoBean private app.porrapp.service.league.ScoreTrackerPlayerService playerService;
+    @MockitoBean private app.porrapp.service.league.ScoreTrackerRoundService roundService;
     @MockitoBean private JwtUtil jwtUtil;
     @MockitoBean private app.porrapp.repository.UserAccountRepository users;
 

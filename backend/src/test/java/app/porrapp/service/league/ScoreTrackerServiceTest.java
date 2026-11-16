@@ -84,8 +84,13 @@ class ScoreTrackerServiceTest {
     private final ScoreboardRoster roster =
             new ScoreboardRoster(players, mock(app.porrapp.repository.PokerSessionRepository.class));
     private final ScoreTrackerService service = new ScoreTrackerService(leagues, memberships, membershipService,
-            leagueService, roster, games, players, sessions, rounds, roundChanges, scores, days, dayPlayers,
-            sessionPlayers, users, webSocket, events);
+            leagueService, roster, games, players, sessions, rounds, scores, days, dayPlayers,
+            sessionPlayers, users, webSocket, events,
+            new ScoreTrackerLookup(games, players, sessions, rounds, days, sessionPlayers),
+            new ScoreTrackerViewBuilder(games, players, sessions, rounds, scores, days, dayPlayers, sessionPlayers));
+    private final ScoreTrackerRoundService roundService = new ScoreTrackerRoundService(service,
+            new ScoreTrackerLookup(games, players, sessions, rounds, days, sessionPlayers), sessions, rounds,
+            roundChanges, scores);
     private final ScoreTrackerPlayerService playerService =
             new ScoreTrackerPlayerService(service, roster, players, scores, sessionPlayers, dayPlayers);
 
@@ -157,7 +162,7 @@ class ScoreTrackerServiceTest {
                 .isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> service.deleteGame("miembro@x.com", 10L, 51L)).isInstanceOf(BusinessException.class);
         assertThatThrownBy(() -> service.delete("miembro@x.com", 10L)).isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> service.addRound("ajeno@x.com", 10L, points(Map.of(100L, 1))))
+        assertThatThrownBy(() -> roundService.addRound("ajeno@x.com", 10L, points(Map.of(100L, 1))))
                 .isInstanceOf(BusinessException.class).hasMessage("Marcador no encontrado");
         verify(games, never()).delete(any());
         verify(leagues, never()).delete(any());
@@ -506,7 +511,7 @@ class ScoreTrackerServiceTest {
         storedMatch(session, List.of(Map.of(100L, 3, 101L, 2)));
         assertThat(service.get("dueno@x.com", 10L).sessions().getFirst().winners()).isEmpty();
 
-        ScoreTrackerDTO result = service.addRound("dueno@x.com", 10L,
+        ScoreTrackerDTO result = roundService.addRound("dueno@x.com", 10L,
                 new ScoreTrackerRoundRequest(null, Map.of(100L, 4, 101L, 3), 70L, null));
 
         assertThat(session.isOpen()).isFalse();
@@ -514,16 +519,16 @@ class ScoreTrackerServiceTest {
         assertThat(result.overall().getFirst().sessionsWon()).isEqualTo(1);
         assertThat(result.overall().getFirst().roundsWon()).isEqualTo(2);
         assertThat(result.rounds().getLast().scores()).containsEntry(100L, 4).containsEntry(101L, 3);
-        assertThatThrownBy(() -> service.addRound("dueno@x.com", 10L,
+        assertThatThrownBy(() -> roundService.addRound("dueno@x.com", 10L,
                 new ScoreTrackerRoundRequest(null, Map.of(100L, 5), 70L, null)))
                 .isInstanceOf(BusinessException.class).hasMessageContaining("terminada");
 
-        ScoreTrackerDTO corrected = service.editRound("dueno@x.com", 10L, 81L,
+        ScoreTrackerDTO corrected = roundService.editRound("dueno@x.com", 10L, 81L,
                 new ScoreTrackerRoundRequest(null, Map.of(100L, 1, 101L, 100), 70L, null, null, 0));
         assertThat(corrected.sessions().getFirst().winners()).isEmpty();
         assertThat(corrected.overall()).allMatch(row -> row.sessionsWon() == 0);
         service.reopenSession("dueno@x.com", 10L, 70L);
-        ScoreTrackerDTO continued = service.addRound("dueno@x.com", 10L,
+        ScoreTrackerDTO continued = roundService.addRound("dueno@x.com", 10L,
                 new ScoreTrackerRoundRequest(null, Map.of(100L, 5, 101L, 2), 70L, null));
         assertThat(continued.sessions().getFirst().winners()).containsExactly(100L);
         assertThat(continued.overall().getFirst().sessionsWon()).isEqualTo(1);
@@ -539,7 +544,7 @@ class ScoreTrackerServiceTest {
         ScoreTrackerSession session = openSession(50L, 100L, 101L);
         storedMatch(session, List.of(Map.of(100L, 1, 101L, 3), Map.of(100L, 5, 101L, 2)));
 
-        ScoreTrackerDTO result = service.editRound("dueno@x.com", 10L, 81L,
+        ScoreTrackerDTO result = roundService.editRound("dueno@x.com", 10L, 81L,
                 new ScoreTrackerRoundRequest(null, Map.of(100L, -1, 101L, 2), 70L, null, null, 0));
 
         assertThat(session.isOpen()).isFalse();
@@ -556,7 +561,7 @@ class ScoreTrackerServiceTest {
         ScoreTrackerSession session = openSession(50L, 100L, 101L);
         storedMatch(session, List.of(Map.of(100L, 1, 101L, 1)));
 
-        ScoreTrackerDTO result = service.addRound("dueno@x.com", 10L,
+        ScoreTrackerDTO result = roundService.addRound("dueno@x.com", 10L,
                 new ScoreTrackerRoundRequest(null, null, 70L, List.of(100L, 101L)));
 
         assertThat(session.isOpen()).isFalse();
@@ -588,7 +593,7 @@ class ScoreTrackerServiceTest {
         threePlayers();
         openSession(50L, 100L, 101L, 102L);
 
-        service.addRound("miembro@x.com", 10L, points(Map.of(100L, 5, 101L, 3)));
+        roundService.addRound("miembro@x.com", 10L, points(Map.of(100L, 5, 101L, 3)));
 
         assertThat(savedScores()).extracting(ScoreTrackerScore::getPlayerId).containsExactlyInAnyOrder(100L, 101L);
         ArgumentCaptor<ScoreTrackerRound> round = ArgumentCaptor.forClass(ScoreTrackerRound.class);
@@ -602,9 +607,9 @@ class ScoreTrackerServiceTest {
         threePlayers();
         openSession(50L, 100L, 101L);
 
-        assertThatThrownBy(() -> service.addRound("dueno@x.com", 10L, points(Map.of())))
+        assertThatThrownBy(() -> roundService.addRound("dueno@x.com", 10L, points(Map.of())))
                 .isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> service.addRound("dueno@x.com", 10L, points(Map.of(999L, 1))))
+        assertThatThrownBy(() -> roundService.addRound("dueno@x.com", 10L, points(Map.of(999L, 1))))
                 .isInstanceOf(BusinessException.class).hasMessage("Jugador no válido");
         verify(rounds, never()).save(any());
     }
@@ -614,7 +619,7 @@ class ScoreTrackerServiceTest {
         threePlayers();
         openSession(50L, 100L, 101L);
 
-        service.addRound("dueno@x.com", 10L, points(Map.of(100L, 5, 102L, 2)));
+        roundService.addRound("dueno@x.com", 10L, points(Map.of(100L, 5, 102L, 2)));
 
         verify(sessionPlayers).save(new ScoreSessionPlayer(70L, 102L));
         verify(sessionPlayers, never()).save(new ScoreSessionPlayer(70L, 100L));
@@ -626,7 +631,7 @@ class ScoreTrackerServiceTest {
         threePlayers();
         openSession(50L, 100L, 101L);
 
-        service.addRound("miembro@x.com", 10L, new ScoreTrackerRoundRequest(null, null, null, List.of(101L)));
+        roundService.addRound("miembro@x.com", 10L, new ScoreTrackerRoundRequest(null, null, null, List.of(101L)));
 
         assertThat(savedScores()).extracting(ScoreTrackerScore::getPlayerId, ScoreTrackerScore::getPoints)
                 .containsExactlyInAnyOrder(Tuple.tuple(100L, 0), Tuple.tuple(101L, 1));
@@ -640,7 +645,7 @@ class ScoreTrackerServiceTest {
         when(days.findById(day.getId())).thenReturn(Optional.of(day));
         ScoreTrackerSession session = openSession(50L, 100L, 101L, 102L);
 
-        service.addRound("dueno@x.com", 10L,
+        roundService.addRound("dueno@x.com", 10L,
                 new ScoreTrackerRoundRequest(null, null, 70L, List.of(100L, 102L)));
 
         assertThat(savedScores()).extracting(ScoreTrackerScore::getPlayerId, ScoreTrackerScore::getPoints)
@@ -657,13 +662,13 @@ class ScoreTrackerServiceTest {
         java.util.UUID requestId = java.util.UUID.randomUUID();
         ScoreTrackerRoundRequest request = new ScoreTrackerRoundRequest(null, Map.of(100L, 5), 70L,
                 null, requestId, null);
-        service.addRound("dueno@x.com", 10L, request);
+        roundService.addRound("dueno@x.com", 10L, request);
         ArgumentCaptor<ScoreTrackerRound> captured = ArgumentCaptor.forClass(ScoreTrackerRound.class);
         verify(rounds).save(captured.capture());
         ScoreTrackerRound saved = captured.getValue();
         when(rounds.findByLeagueIdAndClientRequestId(10L, requestId)).thenReturn(Optional.of(saved));
 
-        service.addRound("dueno@x.com", 10L, request);
+        roundService.addRound("dueno@x.com", 10L, request);
 
         verify(rounds, times(1)).save(any());
     }
@@ -674,7 +679,7 @@ class ScoreTrackerServiceTest {
         threePlayers();
         openSession(50L, 100L, 101L);
 
-        service.addRound("dueno@x.com", 10L, points(Map.of(100L, 1)));
+        roundService.addRound("dueno@x.com", 10L, points(Map.of(100L, 1)));
 
         assertThat(savedScores()).extracting(ScoreTrackerScore::getPlayerId, ScoreTrackerScore::getPoints)
                 .containsExactlyInAnyOrder(Tuple.tuple(100L, 1), Tuple.tuple(101L, 0));
@@ -686,7 +691,7 @@ class ScoreTrackerServiceTest {
         threePlayers();
         openSession(50L, 100L, 101L);
 
-        assertThatThrownBy(() -> service.addRound("dueno@x.com", 10L, points(Map.of(100L, 0))))
+        assertThatThrownBy(() -> roundService.addRound("dueno@x.com", 10L, points(Map.of(100L, 0))))
                 .isInstanceOf(BusinessException.class).hasMessage("Marca quién ha ganado la ronda");
     }
 
@@ -699,12 +704,12 @@ class ScoreTrackerServiceTest {
         session.setEndedAt(Instant.now());
         ScoreTrackerRoundRequest request = new ScoreTrackerRoundRequest(null, Map.of(100L, 1), 70L, null);
 
-        assertThatThrownBy(() -> service.addRound("miembro@x.com", 10L, request))
+        assertThatThrownBy(() -> roundService.addRound("miembro@x.com", 10L, request))
                 .isInstanceOf(BusinessException.class);
 
         service.reopenSession("dueno@x.com", 10L, 70L);
         assertThat(session.isOpen()).isTrue();
-        service.addRound("miembro@x.com", 10L, request);
+        roundService.addRound("miembro@x.com", 10L, request);
         verify(rounds).save(any());
     }
 
@@ -714,7 +719,7 @@ class ScoreTrackerServiceTest {
         ScoreTrackerSession last = openSession(51L, 100L, 101L);
         last.setEndedAt(Instant.now());
 
-        service.addRound("dueno@x.com", 10L, points(Map.of(100L, 4)));
+        roundService.addRound("dueno@x.com", 10L, points(Map.of(100L, 4)));
 
         ArgumentCaptor<ScoreTrackerSession> saved = ArgumentCaptor.forClass(ScoreTrackerSession.class);
         verify(sessions).save(saved.capture());
@@ -749,7 +754,7 @@ class ScoreTrackerServiceTest {
         ScoreTrackerScore berto = ScoreTrackerScore.builder().roundId(80L).playerId(101L).points(3).build();
         when(scores.findByRoundIdIn(List.of(80L))).thenReturn(List.of(ana, berto));
 
-        service.editRound("miembro@x.com", 10L, 80L,
+        roundService.editRound("miembro@x.com", 10L, 80L,
                 new ScoreTrackerRoundRequest("corregida", Map.of(100L, 7, 102L, 2), null, null, null, 0));
 
         assertThat(ana.getPoints()).isEqualTo(7);
@@ -765,10 +770,10 @@ class ScoreTrackerServiceTest {
         when(rounds.findById(80L))
                 .thenReturn(Optional.of(ScoreTrackerRound.builder().id(80L).leagueId(10L).sessionId(70L).build()));
 
-        assertThatThrownBy(() -> service.deleteRound("miembro@x.com", 10L, 80L, 0)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> roundService.deleteRound("miembro@x.com", 10L, 80L, 0)).isInstanceOf(BusinessException.class);
         verify(rounds, never()).delete(any());
 
-        service.deleteRound("dueno@x.com", 10L, 80L, 0);
+        roundService.deleteRound("dueno@x.com", 10L, 80L, 0);
         verify(rounds).delete(any());
     }
 
