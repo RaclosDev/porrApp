@@ -9,6 +9,7 @@ import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import PokerRegistration from '../components/poker/PokerRegistration';
 import PokerSettingsForm from '../components/poker/PokerSettingsForm';
 import PokerLive from '../components/poker/PokerLive';
+import PokerLateEntry from '../components/poker/PokerLateEntry';
 import PokerHome from '../components/poker/PokerHome';
 import { lastWinnerIds } from '../components/poker/PokerBadges';
 import { PokerFaces } from '../components/poker/PokerFaces';
@@ -207,23 +208,26 @@ export default function PokerLeague({
                   onEdit={() => setForm('edit')}
                 />
               ) : (
-                <PokerLive
-                  leagueId={league.id}
-                  session={current}
-                  owner={league.owner}
-                  busy={busy}
-                  serverNow={league.serverNow}
-                  receivedAt={query.dataUpdatedAt}
-                  lastWinnerIds={lastWinnerIds(history.data)}
-                  onCommand={async (action, playerId, extra) => {
-                    const saved = await change(() =>
-                      pokerCommand(league.id, current, action, playerId, extra),
-                    );
-                    if (saved && action === 'CLOSE') {
-                      navigate(pokerRoutes.history.to, { state: { pokerTip: true } });
-                    }
-                  }}
-                />
+                <>
+                  <PokerLive
+                    leagueId={league.id}
+                    session={current}
+                    owner={league.owner}
+                    busy={busy}
+                    serverNow={league.serverNow}
+                    receivedAt={query.dataUpdatedAt}
+                    lastWinnerIds={lastWinnerIds(history.data)}
+                    onCommand={async (action, playerId, extra) => {
+                      const saved = await change(() =>
+                        pokerCommand(league.id, current, action, playerId, extra),
+                      );
+                      if (saved && action === 'CLOSE') {
+                        navigate(pokerRoutes.history.to, { state: { pokerTip: true } });
+                      }
+                    }}
+                  />
+                  <PokerLateEntry league={league} session={current} busy={busy} change={change} />
+                </>
               )
             ) : (
               <section className="poker-felt poker-empty" aria-labelledby="poker-empty-title">

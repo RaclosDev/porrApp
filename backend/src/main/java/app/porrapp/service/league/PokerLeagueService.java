@@ -109,8 +109,8 @@ public class PokerLeagueService {
     public LeagueView addGuest(String email, Long leagueId, Long sessionId, String name) {
         Long userId = account(email).getId();
         League league = owned(leagueId, userId);
+        // Con la mesa empezada también se puede sumar a quien llega tarde.
         PokerSession session = openSession(leagueId, sessionId);
-        registration(session);
         requireSeat(session);
         List<ScoreTrackerPlayer> existing = players.findByLeagueIdOrderByPositionAsc(leagueId);
         if (existing.size() >= ScoreboardRoster.MAX_POKER_ROSTER) {
@@ -171,7 +171,8 @@ public class PokerLeagueService {
         Long userId = account(email).getId();
         League league = visible(leagueId, userId, true);
         PokerSession session = openSession(leagueId, sessionId);
-        registration(session);
+        // Quien llega tarde puede entrar con la mesa empezada; salir solo antes de empezar.
+        if (!request.attending()) registration(session);
         ScoreTrackerPlayer player;
         if (request.playerId() == null) {
             player = players.findByLeagueIdAndUserId(leagueId, userId)

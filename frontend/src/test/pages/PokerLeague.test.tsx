@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import PokerHome from '../../components/poker/PokerHome';
 import PokerLive from '../../components/poker/PokerLive';
+import PokerLateEntry from '../../components/poker/PokerLateEntry';
 import { PokerHistory, PokerStatistics } from '../../components/poker/PokerHistory';
 import PokerSettingsForm from '../../components/poker/PokerSettingsForm';
 import PokerLeague from '../../pages/PokerLeague';
@@ -148,6 +149,58 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   );
   click('Volver');
   expect(cancel).toHaveBeenCalledOnce();
+});
+
+it('sienta a quien llega tarde con la mesa empezada', async () => {
+  api.mockResolvedValue(league);
+  const change = vi.fn(async (send: () => Promise<PokerLeagueData>) => {
+    await send();
+    return true;
+  });
+  const started = { ...session, startedAt: 1 };
+  const players = [...league.players, { id: 4, name: 'Bea', guest: false }];
+  const { rerender } = render(
+    <PokerLateEntry
+      league={{ ...league, players }}
+      session={started}
+      busy={false}
+      change={change}
+    />,
+  );
+  click('Añadir jugador');
+  click('Sentar a Bea');
+  await waitFor(() =>
+    expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13/attendance', {
+      method: 'PUT',
+      json: { attending: true, playerId: 4 },
+    }),
+  );
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+  rerender(
+    <PokerLateEntry
+      league={{ ...league, owner: false, myPlayerId: 4, players }}
+      session={started}
+      busy={false}
+      change={change}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: /Unirme a la mesa/ }));
+  await waitFor(() =>
+    expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13/attendance', {
+      method: 'PUT',
+      json: { attending: true, playerId: undefined },
+    }),
+  );
+  rerender(
+    <PokerLateEntry
+      league={{ ...league, owner: false }}
+      session={started}
+      busy={false}
+      change={change}
+    />,
+  );
+  expect(screen.queryByRole('button', { name: /Unirme a la mesa/ })).toBeNull();
 });
 
 it('marca en la mesa las recompras, los extras y al último ganador', () => {

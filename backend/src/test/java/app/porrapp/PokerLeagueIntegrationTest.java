@@ -104,6 +104,33 @@ class PokerLeagueIntegrationTest {
     }
 
     @Test
+    void latecomersCanJoinAStartedTableButNobodyLeavesIt() throws Exception {
+        var organizer = user("Ana");
+        var member = user("Luis");
+        var league = decode(send("POST", "/api/poker", organizer,
+                new CreateLeague("Póker de los viernes", UUID.randomUUID())), 201);
+        String path = "/api/poker/" + league.id();
+        memberships.join(league.id(), member.getGoogleEmail());
+        var settings = new Settings(1000, 10000, null, null, List.of(100), List.of(new BlindLevel(15, 25, 50, 0)));
+        var current = decode(send("POST", path + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2026, 11, 20), settings)), 201).current();
+        String tournament = path + "/sessions/" + current.id();
+        decode(send("PUT", tournament + "/attendance", organizer, new Attendance(null, true)), 200);
+        var ready = decode(send("POST", tournament + "/guests", organizer, new Guest("Marta")), 201).current();
+        var playing = command(tournament, organizer, ready, Action.START, null);
+        assertThat(playing.potCents()).isEqualTo(2000);
+
+        var late = decode(send("PUT", tournament + "/attendance", member, new Attendance(null, true)), 200).current();
+        assertThat(late.entries()).hasSize(3);
+        assertThat(late.potCents()).isEqualTo(3000);
+        var withGuest = decode(send("POST", tournament + "/guests", organizer, new Guest("Paz")), 201).current();
+        assertThat(withGuest.entries()).hasSize(4);
+        assertThat(send("POST", tournament + "/guests", member, new Guest("Bea")).statusCode()).isEqualTo(403);
+        assertThat(send("PUT", tournament + "/attendance", member, new Attendance(null, false))
+                .statusCode()).isEqualTo(409);
+    }
+
+    @Test
     void membersAndGuestsCanPlayAgainWithOneHistoryAndCorrectPayouts() throws Exception {
         var organizer = user("Ana");
         var member = user("Luis");
