@@ -167,8 +167,7 @@ class MatchReminderServiceTest {
         assertThat(message.get("url")).isEqualTo("/jornadas?group=5");
         verify(subscriptions).deleteByEndpoint(oldPhone.getEndpoint());
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Collection<MatchReminderSent>> saved = ArgumentCaptor.forClass(Collection.class);
+        ArgumentCaptor<Collection<MatchReminderSent>> saved = ArgumentCaptor.captor();
         verify(reminders).saveAll(saved.capture());
         assertThat(new ArrayList<>(saved.getValue())).extracting(r -> r.getId().getUserId()).containsOnly(1L);
         assertThat(saved.getValue()).hasSize(2);

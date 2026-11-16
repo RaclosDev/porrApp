@@ -41,6 +41,8 @@ import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -79,6 +81,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class EndpointQueryCountTest {
+
+    private static final Logger log = LoggerFactory.getLogger(EndpointQueryCountTest.class);
 
     @Container
     @ServiceConnection
@@ -204,7 +208,7 @@ class EndpointQueryCountTest {
     }
 
     private static void report(String screen, String counts) {
-        System.out.println("[SQL] " + screen + ": " + counts);
+        log.info("[SQL] {}: {}", screen, counts);
     }
 
     private void seedMatchdayLeague() {

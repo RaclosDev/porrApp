@@ -189,7 +189,6 @@ class StandingsServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void recalculationInvalidatesBracketScoresOnlyWhenTheStandingsChange() {
         Team spain = Team.builder().id(1L).name("España").build();
         Team uruguay = Team.builder().id(2L).name("Uruguay").build();
@@ -202,7 +201,7 @@ class StandingsServiceTest {
         standingsService.recalculate(worldCup);
 
         verify(scoreInvalidationService).invalidateCompetition(WORLD_CUP_ID);
-        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.captor();
         verify(standingRepository).saveAll(saved.capture());
         assertEquals(3, saved.getValue().get(0).getPoints());
         assertEquals(WORLD_CUP_ID, saved.getValue().get(0).getCompetition().getId());
@@ -218,7 +217,6 @@ class StandingsServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void recalculatesWithTheWorldCupMatchesItIsGivenWithoutReadingThemAgain() {
         Team spain = Team.builder().id(1L).name("España").build();
         Team uruguay = Team.builder().id(2L).name("Uruguay").build();
@@ -229,7 +227,7 @@ class StandingsServiceTest {
 
         standingsService.recalculate(worldCup, List.of(played));
 
-        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.captor();
         verify(standingRepository).saveAll(saved.capture());
         assertEquals("Uruguay", saved.getValue().get(0).getTeam().getName());
         assertEquals(3, saved.getValue().get(0).getPoints());
@@ -284,7 +282,6 @@ class StandingsServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void aTournamentWithoutSeededGroupsTakesThemFromItsOwnGroupMatches() {
         Competition cup = Competition.builder().id(7L).name("Copa Libertadores").externalId("conmebol.libertadores").build();
         Team flamengo = Team.builder().id(1L).name("Flamengo").build();
@@ -300,7 +297,7 @@ class StandingsServiceTest {
 
         standingsService.recalculate(cup, List.of(groupA, groupB, knockout));
 
-        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<GroupStanding>> saved = ArgumentCaptor.captor();
         verify(standingRepository).saveAll(saved.capture());
         List<GroupStanding> rows = saved.getValue();
         assertEquals(List.of("A", "A", "B", "B"), rows.stream().map(GroupStanding::getGroupName).toList());

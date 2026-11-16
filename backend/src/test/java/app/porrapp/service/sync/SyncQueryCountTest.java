@@ -31,6 +31,8 @@ import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -72,6 +74,8 @@ import static org.mockito.Mockito.when;
         "app.sync.interval-ms=3600000"})
 @Testcontainers(disabledWithoutDocker = true)
 class SyncQueryCountTest {
+
+    private static final Logger log = LoggerFactory.getLogger(SyncQueryCountTest.class);
 
     @Container
     @ServiceConnection
@@ -173,12 +177,12 @@ class SyncQueryCountTest {
         Measure matchday = measure(() -> matchPredictionService.getMatchdayFixtures(email, league.getId(), "Jornada 3"));
         Measure season = measure(() -> matchPredictionService.getMatchdayFixtures(email, league.getId(), null));
 
-        System.out.println("[SQL] Primera pasada (crea los partidos del Mundial): " + firstPass);
-        System.out.println("[SQL] Pasada sin cambios: " + unchanged);
-        System.out.println("[SQL] Pasada con un resultado de LaLiga: " + leagueResult);
-        System.out.println("[SQL] Pasada con un resultado del Mundial: " + worldCupResult);
-        System.out.println("[SQL] Jornada 3 de LaLiga: " + matchday);
-        System.out.println("[SQL] Temporada entera de LaLiga: " + season);
+        log.info("[SQL] Primera pasada (crea los partidos del Mundial): {}", firstPass);
+        log.info("[SQL] Pasada sin cambios: {}", unchanged);
+        log.info("[SQL] Pasada con un resultado de LaLiga: {}", leagueResult);
+        log.info("[SQL] Pasada con un resultado del Mundial: {}", worldCupResult);
+        log.info("[SQL] Jornada 3 de LaLiga: {}", matchday);
+        log.info("[SQL] Temporada entera de LaLiga: {}", season);
 
         // Solo una pasada que cambia un resultado del Mundial toca su clasificación, y una sola vez.
         assertThat(unchanged.standingLoads()).isZero();

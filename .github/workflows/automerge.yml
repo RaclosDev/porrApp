@@ -103,6 +103,11 @@ jobs:
           # tampoco es un error de este workflow.
           if ! gh pr merge "$pr" --squash --delete-branch --match-head-commit "$SHA"; then
             sleep 5
+            # Otra fusión (la autofusión nativa de GitHub o una manual) puede haberse adelantado.
+            if [ "$(gh pr view "$pr" --json state --jq .state)" = "MERGED" ]; then
+              echo "El PR #$pr ya estaba fusionado por otra vía."
+              exit 0
+            fi
             estado
             if en_conflicto; then
               avisar_y_salir
