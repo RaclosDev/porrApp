@@ -54,6 +54,7 @@ const league: PokerLeagueData = {
   name: 'Sábados',
   joinCode: 'P0KER8',
   owner: true,
+  admin: true,
   myPlayerId: 1,
   players: entries.map(({ playerId: id, name }) => ({ id, name, guest: id !== 1 })),
   current: session,
@@ -368,6 +369,43 @@ it('recorre el histórico torneo a torneo', () => {
   expect(screen.getByRole('button', { name: 'Torneo anterior' })).toBeDisabled();
   fireEvent.change(picker, { target: { value: '22' } });
   expect(screen.getByText(/sábado, 18 de julio/)).toBeVisible();
+});
+
+it('abre los pagos en una hoja y deja a la administración corregir o borrar', async () => {
+  const closed = {
+    ...session,
+    id: 22,
+    closedAt: 5000,
+    results: [
+      { ...entries[0], place: 1, paidCents: 1000, prizeCents: 2000 },
+      { ...entries[2], place: 2, paidCents: 1000, prizeCents: 0 },
+    ],
+  };
+  const onEdit = vi.fn().mockResolvedValue(true);
+  const onDelete = vi.fn().mockResolvedValue(true);
+  const { rerender } = render(<PokerHistory sessions={[closed]} />);
+  expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Borrar' })).toBeNull();
+  click('Quién paga a quién · 1 pago');
+  const payments = screen.getByRole('list', { name: 'Pagos para saldar el torneo' });
+  expect(payments).toHaveTextContent(`Paz paga a Ana${money(1000)}`);
+  click('Cerrar');
+
+  rerender(<PokerHistory sessions={[closed]} admin onEdit={onEdit} onDelete={onDelete} />);
+  click('Editar');
+  click('Bajar a Ana');
+  click('Guardar cambios');
+  await waitFor(() =>
+    expect(onEdit).toHaveBeenCalledWith(closed, closed.date, [
+      { playerId: 3, rebuys: 0, addOns: 0 },
+      { playerId: 1, rebuys: 0, addOns: 0 },
+    ]),
+  );
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+  vi.mocked(confirmAction).mockResolvedValueOnce(true);
+  click('Borrar');
+  await waitFor(() => expect(onDelete).toHaveBeenCalledWith(closed));
 });
 
 it('solo muestra el año de los torneos de otros años', () => {

@@ -29,6 +29,7 @@ async function mockLeague(page: Page, owner = true, existing = true) {
     name: group.name,
     joinCode: group.joinCode,
     owner,
+    admin: owner,
     myPlayerId: 11,
     players: [{ id: 11, name: 'Ana', guest: false }],
     current: null,

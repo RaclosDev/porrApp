@@ -71,6 +71,41 @@ public class PokerLeagueService {
     }
 
     @Transactional
+    public List<Session> editResults(String email, Long leagueId, Long sessionId, EditResults request) {
+        Long userId = account(email).getId();
+        PokerSession session = closedSession(administered(leagueId, userId), sessionId);
+        checkRevision(session, request.revision());
+        PokerTournament.editResults(session, request);
+        session.setRevision(session.getRevision() + 1);
+        sessions.flush();
+        return history(email, leagueId);
+    }
+
+    @Transactional
+    public List<Session> deleteResult(String email, Long leagueId, Long sessionId) {
+        Long userId = account(email).getId();
+        sessions.delete(closedSession(administered(leagueId, userId), sessionId));
+        sessions.flush();
+        return history(email, leagueId);
+    }
+
+    /** El histórico solo lo corrigen quien creó la liga y sus administradores. */
+    private League administered(Long leagueId, Long userId) {
+        League league = visible(leagueId, userId, true);
+        if (!league.isAdmin(userId)) {
+            throw BusinessException.forbidden("Solo la administración de la liga puede cambiar el histórico");
+        }
+        return league;
+    }
+
+    private PokerSession closedSession(League league, Long sessionId) {
+        PokerSession session = sessions.findByIdAndLeagueId(sessionId, league.getId())
+                .orElseThrow(() -> BusinessException.notFound("Torneo no encontrado"));
+        if (session.getClosedAt() == null) throw BusinessException.conflict("El torneo todavía no está cerrado");
+        return session;
+    }
+
+    @Transactional
     public LeagueView addGuest(String email, Long leagueId, Long sessionId, String name) {
         Long userId = account(email).getId();
         League league = owned(leagueId, userId);
@@ -298,6 +333,7 @@ public class PokerLeagueService {
         users.findAllById(rosterEntries.stream().map(ScoreTrackerPlayer::getUserId).filter(Objects::nonNull).toList())
                 .forEach(user -> avatars.put(user.getId(), user.getAvatarUrl()));
         return new LeagueView(id, league.getName(), league.getJoinCode(), league.canOrganize(userId),
+                league.isAdmin(userId),
                 myPlayerId, rosterEntries.stream()
                 .map(player -> new Player(player.getId(), player.getName(), player.getUserId() == null,
                         player.getUserId(), avatars.get(player.getUserId()))).toList(),

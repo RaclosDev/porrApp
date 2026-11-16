@@ -138,6 +138,33 @@ class PokerTournamentTest {
         assertThat(tooMuch.getClosedAt()).isNull();
     }
 
+    @Test
+    void editingAClosedTournamentKeepsStacksUnlessTheOrderChanges() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100))), 1000);
+        var day = java.time.LocalDate.of(2026, 11, 7);
+        PokerTournament.editResults(session, new EditResults(day, 0L, List.of(
+                new ResultEdit(1, 0, 0), new ResultEdit(2, 0, 0), new ResultEdit(3, 0, 0))));
+        assertThat(session.getScheduledOn()).isEqualTo(day);
+        assertThat(PokerTournament.view(session, 1000).results()).extracting(Result::finalChips)
+                .containsExactly(200L, 100L, 0L);
+
+        PokerTournament.editResults(session, new EditResults(day, 0L, List.of(
+                new ResultEdit(3, 0, 0), new ResultEdit(1, 0, 0), new ResultEdit(2, 0, 0))));
+        var reordered = PokerTournament.view(session, 1000);
+        assertThat(reordered.results()).extracting(Result::playerId).containsExactly(3L, 1L, 2L);
+        assertThat(reordered.results()).extracting(Result::place).containsExactly(1, 2, 3);
+        assertThat(reordered.results()).extracting(Result::finalChips).containsOnlyNulls();
+
+        assertThatThrownBy(() -> PokerTournament.editResults(session, new EditResults(day, 0L, List.of(
+                new ResultEdit(3, 1, 0), new ResultEdit(1, 0, 0), new ResultEdit(2, 0, 0)))))
+                .isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> PokerTournament.editResults(session, new EditResults(day, 0L, List.of(
+                new ResultEdit(3, 0, 0), new ResultEdit(3, 0, 0), new ResultEdit(2, 0, 0)))))
+                .isInstanceOf(BusinessException.class);
+    }
+
     private PokerSession activeSession() {
         var session = new PokerSession();
         session.setId(1L);

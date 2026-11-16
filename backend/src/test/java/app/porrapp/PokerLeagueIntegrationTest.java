@@ -193,6 +193,30 @@ class PokerLeagueIntegrationTest {
         decode(send("PUT", path + "/sessions/" + next.current().id() + "/attendance", member,
                 new Attendance(null, true)), 200);
         assertThat(service.history(member.getGoogleEmail(), league.id())).containsExactly(finished);
+
+        // Solo la administración corrige o borra el histórico; un torneo abierto no se toca desde ahí.
+        String closedPath = path + "/history/" + finished.id();
+        var edit = new EditResults(saturday.minusDays(1), finished.revision(), List.of(
+                new ResultEdit(memberId, 0, 0), new ResultEdit(guestId, 0, 1),
+                new ResultEdit(league.myPlayerId(), 0, 0)));
+        assertThat(send("PUT", closedPath, member, edit).statusCode()).isEqualTo(403);
+        assertThat(send("DELETE", closedPath, member, null).statusCode()).isEqualTo(403);
+        assertThat(send("DELETE", path + "/history/" + next.current().id(), organizer, null).statusCode())
+                .isEqualTo(409);
+        assertThat(send("PUT", closedPath, organizer, new EditResults(saturday, finished.revision(),
+                List.of(new ResultEdit(memberId, 0, 0)))).statusCode()).isEqualTo(400);
+        var edited = history(send("PUT", closedPath, organizer, edit)).getFirst();
+        assertThat(edited.date()).isEqualTo(saturday.minusDays(1));
+        assertThat(edited.potCents()).isEqualTo(3253);
+        assertThat(edited.results()).extracting(Result::playerId).containsExactly(memberId, guestId, league.myPlayerId());
+        assertThat(edited.results()).extracting(Result::prizeCents).containsExactly(2115L, 1138L, 0L);
+        assertThat(send("PUT", closedPath, organizer, edit).statusCode()).isEqualTo(409);
+        assertThat(history(send("DELETE", closedPath, organizer, null))).isEmpty();
+    }
+
+    private List<Session> history(HttpResponse<String> response) throws Exception {
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        return List.of(json.readValue(response.body(), Session[].class));
     }
 
     private Session command(String tournament, UserAccount owner, Session current, Action action, Long player) throws Exception {
