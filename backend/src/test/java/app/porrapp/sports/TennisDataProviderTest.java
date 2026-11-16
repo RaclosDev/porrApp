@@ -71,8 +71,7 @@ class TennisDataProviderTest {
         lenient().when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenAnswer(invocation -> {
             String url = invocation.<HttpRequest>getArgument(0).uri().toString();
             requested.add(url);
-            @SuppressWarnings("unchecked")
-            HttpResponse<byte[]> response = mock(HttpResponse.class);
+            HttpResponse<byte[]> response = mock();
             byte[] body = responses.entrySet().stream().filter(entry -> url.endsWith(entry.getKey()))
                     .map(Map.Entry::getValue).findFirst().orElse(null);
             when(response.statusCode()).thenReturn(body == null ? 404 : 200);

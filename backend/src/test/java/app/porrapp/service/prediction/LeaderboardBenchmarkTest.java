@@ -12,6 +12,8 @@ import app.porrapp.repository.PredictionRepository;
 import app.porrapp.scoring.DefaultScoringStrategy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -29,6 +31,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class LeaderboardBenchmarkTest {
+
+    private static final Logger log = LoggerFactory.getLogger(LeaderboardBenchmarkTest.class);
 
     @Mock
     private PredictionRepository predictionRepository;
@@ -104,7 +108,7 @@ class LeaderboardBenchmarkTest {
         List<ParticipantScoreDTO> leaderboard = leaderboardService.getLeaderboard(null);
         long duration = System.currentTimeMillis() - startTime;
 
-        System.out.printf("Benchmark completado: %d participantes calculados en %d ms%n", leaderboard.size(), duration);
+        log.info("Benchmark completado: {} participantes calculados en {} ms", leaderboard.size(), duration);
 
         assertEquals(1000, leaderboard.size());
         assertTrue(duration < 2000, "El cálculo del ranking para 1000 participantes debe tardar menos de 2000ms. Tardó: " + duration + "ms");

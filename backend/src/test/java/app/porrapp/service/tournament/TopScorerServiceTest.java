@@ -143,8 +143,7 @@ class TopScorerServiceTest {
         JsonNode goal = goalBy("New Scorer");
         var events = objectMapper.createArrayNode().add(goal.get(0)).add(goal.get(0));
         when(sportsDataProvider.fetchScoreboardEvents(eq(Competition.WORLD_CUP_EXTERNAL_ID), anyString())).thenReturn(events);
-        @SuppressWarnings("unchecked")
-        var response = (java.net.http.HttpResponse<String>) mock(java.net.http.HttpResponse.class);
+        java.net.http.HttpResponse<String> response = mock();
         when(response.statusCode()).thenReturn(200);
         when(response.body()).thenReturn("{}");
         when(httpClient.<String>send(any(java.net.http.HttpRequest.class), any())).thenReturn(response);

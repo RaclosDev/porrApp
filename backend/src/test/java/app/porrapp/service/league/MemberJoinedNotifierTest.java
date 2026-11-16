@@ -13,6 +13,7 @@ import app.porrapp.repository.UserAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -158,8 +159,7 @@ class MemberJoinedNotifierTest {
 
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
         verify(sender).send(eq("https://push.test/a"), anyString(), anyString(), payload.capture(), anyInt(), org.mockito.ArgumentMatchers.anyLong());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> message = json.readValue(payload.getValue(), Map.class);
+        Map<String, Object> message = json.readValue(payload.getValue(), new TypeReference<>() { });
         assertThat(message).containsEntry("title", "Nuevo miembro en tu liga")
                 .containsEntry("body", "Pepe se ha unido a Los del barrio. Ya sois 4.")
                 .containsEntry("url", "/?group=5")
