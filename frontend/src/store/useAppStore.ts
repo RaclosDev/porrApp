@@ -13,6 +13,7 @@ import {
   firstRoundLabels,
 } from '../utils/firstKnockoutRound';
 import type { TournamentFormat } from '../types/api';
+import { DEMO, leaveDemo } from '../demo/mode';
 
 /** Equipo colocado en un hueco del cuadro (o la descripción del hueco, p. ej. "1º Grupo E"). */
 export interface BracketTeam {
@@ -381,6 +382,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   logout: () => {
+    // En la demo no hay sesión ni avisos reales que cerrar: salir es volver a la aplicación.
+    if (DEMO) return leaveDemo();
     void unsubscribeThisDevice().catch(() => undefined);
     endSession();
     SESSION_KEYS.forEach((k) => localStorage.removeItem(k));

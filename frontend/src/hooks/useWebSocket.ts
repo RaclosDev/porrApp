@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { Group, Match } from '../types/api';
 import { queryKeys } from '../services/queryKeys';
 import { getAuthToken } from '../services/api';
+import { DEMO } from '../demo/mode';
 
 /** Consultas que cambian cuando cambia un resultado. */
 const SCORE_DEPENDENT_KEYS = [
@@ -119,6 +120,8 @@ const invalidateAll = (queryClient: QueryClient, keys: readonly (readonly unknow
 
 export function useWebSocket(queryClient: QueryClient) {
   useEffect(() => {
+    // La demo no tiene servidor: sus datos no cambian en directo.
+    if (DEMO) return;
     const loc = window.location;
     const wsUrl = (loc.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + loc.host + '/api/ws';
     let ws: WebSocket | null = null;

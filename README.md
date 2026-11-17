@@ -17,7 +17,7 @@ Java 21 · Spring Boot 4.1 · React 19 · TypeScript · PostgreSQL
 
 Proyecto personal de **Carlos Sanz Tomero**, desarrollador full-stack. PorrApp reúne invitaciones, predicciones, resultados y clasificación para que un grupo pueda llevar su liga desde el móvil. Las competiciones oficiales compatibles sincronizan sus resultados; los torneos propios y las partidas tienen gestión manual.
 
-**Para conocer el proyecto:** [abre la demo sin registro](https://porrapp.app/demo), consulta las decisiones técnicas de abajo o entra en la [arquitectura](docs/arquitectura.md). La demo pública muestra una liga del Mundial en modo de solo lectura; las capturas enseñan además las ligas por jornadas y el póker.
+**Para conocer el proyecto:** [abre la demo sin registro](https://porrapp.app/demo), consulta las decisiones técnicas de abajo o entra en la [arquitectura](docs/arquitectura.md). La demo pública entra con una cuenta ficticia en tres ligas de ejemplo (Mundial, LaLiga y UFC) con datos inventados que no se guardan; las capturas enseñan además el póker.
 
 ## La app actual
 
