@@ -14,11 +14,11 @@ export const porraNfl: ContentPage = {
     shots: [
       appScreen(
         'nfl-inicio',
-        'Inicio de una liga de la NFL en PorrApp: resultados de la semana 9, como el Ravens 10-33 Jaguars.',
+        'Inicio de una liga de la NFL en PorrApp: los partidos de la semana 11, como el Texans-Colts.',
       ),
       appScreen(
         'nfl-jornada',
-        'Semana 9 de la NFL en PorrApp: en cada partido, como Chargers-Texans, se elige qué equipo gana.',
+        'Semana 11 de la NFL en PorrApp: los equipos que descansan y, en cada partido, como Texans-Colts, qué equipo gana.',
       ),
       appScreen(
         'nfl-tabla',

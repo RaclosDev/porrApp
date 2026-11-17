@@ -18,7 +18,7 @@ export const porraF1: ContentPage = {
       ),
       appScreen(
         'f1-carreras',
-        'GP de São Paulo ya disputado en PorrApp: el resultado real al lado de tu predicción y los puntos que ha dado.',
+        'Predicción del GP de Las Vegas en PorrApp: se elige el podio piloto a piloto antes de que empiece la clasificación.',
       ),
       appScreen(
         'f1-mundial',

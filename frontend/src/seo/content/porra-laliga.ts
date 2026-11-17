@@ -14,11 +14,11 @@ export const porraLaliga: ContentPage = {
     shots: [
       appScreen(
         'laliga-inicio',
-        'Inicio de una liga de LaLiga en PorrApp: resultados de la jornada 12, como el Valencia 0-3 Real Madrid, con el escudo de cada equipo.',
+        'Inicio de una liga de LaLiga en PorrApp: los partidos de la jornada 13, como el Athletic Club-Espanyol, con el escudo de cada equipo.',
       ),
       appScreen(
         'laliga-jornada',
-        'Jornada 12 de LaLiga en PorrApp: Real Sociedad-Rayo Vallecano y los demás partidos abiertos, con los botones 1, X y 2.',
+        'Jornada 13 de LaLiga en PorrApp: Athletic Club-Espanyol y los demás partidos abiertos, con los botones 1, X y 2.',
       ),
       appScreen(
         'laliga-tabla',
