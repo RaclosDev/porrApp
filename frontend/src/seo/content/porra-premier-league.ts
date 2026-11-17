@@ -14,15 +14,15 @@ export const porraPremierLeague: ContentPage = {
     shots: [
       appScreen(
         'premier-inicio',
-        'Inicio de una liga de la Premier League en PorrApp: resultados de la jornada 10, como el Everton 3-1 Coventry City.',
+        'Inicio de una liga de la Premier League en PorrApp: los partidos de la jornada 11, como el Manchester City-Fulham.',
       ),
       appScreen(
         'premier-jornada',
-        'Jornada 10 de la Premier League en PorrApp: Crystal Palace-Liverpool y el resto, con la predicción 1X2 de cada partido.',
+        'Jornada 11 de la Premier League en PorrApp: Manchester City-Fulham y los demás partidos abiertos, con los botones 1, X y 2.',
       ),
       appScreen(
         'premier-tabla',
-        'Clasificación de la Premier League dentro de PorrApp, con el Arsenal líder.',
+        'Clasificación de la Premier League dentro de PorrApp, con el Arsenal líder y los puntos de cada equipo.',
       ),
     ],
   },
