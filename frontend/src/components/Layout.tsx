@@ -24,6 +24,7 @@ import { useInstallState } from '../hooks/useInstallState';
 import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
 import { useIosSessionHandoff } from '../hooks/useIosSessionHandoff';
 import { leagueNavItems, showsFillBracketButton } from './layout/leagueNav';
+import { CONTENT_PAGES } from '../seo/pages';
 
 const PredictionViewer = lazyPage(() => import('./PredictionViewer'));
 
@@ -93,6 +94,10 @@ function Layout({ children }: { children: React.ReactNode }) {
   // La portada es la portada aunque quede guardado el modo demo de una visita anterior: sin
   // sesión, «/» siempre muestra la landing, sin la barra ni el menú de la demo.
   const isLanding = location.pathname === '/' && !isUserLoggedIn;
+  // Portada y páginas de contenido van sobre pared clara: sin sesión, la cabecera también.
+  const isPaperHeader =
+    !isUserLoggedIn &&
+    (isLanding || (!isDemo && CONTENT_PAGES.some((page) => page.path === location.pathname)));
   // En la pantalla de acceso/invitación no mostrar la navegación global: la propia
   // pantalla ya contiene el acceso con Google y el contexto de la invitación.
   const isInviteAuthScreen =
@@ -185,7 +190,9 @@ function Layout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      <header className={`top-bar${isLanding ? ' top-bar--landing' : ''}`}>
+      <header
+        className={`top-bar${isLanding ? ' top-bar--landing' : ''}${isPaperHeader ? ' top-bar--paper' : ''}`}
+      >
         <div className="header-left">
           <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
             <NavLink

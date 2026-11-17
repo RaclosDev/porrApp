@@ -141,13 +141,6 @@
     text-underline-offset: 3px;
   }
 
-  .landing-link-light {
-    color: var(--accent-cyan);
-    font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-
   /* Cromo: borde blanco grueso, como el de un cromo de verdad. */
   .sticker {
     position: relative;
@@ -194,24 +187,8 @@
     pointer-events: none;
   }
 
-  /* Rótulo pintado en la pared detrás de cada sección. */
-  .landing-ghost {
-    position: absolute;
-    inset-inline: 0;
-    top: -0.05em;
-    text-align: center;
-    font-family: 'Anton', 'Outfit', sans-serif;
-    font-size: clamp(5rem, 22vw, 16rem);
-    line-height: 1;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.04);
-    white-space: nowrap;
-    pointer-events: none;
-    user-select: none;
-  }
-
   .landing-net {
-    color: rgba(255, 255, 255, 0.2);
+    color: rgba(17, 24, 39, 0.22);
     margin: 28px 0;
   }
 
@@ -422,7 +399,7 @@
   }
 
   .app-screens:focus-visible {
-    outline: 2px solid #f4efe3;
+    outline: 2px solid #0b5f74;
     outline-offset: -4px;
     border-radius: 12px;
   }
@@ -445,9 +422,9 @@
   .app-phone {
     padding: 7px;
     border-radius: 34px;
-    background: #050a16;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    box-shadow: 0 28px 48px -18px rgba(0, 0, 0, 0.75);
+    background: #111827;
+    border: 1px solid #111827;
+    box-shadow: 0 26px 40px -20px rgba(17, 24, 39, 0.55);
   }
 
   .app-phone img {

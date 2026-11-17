@@ -40,7 +40,7 @@ export default function MarkerHeading({
         {words.map((word, index) => (
           <Fragment key={`${word}-${index}`}>
             {index > 0 ? ' ' : null}
-            <span className="inline-block overflow-hidden pb-[0.08em]">
+            <span className="inline-block overflow-hidden pt-[0.16em] -mt-[0.16em] pb-[0.08em]">
               <span className="reveal inline-block" style={wordStyle(index)}>
                 {word}
               </span>
