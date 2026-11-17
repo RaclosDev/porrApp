@@ -14,11 +14,11 @@ export const porraCopaDelRey: ContentPage = {
     shots: [
       appScreen(
         'copa-inicio',
-        'Inicio de una liga de la Copa del Rey en PorrApp: los partidos de la primera eliminatoria con su hora.',
+        'Inicio de una liga de la Copa del Rey en PorrApp: los partidos de octavos de final con su hora y el escudo de cada equipo.',
       ),
       appScreen(
         'copa-jornada',
-        'Primera eliminatoria de la Copa del Rey en PorrApp, con la predicción 1X2 de cada partido.',
+        'Octavos de final de la Copa del Rey en PorrApp, con la predicción 1X2 de cada partido.',
       ),
     ],
   },

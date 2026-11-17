@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import StickerCard from '../components/StickerCard';
 import NetLine from '../components/landing/NetLine';
-import GhostWord from '../components/landing/GhostWord';
 import FixtureSheet from '../components/landing/FixtureSheet';
 import Reveal from '../components/landing/Reveal';
 import { revealStyle } from '../components/landing/motion';
@@ -32,17 +31,17 @@ export default function Landing() {
 
   return (
     <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
-      <section className="landing-poster landing-tape mt-6 px-6 py-10 sm:px-10 sm:py-14 grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-center">
+      <section className="mt-6 sm:mt-12 grid gap-10 md:grid-cols-[1.25fr_1fr] md:items-center">
         <div className="flex flex-col gap-6">
           <MarkerHeading
             as="h1"
             onLoad
             text={LANDING_COPY.h1}
             marked={LANDING_COPY.h1Marked}
-            className="text-[clamp(2.6rem,7vw,5.5rem)]"
+            className="text-[clamp(2.8rem,7.4vw,5.75rem)]"
           />
           {/* Sin fundido: es el elemento más grande de la primera pantalla (LCP) y debe pintarse ya. */}
-          <p className="text-[#1f2937] text-lg max-w-130 leading-snug">{LANDING_COPY.lede}</p>
+          <p className="text-[#3f4652] text-lg max-w-130 leading-snug">{LANDING_COPY.lede}</p>
           <Reveal onLoad className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-3">
               <button
@@ -57,16 +56,17 @@ export default function Landing() {
                 Ver una porra de ejemplo
               </Link>
             </div>
-            <p className="text-[#4b5563] text-sm">{LANDING_COPY.heroNote}</p>
+            <p className="text-[#48505c] text-sm">{LANDING_COPY.heroNote}</p>
           </Reveal>
         </div>
         <Reveal
           onLoad
           style={revealStyle({ '--from-y': '40px', '--dur': '0.7s', '--base': '400ms' })}
-          className="landing-hero-podium min-w-0 w-full justify-self-center"
+          className="landing-poster landing-tape landing-hero-podium min-w-0 w-full justify-self-center px-4 pt-8 pb-5 sm:px-6"
         >
           {leader ? (
             <div>
+              <p className="landing-card-title text-center">Clasificación en vivo</p>
               <ul className="ranking-podium" aria-label={`Podio de ${leagueLabel}`}>
                 {leaders.slice(0, 3).map((row) => (
                   <li
@@ -77,7 +77,7 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <p className="text-[#4b5563] text-sm text-center">
+              <p className="text-[#48505c] text-sm text-center">
                 Va primero de {participants} en {leagueLabel}
               </p>
             </div>
@@ -93,7 +93,7 @@ export default function Landing() {
               <Skeleton width="30%" height={130} radius={4} />
             </div>
           ) : (
-            <p className="text-[#4b5563] text-sm" role="status">
+            <p className="text-[#48505c] text-sm text-center py-16" role="status">
               {error
                 ? 'La clasificación no responde ahora mismo.'
                 : `Todavía no hay cuadros en ${leagueLabel}.`}
@@ -104,49 +104,40 @@ export default function Landing() {
 
       <NetLine />
 
-      <GhostWord word="Cómo" className="py-10">
-        <MarkerHeading
-          text={LANDING_COPY.stepsTitle}
-          className="text-[clamp(2rem,5vw,3.6rem)] text-white"
-        />
+      <section className="py-10">
+        <MarkerHeading text={LANDING_COPY.stepsTitle} className="text-[clamp(2rem,5vw,3.6rem)]" />
         <Reveal
           as="ol"
           group
-          className="grid gap-6 md:grid-cols-3 mt-10 list-none p-0"
+          className="grid md:grid-cols-3 mt-10 list-none p-0 rounded-[4px] border-2 border-[#111827] bg-[#f3ecdc] divide-y md:divide-y-0 md:divide-x divide-[rgba(17,24,39,0.16)]"
           aria-label="Pasos para jugar"
         >
           {LANDING_COPY.steps.map((step, index) => (
             <li
               key={step.title}
               style={revealStyle({ '--i': index })}
-              className="reveal landing-poster p-6 flex flex-col gap-3"
+              className="reveal p-6 sm:p-8 flex flex-col gap-3"
             >
               <span className="poster-title text-5xl text-[#0b5f74]" aria-hidden="true">
                 {index + 1}
               </span>
               <h3 className="poster-title text-3xl">{step.title}</h3>
-              <p className="text-[#1f2937] leading-snug">{step.text}</p>
+              <p className="text-[#3f4652] leading-snug">{step.text}</p>
             </li>
           ))}
         </Reveal>
-      </GhostWord>
+      </section>
 
       <NetLine />
 
-      <GhostWord word="Formatos" className="py-10">
-        <MarkerHeading
-          text={LANDING_COPY.formatsTitle}
-          className="text-[clamp(2rem,5vw,3.6rem)] text-white"
-        />
+      <section className="py-10">
+        <MarkerHeading text={LANDING_COPY.formatsTitle} className="text-[clamp(2rem,5vw,3.6rem)]" />
         <div className="grid gap-8 lg:grid-cols-2 mt-10 items-start">
-          <Reveal
-            as="article"
-            className="landing-poster landing-tape rotate-1 p-6 sm:p-8 flex flex-col gap-4"
-          >
+          <Reveal as="article" className="landing-poster p-6 sm:p-8 flex flex-col gap-4">
             <h3 className="poster-title text-4xl">{LANDING_COPY.bracketTitle}</h3>
-            <p className="text-[#1f2937] leading-snug">{LANDING_COPY.bracketText}</p>
+            <p className="text-[#3f4652] leading-snug">{LANDING_COPY.bracketText}</p>
             {/* Solo la parte central del cuadro, para que los cruces y la final se lean. */}
-            <div className="relative aspect-[4/3] overflow-hidden rounded-md border border-[rgba(17,24,39,0.2)]">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] border border-[rgba(17,24,39,0.3)]">
               <img
                 src="/landing/cuadro-1200.webp"
                 srcSet="/landing/cuadro-640.webp 640w, /landing/cuadro-1200.webp 1200w"
@@ -164,12 +155,9 @@ export default function Landing() {
             </Link>
           </Reveal>
 
-          <Reveal
-            as="article"
-            className="landing-poster landing-tape p-6 sm:p-8 flex flex-col gap-4"
-          >
+          <Reveal as="article" className="landing-poster p-6 sm:p-8 flex flex-col gap-4">
             <h3 className="poster-title text-4xl">{LANDING_COPY.matchdayTitle}</h3>
-            <p className="text-[#1f2937] leading-snug">{LANDING_COPY.matchdayText}</p>
+            <p className="text-[#3f4652] leading-snug">{LANDING_COPY.matchdayText}</p>
             <figure className="m-0">
               <img
                 src="/landing/jornadas-1080.webp"
@@ -179,23 +167,23 @@ export default function Landing() {
                 loading="lazy"
                 width="1080"
                 height="706"
-                className="w-full h-auto rounded-md border border-[rgba(17,24,39,0.2)]"
+                className="w-full h-auto rounded-[4px] border border-[rgba(17,24,39,0.3)]"
               />
-              <figcaption className="text-sm text-[#374151] mt-2">
+              <figcaption className="text-sm text-[#48505c] mt-2">
                 Ejemplo del inicio de una liga por jornadas con datos de demostración.
               </figcaption>
             </figure>
             <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
           </Reveal>
         </div>
-      </GhostWord>
+      </section>
 
       <NetLine />
 
-      <GhostWord word="Álbum" className="py-10">
+      <section className="py-10">
         <MarkerHeading
           text={`Los cromos de ${leagueLabel}`}
-          className="text-[clamp(2rem,5vw,3.6rem)] text-white"
+          className="text-[clamp(2rem,5vw,3.6rem)]"
         />
         {leaders.length === 0 && loading && !error ? (
           // Mismo alto que el álbum: al llegar los cromos la página no crece de golpe.
@@ -230,23 +218,25 @@ export default function Landing() {
               {champion.team} campeona en {champion.count} de {champion.total} cuadros
             </span>
           ) : null}
-          <Link to="/demo" className="landing-link-light">
+          <Link to="/demo" className="landing-link">
             Ver la clasificación completa
           </Link>
         </Reveal>
-      </GhostWord>
+      </section>
 
       <NetLine />
 
       <section className="max-w-200 mx-auto py-6" aria-labelledby="landing-faq-title">
-        <h2 id="landing-faq-title" className="poster-title text-3xl sm:text-4xl text-white">
+        <h2 id="landing-faq-title" className="poster-title text-3xl sm:text-4xl">
           Preguntas frecuentes
         </h2>
-        <dl className="mt-6 flex flex-col gap-6">
+        <dl className="mt-6 flex flex-col border-b border-[rgba(17,24,39,0.16)]">
           {HOME_FAQ.map((entry) => (
-            <div key={entry.question}>
-              <dt className="font-bold text-white text-lg">{entry.question}</dt>
-              <dd className="m-0 mt-1 text-[#e2e8f0] leading-relaxed">{entry.answer}</dd>
+            <div key={entry.question} className="py-5 border-t border-[rgba(17,24,39,0.16)]">
+              <dt className="font-bold text-[#111827] text-lg">{entry.question}</dt>
+              <dd className="m-0 mt-1 max-w-[70ch] text-[#3f4652] leading-relaxed">
+                {entry.answer}
+              </dd>
             </div>
           ))}
         </dl>
@@ -255,17 +245,19 @@ export default function Landing() {
       <Reveal
         as="section"
         aria-labelledby="landing-final-cta"
-        className="landing-poster landing-tape mt-6 px-6 py-10 sm:px-10 sm:py-12 flex flex-col items-center gap-5 text-center"
+        className="landing-poster mt-10 px-6 py-8 sm:px-10 sm:py-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between"
       >
-        <h2
-          id="landing-final-cta"
-          className="poster-title text-[clamp(2rem,5vw,3.4rem)] leading-[0.95]"
-        >
-          {LANDING_COPY.closingTitle}{' '}
-          <span className="marker-ink">{LANDING_COPY.closingMarked}</span>
-        </h2>
-        <p className="text-[#1f2937] text-lg max-w-130 leading-snug">{LANDING_COPY.closing}</p>
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="flex flex-col gap-3">
+          <h2
+            id="landing-final-cta"
+            className="poster-title text-[clamp(2rem,4.4vw,3.2rem)] leading-[0.95]"
+          >
+            {LANDING_COPY.closingTitle}{' '}
+            <span className="marker-ink">{LANDING_COPY.closingMarked}</span>
+          </h2>
+          <p className="text-[#3f4652] text-lg max-w-130 leading-snug">{LANDING_COPY.closing}</p>
+        </div>
+        <div className="flex flex-wrap gap-3 lg:shrink-0">
           <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
             Crear mi liga gratis
           </button>

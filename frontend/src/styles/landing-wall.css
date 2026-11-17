@@ -1,0 +1,174 @@
+/*
+ * Páginas públicas (portada y páginas de contenido): pared de papel claro, titulares de cartel en
+ * tinta y hojas con borde y sombra dura. La app con sesión sigue en su pared oscura.
+ *
+ * La pared y la cabecera van fuera de capas: el fondo oscuro de arranque de index.html tampoco
+ * lleva capa, y los botones de la cabecera traen utilidades de Tailwind que hay que pisar.
+ */
+html:has(.landing-page),
+html:has(.landing-page) body {
+  background-color: #e6e0d3;
+}
+
+html:has(.landing-page) body {
+  color: #111827;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .07 0 0 0 0 .09 0 0 0 0 .15 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(0deg, rgba(17, 24, 39, 0.024) 0 1px, transparent 1px 3px);
+}
+
+html:has(.landing-page) ::selection {
+  background: #ffe68c;
+  color: #111827;
+}
+
+html:has(.landing-page) ::-webkit-scrollbar-track {
+  background: rgba(17, 24, 39, 0.08);
+}
+
+html:has(.landing-page) ::-webkit-scrollbar-thumb {
+  background: #111827;
+}
+
+/* Cabecera de quien aún no ha entrado: misma pared, marca y enlaces en tinta. */
+.top-bar.top-bar--paper {
+  --accent-cyan: #0b5f74;
+  background: #e6e0d3;
+  border-bottom: 2px solid rgba(17, 24, 39, 0.12);
+}
+
+.top-bar--paper .header-brand-link {
+  color: #111827;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* En tablet la navegación va en medio y «Iniciar sesión» al final, como en la portada. */
+.top-bar--paper .header-right {
+  order: 11;
+}
+
+.top-bar--paper .header-brand-link:hover {
+  color: #0b5f74;
+}
+
+.top-bar--paper .nav-links a,
+.top-bar--paper #btn-header-demo {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  color: #3f4652;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  transition:
+    color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.top-bar--paper .nav-links a:hover,
+.top-bar--paper #btn-header-demo:hover {
+  color: #111827;
+  border-color: #111827;
+}
+
+.top-bar--paper #btn-login-header {
+  background: #111827;
+  border: 2px solid #111827;
+  border-radius: 4px;
+  color: #f3ecdc;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  transition:
+    background 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.top-bar--paper #btn-login-header:hover {
+  background: #0b5f74;
+  border-color: #0b5f74;
+}
+
+@layer components {
+  .landing-page {
+    --sheet: #fffdf7;
+    --ink-soft: #3f4652;
+    --rule: rgba(17, 24, 39, 0.16);
+    --marker-ink: #0b5f74;
+    --stamp-red: #b91c1c;
+    --stamp-ink: #0b5f74;
+    --accent-cyan: #0b5f74;
+    --text-main: #111827;
+    --text-muted: #48505c;
+    color: var(--ink);
+  }
+
+  /* Titulares en letra de cartel. */
+  .landing-page :is(h1, h2, h3).poster-title,
+  .landing-card-title {
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+  }
+
+  /* La parte remarcada va en la misma letra de cartel: la distinguen el color y el subrayado. */
+  .landing-page .poster-title .marker-ink {
+    font-family: inherit;
+    letter-spacing: inherit;
+  }
+
+  .landing-card-title {
+    font-size: 1.35rem;
+    line-height: 1.1;
+  }
+
+  /* Hoja: papel casi blanco, borde de tinta y sombra dura, sin el giro del cartel callejero. */
+  .landing-page .landing-poster::before {
+    background: var(--sheet);
+    border: 2px solid var(--ink);
+    box-shadow: 6px 8px 0 rgba(17, 24, 39, 0.16);
+    transform: none;
+  }
+
+  .landing-page .landing-btn {
+    border-radius: 4px;
+    font-size: 1.05rem;
+    letter-spacing: 0.04em;
+    transition:
+      background 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+      color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .landing-page .landing-btn:hover {
+    transform: translate(-1px, -2px);
+    box-shadow: 3px 4px 0 rgba(17, 24, 39, 0.2);
+  }
+
+  .landing-page .landing-btn:active {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .landing-page .landing-pick {
+    border-radius: 4px;
+  }
+
+  .landing-page .sticker {
+    box-shadow: 3px 4px 0 rgba(17, 24, 39, 0.14);
+  }
+
+  /* Campo de formulario sobre una hoja: papel más oscuro y borde de tinta. */
+  .landing-input {
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+}

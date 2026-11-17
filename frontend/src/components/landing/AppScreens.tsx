@@ -17,10 +17,7 @@ interface AppScreensProps {
 export default function AppScreens({ screens }: AppScreensProps) {
   return (
     <section className="mt-14" aria-labelledby="app-screens-title">
-      <h2
-        id="app-screens-title"
-        className="poster-title text-3xl sm:text-4xl text-white text-center"
-      >
+      <h2 id="app-screens-title" className="poster-title text-3xl sm:text-4xl text-center">
         {screens.title}
       </h2>
       <div className="app-screens">
@@ -43,7 +40,7 @@ export default function AppScreens({ screens }: AppScreensProps) {
           ))}
         </ul>
       </div>
-      <p className="text-center text-sm text-[#94a3b8] mt-2">
+      <p className="text-center text-sm text-[#48505c] mt-2">
         Capturas reales de PorrApp; los participantes de la liga son de ejemplo.
       </p>
     </section>

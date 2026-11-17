@@ -14,7 +14,7 @@ export const porraF1: ContentPage = {
     shots: [
       appScreen(
         'f1-inicio',
-        'Próximo Gran Premio en una liga de Fórmula 1 de PorrApp: en Las Vegas se elige el podio, la pole y la vuelta rápida.',
+        'Inicio de una liga de Fórmula 1 en PorrApp: el GP de Las Vegas ya predicho, con las fotos de los tres pilotos del podio, y el siguiente por predecir.',
       ),
       appScreen(
         'f1-carreras',
