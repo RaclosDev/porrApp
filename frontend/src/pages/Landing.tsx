@@ -1,5 +1,6 @@
 import { Skeleton } from '../components/SkeletonBlock';
 import { Link } from 'react-router-dom';
+import AppScreens from '../components/landing/AppScreens';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import StickerCard from '../components/StickerCard';
 import NetLine from '../components/landing/NetLine';
@@ -8,19 +9,14 @@ import Reveal from '../components/landing/Reveal';
 import { revealStyle } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
 import SiteFooter from '../components/landing/SiteFooter';
-import { HOME_FAQ, LANDING_COPY } from '../seo/pages';
+import { HOME_FAQ, LANDING_COPY, LANDING_SCREENS } from '../seo/pages';
 import { openSignupToCreateLeague } from '../utils/loginModal';
 
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
 
-/** Ancho real de las capturas: media columna en escritorio, casi toda la pantalla en el móvil. */
-/** El cuadro se recorta y se pinta al 180 % de su marco. */
-const BRACKET_CROP_SIZES = '(min-width: 1024px) 1000px, 160vw';
-const SCREENSHOT_SIZES = '(min-width: 1024px) 560px, calc(100vw - 80px)';
-
 /**
- * Portada para quien aún no ha entrado: qué es y cómo se juega, los dos formatos de liga, los
- * cromos de los primeros de la liga pública destacada y una última llamada a crear la liga.
+ * Portada para quien aún no ha entrado: qué es, cómo se ve en el móvil, cómo se juega, los deportes
+ * y formatos de liga, los cromos de la liga pública destacada y una última llamada a crear la liga.
  */
 export default function Landing() {
   const { leaders, leagueName, participants, champion, nextFixtures, loading, error } =
@@ -102,6 +98,8 @@ export default function Landing() {
         </Reveal>
       </section>
 
+      <AppScreens screens={LANDING_SCREENS} />
+
       <NetLine />
 
       <section className="py-10">
@@ -132,48 +130,33 @@ export default function Landing() {
 
       <section className="py-10">
         <MarkerHeading text={LANDING_COPY.formatsTitle} className="text-[clamp(2rem,5vw,3.6rem)]" />
-        <div className="grid gap-8 lg:grid-cols-2 mt-10 items-start">
-          <Reveal as="article" className="landing-poster p-6 sm:p-8 flex flex-col gap-4">
-            <h3 className="poster-title text-4xl">{LANDING_COPY.bracketTitle}</h3>
-            <p className="text-[#3f4652] leading-snug">{LANDING_COPY.bracketText}</p>
-            {/* Solo la parte central del cuadro, para que los cruces y la final se lean. */}
-            <div className="relative aspect-[4/3] overflow-hidden rounded-[4px] border border-[rgba(17,24,39,0.3)]">
-              <img
-                src="/landing/cuadro-1200.webp"
-                srcSet="/landing/cuadro-640.webp 640w, /landing/cuadro-1200.webp 1200w"
-                sizes={BRACKET_CROP_SIZES}
-                alt="Parte central de un cuadro de eliminatorias en PorrApp: cuartos, semifinales y la final, con España campeona."
-                loading="lazy"
-                width="1200"
-                height="812"
-                className="absolute max-w-none h-auto"
-                style={{ width: '180%', left: '-40%', top: '-39%' }}
-              />
-            </div>
-            <Link to="/demo" className="landing-link self-start">
-              Ver un cuadro de ejemplo
-            </Link>
+        <div className="grid gap-10 lg:grid-cols-[1.15fr_1fr] mt-10 items-start">
+          <Reveal
+            as="ul"
+            className="list-none p-0 m-0 border-b border-[rgba(17,24,39,0.16)]"
+            aria-label="Deportes y competiciones"
+          >
+            {LANDING_COPY.sports.map((sport) => (
+              <li key={sport.path} className="border-t border-[rgba(17,24,39,0.16)]">
+                <Link to={sport.path} className="landing-sport-row">
+                  <span className="poster-title landing-sport-name">{sport.name}</span>
+                  <span className="text-[#3f4652] leading-snug">{sport.text}</span>
+                </Link>
+              </li>
+            ))}
           </Reveal>
 
           <Reveal as="article" className="landing-poster p-6 sm:p-8 flex flex-col gap-4">
             <h3 className="poster-title text-4xl">{LANDING_COPY.matchdayTitle}</h3>
             <p className="text-[#3f4652] leading-snug">{LANDING_COPY.matchdayText}</p>
-            <figure className="m-0">
-              <img
-                src="/landing/jornadas-1080.webp"
-                srcSet="/landing/jornadas-640.webp 640w, /landing/jornadas-1080.webp 1080w"
-                sizes={SCREENSHOT_SIZES}
-                alt="Inicio de una liga por jornadas: partidos, clasificación de participantes y tabla de LaLiga."
-                loading="lazy"
-                width="1080"
-                height="706"
-                className="w-full h-auto rounded-[4px] border border-[rgba(17,24,39,0.3)]"
-              />
-              <figcaption className="text-sm text-[#48505c] mt-2">
-                Ejemplo del inicio de una liga por jornadas con datos de demostración.
-              </figcaption>
-            </figure>
             <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
+            <h3 className="poster-title text-4xl mt-4 pt-6 border-t border-[rgba(17,24,39,0.16)]">
+              {LANDING_COPY.bracketTitle}
+            </h3>
+            <p className="text-[#3f4652] leading-snug">{LANDING_COPY.bracketText}</p>
+            <Link to="/demo" className="landing-link self-start">
+              Ver un cuadro de ejemplo
+            </Link>
           </Reveal>
         </div>
       </section>

@@ -234,10 +234,18 @@ export function installDemoBackend(): void {
   let loading: Promise<DemoData> | null = null;
   const load = () => {
     loading ??= realFetch('/demo-data.json')
-      .then((res) => res.json() as Promise<DemoData>)
+      .then((res) => {
+        if (!res.ok) throw new Error(`demo-data.json: ${res.status}`);
+        return res.json() as Promise<DemoData>;
+      })
       .then((data) => {
         const days = Math.floor((Date.now() - Date.parse(data.recordedAt)) / DAY_MS);
         return { ...data, exact: shiftDates(data.exact, Math.max(0, days)) };
+      })
+      .catch((error: unknown) => {
+        // Una descarga fallida no se recuerda: «Reintentar» vuelve a pedir los datos.
+        loading = null;
+        throw error;
       });
     return loading;
   };
@@ -248,8 +256,14 @@ export function installDemoBackend(): void {
     if (url.origin !== window.location.origin || !url.pathname.startsWith('/api/')) {
       return realFetch(input, init);
     }
+    let data: DemoData;
+    try {
+      data = await load();
+    } catch {
+      return json({ error: 'No se han podido cargar los datos de la demo' }, 503);
+    }
     return demoResponse(
-      await load(),
+      data,
       (init?.method ?? 'GET').toUpperCase(),
       url.pathname.slice('/api'.length) + url.search,
       init?.body,

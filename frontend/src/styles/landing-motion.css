@@ -20,18 +20,6 @@
     transform: translateY(0) rotate(var(--rot, 0deg));
   }
 
-  /* Subrayado de rotulador: se dibuja de izquierda a derecha cuando el titular está escrito. */
-  .marker-stroke {
-    stroke-dasharray: 1 2;
-    stroke-dashoffset: 1;
-    transition: stroke-dashoffset 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)
-      calc(0.1s + var(--words, 0) * 55ms);
-  }
-
-  [data-in] .marker-stroke {
-    stroke-dashoffset: 0;
-  }
-
   /* Cromo: se inclina siguiendo el puntero, con un reflejo que lo acompaña. */
   .sticker-tilt {
     transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
@@ -46,11 +34,6 @@
     .reveal {
       opacity: 1;
       transform: translateY(0) rotate(var(--rot, 0deg));
-      transition: none;
-    }
-
-    .marker-stroke {
-      stroke-dashoffset: 0;
       transition: none;
     }
   }
