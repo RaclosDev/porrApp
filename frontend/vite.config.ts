@@ -15,6 +15,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // El arranque de la demo va en su propio trozo, el primero que importa la entrada: si se
+          // queda dentro de ella, los trozos compartidos (http, store) se evalúan antes y leen el
+          // `localStorage` real en vez del de la demo.
+          if (/\/src\/demo\/(boot|mode|backend)\.ts$/.test(id)) return 'demo-boot';
           if (!id.includes('node_modules')) return;
 
           if (id.includes('lucide-react')) return 'icons';
