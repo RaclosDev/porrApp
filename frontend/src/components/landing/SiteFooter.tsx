@@ -3,7 +3,8 @@ import { AFFILIATION_NOTICE, CONTENT_PAGES } from '../../seo/pages';
 import { SMOOTH_SCROLL_STATE } from '../ScrollOnNavigate';
 import { SUPPORT_LINKS } from '../../supportLinks';
 
-const linkClass = 'underline hover:text-white inline-flex items-center min-h-11';
+const linkClass =
+  'underline underline-offset-3 hover:text-[#111827] inline-flex items-center min-h-11';
 
 interface SiteFooterProps {
   /** Ruta de la página actual: su enlace se marca y no se repite como destino. */
@@ -16,13 +17,16 @@ interface SiteFooterProps {
  */
 export default function SiteFooter({ current }: SiteFooterProps) {
   return (
-    <footer className="mt-10 pt-5 border-t border-t-[rgba(255,255,255,0.08)] flex flex-col items-center gap-2 text-[#94a3b8] text-[0.85rem]">
+    <footer className="mt-16 pt-6 border-t-2 border-t-[rgba(17,24,39,0.12)] flex flex-col items-center gap-2 text-[#48505c] text-[0.85rem]">
       <nav aria-label="Porras de PorrApp">
         <ul className="flex flex-wrap justify-center gap-x-4 gap-y-0 list-none m-0 p-0">
           {CONTENT_PAGES.map((page) => (
             <li key={page.path}>
               {page.path === current ? (
-                <span aria-current="page" className="inline-flex items-center min-h-11 text-white">
+                <span
+                  aria-current="page"
+                  className="inline-flex items-center min-h-11 font-semibold text-[#111827]"
+                >
                   {page.navLabel}
                 </span>
               ) : (
@@ -52,7 +56,7 @@ export default function SiteFooter({ current }: SiteFooterProps) {
         <Link
           to="/"
           state={SMOOTH_SCROLL_STATE}
-          className="font-bold text-white hover:underline inline-flex items-center min-h-11"
+          className="font-bold text-[#111827] hover:underline inline-flex items-center min-h-11"
         >
           PorrApp
         </Link>

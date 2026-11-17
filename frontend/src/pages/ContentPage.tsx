@@ -12,10 +12,10 @@ interface ContentPageProps {
 }
 
 /**
- * Página pública de contenido (cómo funciona, porra de LaLiga...). Mismo lenguaje de carteles de
- * papel que la portada, pero sin datos en vivo: su texto sale de seo/pages.ts, el mismo que lleva
- * su HTML prerenderizado. La primera sección va en cartel, como el titular de la portada, y el
- * resto en texto sobre la pared para que la página no sea una fila de tarjetas iguales. Las páginas de
+ * Página pública de contenido (cómo funciona, porra de LaLiga...). Misma pared de papel claro que
+ * la portada, pero sin datos en vivo: su texto sale de seo/pages.ts, el mismo que lleva su HTML
+ * prerenderizado. Todo va en una columna de lectura; la primera sección va en una hoja y el resto
+ * en texto sobre la pared para que la página no sea una fila de tarjetas iguales. Las páginas de
  * cada competición enseñan debajo del titular capturas de la app con partidos reales.
  */
 export default function ContentPage({ page }: ContentPageProps) {
@@ -24,15 +24,15 @@ export default function ContentPage({ page }: ContentPageProps) {
 
   return (
     <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
-      <section className="landing-poster landing-tape mt-6 px-6 py-10 sm:px-10 sm:py-14 flex flex-col gap-6">
+      <section className="max-w-200 mx-auto mt-6 sm:mt-12 flex flex-col gap-6">
         <MarkerHeading
           as="h1"
           onLoad
           text={page.h1}
           marked={page.h1Marked}
-          className="text-[clamp(2.4rem,6.5vw,5rem)]"
+          className="text-[clamp(2.4rem,6vw,4.5rem)]"
         />
-        <p className="text-[#1f2937] text-lg max-w-160 leading-snug">{page.lede}</p>
+        <p className="text-[#3f4652] text-lg max-w-[62ch] leading-snug">{page.lede}</p>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
             Crear mi liga
@@ -58,10 +58,10 @@ export default function ContentPage({ page }: ContentPageProps) {
       {page.scoreboardDemo ? <ScoreboardDemo /> : null}
 
       {first ? (
-        <article className="landing-poster landing-tape -rotate-1 mt-12 p-6 sm:p-8 max-w-200 mx-auto flex flex-col gap-3">
+        <article className="landing-poster mt-14 p-6 sm:p-8 max-w-200 mx-auto flex flex-col gap-3">
           <h2 className="poster-title text-3xl sm:text-4xl">{first.heading}</h2>
           {first.paragraphs.map((text) => (
-            <p key={text} className="text-[#1f2937] leading-snug">
+            <p key={text} className="text-[#3f4652] max-w-[70ch] leading-relaxed">
               {text}
             </p>
           ))}
@@ -69,12 +69,12 @@ export default function ContentPage({ page }: ContentPageProps) {
       ) : null}
 
       {rest.length > 0 ? (
-        <div className="max-w-200 mx-auto mt-12 flex flex-col gap-10">
+        <div className="max-w-200 mx-auto mt-14 flex flex-col gap-12">
           {rest.map((section) => (
             <section key={section.heading} className="flex flex-col gap-3">
-              <h2 className="poster-title text-3xl sm:text-4xl text-white">{section.heading}</h2>
+              <h2 className="poster-title text-3xl sm:text-4xl">{section.heading}</h2>
               {section.paragraphs.map((text) => (
-                <p key={text} className="text-[#e2e8f0] text-lg leading-relaxed">
+                <p key={text} className="text-[#3f4652] text-lg max-w-[70ch] leading-relaxed">
                   {text}
                 </p>
               ))}
@@ -87,14 +87,16 @@ export default function ContentPage({ page }: ContentPageProps) {
         <>
           <NetLine />
           <section className="max-w-200 mx-auto py-6" aria-labelledby="faq-title">
-            <h2 id="faq-title" className="poster-title text-3xl sm:text-4xl text-white">
+            <h2 id="faq-title" className="poster-title text-3xl sm:text-4xl">
               Preguntas frecuentes
             </h2>
-            <dl className="mt-6 flex flex-col gap-6">
+            <dl className="mt-6 flex flex-col border-b border-[rgba(17,24,39,0.16)]">
               {page.faq.map((entry) => (
-                <div key={entry.question}>
-                  <dt className="font-bold text-white text-lg">{entry.question}</dt>
-                  <dd className="m-0 mt-1 text-[#e2e8f0] leading-relaxed">{entry.answer}</dd>
+                <div key={entry.question} className="py-5 border-t border-[rgba(17,24,39,0.16)]">
+                  <dt className="font-bold text-[#111827] text-lg">{entry.question}</dt>
+                  <dd className="m-0 mt-1 max-w-[70ch] text-[#3f4652] leading-relaxed">
+                    {entry.answer}
+                  </dd>
                 </div>
               ))}
             </dl>

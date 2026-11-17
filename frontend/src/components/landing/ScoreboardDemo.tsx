@@ -31,7 +31,7 @@ export default function ScoreboardDemo() {
     <section
       id="demo"
       aria-labelledby="scoreboard-demo-title"
-      className="landing-poster landing-tape rotate-1 mt-12 p-6 sm:p-8 max-w-160 mx-auto flex flex-col gap-4"
+      className="landing-poster landing-tape mt-14 p-6 sm:p-8 max-w-160 mx-auto flex flex-col gap-4"
     >
       <h2 id="scoreboard-demo-title" className="poster-title text-3xl sm:text-4xl">
         Pruébalo aquí mismo
@@ -96,7 +96,7 @@ export default function ScoreboardDemo() {
             <input
               type="number"
               inputMode="numeric"
-              className="mt-1 w-20 rounded border border-[#1f2937]/40 bg-white px-2 py-1 text-base"
+              className="landing-input mt-1 w-20 px-2 py-1 text-base"
               value={draft[index]}
               onChange={(event) =>
                 setDraft(draft.map((value, at) => (at === index ? event.target.value : value)))
