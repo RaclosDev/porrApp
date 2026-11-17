@@ -18,7 +18,7 @@ export const porraTenis: ContentPage = {
       ),
       appScreen(
         'tenis-jornada',
-        'Fase de grupos de las ATP Finals en PorrApp: en Fils-Jodar se elige quién gana y, si quieres, los sets.',
+        'Fase de grupos de las ATP Finals en PorrApp: en Zverev-Shelton se elige quién gana y, si quieres, los sets.',
       ),
       appScreen(
         'tenis-cuadro',
