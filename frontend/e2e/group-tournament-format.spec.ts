@@ -67,8 +67,10 @@ test('the official bracket of a tournament that starts in the round of 16 has no
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/demo');
-  await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
+  await page.addInitScript(() => {
+    localStorage.setItem('isDemoMode', 'true');
+    localStorage.setItem('activeGroupId', '1');
+  });
   await page.goto('/bracket');
 
   const rounds = page.locator('.bracket-round-title');
@@ -109,8 +111,10 @@ test('the ranking of a tournament that starts in the round of 16 names only the 
   );
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/demo');
-  await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
+  await page.addInitScript(() => {
+    localStorage.setItem('isDemoMode', 'true');
+    localStorage.setItem('activeGroupId', '1');
+  });
   await page.goto('/ranking');
 
   // La liga dice sus rondas: la tabla no pide el torneo y aun así no enseña dieciseisavos.

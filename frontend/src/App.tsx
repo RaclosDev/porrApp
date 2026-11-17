@@ -32,6 +32,7 @@ import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
 import { useSessionHandoffPending } from './hooks/useSessionHandoffPending';
 import { useRequestedGroup } from './hooks/useRequestedGroup';
 import { hideSplash, isSplashVisible } from './services/splash';
+import { DEMO } from './demo/mode';
 
 const Leaderboard = lazyPage(() => import('./pages/Leaderboard'));
 const Home = lazyPage(() => import('./pages/Home'));
@@ -142,19 +143,13 @@ const DemoPredictionPage = () => {
   return <PredictionViewer inline predictionId={predictionId} />;
 };
 
+/** /demo: dentro de la demo lleva al inicio; desde la aplicación real, la arranca recargando. */
 const DemoPage = () => {
-  const { enterDemoMode } = useAppContext();
-
   React.useEffect(() => {
-    enterDemoMode?.();
-  }, [enterDemoMode]);
+    if (!DEMO) window.location.replace('/demo' + window.location.search);
+  }, []);
 
-  // Reuse the same dashboard as a real session without impersonating anyone.
-  return (
-    <RequireLeague title="Inicio" what="los partidos y el ranking">
-      <Home />
-    </RequireLeague>
-  );
+  return DEMO ? <Navigate to="/" replace /> : <PageSkeleton />;
 };
 
 const ProtectedRoute = ({
