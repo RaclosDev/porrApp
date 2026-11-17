@@ -1,6 +1,6 @@
 import type { PageScreens } from '../../seo/pages';
 
-/** Tamaño real de las capturas grandes (390 × 844 a 2x, reducidas a 600 de ancho). */
+/** Tamaño real de las capturas grandes (402 × 870, el ancho de un iPhone 17, a 2x y reducidas a 600 de ancho). */
 const SHOT_WIDTH = 600;
 const SHOT_HEIGHT = 1298;
 /** En móvil cada teléfono ocupa unos dos tercios de la pantalla; en escritorio, 260 px. */
