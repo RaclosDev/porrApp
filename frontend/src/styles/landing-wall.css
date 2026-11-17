@@ -39,10 +39,6 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
 
 .top-bar--paper .header-brand-link {
   color: #111827;
-  font-family: 'Anton', 'Arial Narrow', sans-serif;
-  font-weight: 400;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
 }
 
 /* En tablet la navegación va en medio y «Iniciar sesión» al final, como en la portada. */
@@ -107,7 +103,7 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
   }
 
   /* Titulares en letra de cartel. */
-  .landing-page :is(h1, h2, h3).poster-title,
+  .landing-page .poster-title,
   .landing-card-title {
     font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
@@ -116,7 +112,7 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
     text-wrap: balance;
   }
 
-  /* La parte remarcada va en la misma letra de cartel: la distinguen el color y el subrayado. */
+  /* La parte remarcada va en la misma letra de cartel: la distingue el color. */
   .landing-page .poster-title .marker-ink {
     font-family: inherit;
     letter-spacing: inherit;
@@ -154,6 +150,38 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
   .landing-page .landing-btn:active {
     transform: none;
     box-shadow: none;
+  }
+
+  /* Fila del índice de deportes: nombre en cartel y qué se predice, todo el renglón es enlace. */
+  .landing-sport-row {
+    display: grid;
+    gap: 2px 20px;
+    padding: 14px 4px;
+    color: var(--ink);
+    text-decoration: none;
+    transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .landing-sport-name {
+    font-size: 1.6rem;
+    line-height: 1.1;
+  }
+
+  .landing-sport-row:hover .landing-sport-name {
+    color: #0b5f74;
+  }
+
+  .landing-sport-row:focus-visible {
+    outline: 2px solid #0b5f74;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (min-width: 640px) {
+    .landing-sport-row {
+      grid-template-columns: 12rem 1fr;
+      align-items: baseline;
+    }
   }
 
   .landing-page .landing-pick {

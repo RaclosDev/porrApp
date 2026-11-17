@@ -17,7 +17,7 @@ export const AFFILIATION_NOTICE =
   'PorrApp no está afiliada a LaLiga, la UEFA, la FIFA, la Premier League, la RFEF, la Fórmula 1, la UFC, la NBA, la NFL, la ATP ni la WTA, ni cuenta con su patrocinio. Los nombres, escudos e imágenes de competiciones, equipos y deportistas pertenecen a sus titulares y se muestran solo para identificarlos.';
 
 import { CONTENT_PAGES } from './content';
-import type { FaqEntry, PageMeta } from './content/shared';
+import type { AppScreen, FaqEntry, PageMeta, PageScreens } from './content/shared';
 
 export { CONTENT_PAGES };
 export type { ContentPage, FaqEntry, PageMeta, PageScreens } from './content/shared';
@@ -50,7 +50,36 @@ export const LANDING_COPY = {
       text: 'Cada predicción se cierra cuando empieza el partido. Los puntos y la clasificación se actualizan solos con los resultados reales.',
     },
   ],
-  formatsTitle: 'Dos formas de jugar',
+  screensTitle: 'Así se ve en el móvil',
+  formatsTitle: 'Una porra para cada deporte',
+  sports: [
+    { path: '/porra-laliga', name: 'LaLiga', text: 'Cada jornada, a 1X2 o a marcador exacto.' },
+    { path: '/porra-champions', name: 'Champions', text: 'Partido a partido, hasta la final.' },
+    {
+      path: '/porra-premier-league',
+      name: 'Premier League',
+      text: 'La liga inglesa, jornada a jornada.',
+    },
+    {
+      path: '/porra-copa-del-rey',
+      name: 'Copa del Rey',
+      text: 'Eliminatoria a eliminatoria, hasta la final.',
+    },
+    {
+      path: '/porra-mundial',
+      name: 'Mundial',
+      text: 'El cuadro completo hasta el campeón, con pichichi.',
+    },
+    {
+      path: '/porra-f1',
+      name: 'Fórmula 1',
+      text: 'Podio, pole y vuelta rápida de cada Gran Premio.',
+    },
+    { path: '/porra-ufc', name: 'UFC', text: 'Ganador, método y asalto de cada combate.' },
+    { path: '/porra-nba', name: 'NBA', text: 'Temporada regular y playoffs.' },
+    { path: '/porra-nfl', name: 'NFL', text: 'Los partidos de cada semana.' },
+    { path: '/porra-tenis', name: 'Tenis', text: 'Grand Slams y Masters 1000.' },
+  ],
   bracketTitle: 'Cuadro',
   bracketText:
     'Para las eliminatorias, como la Champions o el Mundial. Rellenas los cruces hasta el campeón y los puntos llegan solos con cada partido.',
@@ -62,6 +91,20 @@ export const LANDING_COPY = {
   closing:
     'Crea la liga, pasa el enlace y que hablen los resultados. Se instala en el móvil como una app.',
 } as const;
+
+const landingShot = (slug: string): AppScreen => {
+  const shot = CONTENT_PAGES.flatMap((page) => page.screens?.shots ?? []).find((item) =>
+    item.src.endsWith(`/${slug}`),
+  );
+  if (!shot) throw new Error(`Falta la captura ${slug}`);
+  return shot;
+};
+
+/** Capturas de móvil de la portada: tres deportes, con el texto alternativo de su página. */
+export const LANDING_SCREENS: PageScreens = {
+  title: LANDING_COPY.screensTitle,
+  shots: ['f1-carreras', 'laliga-jornada', 'ufc-cartelera'].map(landingShot),
+};
 
 /** Preguntas de la portada: van en su HTML prerenderizado y en sus datos estructurados (FAQPage). */
 export const HOME_FAQ: FaqEntry[] = [
