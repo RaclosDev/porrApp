@@ -7,6 +7,7 @@ PorrApp es un proyecto personal, pero las correcciones y las propuestas son bien
 - Para un fallo o una idea, abre una [issue](https://github.com/RaclosDev/porrApp/issues) y cuenta qué esperabas y qué ocurre.
 - Para una vulnerabilidad, sigue [SECURITY.md](SECURITY.md) y no abras una issue pública.
 - Para un cambio grande, comenta primero la propuesta en una issue.
+- En issues y pull requests rige el [código de conducta](CODE_OF_CONDUCT.md).
 
 ## Preparar el entorno
 

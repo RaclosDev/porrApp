@@ -123,7 +123,7 @@ const Flag = ({ team, logo, badge, size = 'w40', style = {}, className = '' }: F
       loading="lazy"
       onError={(e) => {
         const target = e.currentTarget;
-        if (!target.src.includes('flagcdn.com')) {
+        if (!target.src.startsWith('https://flagcdn.com/')) {
           target.src = `https://flagcdn.com/${size}/${code}.png`;
         } else {
           setHasError(true);

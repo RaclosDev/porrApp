@@ -115,7 +115,7 @@ export default defineConfig({
           },
           {
             urlPattern: ({ url }) =>
-              url.hostname.includes('flagcdn.com') || url.hostname.includes('espncdn.com'),
+              url.hostname === 'flagcdn.com' || url.hostname.endsWith('.espncdn.com'),
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'cdn-images-cache-v2',
