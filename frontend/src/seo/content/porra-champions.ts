@@ -14,11 +14,11 @@ export const porraChampions: ContentPage = {
     shots: [
       appScreen(
         'champions-inicio',
-        'Inicio de una liga de la Champions en PorrApp: resultados de la fase de liga, como el Barcelona 3-0 Aston Villa.',
+        'Inicio de una liga de la Champions en PorrApp: las predicciones que te faltan y los partidos de la jornada 5 de la fase de liga.',
       ),
       appScreen(
         'champions-jornada',
-        'Partidos de la fase de liga de la Champions en PorrApp, como AEK-Real Madrid, con la predicción 1X2 de cada uno.',
+        'Jornada 5 de la fase de liga de la Champions en PorrApp: Bodo/Glimt-LASK y los demás partidos abiertos, con los botones 1, X y 2.',
       ),
       appScreen(
         'champions-tabla',

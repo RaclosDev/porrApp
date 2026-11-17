@@ -14,15 +14,15 @@ export const porraUfc: ContentPage = {
     shots: [
       appScreen(
         'ufc-inicio',
-        'Inicio de una liga de la UFC en PorrApp: los combates de la velada Cortes Acosta vs. Walker con la foto de cada luchador.',
+        'Inicio de una liga de la UFC en PorrApp: los combates de la velada Procházka vs. Stirling con la foto de cada luchador.',
       ),
       appScreen(
         'ufc-jornada',
-        'Velada de la UFC en PorrApp: en cada combate, como Cortes Acosta contra Walker, se elige ganador y, si quieres, método.',
+        'Velada de la UFC en PorrApp: en cada combate, como Procházka contra Stirling, se elige ganador y, si quieres, método.',
       ),
       appScreen(
         'ufc-cartelera',
-        'Cartelera estelar de una velada de la UFC en PorrApp, con tus aciertos, tus puntos y tu predicción de cada pelea.',
+        'Cartelera de la velada Procházka vs. Stirling de la UFC en PorrApp, con tus aciertos, tus puntos y la pelea estelar.',
       ),
     ],
   },

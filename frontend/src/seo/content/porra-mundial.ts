@@ -14,11 +14,11 @@ export const porraMundial: ContentPage = {
     shots: [
       appScreen(
         'mundial-inicio',
-        'Inicio de la porra del Mundial 2026 en PorrApp: los últimos resultados, con la final España-Argentina.',
+        'Inicio de una porra del Mundial 2026 ya terminada en PorrApp: el podio de la liga con los puntos de cada participante.',
       ),
       appScreen(
         'mundial-resultados',
-        'Cuadro del Mundial 2026 en PorrApp: semifinales y la gran final, con quién se clasifica y quién cae.',
+        'Cuadro del Mundial 2026 en PorrApp: las semifinales Francia-España e Inglaterra-Argentina, con quién se clasifica y quién cae.',
       ),
       appScreen(
         'mundial-grupos',

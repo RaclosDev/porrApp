@@ -14,11 +14,11 @@ export const porraNba: ContentPage = {
     shots: [
       appScreen(
         'nba-inicio',
-        'Inicio de una liga de la NBA en PorrApp: resultados de la semana, como el Pacers 102-114 Nuggets, con el escudo de cada equipo.',
+        'Inicio de una liga de la NBA en PorrApp: resultados de la semana 5, como el Heat 128-110 Rockets, con el escudo de cada equipo.',
       ),
       appScreen(
         'nba-jornada',
-        'Semana 3 de la NBA en PorrApp: en cada partido, como Pistons-Lakers, se elige qué equipo gana.',
+        'Semana 5 de la NBA en PorrApp: en cada partido, como Raptors-Knicks, se elige qué equipo gana.',
       ),
       appScreen(
         'nba-tabla',

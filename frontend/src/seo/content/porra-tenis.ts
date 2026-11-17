@@ -14,15 +14,15 @@ export const porraTenis: ContentPage = {
     shots: [
       appScreen(
         'tenis-inicio',
-        'Inicio de una liga de tenis en PorrApp: las semifinales del Masters de París y la clasificación de la liga.',
+        'Inicio de una liga de tenis en PorrApp: la fase de grupos de las ATP Finals, con el resultado en sets de cada partido.',
       ),
       appScreen(
         'tenis-jornada',
-        'Semifinales del Masters de París en PorrApp: en Van Assche-Shelton se elige quién gana y, si quieres, los sets.',
+        'Fase de grupos de las ATP Finals en PorrApp: en Fils-Jodar se elige quién gana y, si quieres, los sets.',
       ),
       appScreen(
         'tenis-cuadro',
-        'Cuadro del Masters de París en PorrApp: octavos y cuartos de final con el resultado en sets de cada partido.',
+        'Cuadro del Masters de París en PorrApp: octavos de final con el resultado en sets de cada partido.',
       ),
     ],
   },
