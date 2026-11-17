@@ -123,7 +123,12 @@ const landingMarkup = () =>
   `<h2>${escapeHtml(LANDING_COPY.stepsTitle)}</h2><ol>${LANDING_COPY.steps
     .map((step) => `<li><h3>${escapeHtml(step.title)}</h3>${paragraphs([step.text])}</li>`)
     .join('')}</ol>` +
-  `<h2>${escapeHtml(LANDING_COPY.formatsTitle)}</h2>` +
+  `<h2>${escapeHtml(LANDING_COPY.formatsTitle)}</h2><ul>${LANDING_COPY.sports
+    .map(
+      (sport) =>
+        `<li><a href="${sport.path}">${escapeHtml(sport.name)}</a>: ${escapeHtml(sport.text)}</li>`,
+    )
+    .join('')}</ul>` +
   `<h3>${escapeHtml(LANDING_COPY.bracketTitle)}</h3>${paragraphs([LANDING_COPY.bracketText])}` +
   `<h3>${escapeHtml(LANDING_COPY.matchdayTitle)}</h3>${paragraphs([LANDING_COPY.matchdayText])}` +
   `<h2>${escapeHtml(`${LANDING_COPY.closingTitle} ${LANDING_COPY.closingMarked}`)}</h2>` +

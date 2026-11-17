@@ -11,10 +11,11 @@
     flex-shrink: 0;
     color: var(--paper);
     text-decoration: none;
-    font-family: 'Permanent Marker', cursive;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-size: 1.5rem;
     font-weight: 400;
-    letter-spacing: -0.03em;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
     white-space: nowrap;
   }
 

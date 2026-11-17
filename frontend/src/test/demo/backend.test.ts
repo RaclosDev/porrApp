@@ -174,4 +174,18 @@ describe('instalación del servidor de la demo', () => {
     expect(await (await fetch('https://example.com/api/x')).text()).toBe('fuera');
     expect(await (await fetch('/sw.js')).text()).toBe('fuera');
   });
+
+  it('vuelve a pedir los datos si la primera descarga falla', async () => {
+    let calls = 0;
+    window.fetch = (async () => {
+      calls++;
+      if (calls === 1) return new Response('<html>', { status: 502 });
+      return new Response(JSON.stringify({ ...sample(), exact: { '/x': { ok: true } } }));
+    }) as typeof window.fetch;
+    installDemoBackend();
+
+    expect((await fetch('/api/x')).status).toBe(503);
+    expect(await (await fetch('/api/x')).json()).toEqual({ ok: true });
+    expect(calls).toBe(2);
+  });
 });
