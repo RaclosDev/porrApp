@@ -103,8 +103,7 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
   }
 
   /* Titulares en letra de cartel. */
-  .landing-page .poster-title,
-  .landing-card-title {
+  .landing-page .poster-title {
     font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     text-transform: uppercase;
@@ -116,11 +115,6 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
   .landing-page .poster-title .marker-ink {
     font-family: inherit;
     letter-spacing: inherit;
-  }
-
-  .landing-card-title {
-    font-size: 1.35rem;
-    line-height: 1.1;
   }
 
   /* Hoja: papel casi blanco, borde de tinta y sombra dura, sin el giro del cartel callejero. */

@@ -41,32 +41,7 @@
 }
 
 @layer utilities {
-  .landing-hero-podium .poster-title {
-    font-size: clamp(0.8rem, 1.6vw, 1.1rem);
-  }
-
-  .landing-hero-podium .sticker-featured .poster-title {
-    font-size: clamp(1rem, 2vw, 1.4rem);
-  }
-
   @media (max-width: 600px) {
-    .landing-hero-podium .poster-title {
-      font-size: 0.75rem;
-    }
-
-    .landing-hero-podium .sticker-featured .poster-title {
-      font-size: 0.9rem;
-    }
-
-    .landing-hero-podium .marker-ink {
-      font-size: 0.75rem;
-      white-space: nowrap;
-    }
-
-    .landing-hero-podium .sticker-featured .marker-ink {
-      font-size: 0.9rem;
-    }
-
     /* Cromos del álbum en una fila: el nombre parte en dos líneas antes que quedarse en «Xe…». */
     .landing-sticker-album .poster-title {
       font-size: 0.7rem;

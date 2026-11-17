@@ -38,7 +38,6 @@ describe('Landing', () => {
   it('shows the real leaders and the most picked champion', () => {
     renderLanding();
     expect(screen.getAllByText('Xegami').length).toBeGreaterThan(0);
-    expect(screen.getByText('Va primero de 21 en Liga abierta')).toBeInTheDocument();
     expect(screen.getByText('España campeona en 17 de 21 cuadros')).toBeInTheDocument();
   });
 
@@ -71,14 +70,11 @@ describe('Landing', () => {
     ).toEqual(['Crea tu liga', 'Invita con un enlace', 'Predice y compite']);
   });
 
-  it('shows only the top three in the hero podium and every sticker in the album', () => {
+  it('shows the phone screenshots in the hero and every sticker in the album', () => {
     renderLanding();
-    const podium = screen.getByRole('list', { name: 'Podio de Liga abierta' });
-    expect(within(podium).getAllByRole('listitem')).toHaveLength(3);
-    for (const name of ['Xegami', 'Gonza', 'Raclos']) {
-      expect(within(podium).getByText(name)).toBeInTheDocument();
-    }
-    expect(within(podium).queryByText('Ana')).not.toBeInTheDocument();
+    const screens = screen.getByRole('region', { name: 'Así se ve en el móvil' });
+    expect(within(screens).getAllByRole('img')).toHaveLength(3);
+    expect(screen.queryByText('Clasificación en vivo')).not.toBeInTheDocument();
     const album = screen.getByRole('list', { name: 'Cromos de Liga abierta' });
     expect(within(album).getAllByRole('listitem')).toHaveLength(4);
     // Ya no se desplaza: todos los cromos caben en una fila, así que no hace falta enfocarlo.
