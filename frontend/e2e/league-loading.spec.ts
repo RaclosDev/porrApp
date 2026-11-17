@@ -29,7 +29,7 @@ for (const viewport of [
   test.describe(`league loading ${viewport.name}`, () => {
     test.use({ viewport, reducedMotion: 'reduce', serviceWorkers: 'block' });
 
-    for (const path of ['/demo', '/bracket', '/grupos', '/tabla']) {
+    for (const path of ['/bracket', '/grupos', '/tabla']) {
       test(`${path}: delayed group, recoverable error and retry`, async ({ page }, testInfo) => {
         const errors: string[] = [];
         page.on('pageerror', (error) => errors.push(error.message));

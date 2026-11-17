@@ -8,6 +8,8 @@ import ProfileSettingsModal, { type SettingsSection } from './ProfileSettingsMod
 import { useAppStore } from '../store/useAppStore';
 import MobileBottomNav from './MobileBottomNav';
 import DemoBanner from './layout/DemoBanner';
+import DemoBar from '../demo/DemoBar';
+import { DEMO } from '../demo/mode';
 import MainNav from './layout/MainNav';
 import HeaderActions from './layout/HeaderActions';
 import InstallBanner from './layout/InstallBanner';
@@ -51,7 +53,6 @@ function Layout({ children }: { children: React.ReactNode }) {
     leagueKind,
     loading,
     isDemoMode,
-    enterDemoMode,
     exitDemoMode,
     isAuthenticated,
     userGroups,
@@ -175,6 +176,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      {DEMO && <DemoBar />}
       {isDemo && !isUserLoggedIn && !isLanding && (
         <DemoBanner
           exitDemoMode={exitDemoMode}
@@ -233,7 +235,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 
         {!isInviteAuthScreen && (
           <HeaderActions
-            enterDemoMode={enterDemoMode}
             isLanding={isLanding}
             isUserLoggedIn={isUserLoggedIn}
             sessionPending={sessionPending}

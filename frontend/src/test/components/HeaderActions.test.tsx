@@ -17,7 +17,6 @@ const setup = (isAdmin = false) => {
   const navigate = vi.fn();
   render(
     <HeaderActions
-      enterDemoMode={vi.fn()}
       isLanding={false}
       isUserLoggedIn
       navigate={navigate}

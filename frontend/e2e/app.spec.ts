@@ -85,33 +85,54 @@ for (const viewport of [
         .getByRole('link', { name: 'Ver una porra de ejemplo', exact: true })
         .first()
         .click();
-      await expect(page).toHaveURL('/demo');
-      await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
-      await expect(
-        page.getByRole('button', { name: 'Guardar predicción', exact: true }),
-      ).toHaveCount(0);
-
-      await page.getByRole('button', { name: 'Salir', exact: true }).click();
+      const banner = page.locator('#demo-mode-banner');
+      await expect(banner).toContainText('datos ficticios');
       await expect(page).toHaveURL('/');
-      await expect(page.getByText('Modo demo:', { exact: true })).toHaveCount(0);
+      await expect(banner.getByRole('button', { name: 'Mundial' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+
+      await banner.getByRole('button', { name: 'UFC' }).click();
+      await expect(banner.getByRole('button', { name: 'UFC' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      await page.reload();
+      await expect(banner.getByRole('button', { name: 'UFC' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+
+      await banner.getByRole('button', { name: 'Salir', exact: true }).click();
+      await expect(page).toHaveURL('/');
+      await expect(banner).toHaveCount(0);
       await expect(page.getByRole('heading', { level: 1 })).toContainText(
         'La porra con tus amigos',
       );
       expect(errors).toEqual([]);
     });
 
-    test('shows the plain landing to a visitor who left the demo without exiting', async ({
+    test('opens the demo on a league by link without touching the stored session', async ({
       page,
     }) => {
-      await page.goto('/demo');
-      await expect(page.getByText('Modo demo:', { exact: true })).toBeVisible();
-
-      await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1 })).toContainText(
-        'La porra con tus amigos',
+      await page.goto('/demo?liga=laliga');
+      const banner = page.locator('#demo-mode-banner');
+      await expect(banner.getByRole('button', { name: 'LaLiga' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
       );
-      await expect(page.getByText('Modo demo:', { exact: true })).toHaveCount(0);
-      await expect(page.getByRole('link', { name: 'Resultados' })).toHaveCount(0);
+      await page.goto('/ranking');
+      await expect(banner).toBeVisible();
+      await expect(page.getByText('Marta').filter({ visible: true }).first()).toBeVisible();
+
+      const stored = await page.evaluate(() => {
+        const frame = document.createElement('iframe');
+        document.body.append(frame);
+        const real = frame.contentWindow!.localStorage;
+        return ['has_session', 'my_user_id', 'activeGroupId'].map((key) => real.getItem(key));
+      });
+      expect(stored).toEqual([null, null, null]);
     });
   });
 }
