@@ -1,4 +1,3 @@
-import { Skeleton } from '../components/SkeletonBlock';
 import { Link } from 'react-router-dom';
 import AppScreens from '../components/landing/AppScreens';
 import MarkerHeading from '../components/landing/MarkerHeading';
@@ -19,15 +18,13 @@ const FAN_ANGLES = [-8, -3, 0, 3, 8];
  * y formatos de liga, los cromos de la liga pública destacada y una última llamada a crear la liga.
  */
 export default function Landing() {
-  const { leaders, leagueName, participants, champion, nextFixtures, loading, error } =
-    useLandingData();
+  const { leaders, leagueName, champion, nextFixtures, loading, error } = useLandingData();
   const leagueLabel = leagueName ?? 'la liga pública';
   const openLogin = openSignupToCreateLeague;
-  const leader = leaders[0];
 
   return (
     <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
-      <section className="mt-6 sm:mt-12 grid gap-10 md:grid-cols-[1.25fr_1fr] md:items-center">
+      <section className="mt-6 sm:mt-12 grid gap-10 lg:grid-cols-[1.25fr_1fr] lg:items-center">
         <div className="flex flex-col gap-6">
           <MarkerHeading
             as="h1"
@@ -58,47 +55,11 @@ export default function Landing() {
         <Reveal
           onLoad
           style={revealStyle({ '--from-y': '40px', '--dur': '0.7s', '--base': '400ms' })}
-          className="landing-poster landing-tape landing-hero-podium min-w-0 w-full justify-self-center px-4 pt-8 pb-5 sm:px-6"
+          className="min-w-0"
         >
-          {leader ? (
-            <div>
-              <p className="landing-card-title text-center">Clasificación en vivo</p>
-              <ul className="ranking-podium" aria-label={`Podio de ${leagueLabel}`}>
-                {leaders.slice(0, 3).map((row) => (
-                  <li
-                    key={row.userId ?? row.name}
-                    className={`ranking-podium-place ranking-podium-place-${row.rank}`}
-                  >
-                    <StickerCard leader={row} featured={row.rank === 1} compact />
-                  </li>
-                ))}
-              </ul>
-              <p className="text-[#48505c] text-sm text-center">
-                Va primero de {participants} en {leagueLabel}
-              </p>
-            </div>
-          ) : loading && !error ? (
-            <div
-              role="status"
-              aria-label="Cargando clasificación"
-              aria-busy="true"
-              className="flex items-end justify-center gap-3 p-4"
-            >
-              <Skeleton width="30%" height={150} radius={4} />
-              <Skeleton width="34%" height={190} radius={4} />
-              <Skeleton width="30%" height={130} radius={4} />
-            </div>
-          ) : (
-            <p className="text-[#48505c] text-sm text-center py-16" role="status">
-              {error
-                ? 'La clasificación no responde ahora mismo.'
-                : `Todavía no hay cuadros en ${leagueLabel}.`}
-            </p>
-          )}
+          <AppScreens screens={LANDING_SCREENS} hero />
         </Reveal>
       </section>
-
-      <AppScreens screens={LANDING_SCREENS} />
 
       <NetLine />
 
@@ -171,6 +132,13 @@ export default function Landing() {
         {leaders.length === 0 && loading && !error ? (
           // Mismo alto que el álbum: al llegar los cromos la página no crece de golpe.
           <div className="landing-sticker-album-slot mt-10" aria-hidden="true" />
+        ) : null}
+        {leaders.length === 0 && (error || !loading) ? (
+          <p className="text-[#48505c] text-sm text-center mt-10" role="status">
+            {error
+              ? 'La clasificación no responde ahora mismo.'
+              : `Todavía no hay cuadros en ${leagueLabel}.`}
+          </p>
         ) : null}
         {leaders.length > 0 ? (
           <Reveal
