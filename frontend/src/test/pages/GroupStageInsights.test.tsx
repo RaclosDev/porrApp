@@ -8,6 +8,7 @@ import Stats from '../../pages/Stats';
 import type { PredictionData, PredictionSummary } from '../../types/api';
 import { groupStageTournament, toGroupStageEntries } from '../../utils/groupStageBracket';
 import { standing } from '../fixtures';
+import { groupLabels } from '../selectMenu';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../components/layout/prefetchRoute', () => ({ prefetchRoute: vi.fn() }));
@@ -183,11 +184,7 @@ describe('Buscador de un torneo con fase de grupos', () => {
   it('ordena los equipos por grupo, también los que nadie hace pasar', () => {
     open('/search?team=M%C3%A9xico');
 
-    expect(
-      within(screen.getByRole('group', { name: 'Grupo B' }))
-        .getAllByRole('option')
-        .map((option) => option.textContent),
-    ).toEqual(['Brasil', 'Francia', 'Japón', 'México']);
+    expect(groupLabels('Grupo B')).toEqual(['Brasil', 'Francia', 'Japón', 'México']);
     expect(screen.getByRole('heading', { name: 'México · Pasa de grupos' })).toBeInTheDocument();
     expect(screen.getByText('Cayó en grupos')).toBeInTheDocument();
     expect(screen.getByText(/0 de 3 predicciones \(0 %\)/)).toBeInTheDocument();
@@ -260,10 +257,6 @@ describe('Buscador de un torneo con fase de grupos', () => {
     expect(screen.queryByRole('button', { name: /1º de grupo/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Pasa de grupos/ })).toBeNull();
     // Solo los equipos del cuadro: Italia, Perú, Brasil y México no jugaron los dieciseisavos.
-    expect(
-      within(screen.getByRole('group', { name: 'Grupo A' }))
-        .getAllByRole('option')
-        .map((option) => option.textContent),
-    ).toEqual(['Chile', 'España']);
+    expect(groupLabels('Grupo A')).toEqual(['Chile', 'España']);
   });
 });

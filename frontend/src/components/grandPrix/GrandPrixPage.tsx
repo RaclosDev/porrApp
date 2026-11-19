@@ -29,6 +29,7 @@ import {
   splitGrandsPrix,
 } from './grandPrix';
 import { useUnsavedChanges } from '../../utils/unsavedChanges';
+import SelectMenu from '../SelectMenu';
 
 type Drivers = Map<number, RaceDriver>;
 
@@ -353,25 +354,27 @@ function PickForm({
                   size={36}
                 />
               )}
-              <select
+              <SelectMenu
                 id={id}
                 className="gp-select"
-                value={value ?? ''}
+                label={slot.label}
+                value={value != null ? String(value) : ''}
                 style={teamStripe(value != null ? drivers.get(value) : undefined)}
-                onChange={(event) =>
+                onChange={(next) =>
                   setPick((current) => ({
                     ...current,
-                    [slot.key]: event.target.value ? Number(event.target.value) : null,
+                    [slot.key]: next ? Number(next) : null,
                   }))
                 }
-              >
-                <option value="">{slot.optional ? 'Sin elegir' : 'Elige piloto'}</option>
-                {options.map((driver) => (
-                  <option key={driver.id} value={driver.id} disabled={takenOnPodium.has(driver.id)}>
-                    {driverLabel(driver)}
-                  </option>
-                ))}
-              </select>
+                items={[
+                  { value: '', label: slot.optional ? 'Sin elegir' : 'Elige piloto' },
+                  ...options.map((driver) => ({
+                    value: String(driver.id),
+                    label: driverLabel(driver),
+                    disabled: takenOnPodium.has(driver.id),
+                  })),
+                ]}
+              />
             </div>
           </div>
         );

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Tracker } from '../../services/endpoints/trackers';
 import { percent, playerProfile } from './playerProfile';
+import SelectMenu from '../SelectMenu';
 
 /** Ficha de cada jugador: partidas, victorias, racha, cómo le va en cada juego y contra cada rival. */
 export default function TrackerProfile({ tracker }: { tracker: Tracker }) {
@@ -18,19 +19,17 @@ export default function TrackerProfile({ tracker }: { tracker: Tracker }) {
       <label htmlFor="tracker-profile-player" className="sr-only">
         Jugador
       </label>
-      <select
+      <SelectMenu
         id="tracker-profile-player"
         className="glass-input tracker-select"
-        value={player.id}
-        onChange={(event) => setPlayerId(Number(event.target.value))}
-      >
-        {tracker.players.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.name}
-            {option.id === tracker.myPlayerId ? ' (tú)' : ''}
-          </option>
-        ))}
-      </select>
+        label="Jugador"
+        value={String(player.id)}
+        onChange={(next) => setPlayerId(Number(next))}
+        items={tracker.players.map((option) => ({
+          value: String(option.id),
+          label: `${option.name}${option.id === tracker.myPlayerId ? ' (tú)' : ''}`,
+        }))}
+      />
 
       {profile.played === 0 ? (
         <p className="tracker-note">{player.name} aún no ha terminado ninguna partida.</p>

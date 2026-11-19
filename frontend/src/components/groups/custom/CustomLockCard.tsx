@@ -14,6 +14,7 @@ import {
   FIGHT_NIGHT_LOCK_MODES,
   SERIES_LOCK_MODES,
   LOCK_UNIT_MINUTES,
+  LOCK_UNIT_ITEMS,
   matchdayLockModes,
   MAX_LOCK_OFFSET_MINUTES,
   SINGLE_LOCK_MODES,
@@ -21,6 +22,7 @@ import {
   splitLockOffset,
   type LockUnit,
 } from './lockModes';
+import SelectMenu from '../../SelectMenu';
 
 function describe(
   mode: CustomLockMode,
@@ -212,16 +214,13 @@ export default function CustomLockCard({
                   value={amount}
                   onChange={(event) => setAmount(Number(event.target.value) || 0)}
                 />
-                <select
+                <SelectMenu
                   className="glass-input"
-                  aria-label="Unidad del margen"
+                  label="Unidad del margen"
                   value={unit}
-                  onChange={(event) => setUnit(event.target.value as LockUnit)}
-                >
-                  <option value="minutes">minutos</option>
-                  <option value="hours">horas</option>
-                  <option value="days">días</option>
-                </select>
+                  onChange={(next) => setUnit(next as LockUnit)}
+                  items={LOCK_UNIT_ITEMS}
+                />
               </div>
               <p className="league-admin-muted m-0">0 = justo al empezar. Máximo 30 días.</p>
             </div>

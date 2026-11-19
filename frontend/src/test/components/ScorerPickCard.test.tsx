@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ScorerPickCard from '../../components/matchday/ScorerPickCard';
 import ScorerPicksReview from '../../components/league/ScorerPicksReview';
 import type { ScorerCandidate, ScorerPickState, ScorerPickView } from '../../types/api';
+import { chooseOption } from '../selectMenu';
 
 const api = vi.hoisted(() => ({
   fetchScorerPickState: vi.fn(),
@@ -164,9 +165,7 @@ describe('pichichi de una liga por jornadas', () => {
     expect(await screen.findByText('Pichichis por resolver')).toBeVisible();
     const assign = screen.getByRole('button', { name: 'Asignar' });
     expect(assign).toBeDisabled();
-    fireEvent.change(screen.getByRole('combobox', { name: /Jugador de Ana/ }), {
-      target: { value: '9' },
-    });
+    chooseOption(screen.getByRole('button', { name: /Jugador de Ana/ }), '9');
     fireEvent.click(assign);
 
     await waitFor(() => expect(api.assignScorerPick).toHaveBeenCalledWith(10, 30, '9'));

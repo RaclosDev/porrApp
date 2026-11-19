@@ -5,6 +5,7 @@ import { fetchGroup } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import type { Group, ScorerPickView } from '../../types/api';
 import { scorerPickSummary } from '../matchday/ScorerPickCard';
+import SelectMenu from '../SelectMenu';
 
 interface ScorerPicksReviewProps {
   groupId: number | string;
@@ -58,22 +59,22 @@ export default function ScorerPicksReview({ groupId }: ScorerPicksReviewProps) {
               <label htmlFor={selectId} className="sr-only">
                 Jugador de {pick.participantName ?? 'participante'}
               </label>
-              <select
+              <SelectMenu
                 id={selectId}
                 className="glass-input"
+                label={`Jugador de ${pick.participantName ?? 'participante'}`}
                 value={value}
-                onChange={(event) =>
-                  setChosen((current) => ({ ...current, [pick.predictionId]: event.target.value }))
+                onChange={(next) =>
+                  setChosen((current) => ({ ...current, [pick.predictionId]: next }))
                 }
-              >
-                <option value="">Elige jugador…</option>
-                {options(pick).map((player) => (
-                  <option key={player.playerId || player.name} value={player.playerId}>
-                    {player.name}
-                    {player.team ? ` (${player.team})` : ''}
-                  </option>
-                ))}
-              </select>
+                items={[
+                  { value: '', label: 'Elige jugador…' },
+                  ...options(pick).map((player) => ({
+                    value: player.playerId,
+                    label: `${player.name}${player.team ? ` (${player.team})` : ''}`,
+                  })),
+                ]}
+              />
               <button
                 type="button"
                 className="glass-btn"

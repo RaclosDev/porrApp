@@ -7,6 +7,7 @@ import KnockoutStats from '../../components/insights/KnockoutStats';
 import type { useKnockoutInsights } from '../../hooks/useKnockoutInsights';
 import type { KnockoutRound, KnockoutTie } from '../../services/api';
 import { fieldFromDraw, type KnockoutEntry } from '../../utils/knockoutStats';
+import { optionLabels } from '../selectMenu';
 
 const tie = (home: string, away: string, winner: string | null = null): KnockoutTie => ({
   home,
@@ -107,11 +108,7 @@ describe('Buscador de equipos de un cuadro', () => {
     search('/search');
 
     const select = screen.getByLabelText('¿Quién de la liga pone a…?');
-    expect(
-      within(select)
-        .getAllByRole('option')
-        .map((option) => option.textContent),
-    ).toEqual(['Elige un equipo', 'Bayern', 'Inter', 'Madrid', 'PSG']);
+    expect(optionLabels(select)).toEqual(['Elige un equipo', 'Bayern', 'Inter', 'Madrid', 'PSG']);
     expect(screen.getByText('Elige un equipo', { selector: 'p' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Madrid' }));
@@ -143,7 +140,7 @@ describe('Buscador de equipos de un cuadro', () => {
   it('ignora un equipo que nadie ha puesto', () => {
     search('/search?team=Oporto');
 
-    expect(screen.getByLabelText('¿Quién de la liga pone a…?')).toHaveValue('');
+    expect(screen.getByLabelText('¿Quién de la liga pone a…?')).toHaveAttribute('data-value', '');
   });
 });
 

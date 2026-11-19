@@ -33,6 +33,7 @@ import {
   recordLabel,
   type CardSummary,
 } from '../../utils/fightCard';
+import SelectMenu from '../SelectMenu';
 
 const EMPTY: MatchdayFixture[] = [];
 
@@ -304,18 +305,14 @@ export default function UfcCardBoard() {
             <label htmlFor={selectId} className="sr-only">
               Velada
             </label>
-            <select
+            <SelectMenu
               id={selectId}
               className="glass-input ufc-round-select"
+              label="Velada"
               value={round}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              {rounds.map((r) => (
-                <option key={r} value={r}>
-                  {displayRoundLabel(r)}
-                </option>
-              ))}
-            </select>
+              onChange={setSelected}
+              items={rounds.map((r) => ({ value: r, label: displayRoundLabel(r) }))}
+            />
             <button
               type="button"
               className="ufc-round-step"

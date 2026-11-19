@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import type { Tracker, TrackerGame, TrackerPlayer } from '../../services/endpoints/trackers';
 import { copyWithToast, joinLink } from '../../utils/leagueInvite';
 import { confirmAction } from '../../utils/confirmAction';
+import SelectMenu from '../SelectMenu';
 
 type Action = () => Promise<boolean>;
 
@@ -223,19 +224,17 @@ function PlayerEditor({
           <label htmlFor={mergeId} className="sr-only">
             Juntar a {player.name} con
           </label>
-          <select
+          <SelectMenu
             id={mergeId}
             className="glass-input tracker-select"
-            value={into}
-            onChange={(event) => setInto(event.target.value ? Number(event.target.value) : '')}
-          >
-            <option value="">Es la misma persona que…</option>
-            {others.map((other) => (
-              <option key={other.id} value={other.id}>
-                {other.name}
-              </option>
-            ))}
-          </select>
+            label={`Juntar a ${player.name} con`}
+            value={String(into)}
+            onChange={(next) => setInto(next ? Number(next) : '')}
+            items={[
+              { value: '', label: 'Es la misma persona que…' },
+              ...others.map((other) => ({ value: String(other.id), label: other.name })),
+            ]}
+          />
           <button
             type="button"
             className="glass-btn create-league-small-btn"

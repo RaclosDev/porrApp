@@ -5,6 +5,7 @@ import GrandPrixStats from '../../components/insights/GrandPrixStats';
 import GrandPrixSearch from '../../components/insights/GrandPrixSearch';
 import type { GrandPrix, GrandPrixMemberPick, GrandPrixPicks, RaceDriver } from '../../types/api';
 import type { RaceEntry } from '../../utils/grandPrixStats';
+import { getSelectMenu, optionLabels, groupLabels } from '../selectMenu';
 
 const driver = (id: number, name: string, team: string): RaceDriver => ({
   id,
@@ -83,7 +84,7 @@ describe('Más elegidos de la Fórmula 1', () => {
   it('abre el último Gran Premio cerrado y deja pasar a los anteriores', () => {
     renderAt('/stats', <GrandPrixStats races={races} drivers={drivers} />);
 
-    expect(screen.getByLabelText('Gran Premio')).toHaveValue('2');
+    expect(getSelectMenu('Gran Premio')).toHaveAttribute('data-value', '2');
     expect(screen.getByText(/^2 predicciones/)).toBeInTheDocument();
     // Con la clasificación hecha solo se sabe la pole.
     const pole = screen.getByRole('region', { name: 'Pole más elegida' });
@@ -93,7 +94,7 @@ describe('Más elegidos de la Fórmula 1', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Gran Premio anterior' }));
-    expect(screen.getByLabelText('Gran Premio')).toHaveValue('1');
+    expect(getSelectMenu('Gran Premio')).toHaveAttribute('data-value', '1');
     expect(screen.getByRole('button', { name: 'Gran Premio anterior' })).toBeDisabled();
   });
 
@@ -144,12 +145,14 @@ describe('Buscador de pilotos', () => {
     search('/search');
 
     const select = screen.getByLabelText('¿Quién de la liga pone a…?');
-    expect(within(select).getByRole('group', { name: 'McLaren' })).toBeInTheDocument();
-    expect(
-      within(select)
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual(['Elige un piloto', 'C. Leclerc', 'L. Norris', 'O. Piastri', 'M. Verstappen']);
+    expect(groupLabels('McLaren')).toEqual(['L. Norris', 'O. Piastri']);
+    expect(optionLabels(select)).toEqual([
+      'Elige un piloto',
+      'C. Leclerc',
+      'L. Norris',
+      'O. Piastri',
+      'M. Verstappen',
+    ]);
     expect(screen.getByText('Elige un piloto', { selector: 'p' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'M. Verstappen' }));
@@ -193,6 +196,6 @@ describe('Buscador de pilotos', () => {
   it('ignora un piloto que nadie ha puesto', () => {
     search('/search?driver=99');
 
-    expect(screen.getByLabelText('¿Quién de la liga pone a…?')).toHaveValue('');
+    expect(screen.getByLabelText('¿Quién de la liga pone a…?')).toHaveAttribute('data-value', '');
   });
 });

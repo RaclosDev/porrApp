@@ -5,6 +5,7 @@ import MatchdaySummary from '../../../components/leaderboard/MatchdaySummary';
 import type { MatchdayPoints } from '../../../types/api';
 import { LEAGUE_INSIGHTS } from '../../../context/leagueInsights';
 import type { LeagueKind } from '../../../context/leagueKind';
+import { getSelectMenu } from '../../selectMenu';
 
 const matchday = {
   label: 'Jornada 12',
@@ -74,7 +75,7 @@ describe('MatchdaySummary', () => {
 
     expect(screen.getByText('Velada actual')).toBeInTheDocument();
     expect(screen.getByText('10 peleas')).toBeInTheDocument();
-    expect(screen.getByLabelText('Seleccionar velada')).toBeInTheDocument();
+    expect(getSelectMenu('Seleccionar velada')).toBeInTheDocument();
     expect(screen.getByLabelText('Tus puntos en esta velada: 7, puesto 3')).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import SelectMenu from '../SelectMenu';
 import type { TennisScope } from '../../types/api';
 import MatchSelectionPicker from '../matchSelection/MatchSelectionPicker';
 import {
@@ -153,20 +154,18 @@ function FightNightsSection({ draft, update, errors, ctx }: StepProps) {
       {single && nights.length > 0 && (
         <div className="create-league-field">
           <label htmlFor="cl-night">Velada</label>
-          <select
+          <SelectMenu
             id="cl-night"
             className="glass-input"
+            label="Velada"
+            placeholder="Elige una velada"
             value={chosen}
-            onChange={(event) => choose(event.target.value)}
-          >
-            {!chosen && <option value="">Elige una velada</option>}
-            {nights.map((night) => (
-              <option key={night.round} value={night.round}>
-                {night.round}
-                {night.date ? ` · ${formatMatchDate(night.date)}` : ''}
-              </option>
-            ))}
-          </select>
+            onChange={choose}
+            items={nights.map((night) => ({
+              value: night.round,
+              label: `${night.round}${night.date ? ` · ${formatMatchDate(night.date)}` : ''}`,
+            }))}
+          />
         </div>
       )}
       <FieldError fieldId={FIELD_IDS.matches} message={errors.matches} />

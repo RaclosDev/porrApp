@@ -12,6 +12,7 @@ import {
   isKnockout,
   type SaveAction,
 } from './customCompetition';
+import SelectMenu from '../../SelectMenu';
 
 /** Alta y borrado de partidos: grupos, rondas del cuadro (con descansos) o jornadas. */
 export default function CustomMatchesTab({
@@ -108,18 +109,20 @@ export default function CustomMatchesTab({
             {withGroups && (
               <div className="league-admin-field custom-admin-field-short">
                 <label htmlFor="custom-admin-match-phase">Fase</label>
-                <select
+                <SelectMenu
                   id="custom-admin-match-phase"
                   className="glass-input"
+                  label="Fase"
                   value={phase}
-                  onChange={(event) => {
-                    setPhase(event.target.value as 'group' | 'bracket');
+                  onChange={(next) => {
+                    setPhase(next as 'group' | 'bracket');
                     setAwayId('');
                   }}
-                >
-                  <option value="group">Grupos</option>
-                  <option value="bracket">Cuadro</option>
-                </select>
+                  items={[
+                    { value: 'group', label: 'Grupos' },
+                    { value: 'bracket', label: 'Cuadro' },
+                  ]}
+                />
               </div>
             )}
             {knockout && (
@@ -140,38 +143,36 @@ export default function CustomMatchesTab({
             )}
             <div className="league-admin-field">
               <label htmlFor="custom-admin-match-home">Local</label>
-              <select
+              <SelectMenu
                 id="custom-admin-match-home"
                 className="glass-input"
+                label="Local"
                 required
                 value={homeId}
-                onChange={(event) => changeHome(event.target.value)}
-              >
-                <option value="">Elige equipo</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                    {withGroups && !knockout && team.groupName ? ` (${team.groupName})` : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={changeHome}
+                items={[
+                  { value: '', label: 'Elige equipo' },
+                  ...teams.map((team) => ({
+                    value: String(team.id),
+                    label: `${team.name}${withGroups && !knockout && team.groupName ? ` (${team.groupName})` : ''}`,
+                  })),
+                ]}
+              />
             </div>
             <div className="league-admin-field">
               <label htmlFor="custom-admin-match-away">Visitante</label>
-              <select
+              <SelectMenu
                 id="custom-admin-match-away"
                 className="glass-input"
+                label="Visitante"
                 required={!knockout}
                 value={awayId}
-                onChange={(event) => setAwayId(event.target.value)}
-              >
-                <option value="">{knockout ? 'Descanso (pasa directo)' : 'Elige equipo'}</option>
-                {awayOptions.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setAwayId}
+                items={[
+                  { value: '', label: knockout ? 'Descanso (pasa directo)' : 'Elige equipo' },
+                  ...awayOptions.map((team) => ({ value: String(team.id), label: team.name })),
+                ]}
+              />
             </div>
             <div className="league-admin-field">
               <label htmlFor="custom-admin-match-date">

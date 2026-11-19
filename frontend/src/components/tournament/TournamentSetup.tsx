@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { OrganizedTournament } from '../../services/endpoints/organizedTournaments';
 import type { TournamentUpdate } from './MatchEditor';
 import { confirmAction } from '../../utils/confirmAction';
+import SelectMenu from '../SelectMenu';
 
 export default function TournamentSetup({
   tournament: t,
@@ -162,37 +163,33 @@ export default function TournamentSetup({
                 <div className="tournament-fields">
                   <label>
                     Mover participante
-                    <select
+                    <SelectMenu
                       className="glass-input"
+                      label="Mover participante"
                       required
                       value={firstId}
-                      onChange={(event) => setFirstId(event.target.value)}
-                    >
-                      <option value="">Seleccionar</option>
-                      {t.participants.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setFirstId}
+                      items={[
+                        { value: '', label: 'Seleccionar' },
+                        ...t.participants.map((p) => ({ value: p.id, label: p.name })),
+                      ]}
+                    />
                   </label>
                   <label>
                     Intercambiar con
-                    <select
+                    <SelectMenu
                       className="glass-input"
+                      label="Intercambiar con"
                       required
                       value={secondId}
-                      onChange={(event) => setSecondId(event.target.value)}
-                    >
-                      <option value="">Seleccionar</option>
-                      {t.participants
-                        .filter((p) => p.id !== firstId)
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                    </select>
+                      onChange={setSecondId}
+                      items={[
+                        { value: '', label: 'Seleccionar' },
+                        ...t.participants
+                          .filter((p) => p.id !== firstId)
+                          .map((p) => ({ value: p.id, label: p.name })),
+                      ]}
+                    />
                   </label>
                 </div>
                 <button
@@ -244,39 +241,45 @@ export default function TournamentSetup({
             <div className="tournament-fields">
               <label>
                 Formato
-                <select
+                <SelectMenu
                   className="glass-input"
+                  label="Formato"
                   value={format}
-                  onChange={(event) => setFormat(event.target.value)}
-                >
-                  <option value="LEAGUE">Liga: todos contra todos</option>
-                  <option value="KNOCKOUT">Eliminatoria</option>
-                </select>
+                  onChange={setFormat}
+                  items={[
+                    { value: 'LEAGUE', label: 'Liga: todos contra todos' },
+                    { value: 'KNOCKOUT', label: 'Eliminatoria' },
+                  ]}
+                />
               </label>
               {format === 'LEAGUE' ? (
                 <label>
                   Vueltas
-                  <select
+                  <SelectMenu
                     className="glass-input"
-                    value={legs}
-                    onChange={(event) => setLegs(Number(event.target.value))}
-                  >
-                    <option value={1}>Una vuelta</option>
-                    <option value={2}>Ida y vuelta</option>
-                  </select>
+                    label="Vueltas"
+                    value={String(legs)}
+                    onChange={(next) => setLegs(Number(next))}
+                    items={[
+                      { value: '1', label: 'Una vuelta' },
+                      { value: '2', label: 'Ida y vuelta' },
+                    ]}
+                  />
                 </label>
               ) : (
                 <label>
                   Crear cuadro
-                  <select
+                  <SelectMenu
                     className="glass-input"
+                    label="Crear cuadro"
                     value={draw}
-                    onChange={(event) => setDraw(event.target.value)}
-                  >
-                    <option value="RANDOM">Sorteo aleatorio</option>
-                    <option value="SEEDED">Cabezas de serie según la lista</option>
-                    <option value="MANUAL">Orden manual: 1 contra 2, 3 contra 4…</option>
-                  </select>
+                    onChange={setDraw}
+                    items={[
+                      { value: 'RANDOM', label: 'Sorteo aleatorio' },
+                      { value: 'SEEDED', label: 'Cabezas de serie según la lista' },
+                      { value: 'MANUAL', label: 'Orden manual: 1 contra 2, 3 contra 4…' },
+                    ]}
+                  />
                 </label>
               )}
             </div>
@@ -352,37 +355,33 @@ export default function TournamentSetup({
               <div className="tournament-fields">
                 <label>
                   Primer participante
-                  <select
+                  <SelectMenu
                     className="glass-input"
+                    label="Primer participante"
                     required
                     value={homeId}
-                    onChange={(event) => setHomeId(event.target.value)}
-                  >
-                    <option value="">Seleccionar</option>
-                    {t.participants.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setHomeId}
+                    items={[
+                      { value: '', label: 'Seleccionar' },
+                      ...t.participants.map((p) => ({ value: p.id, label: p.name })),
+                    ]}
+                  />
                 </label>
                 <label>
                   Segundo participante
-                  <select
+                  <SelectMenu
                     className="glass-input"
+                    label="Segundo participante"
                     required
                     value={awayId}
-                    onChange={(event) => setAwayId(event.target.value)}
-                  >
-                    <option value="">Seleccionar</option>
-                    {t.participants
-                      .filter((p) => p.id !== homeId)
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                  </select>
+                    onChange={setAwayId}
+                    items={[
+                      { value: '', label: 'Seleccionar' },
+                      ...t.participants
+                        .filter((p) => p.id !== homeId)
+                        .map((p) => ({ value: p.id, label: p.name })),
+                    ]}
+                  />
                 </label>
                 <label>
                   Jornada o ronda

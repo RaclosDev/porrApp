@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createOrganizedTournament } from '../services/endpoints/organizedTournaments';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
+import SelectMenu from '../components/SelectMenu';
 import '../styles/organized-tournament.css';
 
 export default function CreateTournament() {
@@ -72,15 +73,17 @@ export default function CreateTournament() {
         </label>
         <label>
           Participan
-          <select
+          <SelectMenu
             className="glass-input"
+            label="Participan"
             value={participantType}
-            onChange={(event) => setParticipantType(event.target.value)}
-          >
-            <option value="INDIVIDUAL">Personas</option>
-            <option value="TEAM">Equipos</option>
-            <option value="PAIR">Parejas</option>
-          </select>
+            onChange={setParticipantType}
+            items={[
+              { value: 'INDIVIDUAL', label: 'Personas' },
+              { value: 'TEAM', label: 'Equipos' },
+              { value: 'PAIR', label: 'Parejas' },
+            ]}
+          />
         </label>
         <p>
           Puedes invitar a gente desde Mis ligas. Si publicas el torneo, cualquiera con el enlace

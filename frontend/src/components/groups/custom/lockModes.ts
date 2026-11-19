@@ -153,6 +153,12 @@ export const SINGLE_LOCK_MODES = BRACKET_LOCK_MODES.filter(
 
 export type LockUnit = 'minutes' | 'hours' | 'days';
 export const LOCK_UNIT_MINUTES: Record<LockUnit, number> = { minutes: 1, hours: 60, days: 1440 };
+/** Opciones del desplegable de unidad del margen de cierre. */
+export const LOCK_UNIT_ITEMS: { value: LockUnit; label: string }[] = [
+  { value: 'minutes', label: 'minutos' },
+  { value: 'hours', label: 'horas' },
+  { value: 'days', label: 'días' },
+];
 
 /** Margen máximo antes del partido que admite el servidor: 30 días. */
 export const MAX_LOCK_OFFSET_MINUTES = 30 * 1440;

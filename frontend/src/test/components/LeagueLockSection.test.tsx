@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LeagueLockSection from '../../components/groups/LeagueLockSection';
 import type { Group } from '../../types/api';
+import { getSelectMenu, chooseOption } from '../selectMenu';
 
 const api = vi.hoisted(() => ({
   fetchCustomLockState: vi.fn(),
@@ -101,7 +102,7 @@ describe('LeagueLockSection', () => {
     fireEvent.change(screen.getByLabelText('Margen antes del primer partido'), {
       target: { value: '1' },
     });
-    fireEvent.change(screen.getByLabelText('Unidad del margen'), { target: { value: 'days' } });
+    chooseOption(getSelectMenu('Unidad del margen'), 'days');
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cierre' }));
 
     await waitFor(() =>

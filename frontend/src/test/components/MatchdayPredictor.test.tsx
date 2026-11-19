@@ -8,6 +8,7 @@ import MatchdayPredictor from '../../pages/MatchdayPredictor';
 import { hasLiveMatch } from '../../utils/matchday';
 import { useAppContext } from '../../context/AppContext';
 import * as api from '../../services/api';
+import { menuOptions, optionLabels, chooseOption } from '../selectMenu';
 
 vi.mock('../../context/AppContext', () => ({ useAppContext: vi.fn() }));
 vi.mock('../../services/api', () => ({
@@ -183,9 +184,9 @@ describe('matchday editing and navigation', () => {
       fixture(102, 'group', 'Sin ronda'),
     ]);
     render(tree());
-    const roundSelect = await screen.findByLabelText('Seleccionar jornada');
-    expect(await screen.findByRole('option', { name: 'Final' })).toBeInTheDocument();
-    fireEvent.change(roundSelect, { target: { value: 'Fecha 2099-01-01' } });
+    const roundSelect = await screen.findByRole('button', { name: /^Seleccionar jornada: / });
+    await waitFor(() => expect(optionLabels(roundSelect)).toContain('Final'));
+    chooseOption(roundSelect, 'Fecha 2099-01-01');
     expect(screen.getByText('Sin ronda')).toBeInTheDocument();
     expect(screen.queryByText('Finalista')).not.toBeInTheDocument();
   });
@@ -261,10 +262,10 @@ describe('matchday editing and navigation', () => {
     // "Todas las Jornadas" button must not exist
     expect(screen.queryByRole('button', { name: 'Todas las Jornadas' })).not.toBeInTheDocument();
 
-    const roundSelect = await screen.findByLabelText('Seleccionar jornada');
+    const roundSelect = await screen.findByRole('button', { name: /^Seleccionar jornada: / });
     // The current round (first with pending matches) is selected by default
-    expect(roundSelect).toHaveValue('Jornada 4');
-    expect(Array.from(roundSelect.querySelectorAll('option')).map((o) => o.value)).toEqual([
+    expect(roundSelect).toHaveAttribute('data-value', 'Jornada 4');
+    expect(menuOptions(roundSelect).map((o) => o.dataset.value)).toEqual([
       'Jornada 1',
       'Jornada 2',
       'Jornada 3',
@@ -275,10 +276,10 @@ describe('matchday editing and navigation', () => {
     expect(screen.queryByLabelText('Jornadas anteriores')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Jornada siguiente' }));
-    expect(roundSelect).toHaveValue('Jornada 5');
+    expect(roundSelect).toHaveAttribute('data-value', 'Jornada 5');
 
-    fireEvent.change(roundSelect, { target: { value: 'Jornada 1' } });
-    expect(roundSelect).toHaveValue('Jornada 1');
+    chooseOption(roundSelect, 'Jornada 1');
+    expect(roundSelect).toHaveAttribute('data-value', 'Jornada 1');
     expect(screen.getByRole('button', { name: 'Jornada anterior' })).toBeDisabled();
 
     // Counter scopes to the selected round (J1 has 1 match, 0 predicted -> 0/1, not 0/6)
@@ -482,9 +483,9 @@ describe('matchday screen with the league round summary', () => {
 
   it('only requests the selected round and lists the rounds from the summary', async () => {
     render(tree());
-    const roundSelect = await screen.findByLabelText('Seleccionar jornada');
-    expect(roundSelect).toHaveValue('Jornada 2');
-    expect(Array.from(roundSelect.querySelectorAll('option')).map((o) => o.value)).toEqual([
+    const roundSelect = await screen.findByRole('button', { name: /^Seleccionar jornada: / });
+    expect(roundSelect).toHaveAttribute('data-value', 'Jornada 2');
+    expect(menuOptions(roundSelect).map((o) => o.dataset.value)).toEqual([
       'Jornada 1',
       'Jornada 2',
       'Jornada 3',
