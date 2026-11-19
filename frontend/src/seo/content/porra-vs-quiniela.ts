@@ -3,7 +3,7 @@ import { type ContentPage } from './shared';
 export const porraVsQuiniela: ContentPage = {
   path: '/porra-vs-quiniela',
   navLabel: 'Porra o quiniela',
-  title: 'Porra o quiniela: diferencias y cuál hacer con amigos · PorrApp',
+  title: '¿Porra o quiniela? Diferencias y cuál elegir · PorrApp',
   description:
     'Qué diferencia hay entre una porra entre amigos y la quiniela oficial: cómo se juega, quién pone las reglas, cuánto cuesta y cuál conviene para tu grupo.',
   h1: 'Porra o quiniela,',

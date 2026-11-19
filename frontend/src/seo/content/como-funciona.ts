@@ -5,7 +5,7 @@ export const comoFunciona: ContentPage = {
   navLabel: 'Cómo funciona',
   title: 'Cómo hacer una porra de fútbol con amigos · PorrApp',
   description:
-    'Así funciona PorrApp: creas una liga, invitas a tus amigos con un enlace, cada uno hace sus predicciones y los puntos se calculan solos con los resultados reales.',
+    'Así funciona PorrApp: creas una liga, invitas a tus amigos con un enlace, cada uno hace sus predicciones y los puntos se calculan solos con los resultados.',
   h1: 'Cómo montar una porra',
   h1Marked: 'con tus amigos.',
   lede: 'Una porra de fútbol de las de siempre, sin hojas de cálculo ni cuentas a mano: cada uno hace sus predicciones desde el móvil y la clasificación se actualiza sola.',

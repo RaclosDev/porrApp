@@ -3,7 +3,7 @@ import { type ContentPage } from './shared';
 export const apuntarPuntosJuegosDeMesa: ContentPage = {
   path: '/apuntar-puntos-juegos-de-mesa',
   navLabel: 'Apuntar puntos de juegos de mesa',
-  title: 'Apuntar puntos de juegos de mesa en el móvil, gratis · PorrApp',
+  title: 'Apuntar puntos de juegos de mesa en el móvil · PorrApp',
   description:
     'Deja el papel y el boli: apunta los puntos de cada ronda en el móvil, mira quién va ganando y guarda el ranking de vuestras partidas de mus, Catán o chinchón.',
   h1: 'Apunta los puntos de la partida,',

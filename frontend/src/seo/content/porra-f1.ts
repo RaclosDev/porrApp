@@ -3,7 +3,7 @@ import { appScreen, FREE_ANSWER, type ContentPage } from './shared';
 export const porraF1: ContentPage = {
   path: '/porra-f1',
   navLabel: 'Porra de F1',
-  title: 'Porra de F1 con amigos: podio, pole y vuelta rápida · PorrApp',
+  title: 'Porra de F1 con amigos, gran premio a gran premio · PorrApp',
   description:
     'Monta una porra de F1 con tus amigos: predice el podio, la pole y la vuelta rápida de cada Gran Premio. Puntos y clasificación automáticos, gratis.',
   h1: 'La porra de la F1,',

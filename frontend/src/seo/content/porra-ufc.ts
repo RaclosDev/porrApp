@@ -3,7 +3,7 @@ import { appScreen, FREE_ANSWER, type ContentPage } from './shared';
 export const porraUfc: ContentPage = {
   path: '/porra-ufc',
   navLabel: 'Porra de la UFC',
-  title: 'Porra de la UFC con amigos: ganador, método y asalto · PorrApp',
+  title: 'Porra de la UFC con amigos, velada a velada · PorrApp',
   description:
     'Haz una porra de la UFC con tus amigos: predice quién gana cada combate, por KO, sumisión o decisión, y en qué asalto. Puntos y clasificación automáticos.',
   h1: 'La porra de la UFC,',
