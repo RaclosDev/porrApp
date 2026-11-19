@@ -249,8 +249,10 @@
                          así que no comparten estado. JaCoCo agrega la cobertura de todas en el mismo fichero. -->
                     <forkCount>${surefire.forks}</forkCount>
                     <reuseForks>true</reuseForks>
-                    <!-- Las JVM de test viven poco: solo el compilador C1 y GC serie arrancan los contextos de Spring antes. -->
-                    <argLine>@{argLine} -XX:TieredStopAtLevel=1 -XX:+UseSerialGC</argLine>
+                    <!-- Las JVM de test viven poco: solo el compilador C1 y GC serie arrancan los contextos de Spring antes.
+                         Con solo C1 la JVM reserva 48 MB de CodeCache en lugar de 240 MB, y una JVM reutilizada por
+                         muchas clases los llena: se fija el tamaño habitual. -->
+                    <argLine>@{argLine} -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:ReservedCodeCacheSize=240m</argLine>
                 </configuration>
             </plugin>
             <plugin>
