@@ -1,5 +1,6 @@
 /** Páginas públicas de contenido, en el orden en que se enlazan y salen en el sitemap. */
 import { comoFunciona } from './como-funciona';
+import { funciones } from './funciones';
 import { porraLaliga } from './porra-laliga';
 import { porraChampions } from './porra-champions';
 import { porraPremierLeague } from './porra-premier-league';
@@ -24,6 +25,7 @@ import type { ContentPage } from './shared';
 
 export const CONTENT_PAGES: ContentPage[] = [
   comoFunciona,
+  funciones,
   porraLaliga,
   porraChampions,
   porraPremierLeague,

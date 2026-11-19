@@ -3,7 +3,7 @@ import { appScreen, FREE_ANSWER, type ContentPage } from './shared';
 export const porraTenis: ContentPage = {
   path: '/porra-tenis',
   navLabel: 'Porra de tenis',
-  title: 'Porra de tenis con amigos: Grand Slams y Masters 1000 · PorrApp',
+  title: 'Porra de tenis con amigos, Grand Slams y Masters · PorrApp',
   description:
     'Haz una porra de tenis con tus amigos: predice quién gana cada partido de los Grand Slams, los Masters 1000 y las Finals, en el cuadro masculino y el femenino.',
   h1: 'La porra de tenis,',

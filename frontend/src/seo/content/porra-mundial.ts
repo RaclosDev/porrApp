@@ -5,7 +5,7 @@ export const porraMundial: ContentPage = {
   navLabel: 'Porra del Mundial',
   title: 'Porra del Mundial con cuadro y pichichi · PorrApp',
   description:
-    'La porra del Mundial en PorrApp: ordenas los grupos, rellenas las eliminatorias hasta el campeón y eliges al pichichi. Mira cómo quedó la porra del Mundial 2026.',
+    'La porra del Mundial en PorrApp: ordenas los grupos, rellenas las eliminatorias hasta el campeón y eliges al pichichi. Mira cómo quedó el Mundial 2026.',
   h1: 'La porra del Mundial,',
   h1Marked: 'con cuadro completo.',
   lede: 'En el Mundial no se predice partido a partido: se rellena el cuadro entero antes de que empiece, de la fase de grupos a la final, y se elige al máximo goleador.',

@@ -5,7 +5,7 @@ export const porraCopaDelRey: ContentPage = {
   navLabel: 'Porra de la Copa del Rey',
   title: 'Porra de la Copa del Rey con amigos, ronda a ronda · PorrApp',
   description:
-    'Haz una porra de la Copa del Rey con tus amigos: tras cada sorteo elegís quién pasa cada eliminatoria, hasta el campeón. Puntos y clasificación automáticos, gratis.',
+    'Haz una porra de la Copa del Rey con tus amigos: tras cada sorteo elegís quién pasa cada eliminatoria, hasta el campeón. Clasificación automática y gratis.',
   h1: 'La porra de la Copa del Rey,',
   h1Marked: 'eliminatoria a eliminatoria.',
   lede: 'La Copa se juega a eliminatorias y se sortea ronda a ronda. Crea una liga privada, invita a tus amigos y, tras cada sorteo, elegid quién pasa cada cruce hasta la final.',

@@ -3,7 +3,7 @@ import { type ContentPage } from './shared';
 export const mejoresAppsPorra: ContentPage = {
   path: '/mejores-apps-porra',
   navLabel: 'Mejores apps para hacer una porra',
-  title: 'Mejores apps para hacer una porra con amigos (2026) · PorrApp',
+  title: 'Mejores apps para hacer porras con amigos (2026) · PorrApp',
   description:
     'Las mejores formas de hacer una porra con amigos en 2026: PorrApp, La Porra, Sabios, una hoja de Excel o WhatsApp. Precio, deportes y para quién es cada una.',
   h1: 'Las mejores apps para hacer una porra',

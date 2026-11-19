@@ -29,7 +29,7 @@ public class SpaPageController {
 
     /** Páginas públicas con contenido propio, las únicas que se pueden indexar. */
     public static final Set<String> INDEXABLE = Set.of(
-            "/", "/como-funciona", "/porra-laliga", "/porra-champions", "/porra-premier-league",
+            "/", "/como-funciona", "/funciones", "/porra-laliga", "/porra-champions", "/porra-premier-league",
             "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
             "/plantilla-porra-excel", "/alternativa-laporra", "/mejores-apps-porra",
             "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey",
@@ -50,7 +50,7 @@ public class SpaPageController {
     private static final MediaType HTML_UTF8 = new MediaType(MediaType.TEXT_HTML, StandardCharsets.UTF_8);
 
     @GetMapping({
-            "/", "/como-funciona", "/porra-laliga", "/porra-champions", "/porra-premier-league",
+            "/", "/como-funciona", "/funciones", "/porra-laliga", "/porra-champions", "/porra-premier-league",
             "/porra-mundial", "/porra-f1", "/porra-ufc", "/porra-nba", "/porra-nfl", "/porra-tenis",
             "/plantilla-porra-excel", "/alternativa-laporra", "/mejores-apps-porra",
             "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey", "/apuntar-puntos-juegos-de-mesa", "/timbas-de-poker",

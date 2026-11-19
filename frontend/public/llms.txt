@@ -1,0 +1,32 @@
+# PorrApp
+
+> PorrApp (https://porrapp.app) es una app web española, gratis y sin anuncios, para hacer porras de predicciones entre amigos de fútbol (LaLiga, Champions, Premier League, Mundial, Copa del Rey), Fórmula 1, UFC, NBA, NFL y tenis. Los resultados, los puntos y la clasificación se calculan solos. No mueve dinero.
+
+## Funciones
+
+- Puntos configurables: el administrador de cada liga decide cuántos puntos vale el resultado exacto, el signo (1X2), el plus por diferencia de goles, cada equipo que pasa de grupo, cada ronda del cuadro, el campeón, el subcampeón, el tercero, el cuarto y el pichichi. Por defecto: 5 por exacto, 3 por signo y 1 por diferencia de goles.
+- Pichichi y campeón en torneos con cuadro, como el Mundial o la Champions.
+- Formatos: jornada a jornada, cuadro completo (grupos y eliminatorias), solo eliminatorias, superviviente con vidas y gran premio de F1 (podio, pole y vuelta rápida). UFC con ganador, método y asalto; series de playoffs de la NBA; Grand Slams y Masters 1000 de tenis.
+- Cierre automático de predicciones: por partido, por jornada, por día, al empezar el primer partido o en una fecha fija. Nadie ve las predicciones de los demás hasta el cierre.
+- Clasificación general y por jornada, actualizada sola con los resultados reales.
+- Avisos en el móvil (notificaciones push) de partidos sin predecir y de fin de jornada.
+- PWA: se instala en Android e iPhone desde el navegador, sin Google Play ni App Store.
+- Ligas privadas con invitación por enlace, sin límite de jugadores ni de ligas. Acceso con Google, email o llave de acceso.
+- El administrador puede apuntar quién ha pagado el bote; el dinero se gestiona fuera de la app.
+- Gratis, sin planes de pago y sin publicidad.
+- Extras: marcador para apuntar puntos de juegos de mesa y organizador de timbas de póker.
+
+## Páginas
+
+- [Todas las funciones](https://porrapp.app/funciones)
+- [Cómo funciona](https://porrapp.app/como-funciona)
+- [Instalar la app en el móvil](https://porrapp.app/instalar-app-movil)
+- [Porra entre amigos](https://porrapp.app/porra-entre-amigos)
+- [Porra de LaLiga](https://porrapp.app/porra-laliga)
+- [Porra de la Champions](https://porrapp.app/porra-champions)
+- [Porra del Mundial](https://porrapp.app/porra-mundial)
+- [Porra de F1](https://porrapp.app/porra-f1)
+- [Porra de la UFC](https://porrapp.app/porra-ufc)
+- [Alternativa a La Porra](https://porrapp.app/alternativa-laporra)
+- [Mejores apps para hacer porras](https://porrapp.app/mejores-apps-porra)
+- [Porra de ejemplo](https://porrapp.app/demo)
