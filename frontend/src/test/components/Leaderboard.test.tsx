@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Leaderboard from '../../pages/Leaderboard';
 import { useAppContext } from '../../context/AppContext';
+import { getSelectMenu, chooseOption } from '../selectMenu';
 
 vi.mock('../../context/AppContext', () => ({
   useAppContext: vi.fn(),
@@ -219,8 +220,8 @@ describe('Leaderboard Component', () => {
       </MemoryRouter>,
     );
 
-    const select = screen.getByLabelText('Seleccionar jornada');
-    expect(select).toHaveValue('Jornada 2');
+    const select = getSelectMenu('Seleccionar jornada');
+    expect(select).toHaveAttribute('data-value', 'Jornada 2');
     expect(screen.getByText('Jornada actual')).toBeInTheDocument();
 
     const headers = screen.getAllByRole('columnheader');
@@ -234,9 +235,9 @@ describe('Leaderboard Component', () => {
     const row = screen.getByRole('row', { name: /Carlos/ });
     expect(row.querySelectorAll('td')[3]).toHaveTextContent('4');
 
-    fireEvent.change(select, { target: { value: 'Jornada 1' } });
+    chooseOption(select, 'Jornada 1');
 
-    expect(select).toHaveValue('Jornada 1');
+    expect(select).toHaveAttribute('data-value', 'Jornada 1');
     expect(row.querySelectorAll('td')[3]).toHaveTextContent('3');
     expect(screen.getByText('Finalizada')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Jornada anterior' })).toBeDisabled();
@@ -287,7 +288,7 @@ describe('Leaderboard Component', () => {
     );
 
     expect(changeGroup).toHaveBeenCalledWith(7);
-    expect(screen.getByLabelText('Seleccionar jornada')).toHaveValue('Jornada 1');
+    expect(getSelectMenu('Seleccionar jornada')).toHaveAttribute('data-value', 'Jornada 1');
   });
 
   it('ordena por la jornada seleccionada al pulsar su columna', () => {

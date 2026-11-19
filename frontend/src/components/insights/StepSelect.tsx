@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import SelectMenu from '../SelectMenu';
 
 const stepClass =
   'inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-[rgba(17,24,39,0.05)] text-main disabled:cursor-not-allowed disabled:opacity-35';
@@ -30,18 +31,14 @@ export default function StepSelect({ label, options, value, onChange }: StepSele
       <label htmlFor={selectId} className="sr-only">
         {label}
       </label>
-      <select
+      <SelectMenu
         id={selectId}
         className="glass-input min-w-0 max-w-65 flex-1 font-bold"
+        label={label}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        onChange={onChange}
+        items={options}
+      />
       <button
         type="button"
         className={stepClass}

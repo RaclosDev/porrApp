@@ -201,11 +201,6 @@
     cursor: pointer;
   }
 
-  .lb-matchday-select option {
-    background: var(--panel-bg);
-    color: var(--text-main);
-  }
-
   .lb-matchday-cell {
     color: var(--text-main);
     font-weight: 700;

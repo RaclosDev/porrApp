@@ -4,6 +4,7 @@ import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Search } from 'luci
 import type { LeagueInsights } from '../../context/leagueInsights';
 import { displayRoundLabel } from '../../utils/matchday';
 import type { MatchdayPoints } from '../../types/api';
+import SelectMenu from '../SelectMenu';
 
 interface MatchdaySummaryProps {
   matchday: MatchdayPoints;
@@ -106,19 +107,16 @@ export default function MatchdaySummary({
           <ChevronLeft size={18} aria-hidden="true" />
         </button>
 
-        <select
+        <SelectMenu
           className="lb-matchday-select"
+          label={`Seleccionar ${round.toLowerCase()}`}
           value={selectedLabel || ''}
-          onChange={(event) => onSelect(event.target.value)}
-          aria-label={`Seleccionar ${round.toLowerCase()}`}
-        >
-          {matchdays.map((option) => (
-            <option key={option.label} value={option.label}>
-              {displayRoundLabel(option.label)}
-              {option.current ? ' · actual' : ''}
-            </option>
-          ))}
-        </select>
+          onChange={onSelect}
+          items={matchdays.map((option) => ({
+            value: option.label,
+            label: `${displayRoundLabel(option.label)}${option.current ? ' · actual' : ''}`,
+          }))}
+        />
 
         <button
           type="button"

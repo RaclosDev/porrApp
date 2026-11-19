@@ -306,13 +306,14 @@ test('el creador asigna y retira permisos desde los miembros de la liga', async 
     .click();
   await page.getByRole('button', { name: 'Administrar Póker de los sábados', exact: true }).click();
   await expect(page.getByText('Creador · Admin', { exact: true })).toBeVisible();
-  const permissions = page.getByRole('combobox', { name: 'Permisos de Bruno' });
+  const permissions = page.getByRole('button', { name: /^Permisos de Bruno: / });
   for (const role of ['ADMIN', 'ORGANIZER', 'MEMBER']) {
-    await permissions.selectOption(role);
-    await expect(permissions).toHaveValue(role);
+    await permissions.click();
+    await page.locator(`[role="menuitemradio"][data-value="${role}"]`).click();
+    await expect(permissions).toHaveAttribute('data-value', role);
     await expect(permissions).toBeEnabled();
   }
-  await expect(page.getByRole('combobox', { name: 'Permisos de Ana' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Permisos de Ana: / })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );

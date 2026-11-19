@@ -118,8 +118,10 @@ test('organizer creates, generates, scores and shares a tournament on mobile', a
     await page.getByRole('button', { name: 'Añadir', exact: true }).click();
     await expect(page.getByRole('button', { name: `Guardar nombre de ${name}` })).toBeVisible();
   }
-  await page.getByRole('combobox', { name: 'Formato', exact: true }).selectOption('KNOCKOUT');
-  await page.getByRole('combobox', { name: 'Crear cuadro', exact: true }).selectOption('MANUAL');
+  await page.getByRole('button', { name: /^Formato: / }).click();
+  await page.locator('[role="menuitemradio"][data-value="KNOCKOUT"]').click();
+  await page.getByRole('button', { name: /^Crear cuadro: / }).click();
+  await page.locator('[role="menuitemradio"][data-value="MANUAL"]').click();
   await page.getByRole('button', { name: 'Generar cuadro' }).click();
   await expect(page.getByRole('button', { name: 'Borrar calendario y recolocar' })).toBeVisible();
   await page.getByRole('button', { name: 'Resultados y cuadro' }).click();

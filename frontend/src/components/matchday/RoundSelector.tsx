@@ -1,4 +1,5 @@
 import { displayRoundLabel } from '../../utils/matchday';
+import SelectMenu from '../SelectMenu';
 
 interface RoundSelectorProps {
   rounds: string[];
@@ -22,18 +23,13 @@ export default function RoundSelector({ rounds, selected, index, onSelect }: Rou
         ‹
       </button>
 
-      <select
+      <SelectMenu
         className="md-round-select"
+        label="Seleccionar jornada"
         value={selected || ''}
-        onChange={(e) => onSelect(e.target.value)}
-        aria-label="Seleccionar jornada"
-      >
-        {rounds.map((r) => (
-          <option key={r} value={r}>
-            {displayRoundLabel(r)}
-          </option>
-        ))}
-      </select>
+        onChange={onSelect}
+        items={rounds.map((r) => ({ value: r, label: displayRoundLabel(r) }))}
+      />
 
       <button
         type="button"

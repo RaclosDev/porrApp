@@ -1,9 +1,10 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CustomCompetitionEditor from '../../components/groups/CustomCompetitionEditor';
 import type { Group, Match, PoolFormat } from '../../types/api';
 import { confirmAction } from '../../utils/confirmAction';
+import { chooseOption, optionLabels } from '../selectMenu';
 
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
 
@@ -268,14 +269,10 @@ describe('CustomCompetitionEditor', () => {
     setup();
     await openTab(/Partidos/);
 
-    fireEvent.change(screen.getByLabelText('Local'), { target: { value: '1' } });
+    chooseOption(screen.getByLabelText('Local'), '1');
     const away = screen.getByLabelText('Visitante');
-    expect(
-      within(away)
-        .getAllByRole('option')
-        .map((option) => option.textContent),
-    ).toEqual(['Elige equipo', 'Tigres']);
-    fireEvent.change(away, { target: { value: '2' } });
+    expect(optionLabels(away)).toEqual(['Elige equipo', 'Tigres']);
+    chooseOption(away, '2');
     fireEvent.change(screen.getByLabelText('Fecha y hora'), {
       target: { value: '2026-12-01T18:00' },
     });
@@ -292,8 +289,8 @@ describe('CustomCompetitionEditor', () => {
 
     expect(screen.queryByLabelText('Fase')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Ronda')).toHaveAttribute('max', '1');
-    fireEvent.change(screen.getByLabelText('Local'), { target: { value: '3' } });
-    expect(screen.getByLabelText('Visitante')).toHaveDisplayValue('Descanso (pasa directo)');
+    chooseOption(screen.getByLabelText('Local'), '3');
+    expect(screen.getByLabelText('Visitante')).toHaveTextContent('Descanso (pasa directo)');
     fireEvent.click(screen.getByRole('button', { name: 'Añadir partido' }));
 
     await waitFor(() =>
@@ -356,7 +353,7 @@ describe('CustomCompetitionEditor', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
     fireEvent.change(screen.getByLabelText('Goles de Leones'), { target: { value: '1' } });
     fireEvent.change(screen.getByLabelText('Goles de Tigres'), { target: { value: '1' } });
-    fireEvent.change(screen.getByLabelText('Ganador del desempate'), { target: { value: '2' } });
+    chooseOption(screen.getByLabelText('Ganador del desempate'), '2');
     fireEvent.click(screen.getByRole('button', { name: 'Guardar resultado de Leones – Tigres' }));
 
     await waitFor(() => expect(api.setCustomResult).toHaveBeenCalledWith(7, 20, 1, 1, 2));

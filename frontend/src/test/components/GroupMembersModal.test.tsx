@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import GroupMembersModal from '../../components/GroupMembersModal';
 import { DEFAULT_SCORING, leagueScoring } from '../fixtures';
+import { chooseOption } from '../selectMenu';
 
 const api = vi.hoisted(() => ({
   fetchGroupMembers: vi.fn(),
@@ -260,16 +261,22 @@ describe('GroupMembersModal', () => {
   });
 
   it('el creador añade administradores sin ceder la liga y puede revocar sus permisos', async () => {
+    // El servidor guarda el permiso: la lista que se vuelve a pedir ya lo trae.
+    let members = MEMBERS;
+    api.fetchGroupMembers.mockImplementation(async () => members);
+    api.setGroupMemberRole.mockImplementation(async (_group, userId, role) => {
+      members = members.map((member) => (member.userId === userId ? { ...member, role } : member));
+      return { status: 'success' };
+    });
     setup({ leagueKind: 'POKER' });
-    const select = await screen.findByRole('combobox', { name: 'Permisos de Bruno' });
+    const select = await screen.findByRole('button', { name: /^Permisos de Bruno: / });
     expect(screen.getByText('Creador · Admin')).toBeInTheDocument();
-    expect(screen.queryByRole('combobox', { name: 'Permisos de Ana' })).not.toBeInTheDocument();
-    fireEvent.change(select, { target: { value: 'ADMIN' } });
-    await waitFor(() => expect(api.setGroupMemberRole).toHaveBeenCalledWith(1, 2, 'ADMIN'));
-    fireEvent.change(select, { target: { value: 'ORGANIZER' } });
-    await waitFor(() => expect(api.setGroupMemberRole).toHaveBeenCalledWith(1, 2, 'ORGANIZER'));
-    fireEvent.change(select, { target: { value: 'MEMBER' } });
-    await waitFor(() => expect(api.setGroupMemberRole).toHaveBeenCalledWith(1, 2, 'MEMBER'));
+    expect(screen.queryByRole('button', { name: /^Permisos de Ana: / })).not.toBeInTheDocument();
+    for (const role of ['ADMIN', 'ORGANIZER', 'MEMBER']) {
+      chooseOption(select, role);
+      await waitFor(() => expect(api.setGroupMemberRole).toHaveBeenCalledWith(1, 2, role));
+      await waitFor(() => expect(select).toHaveAttribute('data-value', role));
+    }
   });
 
   it('un administrador secundario no puede cambiar permisos ni borrar la liga', async () => {
@@ -278,7 +285,7 @@ describe('GroupMembersModal', () => {
     );
     setup({ currentUserId: 2 });
     await screen.findByText('Bruno');
-    expect(screen.queryByRole('combobox', { name: /Permisos de/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Permisos de/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /General/ }));
     expect(screen.queryByText('Eliminar liga')).not.toBeInTheDocument();
   });

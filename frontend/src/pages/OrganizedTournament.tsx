@@ -12,6 +12,7 @@ import TrackerQr from '../components/tracker/TrackerQr';
 import TournamentSetup from '../components/tournament/TournamentSetup';
 import MatchEditor, { type TournamentUpdate } from '../components/tournament/MatchEditor';
 import { errorMessage } from '../utils/errors';
+import SelectMenu from '../components/SelectMenu';
 import '../styles/organized-tournament.css';
 
 type TournamentTab = 'results' | 'setup';
@@ -335,17 +336,16 @@ export default function OrganizedTournament({ publicView = false }: { publicView
                 <h2>Encuentros</h2>
                 <label>
                   Jornada
-                  <select
+                  <SelectMenu
                     className="glass-input"
-                    value={selectedRound}
-                    onChange={(event) => setRound(Number(event.target.value))}
-                  >
-                    {rounds.map((number) => (
-                      <option key={number} value={number}>
-                        {roundTitle(number)}
-                      </option>
-                    ))}
-                  </select>
+                    label="Jornada"
+                    value={String(selectedRound)}
+                    onChange={(next) => setRound(Number(next))}
+                    items={rounds.map((number) => ({
+                      value: String(number),
+                      label: roundTitle(number),
+                    }))}
+                  />
                 </label>
                 <ol className="tournament-matches">
                   {t.matches.filter((m) => m.round === selectedRound).map(matchCard)}

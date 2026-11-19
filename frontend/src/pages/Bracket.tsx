@@ -20,6 +20,7 @@ import KnockoutDrawPredictor from './KnockoutDrawPredictor';
 import { NoLeagueState, UnsupportedLeagueState } from '../components/NoLeagueState';
 import type { LeagueKind } from '../context/leagueKind';
 import { useUnsavedChanges } from '../utils/unsavedChanges';
+import SelectMenu from '../components/SelectMenu';
 
 /** «Mi porra»: dónde se rellena la predicción de cada clase de liga. */
 function Bracket() {
@@ -149,21 +150,14 @@ function GroupStageBracket() {
     // En KNOCKOUTS_ONLY, los dieciseisavos sin equipo ("1º A") se eligen en un desplegable.
     if (roundIndex === 0 && isKnockoutsOnly && team?.name?.includes('º')) {
       return (
-        <select
-          aria-label="Seleccionar equipo clasificado"
+        <SelectMenu
+          label="Seleccionar equipo clasificado"
           className="glass-input w-full h-10.5 py-0 px-2.5 text-[0.85rem]"
-          defaultValue=""
-          onChange={(e) => e.target.value && setR32Team(e.target.value, side, matchIndex, isHome)}
-        >
-          <option value="" disabled>
-            Seleccionar...
-          </option>
-          {allTeams.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
+          placeholder="Seleccionar..."
+          value=""
+          onChange={(next) => next && setR32Team(next, side, matchIndex, isHome)}
+          items={allTeams.map((t) => ({ value: t, label: t }))}
+        />
       );
     }
     if (roundIndex === 0) {

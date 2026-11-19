@@ -12,6 +12,7 @@ import type { PokerLeagueData, PokerSession, PokerSettings } from '../../service
 import { request } from '../../services/http';
 import { confirmAction } from '../../utils/confirmAction';
 import { euros } from '../../components/poker/pokerFormat';
+import { getSelectMenu, optionLabels, chooseOption, setValue } from '../selectMenu';
 
 /** Importe como lo deja toHaveTextContent, que normaliza el espacio no separable. */
 const money = (cents: number) => euros(cents).replace(/\s/g, ' ');
@@ -72,7 +73,7 @@ function click(name: string) {
 }
 
 function set(label: string, value: string, scope: Pick<typeof screen, 'getByLabelText'> = screen) {
-  fireEvent.change(scope.getByLabelText(label, { exact: true }), { target: { value } });
+  setValue(scope.getByLabelText(label, { exact: true }), value);
 }
 
 function renderLeague() {
@@ -472,14 +473,14 @@ it('recorre el histórico torneo a torneo', () => {
     results: [result],
   });
   render(<PokerHistory sessions={[closed(22, '2026-07-18'), closed(21, '2026-07-04')]} />);
-  const picker = screen.getByLabelText<HTMLSelectElement>('Seleccionar torneo');
-  expect(picker.value).toBe('22');
+  const picker = getSelectMenu('Seleccionar torneo');
+  expect(picker).toHaveAttribute('data-value', '22');
   expect(screen.getByRole('button', { name: 'Torneo siguiente' })).toBeDisabled();
   click('Torneo anterior');
-  expect(picker.value).toBe('21');
+  expect(picker).toHaveAttribute('data-value', '21');
   expect(screen.getByText(/sábado, 4 de julio/)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Torneo anterior' })).toBeDisabled();
-  fireEvent.change(picker, { target: { value: '22' } });
+  chooseOption(picker, '22');
   expect(screen.getByText(/sábado, 18 de julio/)).toBeVisible();
 });
 
@@ -531,7 +532,7 @@ it('solo muestra el año de los torneos de otros años', () => {
       ]}
     />,
   );
-  const options = screen.getAllByRole('option').map((option) => option.textContent);
+  const options = optionLabels(getSelectMenu('Seleccionar torneo'));
   expect(options).toEqual([`Torneo 1 · 4 jul ${year - 1}`, 'Torneo 2 · 18 jul']);
   expect(screen.getByText(/, 18 de julio$/)).toBeVisible();
 });

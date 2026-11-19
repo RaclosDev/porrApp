@@ -57,7 +57,7 @@
     min-width: 0;
     height: 42px;
     border-radius: 10px;
-    padding: 0 34px 0 14px;
+    padding: 0 14px;
     background-color: rgba(17, 24, 39, 0.05);
     color: var(--text-main);
     border: 1px solid var(--border-color);
@@ -65,23 +65,7 @@
     font-size: 0.9rem;
     font-weight: 700;
     text-overflow: ellipsis;
-    appearance: none;
     cursor: pointer;
-    background-image:
-      linear-gradient(45deg, transparent 50%, #94a3b8 50%),
-      linear-gradient(135deg, #94a3b8 50%, transparent 50%);
-    background-position:
-      calc(100% - 17px) calc(50% - 2px),
-      calc(100% - 12px) calc(50% - 2px);
-    background-size:
-      5px 5px,
-      5px 5px;
-    background-repeat: no-repeat;
-  }
-
-  .md-round-select option {
-    background: var(--panel-bg);
-    color: var(--text-main);
   }
 
   .md-filters {

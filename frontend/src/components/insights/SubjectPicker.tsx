@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import SelectMenu from '../SelectMenu';
 
 export interface PickerOption {
   value: string;
@@ -18,15 +19,9 @@ interface SubjectPickerProps {
   placeholder: string;
 }
 
-const option = ({ value, label }: PickerOption) => (
-  <option key={value} value={value}>
-    {label}
-  </option>
-);
-
 /**
- * Elección del equipo, jugador o piloto que se busca. Es un select nativo para que en el móvil
- * salga el selector del sistema, con atajos para los favoritos de la liga.
+ * Elección del equipo, jugador o piloto que se busca. Desplegable con grupos
+ * (grupo del torneo, escudería…) y atajos para los favoritos de la liga.
  */
 export default function SubjectPicker({
   value,
@@ -47,23 +42,20 @@ export default function SubjectPicker({
         <span className="flex w-6 shrink-0 justify-center" aria-hidden="true">
           {value && icon(value)}
         </span>
-        <select
+        <SelectMenu
           id={selectId}
           className="glass-input min-w-0 flex-1 text-[1rem]"
+          label="¿Quién de la liga pone a…?"
+          placeholder={placeholder}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          <option value="">{placeholder}</option>
-          {groups.map(({ label, options }) =>
-            label ? (
-              <optgroup key={label} label={label}>
-                {options.map(option)}
-              </optgroup>
-            ) : (
-              options.map(option)
+          onChange={onChange}
+          items={[
+            { value: '', label: placeholder },
+            ...groups.flatMap(({ label, options }) =>
+              label ? [{ separator: true as const, label }, ...options] : options,
             ),
-          )}
-        </select>
+          ]}
+        />
       </div>
       {shortcuts.length > 0 && (
         <div className="mt-3">
