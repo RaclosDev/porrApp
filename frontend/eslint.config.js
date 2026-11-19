@@ -17,7 +17,11 @@ export default tseslint.config(
       // El foco inicial en diálogos y en la edición en línea es intencional (WAI-ARIA lo recomienda).
       'jsx-a11y/no-autofocus': 'off',
       // Los interruptores llevan el texto dentro de <span><strong>, a un nivel más de lo habitual.
-      'jsx-a11y/label-has-associated-control': ['error', { depth: 3 }],
+      // SelectMenu es el desplegable propio: su botón es el control de la etiqueta que lo envuelve.
+      'jsx-a11y/label-has-associated-control': [
+        'error',
+        { depth: 3, controlComponents: ['SelectMenu'] },
+      ],
       // Las regiones con scroll necesitan foco para desplazarse con el teclado.
       'jsx-a11y/no-noninteractive-tabindex': ['error', { roles: ['tabpanel', 'region'] }],
     },

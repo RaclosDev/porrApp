@@ -12,6 +12,7 @@ import {
   fetchOrganizedTournament,
   type OrganizedTournament,
 } from '../../services/endpoints/organizedTournaments';
+import { optionLabels, setValue } from '../selectMenu';
 
 vi.mock('../../services/endpoints/organizedTournaments', async (original) => ({
   ...(await original<typeof import('../../services/endpoints/organizedTournaments')>()),
@@ -184,7 +185,7 @@ it('creates a draft with trimmed names and retains its idempotency key on retry'
   renderPage(false, true);
   fireEvent.change(screen.getByLabelText('Nombre del torneo'), { target: { value: ' Copa ' } });
   fireEvent.change(screen.getByLabelText('Deporte o juego'), { target: { value: ' Petanca ' } });
-  fireEvent.change(screen.getByLabelText('Participan'), { target: { value: 'PAIR' } });
+  setValue(screen.getByLabelText('Participan'), 'PAIR');
   fireEvent.click(screen.getByRole('button', { name: 'Crear torneo' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Sin conexión');
   fireEvent.click(screen.getByRole('button', { name: 'Crear torneo' }));
@@ -218,8 +219,8 @@ it('adds, renames, reorders and removes participants before generating a seeded 
   expect(update).toHaveBeenLastCalledWith('order', 'PUT', { participantIds: ['b', 'a'] });
   fireEvent.click(screen.getByRole('button', { name: 'Quitar a Bea' }));
   expect(update).toHaveBeenLastCalledWith('participants/b?revision=3', 'DELETE');
-  fireEvent.change(screen.getByLabelText('Formato'), { target: { value: 'KNOCKOUT' } });
-  fireEvent.change(screen.getByLabelText('Crear cuadro'), { target: { value: 'SEEDED' } });
+  setValue(screen.getByLabelText('Formato'), 'KNOCKOUT');
+  setValue(screen.getByLabelText('Crear cuadro'), 'SEEDED');
   fireEvent.click(screen.getByRole('button', { name: 'Generar cuadro' }));
   expect(update).toHaveBeenLastCalledWith('schedule', 'POST', {
     format: 'KNOCKOUT',
@@ -237,8 +238,8 @@ it('swaps generated bracket positions only before play begins', () => {
   t.matches[0].outcome = null;
   const update = vi.fn().mockResolvedValue(true);
   const view = render(<TournamentSetup tournament={t} update={update} busy={false} />);
-  fireEvent.change(screen.getByLabelText('Mover participante'), { target: { value: 'a' } });
-  fireEvent.change(screen.getByLabelText('Intercambiar con'), { target: { value: 'b' } });
+  setValue(screen.getByLabelText('Mover participante'), 'a');
+  setValue(screen.getByLabelText('Intercambiar con'), 'b');
   fireEvent.click(screen.getByRole('button', { name: 'Intercambiar posiciones' }));
   expect(update).toHaveBeenLastCalledWith('positions', 'PUT', { firstId: 'a', secondId: 'b' });
   t.matches[0].outcome = 'HOME';
@@ -254,10 +255,10 @@ it('supports results without a score, dates and deliberate result clearing', asy
   render(
     <MatchEditor tournament={t} match={t.matches[0]} update={update} busy={false} close={close} />,
   );
-  expect(screen.queryByRole('option', { name: 'Empate' })).not.toBeInTheDocument();
+  expect(optionLabels(screen.getByLabelText('Resultado'))).not.toContain('Empate');
   fireEvent.change(screen.getByLabelText('Marcador de Ana'), { target: { value: '' } });
   fireEvent.change(screen.getByLabelText('Marcador de Bea'), { target: { value: '' } });
-  fireEvent.change(screen.getByLabelText('Resultado'), { target: { value: 'AWAY' } });
+  setValue(screen.getByLabelText('Resultado'), 'AWAY');
   fireEvent.click(screen.getByRole('button', { name: 'Guardar resultado' }));
   await waitFor(() => expect(close).toHaveBeenCalled());
   expect(update).toHaveBeenLastCalledWith('matches/m/result', 'PUT', {

@@ -1,0 +1,178 @@
+/*
+ * Desplegable propio (SelectMenu): el botón conserva el aspecto del control de cada pantalla
+ * (glass-input, md-round-select…) y el menú es una hoja de papel con tinta, como el de «Mis ligas».
+ */
+@layer components {
+  .select-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .select-menu-trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .select-menu-trigger.glass-input:hover:not(:disabled) {
+    border-color: var(--accent-cyan);
+  }
+
+  .select-menu-trigger:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
+
+  .select-menu-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .select-menu-value.is-placeholder {
+    color: var(--text-muted);
+  }
+
+  .select-menu-chevron {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s ease;
+  }
+
+  .select-menu-trigger[aria-expanded='true'] .select-menu-chevron {
+    transform: rotate(180deg);
+  }
+
+  .select-menu-validity {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Popover nativo: en la capa superior, colocado a mano bajo el botón (position: fixed). */
+  .select-menu[popover] {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    max-width: calc(100vw - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 6px;
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+  }
+
+  .select-menu[popover]:popover-open {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: select-menu-in 0.14s ease-out;
+  }
+
+  @keyframes select-menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  .select-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 12px 8px 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .select-menu-item:hover:not(:disabled),
+  .select-menu-item:focus-visible {
+    background: rgba(17, 24, 39, 0.06);
+    outline: none;
+  }
+
+  .select-menu-item:focus-visible {
+    border-color: var(--marker-ink);
+  }
+
+  .select-menu-item[aria-checked='true'] {
+    border-color: var(--ink);
+    background: rgba(17, 24, 39, 0.06);
+    font-weight: 700;
+  }
+
+  .select-menu-item:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    text-decoration: line-through;
+    text-decoration-color: rgba(17, 24, 39, 0.35);
+  }
+
+  .select-menu-check {
+    flex: none;
+    width: 1.1em;
+    font-family: 'Permanent Marker', 'Outfit', cursive;
+    color: var(--marker-ink);
+    text-align: center;
+  }
+
+  .select-menu-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .select-menu-sep {
+    margin: 4px 2px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .select-menu-heading {
+    display: block;
+    padding: 8px 8px 2px;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .select-menu[popover]:popover-open {
+      animation: none;
+    }
+
+    .select-menu-chevron {
+      transition: none;
+    }
+  }
+}

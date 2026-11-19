@@ -3,6 +3,7 @@ import type {
   TournamentMatch,
   OrganizedTournament,
 } from '../../services/endpoints/organizedTournaments';
+import SelectMenu from '../SelectMenu';
 
 export type TournamentUpdate = (
   path: string,
@@ -92,16 +93,18 @@ export default function MatchEditor({
           </div>
           <label>
             Resultado
-            <select
+            <SelectMenu
               className="glass-input"
+              label="Resultado"
               value={outcome}
-              onChange={(event) => setOutcome(event.target.value)}
-            >
-              <option value="">Según el marcador</option>
-              <option value="HOME">Gana {home}</option>
-              <option value="AWAY">Gana {away}</option>
-              {tournament.format !== 'KNOCKOUT' && <option value="DRAW">Empate</option>}
-            </select>
+              onChange={setOutcome}
+              items={[
+                { value: '', label: 'Según el marcador' },
+                { value: 'HOME', label: `Gana ${home}` },
+                { value: 'AWAY', label: `Gana ${away}` },
+                ...(tournament.format !== 'KNOCKOUT' ? [{ value: 'DRAW', label: 'Empate' }] : []),
+              ]}
+            />
           </label>
           <p className="text-muted">
             Puedes dejar los marcadores vacíos y elegir el ganador. Si hay empate en una

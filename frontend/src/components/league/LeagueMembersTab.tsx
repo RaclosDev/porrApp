@@ -20,6 +20,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
+import SelectMenu from '../SelectMenu';
 
 const PAYMENT_FILTERS: { id: PaymentFilter; label: string }[] = [
   { id: 'ALL', label: 'Todos' },
@@ -418,24 +419,25 @@ export default function LeagueMembersTab({
                   )}
 
                   {isCreator && !member.creator && !isSelf && (
-                    <select
+                    <SelectMenu
                       className="league-admin-btn"
-                      aria-label={`Permisos de ${member.participantName}`}
+                      label={`Permisos de ${member.participantName}`}
                       value={member.role}
                       disabled={roleMutation.isPending}
-                      onChange={(event) =>
+                      onChange={(role) =>
                         roleMutation.mutate({
                           userId: member.userId,
-                          role: event.target.value as LeagueMemberRole,
+                          role: role as LeagueMemberRole,
                         })
                       }
-                    >
-                      <option value="MEMBER">Miembro</option>
-                      <option value="ADMIN">Administrador</option>
-                      {supportsOrganizers && (
-                        <option value="ORGANIZER">Organizador de torneos</option>
-                      )}
-                    </select>
+                      items={[
+                        { value: 'MEMBER', label: 'Miembro' },
+                        { value: 'ADMIN', label: 'Administrador' },
+                        ...(supportsOrganizers
+                          ? [{ value: 'ORGANIZER', label: 'Organizador de torneos' }]
+                          : []),
+                      ]}
+                    />
                   )}
 
                   {isCreator &&

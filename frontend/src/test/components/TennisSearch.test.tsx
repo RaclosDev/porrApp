@@ -6,6 +6,7 @@ import { useMatchdayStats } from '../../hooks/useMatchdayStats';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
 import { ApiError } from '../../services/apiError';
 import type { MatchStats, MatchVoters } from '../../types/api';
+import { optionLabels } from '../selectMenu';
 
 vi.mock('../../hooks/useMatchdayStats', () => ({ useMatchdayStats: vi.fn() }));
 vi.mock('../../hooks/useMatchVoters', () => ({ useMatchVoters: vi.fn() }));
@@ -83,11 +84,7 @@ describe('Buscador de jugadores de tenis', () => {
     search();
 
     const select = screen.getByLabelText('¿Quién de la liga pone a…?');
-    expect(
-      within(select)
-        .getAllByRole('option')
-        .map((option) => option.textContent),
-    ).toEqual(['Elige un jugador', 'Alcaraz', 'Sinner', 'Zverev']);
+    expect(optionLabels(select)).toEqual(['Elige un jugador', 'Alcaraz', 'Sinner', 'Zverev']);
     expect(screen.getByText('Elige un jugador', { selector: 'p' })).toBeInTheDocument();
     // Sin jugador elegido no se pide quién ha puesto qué.
     expect(useMatchVoters).toHaveBeenCalledWith('7', []);
@@ -131,7 +128,7 @@ describe('Buscador de jugadores de tenis', () => {
   it('ignora un jugador que no está en los partidos visibles', () => {
     search('/search?player=Rune');
 
-    expect(screen.getByLabelText('¿Quién de la liga pone a…?')).toHaveValue('');
+    expect(screen.getByLabelText('¿Quién de la liga pone a…?')).toHaveAttribute('data-value', '');
   });
 
   it('comparte la búsqueda por WhatsApp con el enlace al partido', () => {

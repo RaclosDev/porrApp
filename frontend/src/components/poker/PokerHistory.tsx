@@ -18,6 +18,7 @@ import {
   tournamentDate,
 } from './pokerFormat';
 import { pokerRoutes } from './pokerRoutes';
+import SelectMenu from '../SelectMenu';
 
 function Net({ cents }: { cents: number }) {
   return (
@@ -86,18 +87,16 @@ export function PokerHistory({
             >
               ‹
             </button>
-            <select
+            <SelectMenu
               className="md-round-select"
-              value={session.id}
-              onChange={(event) => setSelectedId(Number(event.target.value))}
-              aria-label="Seleccionar torneo"
-            >
-              {ordered.map((item, position) => (
-                <option key={item.id} value={item.id}>
-                  Torneo {position + 1} · {shortDate(item.date)}
-                </option>
-              ))}
-            </select>
+              label="Seleccionar torneo"
+              value={String(session.id)}
+              onChange={(next) => setSelectedId(Number(next))}
+              items={ordered.map((item, position) => ({
+                value: String(item.id),
+                label: `Torneo ${position + 1} · ${shortDate(item.date)}`,
+              }))}
+            />
             <button
               type="button"
               className="glass-btn md-round-step"

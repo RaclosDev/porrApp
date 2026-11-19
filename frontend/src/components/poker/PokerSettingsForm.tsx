@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import type { BlindLevel, PokerExtra, PokerSettings } from '../../services/endpoints/poker';
 import PokerPrizeShares, { sharesTotal } from './PokerPrizeShares';
 import { chips, withBreakAfterCutoff } from './pokerFormat';
+import SelectMenu from '../SelectMenu';
 
 interface Props {
   date: string;
@@ -394,20 +395,20 @@ function ExtraFields({
           )}
           <label>
             Hasta el final de
-            <select
+            <SelectMenu
               className="glass-input"
-              value={extra.throughLevel}
-              onChange={(event) => onChange({ ...extra, throughLevel: Number(event.target.value) })}
-            >
-              {settings.levels.map((level, index) => (
-                <option key={index} value={index + 1}>
-                  {index + 1} ·{' '}
-                  {level.big === 0 && level.small === 0
+              label="Hasta el final de"
+              value={String(extra.throughLevel)}
+              onChange={(next) => onChange({ ...extra, throughLevel: Number(next) })}
+              items={settings.levels.map((level, index) => ({
+                value: String(index + 1),
+                label: `${index + 1} · ${
+                  level.big === 0 && level.small === 0
                     ? 'Descanso'
-                    : `${chips(level.small)} / ${chips(level.big)}`}
-                </option>
-              ))}
-            </select>
+                    : `${chips(level.small)} / ${chips(level.big)}`
+                }`,
+              }))}
+            />
           </label>
         </div>
       )}

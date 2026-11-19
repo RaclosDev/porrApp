@@ -10,6 +10,7 @@ import {
   isKnockout,
   type SaveAction,
 } from './customCompetition';
+import SelectMenu from '../../SelectMenu';
 
 type ResultFilter = 'PENDING' | 'DONE' | 'ALL';
 
@@ -176,17 +177,19 @@ function ResultRow({ group, match, save }: { group: Group; match: Match; save: S
             <label htmlFor={`${prefix}-winner`} className="sr-only">
               Ganador del desempate
             </label>
-            <select
+            <SelectMenu
               id={`${prefix}-winner`}
               className="glass-input custom-admin-winner"
+              label="Ganador del desempate"
               required
               value={winnerId}
-              onChange={(event) => setWinnerId(event.target.value)}
-            >
-              <option value="">¿Quién pasa?</option>
-              <option value={match.home_team_id ?? ''}>{match.home}</option>
-              <option value={match.away_team_id ?? ''}>{match.away}</option>
-            </select>
+              onChange={setWinnerId}
+              items={[
+                { value: '', label: '¿Quién pasa?' },
+                { value: String(match.home_team_id ?? ''), label: match.home },
+                { value: String(match.away_team_id ?? ''), label: match.away },
+              ]}
+            />
           </>
         )}
         <button

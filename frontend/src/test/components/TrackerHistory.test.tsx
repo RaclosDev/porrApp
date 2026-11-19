@@ -15,6 +15,7 @@ vi.mock('../../components/tracker/shareResult', async (original) => ({
 }));
 
 import type { Tracker, TrackerSession, TrackerStanding } from '../../services/endpoints/trackers';
+import { setValue } from '../selectMenu';
 
 const row = (
   playerId: number,
@@ -326,7 +327,7 @@ describe('Gestión de días, jugadores y juegos', () => {
     await waitFor(() => expect(on.onRenamePlayer).toHaveBeenCalledWith(13, 'Carlota'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Editar a Dani' }));
-    fireEvent.change(screen.getByLabelText('Juntar a Dani con'), { target: { value: '12' } });
+    setValue(screen.getByLabelText('Juntar a Dani con'), '12');
     fireEvent.click(screen.getByRole('button', { name: 'Juntar' }));
     await waitFor(() => expect(on.onMergePlayer).toHaveBeenCalledWith(14, 12));
 
@@ -380,17 +381,17 @@ describe('Ficha de jugador', () => {
   it('abre la ficha propia y deja cambiar de jugador', () => {
     render(<TrackerProfile tracker={tracker} />);
 
-    expect(screen.getByLabelText('Jugador')).toHaveValue('11');
+    expect(screen.getByLabelText('Jugador')).toHaveAttribute('data-value', '11');
     expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
       '2 (100 %)',
     );
-    fireEvent.change(screen.getByLabelText('Jugador'), { target: { value: '12' } });
+    setValue(screen.getByLabelText('Jugador'), '12');
     expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
       '1 (50 %)',
     );
     expect(screen.getByRole('columnheader', { name: 'Gana Berto' })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Jugador'), { target: { value: '13' } });
+    setValue(screen.getByLabelText('Jugador'), '13');
     expect(screen.getByText('Ganadas', { selector: 'dt' }).nextSibling).toHaveTextContent(
       '0 (0 %)',
     );

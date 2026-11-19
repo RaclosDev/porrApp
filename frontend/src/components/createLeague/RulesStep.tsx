@@ -2,7 +2,8 @@ import { RotateCcw } from 'lucide-react';
 import ScoringRulesPanel from '../league/ScoringRulesPanel';
 import type { LeagueScoring } from '../../types/api';
 import { SCORING_MAX_POINTS, defaultScoringRules, toDraft } from '../../utils/scoringRules';
-import type { LockUnit } from '../groups/custom/lockModes';
+import { LOCK_UNIT_ITEMS, type LockUnit } from '../groups/custom/lockModes';
+import SelectMenu from '../SelectMenu';
 import {
   FIELD_IDS,
   errorId,
@@ -95,16 +96,13 @@ function LockSection({ draft, update, errors, ctx }: StepProps) {
                 .filter(Boolean)
                 .join(' ')}
             />
-            <select
+            <SelectMenu
               className="glass-input"
-              aria-label="Unidad del margen"
+              label="Unidad del margen"
               value={draft.lockUnit}
-              onChange={(event) => update({ lockUnit: event.target.value as LockUnit })}
-            >
-              <option value="minutes">minutos</option>
-              <option value="hours">horas</option>
-              <option value="days">días</option>
-            </select>
+              onChange={(unit) => update({ lockUnit: unit as LockUnit })}
+              items={LOCK_UNIT_ITEMS}
+            />
           </div>
           <p id="cl-lock-amount-hint" className="create-league-hint">
             0 = justo al empezar. Máximo 30 días.

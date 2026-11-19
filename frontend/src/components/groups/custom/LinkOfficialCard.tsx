@@ -7,6 +7,7 @@ import type { Group } from '../../../types/api';
 import type { SaveAction } from './customCompetition';
 import { confirmAction } from '../../../utils/confirmAction';
 import { isGroupTournament } from '../../../context/leagueKind';
+import SelectMenu from '../../SelectMenu';
 
 /**
  * Pasa una liga de cuadro personalizado a una competición oficial con cuadro propio (Worlds de LoL…):
@@ -59,18 +60,14 @@ export default function LinkOfficialCard({ group, save }: { group: Group; save: 
       >
         <div className="league-admin-field">
           <label htmlFor="custom-admin-official">Competición</label>
-          <select
+          <SelectMenu
             id="custom-admin-official"
             className="glass-input"
+            label="Competición"
             value={String(competitionId)}
-            onChange={(event) => setSelected(event.target.value)}
-          >
-            {options.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+            onChange={setSelected}
+            items={options.map((item) => ({ value: String(item.id), label: item.name }))}
+          />
         </div>
         <button type="submit" className="league-admin-btn is-primary">
           Pasar a {name}
