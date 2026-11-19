@@ -3,7 +3,7 @@ import { HOW_IT_WORKS_FAQ, type ContentPage } from './shared';
 export const comoHacerUnaPorra: ContentPage = {
   path: '/como-hacer-una-porra',
   navLabel: 'Cómo hacer una porra',
-  title: 'Cómo hacer una porra: guía paso a paso con amigos · PorrApp',
+  title: 'Cómo hacer una porra con amigos, paso a paso · PorrApp',
   description:
     'Guía para hacer una porra: elegir competición, fijar puntos, decidir si hay bote y llevar la clasificación sin errores. Con PorrApp se calcula sola.',
   h1: 'Cómo hacer una porra',

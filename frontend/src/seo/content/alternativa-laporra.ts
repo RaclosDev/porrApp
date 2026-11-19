@@ -3,7 +3,7 @@ import { type ContentPage } from './shared';
 export const alternativaLaporra: ContentPage = {
   path: '/alternativa-laporra',
   navLabel: 'Alternativa a La Porra',
-  title: 'Alternativa gratis a La Porra (laporra.app), sin planes · PorrApp',
+  title: 'Alternativa gratis a La Porra (laporra.app) · PorrApp',
   description:
     'PorrApp frente a La Porra (laporra.app): qué comparten, en qué se diferencian en precio, deportes y formatos, y cuándo conviene cada una. Comparación honesta.',
   h1: 'Una alternativa a La Porra,',

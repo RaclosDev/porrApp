@@ -50,8 +50,11 @@ describe('seo pages', () => {
 
   it('keeps titles and descriptions within what search results show', () => {
     for (const page of [HOME_META, ...CONTENT_PAGES, ...Object.values(ROUTE_META)]) {
-      expect(page.title.length).toBeLessThanOrEqual(65);
-      expect(page.description.length).toBeLessThanOrEqual(165);
+      expect(page.title.length).toBeLessThanOrEqual(60);
+      expect(page.description.length).toBeLessThanOrEqual(160);
+      // Google parte los títulos por los dos puntos y a veces pone delante el trozo de después,
+      // en minúscula.
+      expect(page.title).not.toContain(':');
     }
   });
 

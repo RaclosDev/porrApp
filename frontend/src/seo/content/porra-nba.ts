@@ -3,7 +3,7 @@ import { appScreen, FREE_ANSWER, type ContentPage } from './shared';
 export const porraNba: ContentPage = {
   path: '/porra-nba',
   navLabel: 'Porra de la NBA',
-  title: 'Porra de la NBA con amigos: temporada y playoffs · PorrApp',
+  title: 'Porra de la NBA con amigos, temporada y playoffs · PorrApp',
   description:
     'Crea una porra de la NBA con tus amigos: predice los partidos de cada semana o las series de los playoffs, con puntos y clasificación automáticos.',
   h1: 'Tu porra de la NBA,',

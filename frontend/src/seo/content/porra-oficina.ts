@@ -5,7 +5,7 @@ export const porraOficina: ContentPage = {
   navLabel: 'Porra de oficina',
   title: 'Porra de oficina con compañeros de trabajo, gratis · PorrApp',
   description:
-    'Monta la porra de la oficina sin Excel ni correos: liga privada para el equipo, predicciones desde el móvil y clasificación automática. Gratis, sin instalar nada.',
+    'Monta la porra de la oficina sin Excel: liga privada para el equipo, predicciones desde el móvil y clasificación automática. Gratis y sin instalar nada.',
   h1: 'La porra de la oficina,',
   h1Marked: 'sin el Excel compartido.',
   lede: 'Cada temporada alguien se encarga de la porra del trabajo: recoge predicciones, apunta resultados y manda la clasificación. Con PorrApp eso se hace solo y tú también juegas.',

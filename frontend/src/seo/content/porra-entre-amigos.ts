@@ -3,7 +3,7 @@ import { FREE_ANSWER, type ContentPage } from './shared';
 export const porraEntreAmigos: ContentPage = {
   path: '/porra-entre-amigos',
   navLabel: 'Porra entre amigos',
-  title: 'Porra entre amigos gratis: crea la tuya en un minuto · PorrApp',
+  title: 'Crea una porra entre amigos gratis en un minuto · PorrApp',
   description:
     'Monta una porra entre amigos de fútbol, F1, UFC, NBA o tenis. Liga privada, invitación por enlace y clasificación automática. Gratis, sin descargas ni anuncios.',
   h1: 'Una porra entre amigos,',
