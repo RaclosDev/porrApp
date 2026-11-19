@@ -23,7 +23,7 @@ export { CONTENT_PAGES };
 export type { ContentPage, FaqEntry, PageMeta, PageScreens } from './content/shared';
 
 export const HOME_META: PageMeta = {
-  title: 'Porra entre amigos gratis: fútbol, F1, UFC y más · PorrApp',
+  title: 'Porra entre amigos gratis de fútbol, F1, UFC y más · PorrApp',
   description:
     'Crea gratis una porra entre amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos.',
 };
