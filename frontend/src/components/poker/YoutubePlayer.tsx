@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { onPokerDuck } from './pokerSound';
+import { onPokerDuck, POKER_DUCK_FADE_MS, POKER_DUCK_LEVEL } from './pokerSound';
+
+/** La música vuelve a su volumen en este tiempo, más despacio de lo que baja. */
+const FADE_UP_MS = 2000;
+const FADE_STEP_MS = 100;
 
 interface YtPlayer {
   loadVideoById: (videoId: string) => void;
@@ -109,25 +113,48 @@ export default function YoutubePlayer({ videoId, onDone }: Props) {
     player.current?.loadVideoById(videoId);
   }, [videoId]);
 
-  // Con cada aviso del reloj la música baja a la mitad y vuelve a su volumen al acabar.
+  // Durante un aviso la música baja poco a poco hasta casi callarse y, al acabar, vuelve a subir despacio.
   useEffect(() => {
+    let base: number | null = null;
+    let current = 0;
+    let fade: number | undefined;
     let restore: number | undefined;
-    let volume: number | null = null;
+    const ramp = (to: number, ms: number, done?: () => void) => {
+      window.clearInterval(fade);
+      const from = current;
+      const steps = Math.max(1, Math.round(ms / FADE_STEP_MS));
+      let step = 0;
+      fade = window.setInterval(() => {
+        step += 1;
+        current = from + ((to - from) * step) / steps;
+        player.current?.setVolume?.(Math.round(current));
+        if (step >= steps) {
+          window.clearInterval(fade);
+          done?.();
+        }
+      }, FADE_STEP_MS);
+    };
     const unsubscribe = onPokerDuck((ms) => {
-      const current = player.current;
-      if (!current?.setVolume) return;
-      volume ??= current.getVolume?.() ?? 100;
-      current.setVolume(Math.round(volume / 2));
+      const active = player.current;
+      if (!active?.setVolume) return;
+      if (base === null) {
+        base = active.getVolume?.() ?? 100;
+        current = base;
+      }
+      ramp(base * POKER_DUCK_LEVEL, POKER_DUCK_FADE_MS);
       window.clearTimeout(restore);
       restore = window.setTimeout(() => {
-        if (volume !== null) player.current?.setVolume?.(volume);
-        volume = null;
+        if (base !== null)
+          ramp(base, FADE_UP_MS, () => {
+            base = null;
+          });
       }, ms);
     });
     return () => {
       unsubscribe();
+      window.clearInterval(fade);
       window.clearTimeout(restore);
-      if (volume !== null) player.current?.setVolume?.(volume);
+      if (base !== null) player.current?.setVolume?.(base);
     };
   }, []);
 

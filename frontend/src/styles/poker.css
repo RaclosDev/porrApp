@@ -1590,6 +1590,76 @@
   font: inherit;
   cursor: pointer;
 }
+/* Cartel de aviso en el centro de la TV: quién ha hecho la recompra, el add-on o qué cambia. */
+.poker-tv-alert {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: min(32rem, 90vw);
+  max-width: 90vw;
+  padding: 2rem 3rem;
+  border: 3px solid #f0c94c;
+  border-radius: 1.5rem;
+  background: rgb(11 31 22 / 98%);
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 60%);
+  transform: translate(-50%, -50%);
+  animation: poker-tv-alert 5s ease both;
+}
+.poker-tv-alert strong {
+  font-size: clamp(2rem, 7vw, 5rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.poker-tv-alert > span:last-child {
+  font-size: clamp(1.25rem, 4vw, 2.75rem);
+}
+.poker-tv-alert.is-rebuy,
+.poker-tv-alert.is-addOn {
+  border-color: #e0573e;
+}
+.poker-tv-alert.is-addOn {
+  border-color: #4cc38a;
+}
+.poker-tv-alert-icon {
+  font-size: clamp(3rem, 10vw, 7rem);
+  line-height: 1;
+  -webkit-text-stroke: 0;
+}
+@keyframes poker-tv-alert {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+  8%,
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .poker-tv-alert {
+    animation-name: poker-tv-alert-fade;
+  }
+  @keyframes poker-tv-alert-fade {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    6%,
+    92% {
+      opacity: 1;
+    }
+  }
+}
 .poker-tv-toggle[aria-pressed='true'] {
   border-color: #f0c94c;
   background: #f0c94c;

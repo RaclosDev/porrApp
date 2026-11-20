@@ -1,10 +1,25 @@
-/** Sonidos del reloj de póker generados con Web Audio; el add-on admite un audio propio. */
+/** Avisos del reloj de póker: archivos MP3 y, si faltan o no cargan, sonidos de Web Audio. */
 export type PokerSoundKind = 'level' | 'warning' | 'break' | 'rebuy' | 'addOn';
 
-/** Audio propio para el add-on: si existe en `public/sounds`, suena en lugar del sintetizado. */
-const ADD_ON_FILE = '/sounds/poker-addon.mp3';
+/** Efectos grabados, servidos desde `public/sounds/poker`; el resto de avisos se sintetizan. */
+interface SoundFile {
+  src: string;
+  /** Duración máxima de cada golpe. */
+  seconds: number;
+  /** Segundos en los que arranca cada golpe: la bala suena dos veces, pam, pam. */
+  hits?: number[];
+  /** Segundo del archivo donde empieza el golpe que se usa. */
+  from?: number;
+}
 
-/** Tiempo que la música baja a la mitad para que se oiga cada aviso. */
+const POKER_SOUND_FILES: Partial<Record<PokerSoundKind, SoundFile>> = {
+  rebuy: { src: '/sounds/poker/rebuy.mp3', seconds: 3, hits: [0, 0.45] },
+  addOn: { src: '/sounds/poker/addon.mp3', seconds: 4 },
+  // De la campana de boxeo solo se usa el último golpe, el más limpio: ding, ding, ding.
+  level: { src: '/sounds/poker/level.mp3', seconds: 2.5, hits: [0, 0.5, 1], from: 0.5 },
+};
+
+/** Tiempo que la música se queda baja para que se oiga cada aviso. */
 const DUCK_MS: Record<PokerSoundKind, number> = {
   level: 4000,
   break: 3500,
@@ -12,6 +27,12 @@ const DUCK_MS: Record<PokerSoundKind, number> = {
   rebuy: 2500,
   addOn: 6000,
 };
+
+/** Volumen de la música mientras suena un aviso, sobre el que tenía: casi en silencio. */
+export const POKER_DUCK_LEVEL = 0.15;
+
+/** La música tarda esto en bajar: el aviso espera a que haya bajado para sonar. */
+export const POKER_DUCK_FADE_MS = 1000;
 
 type DuckListener = (ms: number) => void;
 const duckListeners = new Set<DuckListener>();
@@ -27,6 +48,21 @@ export function onPokerDuck(listener: DuckListener) {
 const STORAGE_KEY = 'porrapp.poker.sound';
 
 let context: AudioContext | null = null;
+let output: AudioNode | null = null;
+
+/** Los efectos suenan más fuerte que la música; un compresor evita que saturen los altavoces. */
+function speakers(ctx: AudioContext): AudioNode {
+  if (output) return output;
+  if (typeof ctx.createDynamicsCompressor !== 'function') return ctx.destination;
+  const boost = ctx.createGain();
+  boost.gain.value = 1.8;
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -6;
+  limiter.ratio.value = 12;
+  boost.connect(limiter).connect(ctx.destination);
+  output = boost;
+  return output;
+}
 
 function audioContext(): AudioContext | null {
   if (context) return context;
@@ -44,6 +80,9 @@ function audioContext(): AudioContext | null {
 export function unlockAudio() {
   const ctx = audioContext();
   if (ctx && ctx.state === 'suspended') void ctx.resume();
+  if (ctx && typeof fetch !== 'undefined') {
+    Object.values(POKER_SOUND_FILES).forEach((file) => void loadBuffer(ctx, file.src));
+  }
 }
 
 export function soundEnabled() {
@@ -72,7 +111,7 @@ function bell(ctx: AudioContext, start: number, frequency: number, seconds: numb
   ];
   const master = ctx.createGain();
   master.gain.value = gain;
-  master.connect(ctx.destination);
+  master.connect(speakers(ctx));
   for (const [ratio, level] of partials) {
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
@@ -95,7 +134,7 @@ function beep(ctx: AudioContext, start: number, frequency: number) {
   env.gain.setValueAtTime(0.0001, start);
   env.gain.exponentialRampToValueAtTime(0.25, start + 0.01);
   env.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
-  osc.connect(env).connect(ctx.destination);
+  osc.connect(env).connect(speakers(ctx));
   osc.start(start);
   osc.stop(start + 0.2);
 }
@@ -117,7 +156,7 @@ function shot(ctx: AudioContext, start: number) {
   const env = ctx.createGain();
   env.gain.setValueAtTime(0.9, start);
   env.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
-  source.connect(filter).connect(env).connect(ctx.destination);
+  source.connect(filter).connect(env).connect(speakers(ctx));
   source.start(start);
   // Golpe grave que da cuerpo al disparo.
   const thump = ctx.createOscillator();
@@ -126,7 +165,7 @@ function shot(ctx: AudioContext, start: number) {
   thump.frequency.exponentialRampToValueAtTime(45, start + 0.15);
   thumpEnv.gain.setValueAtTime(0.6, start);
   thumpEnv.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
-  thump.connect(thumpEnv).connect(ctx.destination);
+  thump.connect(thumpEnv).connect(speakers(ctx));
   thump.start(start);
   thump.stop(start + 0.2);
 }
@@ -140,29 +179,60 @@ function coins(ctx: AudioContext, start: number) {
   bell(ctx, start + 0.85, 1046, 1.6, 0.25);
 }
 
-function playAddOnFile(ctx: AudioContext) {
-  let fellBack = false;
-  // Sin archivo o sin permiso para reproducirlo: suenan las monedas, una sola vez.
-  const fallBack = () => {
-    if (fellBack) return;
-    fellBack = true;
-    coins(ctx, ctx.currentTime + 0.02);
-  };
-  const audio = new Audio(ADD_ON_FILE);
-  audio.addEventListener('error', fallBack, { once: true });
-  void audio.play().catch(fallBack);
+const buffers = new Map<string, Promise<AudioBuffer | null>>();
+
+/** Descarga y decodifica un efecto una sola vez; `null` si falta o no se puede leer. */
+function loadBuffer(ctx: AudioContext, src: string) {
+  let buffer = buffers.get(src);
+  if (!buffer) {
+    buffer = fetch(src)
+      .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(src))))
+      .then((data) => ctx.decodeAudioData(data))
+      .catch(() => null);
+    buffers.set(src, buffer);
+  }
+  return buffer;
 }
 
 export function playPokerSound(kind: PokerSoundKind) {
   const ctx = audioContext();
   if (!ctx || ctx.state !== 'running') return;
-  duckListeners.forEach((listener) => listener(DUCK_MS[kind]));
-  const t = ctx.currentTime + 0.02;
+  // Con música sonando, el aviso arranca cuando ya ha bajado el volumen.
+  const lead = duckListeners.size > 0 ? POKER_DUCK_FADE_MS : 0;
+  const duck = (ms: number) => duckListeners.forEach((listener) => listener(lead + ms));
+  const file = POKER_SOUND_FILES[kind];
+  if (!file || typeof fetch === 'undefined') {
+    duck(DUCK_MS[kind]);
+    synth(ctx, kind, lead);
+    return;
+  }
+  void loadBuffer(ctx, file.src).then((buffer) => {
+    if (!buffer) {
+      duck(DUCK_MS[kind]);
+      synth(ctx, kind, lead);
+      return;
+    }
+    const hits = file.hits ?? [0];
+    const from = file.from ?? 0;
+    const length = Math.min(buffer.duration - from, file.seconds);
+    duck((Math.max(...hits) + length) * 1000);
+    const start = ctx.currentTime + 0.02 + lead / 1000;
+    hits.forEach((offset) => {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(speakers(ctx));
+      source.start(start + offset, from, length);
+    });
+  });
+}
+
+function synth(ctx: AudioContext, kind: PokerSoundKind, lead: number) {
+  const t = ctx.currentTime + 0.02 + lead / 1000;
   if (kind === 'rebuy') {
     // Pam, pam, pam: una bala más en la mesa.
     [0, 0.32, 0.64].forEach((offset) => shot(ctx, t + offset));
   } else if (kind === 'addOn') {
-    playAddOnFile(ctx);
+    coins(ctx, t);
   } else if (kind === 'level') {
     // Dos golpes de campana: suben las ciegas.
     bell(ctx, t, 520, 2.4, 0.35);

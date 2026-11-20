@@ -3,6 +3,8 @@ import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
 import { BagIcon, BulletIcon } from './PokerBadges';
 import { chips, euros, timeLabel } from './pokerFormat';
 import PokerTvQueue from './PokerTvQueue';
+import { PokerAvatar } from './PokerFaces';
+import type { PokerAlert } from './usePokerAlerts';
 
 interface Props {
   clock: BlindClock;
@@ -15,11 +17,53 @@ interface Props {
   buyTimers: { key: string; label: string; ms: number; icons?: string[] }[];
   /** Con la liga suena la cola de canciones pedidas desde los móviles. */
   leagueId?: string | number;
+  /** Aviso que se está anunciando: sale en grande en el centro unos segundos. */
+  alert?: PokerAlert | null;
   onClose: () => void;
 }
 
 function blindsText(level: BlindLevel) {
   return level.big === 0 ? 'Descanso' : `${chips(level.small)} / ${chips(level.big)}`;
+}
+
+function alertText(alert: PokerAlert, level: BlindLevel, next: BlindLevel | undefined) {
+  switch (alert.kind) {
+    case 'rebuy':
+      return { title: alert.name, text: 'ha hecho una recompra' };
+    case 'addOn':
+      return { title: alert.name, text: 'ha hecho un add-on' };
+    case 'level':
+      return { title: 'Suben las ciegas', text: blindsText(level) };
+    case 'break':
+      return { title: 'Descanso', text: next ? `Después · ${blindsText(next)}` : undefined };
+    default:
+      return { title: 'Último minuto', text: next ? `Siguiente · ${blindsText(next)}` : undefined };
+  }
+}
+
+function TvAlert({
+  alert,
+  level,
+  next,
+}: {
+  alert: PokerAlert;
+  level: BlindLevel;
+  next: BlindLevel | undefined;
+}) {
+  const { title, text } = alertText(alert, level, next);
+  return (
+    <div className={`poker-tv-alert is-${alert.kind}`} role="status">
+      {alert.playerId !== undefined && alert.name ? (
+        <PokerAvatar playerId={alert.playerId} name={alert.name} size={160} />
+      ) : (
+        <span className="poker-tv-alert-icon" aria-hidden="true">
+          {alert.kind === 'break' ? '☕' : alert.kind === 'warning' ? '⏱' : '🔔'}
+        </span>
+      )}
+      <strong>{title}</strong>
+      {text && <span>{text}</span>}
+    </div>
+  );
 }
 
 /** Reloj a pantalla completa para verlo de lejos (móvil apoyado o proyectado en una tele). */
@@ -32,6 +76,7 @@ export default function PokerTv({
   potCents,
   buyTimers,
   leagueId,
+  alert,
   onClose,
 }: Props) {
   const closeRef = useRef(onClose);
@@ -120,6 +165,7 @@ export default function PokerTv({
         ))}
       </ul>
       {leagueId !== undefined && <PokerTvQueue leagueId={leagueId} tv={tv} />}
+      {alert && <TvAlert key={alert.id} alert={alert} level={level} next={next} />}
     </div>
   );
 }
