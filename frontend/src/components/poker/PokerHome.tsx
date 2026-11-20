@@ -33,7 +33,10 @@ export default function PokerHome({
   const eliminated = new Set(current?.eliminations);
   const seated = current?.entries.filter((entry) => !eliminated.has(entry.playerId)) ?? [];
   const latest = sessions?.[0];
-  const champion = latest?.results[0];
+  // Si hay empate en cabeza salen todos, primero quien más neto se llevó.
+  const champions = (latest?.results ?? [])
+    .filter((result) => result.place === 1)
+    .sort((a, b) => b.prizeCents - b.paidCents - (a.prizeCents - a.paidCents));
   const podium = pokerStandings(sessions ?? []).slice(0, 3);
   const crowned = lastWinnerIds(sessions);
 
@@ -117,13 +120,28 @@ export default function PokerHome({
             </header>
             {latest ? (
               <div className="poker-champion">
-                {champion && (
-                  <PokerAvatar playerId={champion.playerId} name={champion.name} size={64} />
+                {champions.length > 0 && (
+                  <span className="poker-champion-faces">
+                    {champions.map((champion) => (
+                      <PokerAvatar
+                        key={champion.playerId}
+                        playerId={champion.playerId}
+                        name={champion.name}
+                        size={champions.length > 1 ? 48 : 64}
+                      />
+                    ))}
+                  </span>
                 )}
                 <div>
-                  {champion && (
+                  {champions.length > 0 && (
                     <p className="poker-champion-name">
-                      Ganó <strong>{champion.name}</strong>
+                      {champions.length > 1 ? 'Ganaron ' : 'Ganó '}
+                      {champions.map((champion, index) => (
+                        <span key={champion.playerId}>
+                          {index > 0 && (index === champions.length - 1 ? ' y ' : ', ')}
+                          <strong>{champion.name}</strong>
+                        </span>
+                      ))}
                     </p>
                   )}
                   <p className="poker-note first-letter:uppercase">{tournamentDate(latest.date)}</p>

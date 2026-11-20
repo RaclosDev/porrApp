@@ -947,3 +947,27 @@ it('sin torneos cerrados guía los primeros pasos y explica cada sección vacía
   expect(screen.getByText('Sin estadísticas todavía')).toBeInTheDocument();
   expect(screen.getAllByRole('link', { name: 'Ir a la mesa' })).toHaveLength(2);
 });
+
+it('en el último torneo muestra a todos los empatados en cabeza, primero quien más neto ganó', () => {
+  const tied = {
+    ...session,
+    closedAt: 5000,
+    results: [
+      { ...entries[0], place: 1, paidCents: 1000, prizeCents: 1500 },
+      { ...entries[1], place: 1, paidCents: 1000, prizeCents: 3000 },
+      { ...entries[2], place: 1, paidCents: 2000, prizeCents: 2500 },
+    ],
+  };
+  render(
+    <MemoryRouter>
+      <PokerHome
+        league={league}
+        sessions={[tied]}
+        loading={false}
+        onRetry={vi.fn()}
+        onInvite={vi.fn()}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText(/^Ganaron/)).toHaveTextContent('Ganaron Luis, Ana y Paz');
+});
