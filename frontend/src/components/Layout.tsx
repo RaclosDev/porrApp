@@ -101,14 +101,17 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Portada y páginas de contenido van sobre pared clara: sin sesión, la cabecera también.
   const isPaperHeader =
     !isUserLoggedIn &&
-    (isLanding || (!isDemo && CONTENT_PAGES.some((page) => page.path === location.pathname)));
+    (isLanding ||
+      location.pathname === '/login' ||
+      (!isDemo && CONTENT_PAGES.some((page) => page.path === location.pathname)));
   // En la pantalla de acceso/invitación no mostrar la navegación global: la propia
   // pantalla ya contiene el acceso con Google y el contexto de la invitación.
   const isInviteAuthScreen =
     location.pathname.startsWith('/t/') ||
     location.pathname.startsWith('/torneos/') ||
     location.pathname.startsWith('/join/') ||
-    (!isUserLoggedIn && location.pathname === '/mis-ligas');
+    (!isUserLoggedIn && location.pathname === '/mis-ligas') ||
+    location.pathname === '/login';
 
   // Con sesión iniciada pero sin ninguna liga, la navegación queda bloqueada:
   // solo se puede crear o unirse a una liga desde Mis Ligas.
@@ -152,6 +155,8 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleOpenLogin = (event: Event) => {
+      // En /login ya está la pantalla de acceso: la ventana nunca se abre encima.
+      if (window.location.pathname === '/login') return;
       setLoginRequest((event as CustomEvent<LoginModalRequest | null>).detail ?? {});
       setShowLoginModal(true);
     };
@@ -163,16 +168,6 @@ function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!showLoginModal) setLoginRequest({});
   }, [showLoginModal]);
-
-  /**
-   * Efecto para forzar la apertura del modal de login si la ruta a la que se
-   * redirigió requería estar logueado (via location.state).
-   */
-  useEffect(() => {
-    if (location.state?.requireLogin) {
-      setShowLoginModal(true);
-    }
-  }, [location.state]);
 
   const handleInstallClick = () => {
     void promptInstall();
@@ -186,7 +181,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
       {DEMO && <DemoBar />}
-      {isDemo && !isUserLoggedIn && !isLanding && (
+      {isDemo && !isUserLoggedIn && !isLanding && location.pathname !== '/login' && (
         <DemoBanner
           exitDemoMode={exitDemoMode}
           navigate={navigate}
@@ -251,7 +246,6 @@ function Layout({ children }: { children: React.ReactNode }) {
             sessionPending={sessionPending}
             navigate={navigate}
             onLogout={handleLogout}
-            setShowLoginModal={setShowLoginModal}
             setShowProfileMenu={setShowProfileMenu}
             onOpenSettings={setProfileSettings}
             showProfileMenu={showProfileMenu}
