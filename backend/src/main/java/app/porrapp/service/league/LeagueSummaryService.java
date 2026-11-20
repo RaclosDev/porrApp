@@ -14,12 +14,14 @@ import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.MatchPredictionRepository;
 import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.PredictionRepository;
+import app.porrapp.util.MatchRound;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,6 +35,9 @@ public class LeagueSummaryService {
 
     /** Ventana de partidos que cuentan como pendientes: los de la próxima semana. */
     static final Duration PENDING_WINDOW = Duration.ofDays(7);
+
+    /** Cuánto atrás se buscan partidos empezados y sin terminar para saber qué jornada está en curso. */
+    static final Duration LIVE_WINDOW = Duration.ofDays(1);
 
     private final LeagueService leagueService;
     private final LeaderboardService leaderboardService;
@@ -76,7 +81,11 @@ public class LeagueSummaryService {
                 pendingPredictions(edition, prediction, now), leagueClosure.isFinished(edition, now));
     }
 
-    /** Partidos de la próxima semana que aún admiten predicción y el usuario no ha predicho. */
+    /**
+     * Partidos de la jornada en curso que aún admiten predicción y el usuario no ha predicho, dentro de la
+     * próxima semana. La jornada en curso es la del primer partido sin terminar (aunque ya se esté jugando):
+     * la siguiente no avisa hasta que acabe esta. Un aplazado de una jornada anterior también cuenta.
+     */
     int pendingPredictions(Edition edition, Prediction prediction, Instant now) {
         if (edition == null || edition.getPoolFormat() != PoolFormat.MATCH_DAY || edition.isLocked()
                 || edition.getCompetition() == null) {
@@ -84,13 +93,27 @@ public class LeagueSummaryService {
         }
         // Con cierre por jornada (o por semana, en la NFL) un partido de dentro de diez días se cierra con el
         // primero de su jornada: se buscan dos ventanas y luego se cuenta lo que se cierra en la próxima semana.
+        // Se mira también el último día para dar con el partido en directo que marca la jornada en curso.
         Instant deadline = now.plus(PENDING_WINDOW);
-        List<Match> upcoming = MatchSelectionService.competitionIds(matchSelectionService, edition).stream()
-                .flatMap(id -> matchRepository.findUnfinishedStartingBetween(id, now, deadline.plus(PENDING_WINDOW)).stream())
+        List<Match> unfinished = MatchSelectionService.competitionIds(matchSelectionService, edition).stream()
+                .flatMap(id -> matchRepository.findUnfinishedStartingBetween(id, now.minus(LIVE_WINDOW),
+                        deadline.plus(PENDING_WINDOW)).stream())
                 .filter(m -> !MatchdayLock.awaitingTeams(m))
-                .filter(m -> m.getStatus() == null || m.getStatus().isOpenForPrediction())
                 .toList();
-        if (MatchSelectionService.selects(edition)) upcoming = matchSelectionService.filter(edition, upcoming);
+        if (MatchSelectionService.selects(edition)) unfinished = matchSelectionService.filter(edition, unfinished);
+        Integer current = unfinished.stream()
+                .filter(m -> m.getMatchDate() != null)
+                .min(Comparator.comparing(Match::getMatchDate))
+                .map(m -> MatchRound.matchdayNumber(MatchRound.label(edition, m)))
+                .orElse(null);
+        List<Match> upcoming = unfinished.stream()
+                .filter(m -> m.getMatchDate() != null && m.getMatchDate().isAfter(now))
+                .filter(m -> m.getStatus() == null || m.getStatus().isOpenForPrediction())
+                .filter(m -> {
+                    Integer number = MatchRound.matchdayNumber(MatchRound.label(edition, m));
+                    return current == null || number == null || number <= current;
+                })
+                .toList();
         if (upcoming.isEmpty()) return 0;
         Map<Long, Instant> lockTimes = MatchdayLock.lockTimes(edition, upcoming,
                 MatchdayLock.needsWholeCalendar(edition) ? MatchSelectionService.leagueCalendar(matchSelectionService, edition, matchRepository::findByCompetitionId) : upcoming);
