@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { chips } from '../../components/poker/pokerFormat';
 import PokerTv from '../../components/poker/PokerTv';
 import type { BlindClock } from '../../services/endpoints/poker';
+import type { PokerAlert } from '../../components/poker/usePokerAlerts';
 
 const levels = [
   { minutes: 15, small: 25, big: 50, ante: 0 },
@@ -11,6 +12,7 @@ const levels = [
 
 function renderTv(
   clock: BlindClock = { level: 0, endsAt: Date.now() + 90_000, remainingMs: 90_000 },
+  alert: PokerAlert | null = null,
 ) {
   const onClose = vi.fn();
   render(
@@ -22,6 +24,7 @@ function renderTv(
       averageChips={12500}
       potCents={5000}
       buyTimers={[{ key: 'rebuy', label: 'Recompras', ms: 120_000 }]}
+      alert={alert}
       onClose={onClose}
     />,
   );
@@ -29,6 +32,20 @@ function renderTv(
 }
 
 describe('PokerTv', () => {
+  it('saca en el centro quién ha hecho la recompra', () => {
+    renderTv(undefined, { id: 1, kind: 'rebuy', playerId: 7, name: 'Ana' });
+    const banner = screen.getByRole('status');
+    expect(banner).toHaveTextContent('Ana');
+    expect(banner).toHaveTextContent('ha hecho una recompra');
+  });
+
+  it('anuncia la subida de ciegas con las nuevas', () => {
+    renderTv(undefined, { id: 2, kind: 'level' });
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `Suben las ciegas${chips(25)} / ${chips(50)}`,
+    );
+  });
+
   it('muestra nivel, tiempo, ciegas, siguiente nivel y datos de la mesa', () => {
     renderTv();
     expect(screen.getByText('Nivel 1')).toBeInTheDocument();
