@@ -8,6 +8,7 @@ import app.porrapp.model.Edition;
 import app.porrapp.model.League;
 import app.porrapp.model.Match;
 import app.porrapp.model.MatchPrediction;
+import app.porrapp.model.MatchStatusNormalized;
 import app.porrapp.model.PoolFormat;
 import app.porrapp.model.PredictionLockMode;
 import app.porrapp.model.Prediction;
@@ -83,6 +84,35 @@ class LeagueSummaryServiceTest {
         List<LeagueSummaryDTO> result = service.summaries(EMAIL);
 
         assertThat(result).containsExactly(new LeagueSummaryDTO(7L, 2, 30, 3, 2, false));
+    }
+
+    @Test
+    @DisplayName("Solo avisa de la jornada en curso, aunque la siguiente empiece dentro de la semana")
+    void countsOnlyTheCurrentMatchday() {
+        League league = League.builder().id(6L).name("Tebas League").build();
+        Competition competition = Competition.builder().id(4L).build();
+        Edition edition = Edition.builder().league(league).competition(competition)
+                .poolFormat(PoolFormat.MATCH_DAY).status("ACTIVE").build();
+        Instant now = Instant.now();
+        Match live = match(1L, now.minus(Duration.ofMinutes(30)));
+        live.setRound("Jornada 13");
+        live.setStatus(MatchStatusNormalized.LIVE);
+        Match tomorrow = match(2L, now.plus(Duration.ofDays(1)));
+        tomorrow.setRound("Jornada 13");
+        Match postponed = match(3L, now.plus(Duration.ofDays(2)));
+        postponed.setRound("Jornada 11");
+        Match nextRound = match(4L, now.plus(Duration.ofDays(6)));
+        nextRound.setRound("Jornada 14");
+
+        when(leagueService.getUserLeagues(EMAIL)).thenReturn(List.of(league));
+        when(editionRepository.findByLeagueIdInAndStatus(List.of(6L), "ACTIVE")).thenReturn(List.of(edition));
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId(EMAIL, 6L)).thenReturn(Optional.empty());
+        when(leaderboardService.getLeaderboard(6L)).thenReturn(List.of());
+        when(matchRepository.findUnfinishedStartingBetween(eq(4L), any(), any()))
+                .thenReturn(List.of(live, tomorrow, postponed, nextRound));
+
+        // La 13 sigue en juego: cuentan el de mañana y el aplazado de la 11, no el de la 14.
+        assertThat(service.summaries(EMAIL).get(0).pendingPredictions()).isEqualTo(2);
     }
 
     @Test
