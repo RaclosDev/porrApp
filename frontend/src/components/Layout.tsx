@@ -70,6 +70,10 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [profileSettings, setProfileSettings] = useState<SettingsSection | null>(null);
   const [pushPromptVisible, setPushPromptVisible] = useState(false);
   const showProfileSettings = profileSettings != null;
+  const handleLogout = () => {
+    logout();
+    navigate('/', { replace: true });
+  };
   const profileSetupCompleted = useAppStore((state) => state.profileSetupCompleted);
   const userAvatarUrl = useAppStore((state) => state.userAvatarUrl);
   const isAdmin = useAppStore((state) => state.isAdmin);
@@ -246,10 +250,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             isUserLoggedIn={isUserLoggedIn}
             sessionPending={sessionPending}
             navigate={navigate}
-            onLogout={() => {
-              logout();
-              navigate('/', { replace: true });
-            }}
+            onLogout={handleLogout}
             setShowLoginModal={setShowLoginModal}
             setShowProfileMenu={setShowProfileMenu}
             onOpenSettings={setProfileSettings}
@@ -271,7 +272,8 @@ function Layout({ children }: { children: React.ReactNode }) {
         (isUserLoggedIn && !isDemo && !isInviteAuthScreen && profileSetupCompleted === false)) && (
         <ProfileSettingsModal
           onboarding={!showProfileSettings && profileSetupCompleted === false}
-          section={profileSettings ?? 'account'}
+          section={profileSettings ?? 'profile'}
+          onLogout={handleLogout}
           onClose={() => setProfileSettings(null)}
         />
       )}

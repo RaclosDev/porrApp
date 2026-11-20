@@ -54,6 +54,8 @@ export default defineConfig({
         'icon-paper-192.png',
         'icon-paper-512.png',
         'maskable-paper-512.png',
+        'favicon-dark.png',
+        'icon-dark-192.png',
       ],
       manifest: {
         name: 'PorrApp · Porras de fútbol',

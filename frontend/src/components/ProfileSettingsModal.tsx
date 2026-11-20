@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { Bell, KeyRound, UserRound, UserCog } from 'lucide-react';
 import DialogBackdrop from './DialogBackdrop';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,23 +19,39 @@ import PasskeySettings from './PasskeySettings';
 import { UserAvatar } from './Avatar';
 import { errorMessage } from '../utils/errors';
 import { useDialogFocus } from '../hooks/useDialogFocus';
+import { passkeysSupported } from '../utils/webauthn';
 
-/** Sección en la que se abren los ajustes: arriba, en la cuenta, o directamente en los avisos. */
-export type SettingsSection = 'account' | 'reminders';
+/** Pestaña en la que se abren los ajustes; el menú de cuenta y la campana eligen la suya. */
+export type SettingsSection = 'profile' | 'reminders' | 'passkeys' | 'account';
+
+const TABS: { id: SettingsSection; label: string; icon: ReactNode }[] = [
+  { id: 'profile', label: 'Perfil', icon: <UserRound size={15} aria-hidden="true" /> },
+  { id: 'reminders', label: 'Avisos', icon: <Bell size={15} aria-hidden="true" /> },
+  { id: 'passkeys', label: 'Acceso', icon: <KeyRound size={15} aria-hidden="true" /> },
+  { id: 'account', label: 'Cuenta', icon: <UserCog size={15} aria-hidden="true" /> },
+];
 
 /**
- * Ajustes de cuenta: nombre público, foto de perfil y avisos.
- * No cambia el correo ni la forma de entrar (Google o contraseña).
+ * Ajustes de cuenta en pestañas, como la administración de una liga: perfil (nombre y foto),
+ * avisos, llaves de acceso y cuenta (cerrar sesión, tus datos y borrar la cuenta).
+ * No cambia el correo ni la forma de entrar (Google o contraseña). En la bienvenida solo
+ * se ve el perfil, sin pestañas.
  */
 export default function ProfileSettingsModal({
   onClose,
+  onLogout,
   onboarding = false,
-  section = 'account',
+  section = 'profile',
 }: {
   onClose: () => void;
+  onLogout?: () => void;
   onboarding?: boolean;
   section?: SettingsSection;
 }) {
+  const [tab, setTab] = useState<SettingsSection>(onboarding ? 'profile' : section);
+  const currentTab = onboarding ? 'profile' : tab;
+  // Sin soporte de llaves de acceso en el navegador, la pestaña quedaría vacía.
+  const tabs = passkeysSupported() ? TABS : TABS.filter((item) => item.id !== 'passkeys');
   const queryClient = useQueryClient();
   const userName = useAppStore((s) => s.userName);
   const userId = useAppStore((s) => s.userId);
@@ -95,13 +112,29 @@ export default function ProfileSettingsModal({
     },
   });
 
-  // «Avisos» del menú de cuenta y de la campana: se abre ya en esa sección, con el foco en ella.
+  // «Avisos» del menú de cuenta y de la campana: se abre ya en esa pestaña, con el foco en ella.
   const remindersRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (section !== 'reminders') return;
+    if (section !== 'reminders' || onboarding) return;
     remindersRef.current?.scrollIntoView?.({ block: 'start' });
     remindersRef.current?.focus({ preventScroll: true });
-  }, [section]);
+  }, [section, onboarding]);
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    const ids = tabs.map((item) => item.id);
+    const index = ids.indexOf(tab);
+    const keys: Record<string, number> = {
+      ArrowRight: (index + 1) % ids.length,
+      ArrowLeft: (index - 1 + ids.length) % ids.length,
+      Home: 0,
+      End: ids.length - 1,
+    };
+    const nextIndex = keys[event.key];
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    setTab(ids[nextIndex]);
+    document.getElementById(`account-settings-tab-${ids[nextIndex]}`)?.focus();
+  };
 
   const refreshEverywhere = () => {
     queryClient.invalidateQueries({ queryKey: ['myGroups'] });
@@ -165,90 +198,141 @@ export default function ProfileSettingsModal({
         ref={dialogRef}
         tabIndex={-1}
       >
-        <div className="paper-dialog-body flex flex-col gap-4.5">
-          <div className="flex justify-between items-center">
-            <h3 className="m-0 poster-title text-main text-[1.2rem]" id="profile-settings-title">
-              {onboarding ? 'Así te verán tus amigos' : 'Ajustes de cuenta'}
-            </h3>
-            <button
-              type="button"
-              onClick={() => {
-                void dismiss();
-              }}
-              disabled={finishing || saving}
-              aria-label="Cerrar"
-              className="glass-btn w-11 h-11 p-0 rounded-full cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
+        <div className="flex justify-between items-center shrink-0 px-5 pt-4.5 pb-3">
+          <h3 className="m-0 poster-title text-main text-[1.2rem]" id="profile-settings-title">
+            {onboarding ? 'Así te verán tus amigos' : 'Ajustes de cuenta'}
+          </h3>
+          <button
+            type="button"
+            onClick={() => {
+              void dismiss();
+            }}
+            disabled={finishing || saving}
+            aria-label="Cerrar"
+            className="glass-btn w-11 h-11 p-0 rounded-full cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
 
+        {!onboarding && (
+          <div className="league-admin-tabs" role="tablist" aria-label="Secciones de la cuenta">
+            {tabs.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                id={`account-settings-tab-${item.id}`}
+                aria-selected={tab === item.id}
+                aria-controls="account-settings-panel"
+                tabIndex={tab === item.id ? 0 : -1}
+                className={`league-admin-tab ${tab === item.id ? 'is-active' : ''}`}
+                onKeyDown={handleTabKeyDown}
+                onClick={() => setTab(item.id)}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div
+          className="paper-dialog-body flex flex-col gap-4.5"
+          id="account-settings-panel"
+          role={onboarding ? undefined : 'tabpanel'}
+          aria-labelledby={onboarding ? undefined : `account-settings-tab-${currentTab}`}
+        >
           {onboarding && (
             <p className="m-0 text-muted">
               Elige tu nombre y, si te apetece, una foto. Puedes cambiarlos después desde tu cuenta.
             </p>
           )}
-          <section className="flex flex-col gap-2">
-            <span className="text-[0.8rem] font-bold text-muted">Foto de perfil</span>
-            <ImagePicker
-              idPrefix="avatar-picker"
-              currentUrl={avatarUrl}
-              renderPreview={(url) => (
-                <UserAvatar url={url} userId={userId} name={userName} size={72} />
-              )}
-              onUpload={async (blob) => {
-                const res = await uploadMyAvatar(blob);
-                setUserAvatarUrl(res.avatarUrl || '');
-                refreshEverywhere();
-                toast.success('Foto actualizada');
-              }}
-              onRemove={async () => {
-                await deleteMyAvatar();
-                setUserAvatarUrl('');
-                refreshEverywhere();
-                toast.success('Foto eliminada');
-              }}
-            />
-          </section>
+          {currentTab === 'profile' && (
+            <>
+              <section className="flex flex-col gap-2">
+                <span className="text-[0.8rem] font-bold text-muted">Foto de perfil</span>
+                <ImagePicker
+                  idPrefix="avatar-picker"
+                  currentUrl={avatarUrl}
+                  renderPreview={(url) => (
+                    <UserAvatar url={url} userId={userId} name={userName} size={72} />
+                  )}
+                  onUpload={async (blob) => {
+                    const res = await uploadMyAvatar(blob);
+                    setUserAvatarUrl(res.avatarUrl || '');
+                    refreshEverywhere();
+                    toast.success('Foto actualizada');
+                  }}
+                  onRemove={async () => {
+                    await deleteMyAvatar();
+                    setUserAvatarUrl('');
+                    refreshEverywhere();
+                    toast.success('Foto eliminada');
+                  }}
+                />
+              </section>
 
-          <section className="flex flex-col gap-2">
-            <label className="text-[0.8rem] font-bold text-muted" htmlFor="profile-name-input">
-              Nombre público
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="profile-name-input"
-                className="glass-input flex-1 min-w-0"
-                value={name}
-                disabled={saving || finishing}
-                maxLength={30}
-                onChange={(e) => setName(e.target.value)}
-              />
-              {!onboarding && (
-                <button
-                  type="button"
-                  className="glass-btn primary-btn py-1.5 px-3.5 font-bold"
-                  onClick={saveName}
-                  disabled={saving || finishing || unchanged || name.trim().length < 2}
-                >
-                  {saving ? 'Guardando…' : 'Guardar'}
-                </button>
-              )}
-            </div>
-            {error && (
-              <span className="text-[0.8rem] text-[#b91c1c]" role="alert">
-                {error}
+              <section className="flex flex-col gap-2">
+                <label className="text-[0.8rem] font-bold text-muted" htmlFor="profile-name-input">
+                  Nombre público
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="profile-name-input"
+                    className="glass-input flex-1 min-w-0"
+                    value={name}
+                    disabled={saving || finishing}
+                    maxLength={30}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                  {!onboarding && (
+                    <button
+                      type="button"
+                      className="glass-btn primary-btn py-1.5 px-3.5 font-bold"
+                      onClick={saveName}
+                      disabled={saving || finishing || unchanged || name.trim().length < 2}
+                    >
+                      {saving ? 'Guardando…' : 'Guardar'}
+                    </button>
+                  )}
+                </div>
+                {error && (
+                  <span className="text-[0.8rem] text-[#b91c1c]" role="alert">
+                    {error}
+                  </span>
+                )}
+                <span className="text-[0.74rem] text-muted">
+                  Es el nombre que ven tus amigos en clasificaciones y ligas. Tu email y tu forma de
+                  entrar no cambian.
+                </span>
+              </section>
+            </>
+          )}
+          {currentTab === 'reminders' && <ReminderSettings sectionRef={remindersRef} />}
+          {currentTab === 'passkeys' && <PasskeySettings />}
+          {currentTab === 'account' && onLogout && (
+            <section className="flex flex-col gap-2">
+              <span className="text-[0.8rem] font-bold text-muted">Sesión</span>
+              <span className="text-[0.74rem] text-muted">
+                Sales de PorrApp en este dispositivo. Tus ligas y predicciones se quedan guardadas.
               </span>
-            )}
-            <span className="text-[0.74rem] text-muted">
-              Es el nombre que ven tus amigos en clasificaciones y ligas. Tu email y tu forma de
-              entrar no cambian.
-            </span>
-          </section>
-          {!onboarding && <ReminderSettings sectionRef={remindersRef} />}
-          {!onboarding && <PasskeySettings />}
-          {!onboarding && (
-            <section className="flex flex-col gap-2 pt-4 border-t border-line">
+              <button
+                type="button"
+                className="glass-btn text-[0.8rem] self-start"
+                onClick={() => {
+                  onClose();
+                  onLogout();
+                }}
+              >
+                Cerrar sesión
+              </button>
+            </section>
+          )}
+          {currentTab === 'account' && (
+            <section
+              className={`flex flex-col gap-2 ${onLogout ? 'pt-4 border-t border-line' : ''}`}
+            >
               <span className="text-[0.8rem] font-bold text-muted">Tus datos</span>
               <span className="text-[0.74rem] text-muted">
                 Consulta qué datos guardamos en la{' '}

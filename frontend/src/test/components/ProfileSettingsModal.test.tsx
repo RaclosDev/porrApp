@@ -67,6 +67,7 @@ it('borra la cuenta solo tras confirmar y cierra la sesión', async () => {
       </QueryClientProvider>
     </MemoryRouter>,
   );
+  fireEvent.click(screen.getByRole('tab', { name: 'Cuenta' }));
   fireEvent.click(screen.getByRole('button', { name: 'Borrar mi cuenta' }));
   expect(deleteMyAccount).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Sí, borrar mi cuenta' }));
@@ -89,6 +90,7 @@ it('descarga una copia de los datos propios en JSON', async () => {
       </QueryClientProvider>
     </MemoryRouter>,
   );
+  fireEvent.click(screen.getByRole('tab', { name: 'Cuenta' }));
   fireEvent.click(screen.getByRole('button', { name: 'Descargar mis datos' }));
   await waitFor(() => expect(click).toHaveBeenCalledOnce());
   expect(exportMyData).toHaveBeenCalledOnce();
@@ -125,5 +127,44 @@ it('abierto desde «Ajustes de cuenta», el foco se queda en el diálogo', () =>
     </MemoryRouter>,
   );
   expect(screen.getByRole('dialog', { name: 'Ajustes de cuenta' })).toHaveFocus();
+  expect(screen.getByRole('tab', { name: 'Perfil' })).toHaveAttribute('aria-selected', 'true');
+  expect(screen.getByLabelText('Nombre público')).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Avisos' })).not.toBeInTheDocument();
+});
+
+it('separa los ajustes en pestañas y se mueve entre ellas con las flechas', () => {
+  // jsdom no tiene WebAuthn: sin llaves de acceso no aparece la pestaña «Acceso».
+  useAppStore.setState({ userName: 'Ana', userId: '1' });
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={new QueryClient()}>
+        <ProfileSettingsModal onClose={vi.fn()} />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+    'Perfil',
+    'Avisos',
+    'Cuenta',
+  ]);
+  fireEvent.keyDown(screen.getByRole('tab', { name: 'Perfil' }), { key: 'ArrowRight' });
+  expect(screen.getByRole('tab', { name: 'Avisos' })).toHaveFocus();
   expect(screen.getByRole('region', { name: 'Avisos' })).toBeInTheDocument();
+  expect(screen.queryByLabelText('Nombre público')).not.toBeInTheDocument();
+});
+
+it('cierra la sesión desde la pestaña Cuenta', () => {
+  useAppStore.setState({ userName: 'Ana', userId: '1' });
+  const onClose = vi.fn();
+  const onLogout = vi.fn();
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={new QueryClient()}>
+        <ProfileSettingsModal onClose={onClose} onLogout={onLogout} section="account" />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+  expect(onClose).toHaveBeenCalled();
+  expect(onLogout).toHaveBeenCalled();
 });
