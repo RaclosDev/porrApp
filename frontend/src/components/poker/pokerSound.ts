@@ -28,6 +28,9 @@ const DUCK_MS: Record<PokerSoundKind, number> = {
   addOn: 6000,
 };
 
+/** La música tarda esto en bajar: el aviso espera a que haya bajado para sonar. */
+export const POKER_DUCK_FADE_MS = 1000;
+
 type DuckListener = (ms: number) => void;
 const duckListeners = new Set<DuckListener>();
 
@@ -176,24 +179,26 @@ function loadBuffer(ctx: AudioContext, src: string) {
 export function playPokerSound(kind: PokerSoundKind) {
   const ctx = audioContext();
   if (!ctx || ctx.state !== 'running') return;
-  const duck = (ms: number) => duckListeners.forEach((listener) => listener(ms));
+  // Con música sonando, el aviso arranca cuando ya ha bajado el volumen.
+  const lead = duckListeners.size > 0 ? POKER_DUCK_FADE_MS : 0;
+  const duck = (ms: number) => duckListeners.forEach((listener) => listener(lead + ms));
   const file = POKER_SOUND_FILES[kind];
   if (!file || typeof fetch === 'undefined') {
     duck(DUCK_MS[kind]);
-    synth(ctx, kind);
+    synth(ctx, kind, lead);
     return;
   }
   void loadBuffer(ctx, file.src).then((buffer) => {
     if (!buffer) {
       duck(DUCK_MS[kind]);
-      synth(ctx, kind);
+      synth(ctx, kind, lead);
       return;
     }
     const hits = file.hits ?? [0];
     const from = file.from ?? 0;
     const length = Math.min(buffer.duration - from, file.seconds);
     duck((Math.max(...hits) + length) * 1000);
-    const start = ctx.currentTime + 0.02;
+    const start = ctx.currentTime + 0.02 + lead / 1000;
     hits.forEach((offset) => {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
@@ -203,8 +208,8 @@ export function playPokerSound(kind: PokerSoundKind) {
   });
 }
 
-function synth(ctx: AudioContext, kind: PokerSoundKind) {
-  const t = ctx.currentTime + 0.02;
+function synth(ctx: AudioContext, kind: PokerSoundKind, lead: number) {
+  const t = ctx.currentTime + 0.02 + lead / 1000;
   if (kind === 'rebuy') {
     // Pam, pam, pam: una bala más en la mesa.
     [0, 0.32, 0.64].forEach((offset) => shot(ctx, t + offset));

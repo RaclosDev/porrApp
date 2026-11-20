@@ -52,12 +52,12 @@ describe('playPokerSound', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('plays the recorded level sound and lowers the music while it lasts', async () => {
+  it('plays the recorded level sound and lowers the music first and keeps it low while it lasts', async () => {
     const { sound, ducks } = await load(true);
     sound.playPokerSound('level');
     await vi.waitFor(() => expect(started).toContain('file'));
     expect(fetch).toHaveBeenCalledWith('/sounds/poker/level.mp3');
-    expect(ducks).toEqual([3500]);
+    expect(ducks).toEqual([4500]);
     expect(started).not.toContain('synth');
   });
 
@@ -65,7 +65,7 @@ describe('playPokerSound', () => {
     const { sound, ducks } = await load(true);
     sound.playPokerSound('rebuy');
     await vi.waitFor(() => expect(started.filter((s) => s === 'file')).toHaveLength(2));
-    expect(ducks[0]).toBeCloseTo(3450);
+    expect(ducks[0]).toBeCloseTo(4450);
   });
 
   it('falls back to the synthesized sound when the file is missing', async () => {

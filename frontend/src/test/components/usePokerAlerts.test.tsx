@@ -9,14 +9,15 @@ vi.mock('../../components/poker/pokerSound', () => ({
   unlockAudio: vi.fn(),
 }));
 
-import { usePokerAlerts } from '../../components/poker/usePokerAlerts';
+import { POKER_ALERT_MS, usePokerAlerts } from '../../components/poker/usePokerAlerts';
+
+const ana = (rebuys: number, addOns: number) => ({ playerId: 7, name: 'Ana', rebuys, addOns });
 
 type Props = {
   level: number;
   onBreak: boolean;
   remainingMs: number;
-  rebuys?: number;
-  addOns?: number;
+  entries?: { playerId: number; name: string; rebuys: number; addOns: number }[];
   tv?: boolean;
 };
 
@@ -37,9 +38,10 @@ describe('usePokerAlerts', () => {
 
   it('fuera del modo TV no suena nada en el móvil', () => {
     const base = { level: 0, onBreak: false, remainingMs: 600_000, tv: false };
-    const { rerender } = render({ ...base, rebuys: 0, addOns: 0 });
-    rerender({ ...base, level: 1, remainingMs: 30_000, rebuys: 1, addOns: 1 });
+    const { result, rerender } = render({ ...base, entries: [ana(0, 0)] });
+    rerender({ ...base, level: 1, remainingMs: 30_000, entries: [ana(1, 1)] });
     expect(play).not.toHaveBeenCalled();
+    expect(result.current.alert).toBeNull();
   });
 
   it('usa otro sonido al empezar un descanso', () => {
@@ -63,16 +65,29 @@ describe('usePokerAlerts', () => {
     expect(play).not.toHaveBeenCalled();
   });
 
-  it('suenan los disparos con cada recompra y el dinero con cada add-on', () => {
+  it('suenan los disparos con cada recompra y el dinero con cada add-on, de uno en uno', () => {
+    vi.useFakeTimers();
     const base = { level: 0, onBreak: false, remainingMs: 600_000 };
-    const { rerender } = render({ ...base, rebuys: 2, addOns: 0 });
+    const { result, rerender } = render({ ...base, entries: [ana(2, 0)] });
     expect(play).not.toHaveBeenCalled();
-    rerender({ ...base, rebuys: 3, addOns: 0 });
+    rerender({ ...base, entries: [ana(3, 1)] });
     expect(play).toHaveBeenLastCalledWith('rebuy');
-    rerender({ ...base, rebuys: 3, addOns: 1 });
+    expect(result.current.alert).toMatchObject({ kind: 'rebuy', playerId: 7, name: 'Ana' });
+    act(() => vi.advanceTimersByTime(POKER_ALERT_MS));
     expect(play).toHaveBeenLastCalledWith('addOn');
+    expect(result.current.alert).toMatchObject({ kind: 'addOn', name: 'Ana' });
+    act(() => vi.advanceTimersByTime(POKER_ALERT_MS));
+    expect(result.current.alert).toBeNull();
     play.mockClear();
-    rerender({ ...base, rebuys: 2, addOns: 1 });
+    rerender({ ...base, entries: [ana(2, 1)] });
     expect(play).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('muestra el cartel del cambio de nivel', () => {
+    const { result, rerender } = render({ level: 0, onBreak: false, remainingMs: 600_000 });
+    rerender({ level: 1, onBreak: false, remainingMs: 600_000 });
+    expect(result.current.alert).toMatchObject({ kind: 'level' });
+    expect(result.current.alert?.playerId).toBeUndefined();
   });
 });

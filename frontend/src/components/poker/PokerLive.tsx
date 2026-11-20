@@ -90,13 +90,12 @@ export default function PokerLive({
 
   const averageChips = active.length ? Math.round(chipsInPlay / active.length) : 0;
 
-  const { soundOn, toggleSound } = usePokerAlerts({
+  const { soundOn, toggleSound, alert } = usePokerAlerts({
     running: Boolean(clock && clock.endsAt !== null && !winner),
     level: clock ? clock.level : null,
     onBreak: clock ? levels[clock.level]?.big === 0 : false,
     remainingMs: clock ? clock.remainingMs : null,
-    rebuys: session.entries.reduce((sum, entry) => sum + entry.rebuys, 0),
-    addOns: session.entries.reduce((sum, entry) => sum + entry.addOns, 0),
+    entries: session.entries,
     tv,
   });
 
@@ -398,6 +397,7 @@ export default function PokerLive({
                   potCents={session.potCents}
                   buyTimers={buyTimers}
                   leagueId={leagueId}
+                  alert={alert}
                   onClose={() => setTv(false)}
                 />
               )}
