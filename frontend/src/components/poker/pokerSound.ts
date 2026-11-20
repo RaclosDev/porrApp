@@ -8,12 +8,15 @@ interface SoundFile {
   seconds: number;
   /** Segundos en los que arranca cada golpe: la bala suena dos veces, pam, pam. */
   hits?: number[];
+  /** Segundo del archivo donde empieza el golpe que se usa. */
+  from?: number;
 }
 
 const POKER_SOUND_FILES: Partial<Record<PokerSoundKind, SoundFile>> = {
   rebuy: { src: '/sounds/poker/rebuy.mp3', seconds: 3, hits: [0, 0.45] },
   addOn: { src: '/sounds/poker/addon.mp3', seconds: 4 },
-  level: { src: '/sounds/poker/level.mp3', seconds: 6 },
+  // De la campana de boxeo solo se usa el último golpe, el más limpio: ding, ding, ding.
+  level: { src: '/sounds/poker/level.mp3', seconds: 2.5, hits: [0, 0.5, 1], from: 0.5 },
 };
 
 /** Tiempo que la música baja a la mitad para que se oiga cada aviso. */
@@ -187,15 +190,15 @@ export function playPokerSound(kind: PokerSoundKind) {
       return;
     }
     const hits = file.hits ?? [0];
-    const length = Math.min(buffer.duration, file.seconds);
+    const from = file.from ?? 0;
+    const length = Math.min(buffer.duration - from, file.seconds);
     duck((Math.max(...hits) + length) * 1000);
     const start = ctx.currentTime + 0.02;
     hits.forEach((offset) => {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
-      source.start(start + offset);
-      source.stop(start + offset + length);
+      source.start(start + offset, from, length);
     });
   });
 }

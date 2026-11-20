@@ -57,7 +57,7 @@ describe('playPokerSound', () => {
     sound.playPokerSound('level');
     await vi.waitFor(() => expect(started).toContain('file'));
     expect(fetch).toHaveBeenCalledWith('/sounds/poker/level.mp3');
-    expect(ducks).toEqual([3000]);
+    expect(ducks).toEqual([3500]);
     expect(started).not.toContain('synth');
   });
 
