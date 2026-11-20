@@ -851,6 +851,15 @@
   min-width: 0;
 }
 
+.poker-champion-faces {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.poker-champion-faces > * + * {
+  margin-left: -0.6rem;
+}
+
 .poker .poker-champion-name {
   margin: 0;
   font-size: 1.15rem;
