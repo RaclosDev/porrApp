@@ -66,3 +66,15 @@ it('pliega la cola: solo se ve lo que suena hasta desplegarla', async () => {
   expect(screen.getByText('Despacito')).toBeVisible();
   expect(screen.getByRole('button', { name: 'Quitar Despacito' })).toBeVisible();
 });
+
+it('desde el móvil se salta la canción que suena', async () => {
+  api.mockResolvedValue({ organizer: false, searchAvailable: true, items: [queued] });
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: 'Siguiente canción' }));
+  await vi.waitFor(() =>
+    expect(api).toHaveBeenCalledWith(
+      expect.stringContaining(`/music/${queued.id}`),
+      expect.objectContaining({ method: 'DELETE' }),
+    ),
+  );
+});

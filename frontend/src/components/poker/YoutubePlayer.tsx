@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
+import { onPokerDuck } from './pokerSound';
 
 interface YtPlayer {
   loadVideoById: (videoId: string) => void;
   destroy: () => void;
+  getVolume?: () => number;
+  setVolume?: (volume: number) => void;
 }
 
 interface YtApi {
@@ -105,6 +108,28 @@ export default function YoutubePlayer({ videoId, onDone }: Props) {
   useEffect(() => {
     player.current?.loadVideoById(videoId);
   }, [videoId]);
+
+  // Con cada aviso del reloj la música baja a la mitad y vuelve a su volumen al acabar.
+  useEffect(() => {
+    let restore: number | undefined;
+    let volume: number | null = null;
+    const unsubscribe = onPokerDuck((ms) => {
+      const current = player.current;
+      if (!current?.setVolume) return;
+      volume ??= current.getVolume?.() ?? 100;
+      current.setVolume(Math.round(volume / 2));
+      window.clearTimeout(restore);
+      restore = window.setTimeout(() => {
+        if (volume !== null) player.current?.setVolume?.(volume);
+        volume = null;
+      }, ms);
+    });
+    return () => {
+      unsubscribe();
+      window.clearTimeout(restore);
+      if (volume !== null) player.current?.setVolume?.(volume);
+    };
+  }, []);
 
   return <div ref={host} className="poker-tv-video" />;
 }

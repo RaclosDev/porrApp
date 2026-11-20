@@ -45,6 +45,14 @@ export default function PokerMusicPanel({ leagueId }: { leagueId: string | numbe
         <p className="poker-music-now">
           <small>Sonando · {playing.addedBy}</small>
           <strong>{playing.title}</strong>
+          <button
+            type="button"
+            className="glass-btn"
+            disabled={remove.isPending}
+            onClick={() => remove.mutate(playing.id)}
+          >
+            Siguiente canción
+          </button>
         </p>
       )}
       {waiting > 0 && queue && (
