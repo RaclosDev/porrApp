@@ -1,5 +1,28 @@
-/** Sonidos del reloj de póker generados con Web Audio: sin archivos ni licencias. */
-export type PokerSoundKind = 'level' | 'warning' | 'break';
+/** Sonidos del reloj de póker generados con Web Audio; el add-on admite un audio propio. */
+export type PokerSoundKind = 'level' | 'warning' | 'break' | 'rebuy' | 'addOn';
+
+/** Audio propio para el add-on: si existe en `public/sounds`, suena en lugar del sintetizado. */
+const ADD_ON_FILE = '/sounds/poker-addon.mp3';
+
+/** Tiempo que la música baja a la mitad para que se oiga cada aviso. */
+const DUCK_MS: Record<PokerSoundKind, number> = {
+  level: 4000,
+  break: 3500,
+  warning: 1500,
+  rebuy: 2500,
+  addOn: 6000,
+};
+
+type DuckListener = (ms: number) => void;
+const duckListeners = new Set<DuckListener>();
+
+/** El reproductor de música se apunta aquí para bajar el volumen mientras suena un aviso. */
+export function onPokerDuck(listener: DuckListener) {
+  duckListeners.add(listener);
+  return () => {
+    duckListeners.delete(listener);
+  };
+}
 
 const STORAGE_KEY = 'porrapp.poker.sound';
 
@@ -77,11 +100,70 @@ function beep(ctx: AudioContext, start: number, frequency: number) {
   osc.stop(start + 0.2);
 }
 
+/** Disparo del oeste: golpe de ruido filtrado con un eco corto. */
+function shot(ctx: AudioContext, start: number) {
+  const seconds = 0.45;
+  const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * seconds), ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.06));
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(3200, start);
+  filter.frequency.exponentialRampToValueAtTime(400, start + seconds);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.9, start);
+  env.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
+  source.connect(filter).connect(env).connect(ctx.destination);
+  source.start(start);
+  // Golpe grave que da cuerpo al disparo.
+  const thump = ctx.createOscillator();
+  const thumpEnv = ctx.createGain();
+  thump.frequency.setValueAtTime(140, start);
+  thump.frequency.exponentialRampToValueAtTime(45, start + 0.15);
+  thumpEnv.gain.setValueAtTime(0.6, start);
+  thumpEnv.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+  thump.connect(thumpEnv).connect(ctx.destination);
+  thump.start(start);
+  thump.stop(start + 0.2);
+}
+
+/** Monedas cayendo: tintineos agudos que se aceleran, como una caja registradora. */
+function coins(ctx: AudioContext, start: number) {
+  for (let i = 0; i < 9; i++) {
+    const offset = i * 0.11 - i * i * 0.004;
+    bell(ctx, start + offset, 1800 + ((i * 337) % 900), 0.5, 0.12);
+  }
+  bell(ctx, start + 0.85, 1046, 1.6, 0.25);
+}
+
+function playAddOnFile(ctx: AudioContext) {
+  let fellBack = false;
+  // Sin archivo o sin permiso para reproducirlo: suenan las monedas, una sola vez.
+  const fallBack = () => {
+    if (fellBack) return;
+    fellBack = true;
+    coins(ctx, ctx.currentTime + 0.02);
+  };
+  const audio = new Audio(ADD_ON_FILE);
+  audio.addEventListener('error', fallBack, { once: true });
+  void audio.play().catch(fallBack);
+}
+
 export function playPokerSound(kind: PokerSoundKind) {
   const ctx = audioContext();
   if (!ctx || ctx.state !== 'running') return;
+  duckListeners.forEach((listener) => listener(DUCK_MS[kind]));
   const t = ctx.currentTime + 0.02;
-  if (kind === 'level') {
+  if (kind === 'rebuy') {
+    // Pam, pam, pam: una bala más en la mesa.
+    [0, 0.32, 0.64].forEach((offset) => shot(ctx, t + offset));
+  } else if (kind === 'addOn') {
+    playAddOnFile(ctx);
+  } else if (kind === 'level') {
     // Dos golpes de campana: suben las ciegas.
     bell(ctx, t, 520, 2.4, 0.35);
     bell(ctx, t + 0.9, 520, 2.8, 0.35);

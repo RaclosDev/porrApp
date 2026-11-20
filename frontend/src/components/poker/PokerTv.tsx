@@ -9,6 +9,8 @@ interface Props {
   levels: BlindLevel[];
   playersLeft: number;
   playersTotal: number;
+  /** Fichas en juego entre los jugadores que siguen en la mesa. */
+  averageChips: number;
   potCents: number;
   buyTimers: { key: string; label: string; ms: number; icons?: string[] }[];
   /** Con la liga suena la cola de canciones pedidas desde los móviles. */
@@ -26,6 +28,7 @@ export default function PokerTv({
   levels,
   playersLeft,
   playersTotal,
+  averageChips,
   potCents,
   buyTimers,
   leagueId,
@@ -96,6 +99,10 @@ export default function PokerTv({
             {playersLeft}/{playersTotal}
           </strong>
           <span>jugadores</span>
+        </li>
+        <li>
+          <strong>{chips(averageChips)}</strong>
+          <span>media de fichas</span>
         </li>
         <li>
           <strong>{euros(potCents)}</strong>

@@ -11,7 +11,13 @@ vi.mock('../../components/poker/pokerSound', () => ({
 
 import { usePokerAlerts } from '../../components/poker/usePokerAlerts';
 
-type Props = { level: number; onBreak: boolean; remainingMs: number };
+type Props = {
+  level: number;
+  onBreak: boolean;
+  remainingMs: number;
+  rebuys?: number;
+  addOns?: number;
+};
 
 describe('usePokerAlerts', () => {
   beforeEach(() => play.mockClear());
@@ -46,6 +52,19 @@ describe('usePokerAlerts', () => {
     act(() => result.current.toggleSound());
     play.mockClear();
     rerender({ level: 1, onBreak: false, remainingMs: 600_000 });
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it('suenan los disparos con cada recompra y el dinero con cada add-on', () => {
+    const base = { level: 0, onBreak: false, remainingMs: 600_000 };
+    const { rerender } = render({ ...base, rebuys: 2, addOns: 0 });
+    expect(play).not.toHaveBeenCalled();
+    rerender({ ...base, rebuys: 3, addOns: 0 });
+    expect(play).toHaveBeenLastCalledWith('rebuy');
+    rerender({ ...base, rebuys: 3, addOns: 1 });
+    expect(play).toHaveBeenLastCalledWith('addOn');
+    play.mockClear();
+    rerender({ ...base, rebuys: 2, addOns: 1 });
     expect(play).not.toHaveBeenCalled();
   });
 });

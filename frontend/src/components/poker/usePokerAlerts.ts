@@ -8,12 +8,22 @@ interface Options {
   /** Nivel actual de descanso (sin ciegas). */
   onBreak: boolean;
   remainingMs: number | null;
+  /** Recompras y add-ons apuntados en el torneo: suena un aviso cada vez que sube alguno. */
+  rebuys?: number;
+  addOns?: number;
 }
 
 const WARNING_MS = 60_000;
 
-/** Sonidos de cambio de nivel y aviso previo, y bloqueo de apagado de pantalla mientras corre el reloj. */
-export function usePokerAlerts({ running, level, onBreak, remainingMs }: Options) {
+/** Sonidos de cambio de nivel, aviso previo, recompras y add-ons, y bloqueo de apagado de pantalla mientras corre el reloj. */
+export function usePokerAlerts({
+  running,
+  level,
+  onBreak,
+  remainingMs,
+  rebuys = 0,
+  addOns = 0,
+}: Options) {
   const [enabled, setEnabled] = useState(soundEnabled);
   const enabledRef = useRef(enabled);
   useEffect(() => {
@@ -70,6 +80,20 @@ export function usePokerAlerts({ running, level, onBreak, remainingMs }: Options
       if (enabledRef.current) playPokerSound('warning');
     }
   }, [level, remainingMs, running, onBreak]);
+
+  const lastRebuys = useRef(rebuys);
+  useEffect(() => {
+    const previous = lastRebuys.current;
+    lastRebuys.current = rebuys;
+    if (rebuys > previous && enabledRef.current) playPokerSound('rebuy');
+  }, [rebuys]);
+
+  const lastAddOns = useRef(addOns);
+  useEffect(() => {
+    const previous = lastAddOns.current;
+    lastAddOns.current = addOns;
+    if (addOns > previous && enabledRef.current) playPokerSound('addOn');
+  }, [addOns]);
 
   function toggle() {
     unlockAudio();
