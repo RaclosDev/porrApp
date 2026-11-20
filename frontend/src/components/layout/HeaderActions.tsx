@@ -55,7 +55,7 @@ function SupportCupIcon() {
 
 /** Entradas del menú de cuenta que abren los ajustes, cada una en su sección. */
 const SETTINGS_ENTRIES: { section: SettingsSection; label: string }[] = [
-  { section: 'account', label: 'Ajustes de cuenta' },
+  { section: 'profile', label: 'Ajustes de cuenta' },
   { section: 'reminders', label: 'Avisos' },
 ];
 
