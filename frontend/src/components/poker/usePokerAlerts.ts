@@ -11,11 +11,13 @@ interface Options {
   /** Recompras y add-ons apuntados en el torneo: suena un aviso cada vez que sube alguno. */
   rebuys?: number;
   addOns?: number;
+  /** Solo suena en la pantalla que hace de TV, no en el móvil de cada jugador. */
+  tv?: boolean;
 }
 
 const WARNING_MS = 60_000;
 
-/** Sonidos de cambio de nivel, aviso previo, recompras y add-ons, y bloqueo de apagado de pantalla mientras corre el reloj. */
+/** En el modo TV, sonidos de cambio de nivel, aviso previo, recompras y add-ons, y bloqueo de apagado de pantalla mientras corre el reloj. */
 export function usePokerAlerts({
   running,
   level,
@@ -23,12 +25,13 @@ export function usePokerAlerts({
   remainingMs,
   rebuys = 0,
   addOns = 0,
+  tv = false,
 }: Options) {
   const [enabled, setEnabled] = useState(soundEnabled);
-  const enabledRef = useRef(enabled);
+  const enabledRef = useRef(enabled && tv);
   useEffect(() => {
-    enabledRef.current = enabled;
-  }, [enabled]);
+    enabledRef.current = enabled && tv;
+  }, [enabled, tv]);
   const lastLevel = useRef<number | null>(null);
   const warnedLevel = useRef<number | null>(null);
 

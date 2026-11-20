@@ -97,6 +97,7 @@ export default function PokerLive({
     remainingMs: clock ? clock.remainingMs : null,
     rebuys: session.entries.reduce((sum, entry) => sum + entry.rebuys, 0),
     addOns: session.entries.reduce((sum, entry) => sum + entry.addOns, 0),
+    tv,
   });
 
   useEffect(() => {

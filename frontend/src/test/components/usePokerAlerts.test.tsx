@@ -17,13 +17,14 @@ type Props = {
   remainingMs: number;
   rebuys?: number;
   addOns?: number;
+  tv?: boolean;
 };
 
 describe('usePokerAlerts', () => {
   beforeEach(() => play.mockClear());
 
   const render = (initial: Props) =>
-    renderHook((props: Props) => usePokerAlerts({ running: true, ...props }), {
+    renderHook((props: Props) => usePokerAlerts({ running: true, tv: true, ...props }), {
       initialProps: initial,
     });
 
@@ -32,6 +33,13 @@ describe('usePokerAlerts', () => {
     expect(play).not.toHaveBeenCalled();
     rerender({ level: 1, onBreak: false, remainingMs: 600_000 });
     expect(play).toHaveBeenCalledWith('level');
+  });
+
+  it('fuera del modo TV no suena nada en el móvil', () => {
+    const base = { level: 0, onBreak: false, remainingMs: 600_000, tv: false };
+    const { rerender } = render({ ...base, rebuys: 0, addOns: 0 });
+    rerender({ ...base, level: 1, remainingMs: 30_000, rebuys: 1, addOns: 1 });
+    expect(play).not.toHaveBeenCalled();
   });
 
   it('usa otro sonido al empezar un descanso', () => {
