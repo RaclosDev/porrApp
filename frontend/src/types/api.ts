@@ -981,3 +981,16 @@ export interface AdminOverview {
     createdAt: string;
   }[];
 }
+
+/** Resultado de un aviso del panel de gestión. */
+export interface AdminAnnouncementResult {
+  leagues: number;
+  members: number;
+  devices: number;
+  /** Aceptados por el servicio push. */
+  sent: number;
+  /** No aceptados a la primera; se reintentan solos. */
+  retrying: number;
+  /** No se entregarán: dispositivo dado de baja o rechazo definitivo. */
+  failed: number;
+}
