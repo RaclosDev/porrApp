@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { onPokerDuck, POKER_DUCK_FADE_MS } from './pokerSound';
+import { onPokerDuck, POKER_DUCK_FADE_MS, POKER_DUCK_LEVEL } from './pokerSound';
 
 /** La música vuelve a su volumen en este tiempo, más despacio de lo que baja. */
 const FADE_UP_MS = 2000;
@@ -113,8 +113,7 @@ export default function YoutubePlayer({ videoId, onDone }: Props) {
     player.current?.loadVideoById(videoId);
   }, [videoId]);
 
-  // Con cada aviso del reloj la música baja a la mitad y vuelve a su volumen al acabar.
-  // Durante un aviso la música baja poco a poco a la mitad y, al acabar, vuelve a subir despacio.
+  // Durante un aviso la música baja poco a poco hasta casi callarse y, al acabar, vuelve a subir despacio.
   useEffect(() => {
     let base: number | null = null;
     let current = 0;
@@ -142,7 +141,7 @@ export default function YoutubePlayer({ videoId, onDone }: Props) {
         base = active.getVolume?.() ?? 100;
         current = base;
       }
-      ramp(base / 2, POKER_DUCK_FADE_MS);
+      ramp(base * POKER_DUCK_LEVEL, POKER_DUCK_FADE_MS);
       window.clearTimeout(restore);
       restore = window.setTimeout(() => {
         if (base !== null)

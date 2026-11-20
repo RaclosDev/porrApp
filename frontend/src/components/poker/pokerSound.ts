@@ -19,7 +19,7 @@ const POKER_SOUND_FILES: Partial<Record<PokerSoundKind, SoundFile>> = {
   level: { src: '/sounds/poker/level.mp3', seconds: 2.5, hits: [0, 0.5, 1], from: 0.5 },
 };
 
-/** Tiempo que la música baja a la mitad para que se oiga cada aviso. */
+/** Tiempo que la música se queda baja para que se oiga cada aviso. */
 const DUCK_MS: Record<PokerSoundKind, number> = {
   level: 4000,
   break: 3500,
@@ -27,6 +27,9 @@ const DUCK_MS: Record<PokerSoundKind, number> = {
   rebuy: 2500,
   addOn: 6000,
 };
+
+/** Volumen de la música mientras suena un aviso, sobre el que tenía: casi en silencio. */
+export const POKER_DUCK_LEVEL = 0.15;
 
 /** La música tarda esto en bajar: el aviso espera a que haya bajado para sonar. */
 export const POKER_DUCK_FADE_MS = 1000;
@@ -45,6 +48,21 @@ export function onPokerDuck(listener: DuckListener) {
 const STORAGE_KEY = 'porrapp.poker.sound';
 
 let context: AudioContext | null = null;
+let output: AudioNode | null = null;
+
+/** Los efectos suenan más fuerte que la música; un compresor evita que saturen los altavoces. */
+function speakers(ctx: AudioContext): AudioNode {
+  if (output) return output;
+  if (typeof ctx.createDynamicsCompressor !== 'function') return ctx.destination;
+  const boost = ctx.createGain();
+  boost.gain.value = 1.8;
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -6;
+  limiter.ratio.value = 12;
+  boost.connect(limiter).connect(ctx.destination);
+  output = boost;
+  return output;
+}
 
 function audioContext(): AudioContext | null {
   if (context) return context;
@@ -93,7 +111,7 @@ function bell(ctx: AudioContext, start: number, frequency: number, seconds: numb
   ];
   const master = ctx.createGain();
   master.gain.value = gain;
-  master.connect(ctx.destination);
+  master.connect(speakers(ctx));
   for (const [ratio, level] of partials) {
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
@@ -116,7 +134,7 @@ function beep(ctx: AudioContext, start: number, frequency: number) {
   env.gain.setValueAtTime(0.0001, start);
   env.gain.exponentialRampToValueAtTime(0.25, start + 0.01);
   env.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
-  osc.connect(env).connect(ctx.destination);
+  osc.connect(env).connect(speakers(ctx));
   osc.start(start);
   osc.stop(start + 0.2);
 }
@@ -138,7 +156,7 @@ function shot(ctx: AudioContext, start: number) {
   const env = ctx.createGain();
   env.gain.setValueAtTime(0.9, start);
   env.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
-  source.connect(filter).connect(env).connect(ctx.destination);
+  source.connect(filter).connect(env).connect(speakers(ctx));
   source.start(start);
   // Golpe grave que da cuerpo al disparo.
   const thump = ctx.createOscillator();
@@ -147,7 +165,7 @@ function shot(ctx: AudioContext, start: number) {
   thump.frequency.exponentialRampToValueAtTime(45, start + 0.15);
   thumpEnv.gain.setValueAtTime(0.6, start);
   thumpEnv.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
-  thump.connect(thumpEnv).connect(ctx.destination);
+  thump.connect(thumpEnv).connect(speakers(ctx));
   thump.start(start);
   thump.stop(start + 0.2);
 }
@@ -202,7 +220,7 @@ export function playPokerSound(kind: PokerSoundKind) {
     hits.forEach((offset) => {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.connect(ctx.destination);
+      source.connect(speakers(ctx));
       source.start(start + offset, from, length);
     });
   });
