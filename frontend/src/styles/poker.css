@@ -1992,3 +1992,62 @@
 .poker-late-list button {
   min-height: 44px;
 }
+
+/* Chuleta de jugadas en la portada de la liga. */
+.poker-hands summary {
+  min-height: 44px;
+  cursor: pointer;
+}
+.poker-hands summary h2 {
+  display: inline;
+  margin: 0;
+}
+.poker-hands summary .poker-note {
+  display: block;
+  margin: 0.15rem 0 0;
+}
+.poker-hands-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+.poker-hands-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--border-color);
+}
+.poker-hands-name {
+  display: flex;
+  flex-direction: column;
+}
+.poker-hands-name small {
+  color: var(--text-muted);
+}
+.poker-hands-cards {
+  display: flex;
+  gap: 0.2rem;
+}
+.poker-card {
+  min-width: 2.1rem;
+  padding: 0.2rem 0.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.3rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.poker-card.is-red {
+  color: #b42318;
+}
+.poker-music-now .glass-btn {
+  align-self: flex-start;
+  margin-top: 0.4rem;
+}

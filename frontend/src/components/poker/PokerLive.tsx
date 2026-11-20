@@ -88,11 +88,15 @@ export default function PokerLive({
     0,
   );
 
+  const averageChips = active.length ? Math.round(chipsInPlay / active.length) : 0;
+
   const { soundOn, toggleSound } = usePokerAlerts({
     running: Boolean(clock && clock.endsAt !== null && !winner),
     level: clock ? clock.level : null,
     onBreak: clock ? levels[clock.level]?.big === 0 : false,
     remainingMs: clock ? clock.remainingMs : null,
+    rebuys: session.entries.reduce((sum, entry) => sum + entry.rebuys, 0),
+    addOns: session.entries.reduce((sum, entry) => sum + entry.addOns, 0),
   });
 
   useEffect(() => {
@@ -389,6 +393,7 @@ export default function PokerLive({
                   levels={levels}
                   playersLeft={active.length}
                   playersTotal={session.entries.length}
+                  averageChips={averageChips}
                   potCents={session.potCents}
                   buyTimers={buyTimers}
                   leagueId={leagueId}
@@ -486,7 +491,7 @@ export default function PokerLive({
           </div>
           <div>
             <dt>Media de fichas</dt>
-            <dd>{chips(Math.round(chipsInPlay / active.length))}</dd>
+            <dd>{chips(averageChips)}</dd>
           </div>
           <div>
             <dt>Bote</dt>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { PokerLeagueData, PokerSession } from '../../services/endpoints/poker';
 import { BadgedAvatar, lastWinnerIds } from './PokerBadges';
 import PokerEmpty from './PokerEmpty';
+import PokerHands from './PokerHands';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
 import {
@@ -171,6 +172,7 @@ export default function PokerHome({
           )}
         </section>
       )}
+      <PokerHands />
     </div>
   );
 }

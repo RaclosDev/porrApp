@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { chips } from '../../components/poker/pokerFormat';
 import PokerTv from '../../components/poker/PokerTv';
 import type { BlindClock } from '../../services/endpoints/poker';
 
@@ -18,6 +19,7 @@ function renderTv(
       levels={levels}
       playersLeft={3}
       playersTotal={5}
+      averageChips={12500}
       potCents={5000}
       buyTimers={[{ key: 'rebuy', label: 'Recompras', ms: 120_000 }]}
       onClose={onClose}
@@ -35,6 +37,9 @@ describe('PokerTv', () => {
     expect(screen.getByText('Siguiente · 50 / 100')).toBeInTheDocument();
     expect(screen.getByText('3/5')).toBeInTheDocument();
     expect(screen.getByText('Recompras')).toBeInTheDocument();
+    expect(screen.getByText('media de fichas').previousElementSibling).toHaveTextContent(
+      chips(12500),
+    );
   });
 
   it('avisa si el reloj está en pausa', () => {
