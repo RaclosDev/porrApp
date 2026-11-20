@@ -2,9 +2,17 @@
 export type PokerSoundKind = 'level' | 'warning' | 'break' | 'rebuy' | 'addOn';
 
 /** Efectos grabados, servidos desde `public/sounds/poker`; el resto de avisos se sintetizan. */
-const POKER_SOUND_FILES: Partial<Record<PokerSoundKind, { src: string; seconds: number }>> = {
-  rebuy: { src: '/sounds/poker/rebuy.mp3', seconds: 5 },
-  addOn: { src: '/sounds/poker/addon.mp3', seconds: 14 },
+interface SoundFile {
+  src: string;
+  /** Duración máxima de cada golpe. */
+  seconds: number;
+  /** Segundos en los que arranca cada golpe: la bala suena dos veces, pam, pam. */
+  hits?: number[];
+}
+
+const POKER_SOUND_FILES: Partial<Record<PokerSoundKind, SoundFile>> = {
+  rebuy: { src: '/sounds/poker/rebuy.mp3', seconds: 3, hits: [0, 0.45] },
+  addOn: { src: '/sounds/poker/addon.mp3', seconds: 4 },
   level: { src: '/sounds/poker/level.mp3', seconds: 6 },
 };
 
@@ -178,12 +186,17 @@ export function playPokerSound(kind: PokerSoundKind) {
       synth(ctx, kind);
       return;
     }
-    duck(Math.min(buffer.duration, file.seconds) * 1000);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start();
-    source.stop(ctx.currentTime + file.seconds);
+    const hits = file.hits ?? [0];
+    const length = Math.min(buffer.duration, file.seconds);
+    duck((Math.max(...hits) + length) * 1000);
+    const start = ctx.currentTime + 0.02;
+    hits.forEach((offset) => {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(start + offset);
+      source.stop(start + offset + length);
+    });
   });
 }
 

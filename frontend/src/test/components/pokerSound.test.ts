@@ -61,6 +61,13 @@ describe('playPokerSound', () => {
     expect(started).not.toContain('synth');
   });
 
+  it('fires the rebuy shot twice, pam pam', async () => {
+    const { sound, ducks } = await load(true);
+    sound.playPokerSound('rebuy');
+    await vi.waitFor(() => expect(started.filter((s) => s === 'file')).toHaveLength(2));
+    expect(ducks[0]).toBeCloseTo(3450);
+  });
+
   it('falls back to the synthesized sound when the file is missing', async () => {
     const { sound } = await load(false);
     sound.playPokerSound('level');
