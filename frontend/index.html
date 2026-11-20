@@ -4,8 +4,35 @@
     <meta charset="UTF-8" />
     <!-- Google solo muestra en los resultados favicons cuadrados de 48 px o múltiplos de 48. -->
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-paper-192.png" />
-    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-paper.png" />
+    <!-- Con el navegador en modo oscuro, la pestaña lleva el icono invertido (fondo tinta, letras papel). -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/icon-paper-192.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="64x64"
+      href="/favicon-paper.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/icon-dark-192.png"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="64x64"
+      href="/favicon-dark.png"
+      media="(prefers-color-scheme: dark)"
+    />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-paper.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!--
@@ -72,7 +99,10 @@
     <meta name="robots" content="max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 
     <!-- Open Graph (WhatsApp, Twitter, Facebook previews) -->
-    <meta property="og:title" content="Porra entre amigos gratis de fútbol, F1, UFC y más · PorrApp" />
+    <meta
+      property="og:title"
+      content="Porra entre amigos gratis de fútbol, F1, UFC y más · PorrApp"
+    />
     <meta
       property="og:description"
       content="Crea gratis una porra entre amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos."
@@ -93,7 +123,10 @@
     <meta property="og:site_name" content="PorrApp" />
     <meta property="og:locale" content="es_ES" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Porra entre amigos gratis de fútbol, F1, UFC y más · PorrApp" />
+    <meta
+      name="twitter:title"
+      content="Porra entre amigos gratis de fútbol, F1, UFC y más · PorrApp"
+    />
     <meta
       name="twitter:description"
       content="Crea gratis una porra entre amigos de LaLiga, la Champions, la F1, la UFC, la NBA o el tenis. Los puntos y la clasificación se calculan solos."

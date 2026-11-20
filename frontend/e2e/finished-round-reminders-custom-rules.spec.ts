@@ -123,6 +123,17 @@ for (const width of [390, 1440]) {
       }),
     ).not.toBeChecked();
     await page.screenshot({ path: testInfo.outputPath(`avisos-${width}.png`) });
+
+    // Los ajustes van en pestañas, como la administración de una liga.
+    await expect(dialog.getByRole('tab')).toHaveText(['Perfil', 'Avisos', 'Acceso', 'Cuenta']);
+    await dialog.getByRole('tab', { name: 'Perfil' }).click();
+    await expect(dialog.getByLabel('Nombre público')).toBeVisible();
+    await expect(reminders).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath(`ajustes-perfil-${width}.png`) });
+    await dialog.getByRole('tab', { name: 'Cuenta' }).click();
+    await expect(dialog.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Borrar mi cuenta' })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`ajustes-cuenta-${width}.png`) });
   });
 }
 

@@ -48,7 +48,7 @@ it('«Ajustes de cuenta» abre los ajustes por arriba y la campana, en los aviso
   const { onOpenSettings } = setup();
 
   fireEvent.click(screen.getByRole('button', { name: 'Ajustes de cuenta' }));
-  expect(onOpenSettings).toHaveBeenLastCalledWith('account');
+  expect(onOpenSettings).toHaveBeenLastCalledWith('profile');
 
   fireEvent.click(screen.getByRole('button', { name: 'Ajustes de avisos' }));
   expect(onOpenSettings).toHaveBeenLastCalledWith('reminders');
