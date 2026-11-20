@@ -1,7 +1,10 @@
 package app.porrapp.controller;
 
 import app.porrapp.config.JwtUtil;
+import app.porrapp.dto.AdminAnnouncementRequest;
+import app.porrapp.dto.AdminAnnouncementResult;
 import app.porrapp.dto.AdminOverviewDTO;
+import app.porrapp.service.admin.AdminAnnouncementService;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.admin.AdminAccess;
 import app.porrapp.service.admin.AdminService;
@@ -20,7 +23,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -37,6 +43,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private AdminService service;
+
+    @MockitoBean
+    private AdminAnnouncementService announcements;
 
     @MockitoBean
     private UserAccountRepository userAccountRepository;
@@ -66,5 +75,33 @@ class AdminControllerTest {
 
         mockMvc.perform(get("/api/admin/overview").principal(BOSS)).andExpect(status().isNotFound());
         Mockito.verifyNoInteractions(service);
+    }
+
+    @Test
+    void adminSendsAnAnnouncementAndGetsTheDeliveryCounts() throws Exception {
+        Mockito.when(announcements.send(eq("boss@example.com"), any()))
+                .thenReturn(new AdminAnnouncementResult(2, 7, 9, 7, 1, 1));
+
+        mockMvc.perform(post("/api/admin/announcements").principal(BOSS)
+                        .contentType("application/json")
+                        .content("{\"leagueIds\":[1,2],\"title\":\"Hola\",\"body\":\"Novedades\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.devices").value(9))
+                .andExpect(jsonPath("$.sent").value(7))
+                .andExpect(jsonPath("$.failed").value(1));
+        Mockito.verify(access).requireAdmin("boss@example.com");
+        Mockito.verify(announcements).send("boss@example.com",
+                new AdminAnnouncementRequest(List.of(1L, 2L), "Hola", "Novedades"));
+    }
+
+    @Test
+    void nonAdminCannotSendAnnouncements() throws Exception {
+        Mockito.doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND)).when(access).requireAdmin("boss@example.com");
+
+        mockMvc.perform(post("/api/admin/announcements").principal(BOSS)
+                        .contentType("application/json")
+                        .content("{\"leagueIds\":[1],\"title\":\"Hola\",\"body\":\"Texto\"}"))
+                .andExpect(status().isNotFound());
+        Mockito.verifyNoInteractions(announcements);
     }
 }

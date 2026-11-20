@@ -1,0 +1,576 @@
+@layer components {
+  /* Panel de gestión (/gestion-7k2q): misma hoja de papel, pestañas y tarjetas que la administración de liga. */
+  .admin-page {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 20px 12px 40px;
+    text-align: left;
+  }
+
+  .admin-sheet {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+  }
+
+  .admin-sheet .league-admin-header {
+    flex-wrap: wrap;
+  }
+
+  .admin-sheet .league-admin-title {
+    font-size: 1.3rem;
+  }
+
+  .admin-sheet-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    padding: 18px 22px 24px;
+  }
+
+  .admin-section-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-main);
+  }
+
+  .admin-section-hint {
+    margin: 2px 0 0;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+  }
+
+  /* Cifras */
+  .admin-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .admin-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg);
+  }
+
+  .admin-stat-value {
+    font-size: 1.65rem;
+    font-weight: 800;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-main);
+  }
+
+  .admin-stat-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .admin-stat-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  /* Altas por día */
+  .admin-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 140px;
+    margin-top: 14px;
+    padding-bottom: 1px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .admin-chart-bar {
+    flex: 1;
+    min-width: 0;
+    min-height: 2px;
+    border-radius: 3px 3px 0 0;
+    background: var(--accent-cyan);
+    opacity: 0.55;
+  }
+
+  .admin-chart-bar.is-today {
+    opacity: 1;
+  }
+
+  .admin-chart-axis {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  /* Listados */
+  .admin-list-count {
+    margin-left: auto;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+  }
+
+  .admin-table-wrap {
+    min-width: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--panel-bg);
+    overflow: hidden;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  .admin-table th {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(17, 24, 39, 0.04);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .admin-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+    color: var(--text-main);
+    vertical-align: middle;
+  }
+
+  .admin-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .admin-table tbody tr:hover td {
+    background: rgba(11, 95, 116, 0.04);
+  }
+
+  .admin-table .is-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .admin-table .is-strong {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-table .is-muted {
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .admin-table-empty {
+    margin: 0;
+    padding: 24px 12px;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .admin-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.04);
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .admin-pill.is-accent {
+    border-color: rgba(11, 95, 116, 0.35);
+    background: rgba(11, 95, 116, 0.1);
+    color: var(--accent-cyan);
+  }
+
+  /* En el móvil cada fila es una ficha: el nombre arriba y el resto con su etiqueta. */
+  @media (max-width: 720px) {
+    .admin-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+
+    .admin-table,
+    .admin-table tbody,
+    .admin-table tr,
+    .admin-table td {
+      display: block;
+    }
+
+    .admin-table tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(17, 24, 39, 0.1);
+    }
+
+    .admin-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .admin-table td {
+      padding: 0;
+      border: none;
+      min-width: 0;
+    }
+
+    .admin-table tbody tr:hover td {
+      background: none;
+    }
+
+    .admin-table td.is-head {
+      grid-column: 1 / -1;
+      font-size: 0.92rem;
+    }
+
+    .admin-table td.is-wide {
+      grid-column: 1 / -1;
+    }
+
+    .admin-table td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.66rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .admin-table .is-num {
+      text-align: left;
+    }
+  }
+
+  /* Avisos */
+  .admin-notice-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  @media (min-width: 960px) {
+    .admin-notice-layout {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      align-items: start;
+    }
+  }
+
+  .admin-notice-column {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .admin-league-picker {
+    max-height: 300px;
+    margin: 10px 0 0;
+    padding: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg);
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .admin-league-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 6px 10px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+
+  .admin-league-option:hover {
+    background: rgba(17, 24, 39, 0.05);
+  }
+
+  .admin-league-option.is-checked {
+    background: rgba(11, 95, 116, 0.09);
+  }
+
+  .admin-league-option.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .admin-league-option input {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    accent-color: var(--accent-cyan);
+  }
+
+  .admin-league-option-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.84rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-league-option-meta {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .admin-picker-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .admin-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin-field + .admin-field {
+    margin-top: 12px;
+  }
+
+  .admin-field-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .admin-field-count {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+
+  .admin-field-count.is-near {
+    color: var(--champion-gold);
+  }
+
+  .admin-field .glass-input {
+    width: 100%;
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  .admin-field textarea.glass-input {
+    min-height: 110px;
+    padding-top: 10px;
+    resize: vertical;
+    line-height: 1.4;
+  }
+
+  /* Vista previa con la forma de una notificación del sistema. */
+  .admin-push-preview {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 24px -16px rgba(0, 0, 0, 0.5);
+  }
+
+  .admin-push-preview img {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 9px;
+  }
+
+  .admin-push-preview-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .admin-push-preview-app {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+  }
+
+  .admin-push-preview-title {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+  }
+
+  .admin-push-preview-body {
+    font-size: 0.82rem;
+    color: var(--text-main);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-push-preview.is-empty .admin-push-preview-title,
+  .admin-push-preview.is-empty .admin-push-preview-body {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .admin-notice-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+  }
+
+  .admin-send-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .admin-send-row .league-admin-btn {
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 0.86rem;
+  }
+
+  .admin-send-summary {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .admin-error {
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(185, 28, 28, 0.3);
+    border-radius: 10px;
+    background: rgba(185, 28, 28, 0.07);
+    color: var(--miss);
+    font-size: 0.8rem;
+  }
+
+  .admin-result {
+    border-color: rgba(22, 101, 52, 0.35);
+    background: rgba(22, 101, 52, 0.05);
+  }
+
+  .admin-result.has-failures {
+    border-color: rgba(146, 64, 14, 0.35);
+    background: rgba(146, 64, 14, 0.05);
+  }
+
+  .admin-result-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 10px 0 0;
+  }
+
+  .admin-result-grid div {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--panel-bg);
+  }
+
+  .admin-result-grid dt {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  .admin-result-grid dd {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .admin-result-grid .is-ok dd {
+    color: var(--hit);
+  }
+
+  .admin-result-grid .is-bad dd {
+    color: var(--miss);
+  }
+
+  @media (max-width: 520px) {
+    .admin-page {
+      padding: 12px 8px 32px;
+    }
+
+    .admin-sheet .league-admin-header,
+    .admin-sheet .league-admin-tabs,
+    .admin-sheet-body {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    .admin-sheet .league-admin-tabs {
+      gap: 18px;
+    }
+
+    .admin-stat-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* Clase y miembros bajo el nombre para que este no se parta en tres líneas. */
+    .admin-league-option {
+      flex-wrap: wrap;
+      row-gap: 0;
+    }
+
+    .admin-league-option-name {
+      flex-basis: calc(100% - 28px);
+    }
+
+    .admin-league-option-meta {
+      flex-basis: 100%;
+      padding-left: 28px;
+    }
+  }
+}
