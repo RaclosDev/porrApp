@@ -21,7 +21,6 @@ const setup = (isAdmin = false) => {
       isUserLoggedIn
       navigate={navigate}
       onLogout={vi.fn()}
-      setShowLoginModal={vi.fn()}
       setShowProfileMenu={setShowProfileMenu}
       onOpenSettings={onOpenSettings}
       showProfileMenu
