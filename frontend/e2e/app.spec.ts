@@ -77,6 +77,32 @@ for (const viewport of [
       expect(errors).toEqual([]);
     });
 
+    test('header login opens the /login page and back returns to the landing', async ({ page }) => {
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+      await expect(page).toHaveURL(/\/login$/);
+      await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible();
+      await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute(
+        'autocomplete',
+        /username/,
+      );
+      await expect(page.locator('input[type="password"]')).toHaveAttribute(
+        'autocomplete',
+        'current-password',
+      );
+      // La ventana de acceso no se abre encima de la página.
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent('open-login-modal')));
+      await expect(page.getByRole('dialog')).toBeHidden();
+      await page.goBack();
+      await expect(page).toHaveURL(/\/$/);
+    });
+
+    test('a private route redirects to /login with the destination', async ({ page }) => {
+      await page.goto('/crear-liga');
+      await expect(page).toHaveURL(/\/login\?redirect=%2Fcrear-liga$/);
+      await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible();
+    });
+
     test('opens the public demo and returns to the landing page', async ({ page }) => {
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));

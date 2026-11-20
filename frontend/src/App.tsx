@@ -59,6 +59,7 @@ const LeagueStandings = lazyPage(() => import('./pages/LeagueStandings'));
 const Legal = lazyPage(() => import('./pages/Legal'));
 const ResetPassword = lazyPage(() => import('./pages/ResetPassword'));
 const AdminPanel = lazyPage(() => import('./pages/AdminPanel'));
+const Login = lazyPage(() => import('./pages/Login'));
 const ContentPage = lazyPage(() => import('./pages/ContentPage'));
 
 function PokerLeagueRoute({ view }: { view: PokerSection }) {
@@ -179,7 +180,8 @@ const ProtectedRoute = ({
   if (isAuthenticated && !userName && !profileChecked) return <PageSkeleton />;
 
   if (!isAuthed) {
-    return <Navigate to="/" state={{ requireLogin: true, from: location.pathname }} replace />;
+    const redirect = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${redirect}`} replace />;
   }
   return children;
 };
@@ -207,6 +209,7 @@ function AppShell() {
           <Routes>
             <Route path="/" element={<RootPage />} />
             <Route path="/demo" element={<DemoPage />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/join/:code" element={<JoinRedirect />} />
             <Route path="/t/:publicId" element={<OrganizedTournament publicView />} />
             <Route

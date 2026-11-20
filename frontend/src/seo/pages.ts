@@ -193,6 +193,7 @@ export const INDEXABLE_PATHS = [
 /** Pantallas de la app: el servidor las sirve con noindex. */
 export const APP_PATHS = [
   '/demo',
+  '/login',
   '/linkedin',
   '/radar',
   '/ranking',
