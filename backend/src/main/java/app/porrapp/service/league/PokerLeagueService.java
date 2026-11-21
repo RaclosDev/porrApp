@@ -35,6 +35,9 @@ public class PokerLeagueService {
     private final PokerSessionRepository sessions;
     private final org.springframework.context.ApplicationEventPublisher events;
 
+    /** Torneos abiertos a la vez por liga (programados o en juego). */
+    static final int MAX_OPEN_SESSIONS = 5;
+
     @Transactional
     @CacheEvict(value = "userGroups", key = "#email")
     public LeagueView create(String email, CreateLeague request) {
@@ -133,8 +136,8 @@ public class PokerLeagueService {
         Long userId = account(email).getId();
         League league = owned(leagueId, userId);
         PokerTournament.validate(request.settings());
-        if (sessions.existsByLeagueIdAndClosedAtIsNull(leagueId)) {
-            throw BusinessException.conflict("Ya hay un torneo abierto en la liga");
+        if (sessions.countByLeagueIdAndClosedAtIsNull(leagueId) >= MAX_OPEN_SESSIONS) {
+            throw BusinessException.conflict("Ya hay " + MAX_OPEN_SESSIONS + " torneos programados en la liga");
         }
         var session = new PokerSession();
         session.setLeagueId(leagueId);
@@ -225,13 +228,16 @@ public class PokerLeagueService {
     public void advanceClock(Long leagueId) {
         League league = leagues.findWithLockById(leagueId).orElse(null);
         if (league == null) return;
-        PokerSession session = sessions.findByLeagueIdAndClosedAtIsNull(leagueId).orElse(null);
-        if (session == null || session.getBlindClock() == null) return;
-        BlindClock previous = session.getBlindClock();
-        BlindClock current = PokerTournament.clockAt(previous, session.getSettings().levels(), System.currentTimeMillis());
-        if (current.level() == previous.level() && (current.remainingMs() == 0) == (previous.remainingMs() == 0)) return;
-        session.setBlindClock(current);
-        notifyClock(league, session, previous);
+        for (PokerSession session : sessions.findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(leagueId)) {
+            BlindClock previous = session.getBlindClock();
+            if (previous == null) continue;
+            BlindClock current = PokerTournament.clockAt(previous, session.getSettings().levels(),
+                    System.currentTimeMillis());
+            if (current.level() == previous.level()
+                    && (current.remainingMs() == 0) == (previous.remainingMs() == 0)) continue;
+            session.setBlindClock(current);
+            notifyClock(league, session, previous);
+        }
     }
 
     private void notifyClock(League league, PokerSession session, BlindClock previous) {
@@ -328,8 +334,11 @@ public class PokerLeagueService {
         var rosterEntries = players.findByLeagueIdOrderByPositionAsc(id);
         Long myPlayerId = rosterEntries.stream().filter(player -> userId.equals(player.getUserId()))
                 .findFirst().map(ScoreTrackerPlayer::getId).orElse(null);
-        Session current = sessions.findByLeagueIdAndClosedAtIsNull(id)
-                .map(session -> PokerTournament.view(session, now)).orElse(null);
+        // Primero los que están en juego; después los programados, del más próximo al más lejano.
+        List<Session> upcoming = sessions.findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(id).stream()
+                .sorted(java.util.Comparator.comparing(session -> session.getStartedAt() == null))
+                .map(session -> PokerTournament.view(session, now)).toList();
+        Session current = upcoming.isEmpty() ? null : upcoming.get(0);
         Map<Long, String> avatars = new HashMap<>();
         users.findAllById(rosterEntries.stream().map(ScoreTrackerPlayer::getUserId).filter(Objects::nonNull).toList())
                 .forEach(user -> avatars.put(user.getId(), user.getAvatarUrl()));
@@ -338,6 +347,6 @@ public class PokerLeagueService {
                 myPlayerId, rosterEntries.stream()
                 .map(player -> new Player(player.getId(), player.getName(), player.getUserId() == null,
                         player.getUserId(), avatars.get(player.getUserId()))).toList(),
-                current, now);
+                current, upcoming, now);
     }
 }

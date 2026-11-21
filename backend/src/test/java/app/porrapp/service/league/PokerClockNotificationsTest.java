@@ -40,7 +40,7 @@ class PokerClockNotificationsTest {
         when(memberships.existsById(new Membership.MembershipId(7L, 1L))).thenReturn(true);
         when(leagues.findWithLockById(1L)).thenReturn(Optional.of(league));
         when(sessions.findByIdAndLeagueId(3L, 1L)).thenReturn(Optional.of(session));
-        when(sessions.findByLeagueIdAndClosedAtIsNull(1L)).thenReturn(Optional.of(session));
+        when(sessions.findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(1L)).thenReturn(List.of(session));
         when(memberships.findByLeagueId(1L)).thenReturn(List.of(Membership.builder().user(member).build()));
         when(players.findByLeagueIdOrderByPositionAsc(1L)).thenReturn(List.of(
                 ScoreTrackerPlayer.builder().id(4L).name("Ana").userId(2L).build(),
@@ -70,7 +70,7 @@ class PokerClockNotificationsTest {
         session.setEntries(List.of(new Entry(4L, "Ana", 0, 0)));
         session.setBlindClock(new BlindClock(0, System.currentTimeMillis() - 1000, 60000));
         when(leagues.findWithLockById(1L)).thenReturn(Optional.of(league));
-        when(sessions.findByLeagueIdAndClosedAtIsNull(1L)).thenReturn(Optional.of(session));
+        when(sessions.findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(1L)).thenReturn(List.of(session));
         when(memberships.findByLeagueId(1L)).thenReturn(List.of(Membership.builder().user(user).build()));
         when(players.findByLeagueIdOrderByPositionAsc(1L)).thenReturn(List.of(
                 ScoreTrackerPlayer.builder().id(4L).userId(2L).build(),

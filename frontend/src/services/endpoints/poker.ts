@@ -83,7 +83,10 @@ export interface PokerLeagueData {
   admin: boolean;
   myPlayerId: number | null;
   players: PokerPlayer[];
+  /** El que está en juego o el más próximo; el mismo que encabeza `upcoming`. */
   current: PokerSession | null;
+  /** Todos los torneos abiertos: primero el que está en juego y después por fecha. */
+  upcoming?: PokerSession[];
   serverNow: number;
 }
 

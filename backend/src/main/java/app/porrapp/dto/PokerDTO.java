@@ -130,7 +130,7 @@ public final class PokerDTO {
     }
 
     public record LeagueView(long id, String name, String joinCode, boolean owner, boolean admin, Long myPlayerId,
-                             List<Player> players, Session current, long serverNow) {
+                             List<Player> players, Session current, List<Session> upcoming, long serverNow) {
     }
 
     public record Track(String videoId, String title, String channel) {

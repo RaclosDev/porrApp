@@ -314,6 +314,7 @@ it('corona en inicio al último ganador y marca compras en los cromos del histó
     <MemoryRouter>
       <PokerHome
         league={league}
+        current={league.current}
         sessions={[closed]}
         loading={false}
         onRetry={vi.fn()}
@@ -405,6 +406,52 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   await waitFor(() =>
     expect(onCommand).toHaveBeenLastCalledWith('CLOSE', undefined, { prizeShares: [70, 30] }),
   );
+});
+
+it('con varios torneos programados los enseña en inicio y deja apuntarse al elegido', async () => {
+  const wednesday: PokerSession = { ...session, id: 21, date: '2026-11-25', entries: [] };
+  const saturday: PokerSession = { ...session, id: 22, date: '2026-11-28', entries: [] };
+  const two = { ...league, current: wednesday, upcoming: [wednesday, saturday] };
+  const home = render(
+    <MemoryRouter>
+      <PokerHome
+        league={two}
+        current={saturday}
+        sessions={[]}
+        loading={false}
+        onRetry={vi.fn()}
+        onInvite={vi.fn()}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('heading', { name: 'Próximos torneos (2)' })).toBeInTheDocument();
+  const tabs = within(screen.getByRole('navigation', { name: 'Torneos programados' }));
+  expect(tabs.getAllByRole('link')).toHaveLength(2);
+  expect(tabs.getAllByRole('link')[1]).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('link', { name: 'Apuntarme al torneo' })).toHaveAttribute(
+    'href',
+    '/poker/mesa?torneo=22',
+  );
+  home.unmount();
+
+  api.mockResolvedValue(two);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={['/poker/mesa?torneo=22']}>
+        <PokerLeague leagueId="8" view="table" />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await screen.findByRole('heading', { name: 'Inscripciones abiertas' });
+  click('Apuntarme');
+  await waitFor(() =>
+    expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/22/attendance', {
+      method: 'PUT',
+      json: { attending: true, playerId: undefined },
+    }),
+  );
+  expect(screen.getByRole('button', { name: 'Programar otro torneo' })).toBeInTheDocument();
 });
 
 it('guarda asistencia, edita con revisión y cancela un torneo abierto', async () => {
@@ -919,6 +966,7 @@ it('sin torneos cerrados guía los primeros pasos y explica cada sección vacía
     <MemoryRouter>
       <PokerHome
         league={{ ...league, current: null, players: [league.players[0]] }}
+        current={null}
         sessions={[]}
         loading={false}
         onRetry={vi.fn()}
@@ -962,6 +1010,7 @@ it('en el último torneo muestra a todos los empatados en cabeza, primero quien 
     <MemoryRouter>
       <PokerHome
         league={league}
+        current={league.current}
         sessions={[tied]}
         loading={false}
         onRetry={vi.fn()}

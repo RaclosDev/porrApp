@@ -13,21 +13,25 @@ import {
   upcomingTournamentDate,
 } from './pokerFormat';
 import { pokerRoutes } from './pokerRoutes';
+import PokerSessionTabs, { pokerTableLink } from './PokerSessionTabs';
 
 export default function PokerHome({
   league,
+  current,
   sessions,
   loading,
   onRetry,
   onInvite,
 }: {
   league: PokerLeagueData;
+  /** Torneo abierto que se muestra; con varios, el elegido en las pestañas. */
+  current: PokerSession | null;
   sessions: PokerSession[] | undefined;
   loading: boolean;
   onRetry: () => void;
   onInvite: () => void;
 }) {
-  const { current } = league;
+  const upcoming = league.upcoming ?? (current ? [current] : []);
   const live = Boolean(current && current.startedAt !== null);
   const attending = current?.entries.some((entry) => entry.playerId === league.myPlayerId);
   const eliminated = new Set(current?.eliminations);
@@ -44,8 +48,19 @@ export default function PokerHome({
     <div className="home-dashboard-grid">
       <section className="paper-panel album-sheet poker-panel poker-next-card">
         <header className="home-list-header">
-          <h2>{live ? 'Torneo en juego' : 'Próximo torneo'}</h2>
+          <h2>
+            {live
+              ? 'Torneo en juego'
+              : upcoming.length > 1
+                ? `Próximos torneos (${upcoming.length})`
+                : 'Próximo torneo'}
+          </h2>
         </header>
+        <PokerSessionTabs
+          sessions={upcoming}
+          selectedId={current?.id}
+          myPlayerId={league.myPlayerId}
+        />
         {current ? (
           <>
             <p className="poster-title poker-big-date">{upcomingTournamentDate(current.date)}</p>
@@ -94,8 +109,8 @@ export default function PokerHome({
           </PokerEmpty>
         )}
         {current && (
-          <Link className="glass-btn primary-btn" to={pokerRoutes.table.to}>
-            {current && !live && !attending ? 'Apuntarme al torneo' : 'Ir a la mesa'}
+          <Link className="glass-btn primary-btn" to={pokerTableLink(current)}>
+            {!live && !attending ? 'Apuntarme al torneo' : 'Ir a la mesa'}
           </Link>
         )}
       </section>

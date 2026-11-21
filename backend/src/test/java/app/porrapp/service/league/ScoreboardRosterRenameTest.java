@@ -36,7 +36,7 @@ class ScoreboardRosterRenameTest {
         session.setEntries(List.of(new Entry(3L, "Acacio Del campo", 1, 0, null)));
         when(players.findByUserIdOrderByLeagueIdAsc(7L)).thenReturn(List.of(player));
         when(players.findByLeagueIdOrderByPositionAsc(9L)).thenReturn(List.of(player));
-        when(sessions.findByLeagueIdAndClosedAtIsNull(9L)).thenReturn(Optional.of(session));
+        when(sessions.findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(9L)).thenReturn(List.of(session));
 
         roster.memberRenamed(account, "Acacio Del campo");
 

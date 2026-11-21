@@ -2130,3 +2130,44 @@
   align-self: flex-start;
   margin-top: 0.4rem;
 }
+
+/* Varios torneos abiertos: una pestaña por fecha para pasar de uno a otro. */
+.poker-session-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.6rem 0 0;
+}
+
+.poker-session-tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 44px;
+  justify-content: center;
+  padding: 0.35rem 0.8rem;
+  border: 1.5px solid var(--tab-border, currentColor);
+  border-radius: 8px;
+  color: var(--text-muted, inherit);
+  font-weight: 700;
+  line-height: 1.15;
+  text-decoration: none;
+}
+
+.poker-session-tab small {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.poker-session-tab:hover {
+  color: var(--text-main, inherit);
+}
+
+.poker-session-tab.is-active {
+  background: var(--tab-active-bg, #1f2937);
+  color: var(--tab-active-fg, #fff);
+}
+
+.poker-schedule-another {
+  margin: 0.6rem 0 0.2rem;
+}
