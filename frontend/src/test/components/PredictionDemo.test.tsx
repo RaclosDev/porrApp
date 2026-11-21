@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PredictionDemo from '../../components/landing/PredictionDemo';
 import { fetchMatches } from '../../services/api';
 import type { Match } from '../../types/api';
-import { chooseOption, getSelectMenu } from '../selectMenu';
 
 vi.mock('../../services/api', () => ({ fetchMatches: vi.fn() }));
 
@@ -50,6 +49,9 @@ describe('PredictionDemo', () => {
     renderDemo();
     expect(await screen.findByRole('heading', { name: 'Jornada 13 · LaLiga' })).toBeInTheDocument();
     expect(screen.getByText('0/5 predicciones')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Fórmula 1' })).not.toBeInTheDocument();
+    // Fuera de una liga no hay amigos que ver.
+    expect(screen.queryByRole('button', { name: /Ver predicciones de/ })).not.toBeInTheDocument();
 
     fireEvent.click(sign('Barcelona - Villarreal', '1'));
     expect(screen.getByText('1/5 predicciones')).toBeInTheDocument();
@@ -71,24 +73,6 @@ describe('PredictionDemo', () => {
     expect(await screen.findByRole('heading', { name: 'Jornada 14 · LaLiga' })).toBeInTheDocument();
     expect(screen.getByText('0/2 predicciones')).toBeInTheDocument();
     expect(screen.queryByText(/Elche/)).not.toBeInTheDocument();
-  });
-
-  it('pide el podio y la pole del próximo Gran Premio antes de darlo por predicho', async () => {
-    renderDemo();
-    fireEvent.click(screen.getByRole('tab', { name: 'Fórmula 1' }));
-    expect(await screen.findByText('GP de Catar')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar predicción' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Elige los tres pilotos del podio.');
-
-    chooseOption(getSelectMenu('1.º'), '1');
-    chooseOption(getSelectMenu('2.º'), '5');
-    chooseOption(getSelectMenu('3.º'), '17');
-    chooseOption(getSelectMenu('Pole'), '1');
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar predicción' }));
-    expect(screen.getByRole('button', { name: 'Predicción lista' })).toBeDisabled();
-    expect(screen.getByText('Predicho')).toBeInTheDocument();
-    expect(fetchMatches).toHaveBeenCalledWith(46);
   });
 
   it('predice la cartelera estelar de la próxima UFC', async () => {

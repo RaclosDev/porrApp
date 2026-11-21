@@ -21,7 +21,8 @@ interface FightCardProps {
   /** La pelea o la liga están cerradas. */
   locked: boolean;
   onPick: (matchId: number, pick: DraftPrediction) => void;
-  onShowFriends: (fixture: MatchdayFixture) => void;
+  /** Sin él no sale el botón de ver las predicciones de la liga (la demo de la portada). */
+  onShowFriends?: (fixture: MatchdayFixture) => void;
 }
 
 const METHODS: FightMethod[] = ['KO_TKO', 'SUBMISSION', 'DECISION'];
@@ -81,15 +82,17 @@ export default function FightCard({
           )}
         </span>
         <div className="md-match-status-actions">
-          <button
-            type="button"
-            className="md-friends-btn"
-            onClick={() => onShowFriends(fixture)}
-            aria-label={`Ver predicciones de ${fightName}`}
-            title="Ver predicciones de la liga"
-          >
-            <Users size={15} aria-hidden="true" />
-          </button>
+          {onShowFriends && (
+            <button
+              type="button"
+              className="md-friends-btn"
+              onClick={() => onShowFriends(fixture)}
+              aria-label={`Ver predicciones de ${fightName}`}
+              title="Ver predicciones de la liga"
+            >
+              <Users size={15} aria-hidden="true" />
+            </button>
+          )}
           {cancelled ? (
             <span className="md-badge is-cancelled">Cancelada</span>
           ) : fixture.finished ? (
