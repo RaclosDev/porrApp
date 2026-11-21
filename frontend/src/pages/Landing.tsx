@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AppScreens from '../components/landing/AppScreens';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import StickerCard from '../components/StickerCard';
@@ -9,7 +9,7 @@ import { revealStyle } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
 import SiteFooter from '../components/landing/SiteFooter';
 import { HOME_FAQ, LANDING_COPY, LANDING_SCREENS } from '../seo/pages';
-import { openSignupToCreateLeague } from '../utils/loginModal';
+import { SIGNUP_TO_CREATE_LEAGUE } from '../utils/authRoutes';
 
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
 
@@ -20,7 +20,7 @@ const FAN_ANGLES = [-8, -3, 0, 3, 8];
 export default function Landing() {
   const { leaders, leagueName, champion, nextFixtures, loading, error } = useLandingData();
   const leagueLabel = leagueName ?? 'la liga pública';
-  const openLogin = openSignupToCreateLeague;
+  const navigate = useNavigate();
 
   return (
     <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
@@ -37,14 +37,13 @@ export default function Landing() {
           <p className="text-[#3f4652] text-lg max-w-130 leading-snug">{LANDING_COPY.lede}</p>
           <Reveal onLoad className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-3">
-              <button
+              <Link
                 id="btn-hero-login"
-                type="button"
-                onClick={openLogin}
+                to={SIGNUP_TO_CREATE_LEAGUE}
                 className="landing-btn landing-btn-ink"
               >
                 Crear mi liga gratis
-              </button>
+              </Link>
               <Link to="/demo" className="landing-btn">
                 Ver una porra de ejemplo
               </Link>
@@ -110,7 +109,10 @@ export default function Landing() {
           <Reveal as="article" className="landing-poster p-6 sm:p-8 flex flex-col gap-4">
             <h3 className="poster-title text-4xl">{LANDING_COPY.matchdayTitle}</h3>
             <p className="text-[#3f4652] leading-snug">{LANDING_COPY.matchdayText}</p>
-            <FixtureSheet fixtures={nextFixtures} onPick={openLogin} />
+            <FixtureSheet
+              fixtures={nextFixtures}
+              onPick={() => navigate(SIGNUP_TO_CREATE_LEAGUE)}
+            />
             <h3 className="poster-title text-4xl mt-4 pt-6 border-t border-[rgba(17,24,39,0.16)]">
               {LANDING_COPY.bracketTitle}
             </h3>
@@ -209,9 +211,9 @@ export default function Landing() {
           <p className="text-[#3f4652] text-lg max-w-130 leading-snug">{LANDING_COPY.closing}</p>
         </div>
         <div className="flex flex-wrap gap-3 lg:shrink-0">
-          <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
+          <Link to={SIGNUP_TO_CREATE_LEAGUE} className="landing-btn landing-btn-ink">
             Crear mi liga gratis
-          </button>
+          </Link>
           <Link to="/demo" className="landing-btn">
             Ver una porra de ejemplo
           </Link>

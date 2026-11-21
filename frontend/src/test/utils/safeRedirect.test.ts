@@ -21,5 +21,6 @@ it.each([
 
 it('rejects /login to avoid loops', () => {
   expect(safeRedirect('/login')).toBeUndefined();
+  expect(safeRedirect('/registro?redirect=/x')).toBeUndefined();
   expect(safeRedirect('/login?redirect=/x')).toBeUndefined();
 });
