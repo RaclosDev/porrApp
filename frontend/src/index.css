@@ -35,3 +35,31 @@
 @import './styles/grand-prix.css';
 @import './styles/tracker.css';
 @import './styles/select-menu.css';
+
+/* Franja para la barra de estado de la app instalada en iOS 26+. Sin una caja fija de color
+   sólido en el borde superior, iOS difumina unos 40 pt de la página bajo la barra de estado
+   (scroll edge effect) y ningún meta ni propiedad CSS lo apaga. WebKit busca esa caja 4 px por
+   debajo del centro del borde superior: tiene que ser un elemento real (no un pseudo-elemento),
+   fijo, de al menos el 90 % del ancho y más de 10 px de alto. El color se lee del estilo y
+   background-clip: text hace que no pinte nada. Es el mismo arreglo que Ascension y LoopDeck. */
+.ios-status-bar-band {
+  display: none;
+}
+@media (display-mode: standalone) {
+  @supports (-webkit-touch-callout: none) {
+    .ios-status-bar-band {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 12px;
+      background-color: var(--bg-color, #0f172a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      /* Lo más alto, para que ningún menú ni modal tape el punto que muestrea iOS. */
+      z-index: 2147483647;
+      pointer-events: none;
+    }
+  }
+}
