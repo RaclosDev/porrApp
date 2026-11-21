@@ -5,7 +5,7 @@ import NetLine from '../components/landing/NetLine';
 import ScoreboardDemo from '../components/landing/ScoreboardDemo';
 import SiteFooter from '../components/landing/SiteFooter';
 import type { ContentPage as ContentPageData } from '../seo/pages';
-import { openSignupToCreateLeague } from '../utils/loginModal';
+import { SIGNUP_TO_CREATE_LEAGUE } from '../utils/authRoutes';
 
 interface ContentPageProps {
   page: ContentPageData;
@@ -19,7 +19,6 @@ interface ContentPageProps {
  * cada competición enseñan debajo del titular capturas de la app con partidos reales.
  */
 export default function ContentPage({ page }: ContentPageProps) {
-  const openLogin = openSignupToCreateLeague;
   const [first, ...rest] = page.sections;
 
   return (
@@ -34,9 +33,9 @@ export default function ContentPage({ page }: ContentPageProps) {
         />
         <p className="text-[#3f4652] text-lg max-w-[62ch] leading-snug">{page.lede}</p>
         <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={openLogin} className="landing-btn landing-btn-ink">
+          <Link to={SIGNUP_TO_CREATE_LEAGUE} className="landing-btn landing-btn-ink">
             Crear mi liga
-          </button>
+          </Link>
           {page.download ? (
             <a href={page.download.href} download className="landing-btn">
               {page.download.label}

@@ -49,7 +49,9 @@ for (const viewport of [
       });
     });
 
-    test('opens login from the landing page and closes it with Escape', async ({ page }) => {
+    test('«Crear mi liga gratis» opens /registro with the create-league destination', async ({
+      page,
+    }) => {
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto('/');
@@ -57,23 +59,13 @@ for (const viewport of [
         'La porra con tus amigos',
       );
 
-      await page.getByRole('button', { name: 'Crear mi liga gratis', exact: true }).first().click();
-      const dialog = page.getByRole('dialog', { name: 'Crea tu cuenta' });
-      await expect(dialog).toBeVisible();
-      const panel = dialog.locator('.modal-content');
-      expect(
-        await panel.evaluate((element) => {
-          const style = getComputedStyle(element);
-          return { x: style.overflowX, y: style.overflowY };
-        }),
-      ).toEqual({ x: 'visible', y: 'visible' });
-      await page.setViewportSize({ width: viewport.width, height: 240 });
-      const back = dialog.getByRole('button', { name: 'Volver al inicio' });
-      await back.scrollIntoViewIfNeeded();
-      await expect(back).toBeInViewport();
-
-      await page.keyboard.press('Escape');
-      await expect(dialog).toBeHidden();
+      await page.getByRole('link', { name: 'Crear mi liga gratis', exact: true }).first().click();
+      await expect(page).toHaveURL(/\/registro\?redirect=%2Fcrear-liga$/);
+      await expect(page.getByRole('heading', { name: 'Crea tu cuenta' })).toBeVisible();
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      // Cambiar a «Inicia sesión» va a /login sin perder el destino.
+      await page.getByRole('button', { name: 'Inicia sesión', exact: true }).click();
+      await expect(page).toHaveURL(/\/login\?redirect=%2Fcrear-liga$/);
       expect(errors).toEqual([]);
     });
 
@@ -90,9 +82,6 @@ for (const viewport of [
         'autocomplete',
         'current-password',
       );
-      // La ventana de acceso no se abre encima de la página.
-      await page.evaluate(() => window.dispatchEvent(new CustomEvent('open-login-modal')));
-      await expect(page.getByRole('dialog')).toBeHidden();
       await page.goBack();
       await expect(page).toHaveURL(/\/$/);
     });

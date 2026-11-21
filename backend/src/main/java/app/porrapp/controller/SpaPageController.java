@@ -39,7 +39,7 @@ public class SpaPageController {
 
     /** Pantallas de la app: existen, pero no tienen sentido en un buscador. */
     public static final Set<String> APP = Set.of(
-            "/demo", "/login", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
+            "/demo", "/login", "/registro", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
             "/partida", "/historico", "/torneos/nuevo",
             "/poker/mesa", "/poker/historico", "/poker/estadisticas",
@@ -56,7 +56,7 @@ public class SpaPageController {
             "/porra-oficina", "/porra-vs-quiniela", "/porra-copa-del-rey", "/apuntar-puntos-juegos-de-mesa", "/timbas-de-poker",
             "/porra-entre-amigos", "/como-hacer-una-porra", "/instalar-app-movil",
             "/privacidad", "/aviso-legal",
-            "/demo", "/login", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
+            "/demo", "/login", "/registro", "/linkedin", "/radar", "/ranking", "/clasificacion", "/grupos", "/stats", "/search",
             "/mis-ligas", "/crear-liga", "/marcador/nuevo", "/poker/nueva", "/bracket", "/tabla", "/prediction", "/jornadas",
             "/partida", "/historico", "/torneos/nuevo", "/torneos/{id:[0-9]+}", "/t/{publicId}",
             "/poker/mesa", "/poker/historico", "/poker/estadisticas",

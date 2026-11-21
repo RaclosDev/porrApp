@@ -155,6 +155,8 @@ export const ROUTE_META: Record<string, PageMeta> = {
     title: 'Aviso legal · PorrApp',
     description: 'Titular de PorrApp, uso del servicio y responsabilidad sobre los resultados.',
   },
+  '/login': { title: 'Iniciar sesión · PorrApp', description: HOME_META.description },
+  '/registro': { title: 'Crear cuenta · PorrApp', description: HOME_META.description },
   '/ranking': { title: 'Clasificación · PorrApp', description: HOME_META.description },
   '/jornadas': { title: 'Jornada · PorrApp', description: HOME_META.description },
   '/mis-ligas': { title: 'Mis ligas · PorrApp', description: HOME_META.description },
@@ -194,6 +196,7 @@ export const INDEXABLE_PATHS = [
 export const APP_PATHS = [
   '/demo',
   '/login',
+  '/registro',
   '/linkedin',
   '/radar',
   '/ranking',

@@ -10,6 +10,6 @@ export function safeRedirect(raw: string | null | undefined): string | undefined
     return undefined;
   }
   const path = raw.split(/[?#]/)[0];
-  if (path === '/login') return undefined;
+  if (path === '/login' || path === '/registro') return undefined;
   return raw;
 }

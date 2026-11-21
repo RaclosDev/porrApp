@@ -3,11 +3,10 @@ import type { NavigateFunction } from 'react-router-dom';
 interface DemoBannerProps {
   exitDemoMode: () => void;
   navigate: NavigateFunction;
-  setShowLoginModal: (show: boolean) => void;
 }
 
 /** Aviso flotante del modo demo. */
-export default function DemoBanner({ exitDemoMode, navigate, setShowLoginModal }: DemoBannerProps) {
+export default function DemoBanner({ exitDemoMode, navigate }: DemoBannerProps) {
   return (
     <div
       id="demo-mode-banner"
@@ -21,7 +20,7 @@ export default function DemoBanner({ exitDemoMode, navigate, setShowLoginModal }
       <div className="inline-flex shrink-0 items-center gap-1.5">
         <button
           type="button"
-          onClick={() => setShowLoginModal(true)}
+          onClick={() => navigate('/login')}
           className="min-h-11 cursor-pointer whitespace-nowrap rounded-md border-none bg-[var(--ink)] px-3 py-1 text-xs font-extrabold text-[var(--paper)]"
         >
           Entrar con Google

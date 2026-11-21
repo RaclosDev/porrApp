@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import Login from '../../pages/Login';
@@ -30,6 +30,7 @@ const renderAt = (url: string) =>
     <MemoryRouter initialEntries={[url]}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/registro" element={<Login intent="signup" />} />
         <Route path="*" element={<Where />} />
       </Routes>
     </MemoryRouter>,
@@ -70,4 +71,19 @@ it('prefers a pending invitation', () => {
   vi.mocked(useAppContext).mockReturnValue(appContext({ isAuthenticated: true, userName: 'Ana' }));
   renderAt('/login?redirect=%2Fcrear-liga');
   expect(screen.getByTestId('where')).toHaveTextContent('/join/ABC');
+});
+
+it('opens /registro on «Crea tu cuenta» and switches to /login keeping the destination', () => {
+  renderAt('/registro?redirect=%2Fcrear-liga');
+  expect(screen.getByRole('heading', { name: 'Crea tu cuenta' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Inicia sesión' }));
+  expect(screen.getByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Crea una gratis' }));
+  expect(screen.getByRole('heading', { name: 'Crea tu cuenta' })).toBeInTheDocument();
+});
+
+it('sends a new account from /registro to create the league', () => {
+  vi.mocked(useAppContext).mockReturnValue(appContext({ isAuthenticated: true, userName: 'Ana' }));
+  renderAt('/registro?redirect=%2Fcrear-liga');
+  expect(screen.getByTestId('where')).toHaveTextContent('/crear-liga');
 });

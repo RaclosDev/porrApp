@@ -37,6 +37,8 @@ interface AuthPanelProps {
   shape?: 'pill' | 'rectangular';
   /** El panel está a la vista: solo entonces se ofrece la llave en el autocompletado. */
   active?: boolean;
+  /** Cambiar entre crear cuenta y entrar (p. ej. ir de /login a /registro); si no, cambia aquí. */
+  onIntentChange?: (intent: AuthIntent) => void;
 }
 
 const linkButton =
@@ -59,6 +61,7 @@ export default function AuthPanel({
   onLegalLinkClick,
   shape = 'pill',
   active = true,
+  onIntentChange,
 }: AuthPanelProps) {
   const [mode, setMode] = useState<EmailSignInMode>(intent === 'signup' ? 'register' : 'login');
   const [step, setStep] = useState<Step>('form');
@@ -163,7 +166,11 @@ export default function AuthPanel({
             <button
               type="button"
               className={linkButton}
-              onClick={() => setMode(registering ? 'login' : 'register')}
+              onClick={() =>
+                onIntentChange
+                  ? onIntentChange(registering ? 'login' : 'signup')
+                  : setMode(registering ? 'login' : 'register')
+              }
             >
               {registering ? 'Inicia sesión' : 'Crea una gratis'}
             </button>

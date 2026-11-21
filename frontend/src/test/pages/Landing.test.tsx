@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Landing from '../../pages/Landing';
@@ -41,23 +41,17 @@ describe('Landing', () => {
     expect(screen.getByText('España campeona en 17 de 21 cuadros')).toBeInTheDocument();
   });
 
-  it('opens the login modal from the hero and the closing call, and links to the demo', () => {
-    const onOpen = vi.fn();
-    window.addEventListener('open-login-modal', onOpen);
+  it('links the hero and the closing call to sign up and create a league, and to the demo', () => {
     renderLanding();
-    const createButtons = screen.getAllByRole('button', { name: 'Crear mi liga gratis' });
-    expect(createButtons).toHaveLength(2);
-    createButtons.forEach((button) => fireEvent.click(button));
-    expect(onOpen).toHaveBeenCalledTimes(2);
-    // «Crear mi liga» abre el diálogo en «Crear tu cuenta» y lleva después a crear la liga.
-    expect((onOpen.mock.calls[0][0] as CustomEvent).detail).toEqual({
-      intent: 'signup',
-      redirectTo: '/crear-liga',
-    });
+    // «Crear mi liga» lleva a /registro y, al entrar, a crear la liga.
+    const createLinks = screen.getAllByRole('link', { name: 'Crear mi liga gratis' });
+    expect(createLinks).toHaveLength(2);
+    for (const link of createLinks) {
+      expect(link).toHaveAttribute('href', '/registro?redirect=%2Fcrear-liga');
+    }
     for (const link of screen.getAllByRole('link', { name: 'Ver una porra de ejemplo' })) {
       expect(link).toHaveAttribute('href', '/demo');
     }
-    window.removeEventListener('open-login-modal', onOpen);
   });
 
   it('explains how to play in three steps', () => {
