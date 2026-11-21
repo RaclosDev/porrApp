@@ -71,7 +71,7 @@ for (const viewport of [
 
     test('header login opens the /login page and back returns to the landing', async ({ page }) => {
       await page.goto('/');
-      await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+      await page.getByRole('link', { name: 'Entrar', exact: true }).click();
       await expect(page).toHaveURL(/\/login$/);
       await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible();
       await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute(
@@ -96,10 +96,7 @@ for (const viewport of [
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto('/');
-      await page
-        .getByRole('link', { name: 'Ver una porra de ejemplo', exact: true })
-        .first()
-        .click();
+      await page.getByRole('link', { name: 'Probar la demo', exact: true }).first().click();
       const banner = page.locator('#demo-mode-banner');
       await expect(banner).toContainText('datos ficticios');
       await expect(page).toHaveURL('/');

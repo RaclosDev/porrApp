@@ -22,31 +22,25 @@ export default function ContentPage({ page }: ContentPageProps) {
   const [first, ...rest] = page.sections;
 
   return (
-    <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
-      <section className="max-w-200 mx-auto mt-6 sm:mt-12 flex flex-col gap-6">
-        <MarkerHeading
-          as="h1"
-          onLoad
-          text={page.h1}
-          marked={page.h1Marked}
-          className="text-[clamp(2.4rem,6vw,4.5rem)]"
-        />
-        <p className="text-[#3f4652] text-lg max-w-[62ch] leading-snug">{page.lede}</p>
-        <div className="flex flex-wrap gap-3">
-          <Link to={SIGNUP_TO_CREATE_LEAGUE} className="landing-btn landing-btn-ink">
+    <div className="landing-page fam fam-container pt-4 pb-15">
+      <section className="max-w-200 mx-auto mt-6 sm:mt-12">
+        <MarkerHeading as="h1" onLoad text={page.h1} marked={page.h1Marked} className="fam-h1" />
+        <p className="fam-lede">{page.lede}</p>
+        <div className="fam-cta-row">
+          <Link to={SIGNUP_TO_CREATE_LEAGUE} className="fam-btn fam-btn--ink fam-btn--lg">
             Crear mi liga
           </Link>
           {page.download ? (
-            <a href={page.download.href} download className="landing-btn">
+            <a href={page.download.href} download className="fam-btn fam-btn--lg">
               {page.download.label}
             </a>
           ) : page.scoreboardDemo ? (
-            <a href="#demo" className="landing-btn">
+            <a href="#demo" className="fam-btn fam-btn--lg">
               Probar la hoja de puntos
             </a>
           ) : (
-            <Link to="/demo" className="landing-btn">
-              Ver una porra de ejemplo
+            <Link to="/demo" className="fam-btn fam-btn--lg">
+              Probar la demo
             </Link>
           )}
         </div>
@@ -58,7 +52,7 @@ export default function ContentPage({ page }: ContentPageProps) {
 
       {first ? (
         <article className="landing-poster mt-14 p-6 sm:p-8 max-w-200 mx-auto flex flex-col gap-3">
-          <h2 className="poster-title text-3xl sm:text-4xl">{first.heading}</h2>
+          <h2 className="fam-h2">{first.heading}</h2>
           {first.paragraphs.map((text) => (
             <p key={text} className="text-[#3f4652] max-w-[70ch] leading-relaxed">
               {text}
@@ -71,7 +65,7 @@ export default function ContentPage({ page }: ContentPageProps) {
         <div className="max-w-200 mx-auto mt-14 flex flex-col gap-12">
           {rest.map((section) => (
             <section key={section.heading} className="flex flex-col gap-3">
-              <h2 className="poster-title text-3xl sm:text-4xl">{section.heading}</h2>
+              <h2 className="fam-h2">{section.heading}</h2>
               {section.paragraphs.map((text) => (
                 <p key={text} className="text-[#3f4652] text-lg max-w-[70ch] leading-relaxed">
                   {text}
@@ -86,7 +80,7 @@ export default function ContentPage({ page }: ContentPageProps) {
         <>
           <NetLine />
           <section className="max-w-200 mx-auto py-6" aria-labelledby="faq-title">
-            <h2 id="faq-title" className="poster-title text-3xl sm:text-4xl">
+            <h2 id="faq-title" className="fam-h2">
               Preguntas frecuentes
             </h2>
             <dl className="mt-6 flex flex-col border-b border-[rgba(17,24,39,0.16)]">

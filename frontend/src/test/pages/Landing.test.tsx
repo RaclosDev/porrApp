@@ -49,7 +49,7 @@ describe('Landing', () => {
     for (const link of createLinks) {
       expect(link).toHaveAttribute('href', '/registro?redirect=%2Fcrear-liga');
     }
-    for (const link of screen.getAllByRole('link', { name: 'Ver una porra de ejemplo' })) {
+    for (const link of screen.getAllByRole('link', { name: 'Probar la demo' })) {
       expect(link).toHaveAttribute('href', '/demo');
     }
   });

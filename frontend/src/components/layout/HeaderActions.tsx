@@ -7,7 +7,6 @@ import type { NavigateFunction } from 'react-router-dom';
 import type { SettingsSection } from '../ProfileSettingsModal';
 
 interface HeaderActionsProps {
-  isLanding: boolean;
   isUserLoggedIn: boolean;
   /** Aún se está recuperando la sesión de Safari: sin botones de acceso que luego desaparecen. */
   sessionPending?: boolean;
@@ -60,7 +59,6 @@ const SETTINGS_ENTRIES: { section: SettingsSection; label: string }[] = [
 
 /** Parte derecha de la cabecera: acceso, instalar la app, avisos y menú de perfil. */
 export default function HeaderActions({
-  isLanding,
   isUserLoggedIn,
   sessionPending = false,
   navigate,
@@ -81,18 +79,6 @@ export default function HeaderActions({
       {!isUserLoggedIn ? (
         sessionPending ? null : (
           <div className="flex items-center gap-2">
-            {isLanding && (
-              <button
-                id="btn-header-demo"
-                type="button"
-                onClick={() => navigate('/demo')}
-                className="glass-btn h-11 py-0 px-3 text-[0.82rem] rounded-[10px] flex items-center gap-1.5 font-bold cursor-pointer whitespace-nowrap bg-[rgba(255,_255,_255,_0.06)] bg-none border border-[rgba(255,_255,_255,_0.15)] text-[#e2e8f0]"
-                title="Probar la demo"
-                aria-label="Demo"
-              >
-                <span className="header-demo-label">Demo</span>
-              </button>
-            )}
             <button
               id="btn-login-header"
               type="button"

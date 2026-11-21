@@ -12,6 +12,7 @@ import DemoBar from '../demo/DemoBar';
 import { DEMO } from '../demo/mode';
 import MainNav from './layout/MainNav';
 import HeaderActions from './layout/HeaderActions';
+import PublicHeader from './landing/PublicHeader';
 import InstallBanner from './layout/InstallBanner';
 import PushReminderPrompt from './layout/PushReminderPrompt';
 import PasskeyPrompt from './layout/PasskeyPrompt';
@@ -165,76 +166,79 @@ function Layout({ children }: { children: React.ReactNode }) {
         <DemoBanner exitDemoMode={exitDemoMode} navigate={navigate} />
       )}
 
-      <header
-        className={`top-bar${isLanding ? ' top-bar--landing' : ''}${isPaperHeader ? ' top-bar--paper' : ''}`}
-      >
-        <div className="header-left">
-          <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
-            <NavLink
-              to={isUserLoggedIn ? '/' : isDemo && !isLanding ? '/demo' : '/'}
-              className="header-brand-link"
-              onClick={(e) => {
-                if (isNavLocked) e.preventDefault();
-              }}
-              aria-disabled={isNavLocked || undefined}
-            >
-              <span>PorrApp</span>
-            </NavLink>
+      {isPaperHeader ? (
+        <PublicHeader auth={isAuthPage} />
+      ) : (
+        <header className="top-bar">
+          <div className="header-left">
+            <div className="header-title-row flex items-center gap-[15px] flex-nowrap">
+              <NavLink
+                to={isUserLoggedIn ? '/' : isDemo ? '/demo' : '/'}
+                className="header-brand-link"
+                onClick={(e) => {
+                  if (isNavLocked) e.preventDefault();
+                }}
+                aria-disabled={isNavLocked || undefined}
+              >
+                <span>PorrApp</span>
+              </NavLink>
 
-            {isLanding || isInviteAuthScreen || (!isUserLoggedIn && !isDemo) ? null : isDemo ? (
-              <span className="ink-stamp ink-stamp-sm ink-stamp-ink inline-block min-w-0 truncate">
-                Demo
-              </span>
-            ) : (
-              <>
-                <ActiveLeagueDropdown />
+              {isInviteAuthScreen || (!isUserLoggedIn && !isDemo) ? null : isDemo ? (
+                <span className="ink-stamp ink-stamp-sm ink-stamp-ink inline-block min-w-0 truncate">
+                  Demo
+                </span>
+              ) : (
+                <>
+                  <ActiveLeagueDropdown />
 
-                {loading ||
-                !showsFillBracketButton(leagueKind) ||
-                (userName && myPrediction) ? null : (
-                  <button
-                    id="btn-complete-my-prediction-header"
-                    className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
-                    onClick={() => navigate('/prediction')}
-                    disabled={isNavLocked}
-                    aria-label="Rellenar mi porra"
-                    title="Rellenar mi porra"
-                  >
-                    <span className="header-porra-cta-label">Rellenar mi porra</span>
-                    <span className="header-porra-cta-short" aria-hidden="true">
-                      Rellenar
-                    </span>
-                  </button>
-                )}
-              </>
-            )}
+                  {loading ||
+                  !showsFillBracketButton(leagueKind) ||
+                  (userName && myPrediction) ? null : (
+                    <button
+                      id="btn-complete-my-prediction-header"
+                      className={`glass-btn primary-btn header-porra-cta py-1.5 px-3.5 min-h-9.5 rounded-[10px] font-bold text-[0.85rem] whitespace-nowrap ${isNavLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${isNavLocked ? 'opacity-[0.4]' : 'opacity-[1]'}`}
+                      onClick={() => navigate('/prediction')}
+                      disabled={isNavLocked}
+                      aria-label="Rellenar mi porra"
+                      title="Rellenar mi porra"
+                    >
+                      <span className="header-porra-cta-label">Rellenar mi porra</span>
+                      <span className="header-porra-cta-short" aria-hidden="true">
+                        Rellenar
+                      </span>
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
 
-        {!isLanding && !isInviteAuthScreen && (
-          <MainNav items={leagueNavItems(leagueKind, isDemo)} isNavLocked={isNavLocked} />
-        )}
+          {!isInviteAuthScreen && (
+            <MainNav items={leagueNavItems(leagueKind, isDemo)} isNavLocked={isNavLocked} />
+          )}
 
-        {!isInviteAuthScreen && (
-          <HeaderActions
-            isLanding={isLanding}
-            isUserLoggedIn={isUserLoggedIn}
-            sessionPending={sessionPending}
-            navigate={navigate}
-            onLogout={handleLogout}
-            setShowProfileMenu={setShowProfileMenu}
-            onOpenSettings={setProfileSettings}
-            showProfileMenu={showProfileMenu}
-            showNotificationBell={isUserLoggedIn && !isDemo}
-            userAvatarUrl={userAvatarUrl}
-            isAdmin={isAdmin}
-            userId={userId}
-            userName={userName}
-          />
-        )}
-      </header>
+          {!isInviteAuthScreen && (
+            <HeaderActions
+              isUserLoggedIn={isUserLoggedIn}
+              sessionPending={sessionPending}
+              navigate={navigate}
+              onLogout={handleLogout}
+              setShowProfileMenu={setShowProfileMenu}
+              onOpenSettings={setProfileSettings}
+              showProfileMenu={showProfileMenu}
+              showNotificationBell={isUserLoggedIn && !isDemo}
+              userAvatarUrl={userAvatarUrl}
+              isAdmin={isAdmin}
+              userId={userId}
+              userName={userName}
+            />
+          )}
+        </header>
+      )}
 
-      <main className={`app-container ${!isLanding ? 'has-mobile-bottom-nav' : ''}`}>
+      <main
+        className={`app-container${isPaperHeader ? ' app-container--public' : ''}${isLanding ? '' : ' has-mobile-bottom-nav'}`}
+      >
         {isNavLocked && !isNoLeagueAllowedPath ? null : children}
       </main>
 
