@@ -165,17 +165,6 @@
       "status": "SCHEDULED"
     }
   ],
-  "gp": {
-    "id": 2008,
-    "home": "Por definir",
-    "away": "Por definir",
-    "homeScore": null,
-    "awayScore": null,
-    "date": "2026-11-28T19:00:00+01:00",
-    "finished": false,
-    "round": "GP de Catar",
-    "status": "SCHEDULED"
-  },
   "ufc": [
     {
       "id": 4782,

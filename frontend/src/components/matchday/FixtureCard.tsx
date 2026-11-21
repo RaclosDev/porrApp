@@ -25,7 +25,8 @@ interface FixtureCardProps {
   locked: boolean;
   /** Mientras se guarda no se puede editar. */
   onQuickSign: (matchId: number, sign: MatchSign) => void;
-  onShowFriends: (fixture: MatchdayFixture) => void;
+  /** Sin él no sale el botón de ver las predicciones de la liga (la demo de la portada). */
+  onShowFriends?: (fixture: MatchdayFixture) => void;
   /** Quién ha votado cada signo; solo llega cuando el partido está cerrado. */
   voters?: MatchVoters;
   onShowVoters?: (fixture: MatchdayFixture) => void;
@@ -109,15 +110,17 @@ export default function FixtureCard({
           )}
         </span>
         <div className="md-match-status-actions">
-          <button
-            type="button"
-            className="md-friends-btn"
-            onClick={() => onShowFriends(fixture)}
-            aria-label={`Ver predicciones de ${matchName}`}
-            title="Ver predicciones de la liga"
-          >
-            <Users size={15} aria-hidden="true" />
-          </button>
+          {onShowFriends && (
+            <button
+              type="button"
+              className="md-friends-btn"
+              onClick={() => onShowFriends(fixture)}
+              aria-label={`Ver predicciones de ${matchName}`}
+              title="Ver predicciones de la liga"
+            >
+              <Users size={15} aria-hidden="true" />
+            </button>
+          )}
           {fixture.finished ? (
             <span className="md-badge is-finished">
               {tennisScore
