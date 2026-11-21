@@ -122,9 +122,7 @@ function rankingRow(player: DemoPlayer, points: number): LeaderboardRow {
 
 /** Va en el hero: la jornada de ejemplo y, al jugarla, los resultados, los votos y el podio. */
 export default function PredictionDemo() {
-  const [picks, setPicks] = useState<(MatchSign | undefined)[]>(() =>
-    MATCHES.map(() => undefined),
-  );
+  const [picks, setPicks] = useState<(MatchSign | undefined)[]>(() => MATCHES.map(() => undefined));
   const [played, setPlayed] = useState(false);
   const [friendsOf, setFriendsOf] = useState<number | null>(null);
   const predicted = picks.filter(Boolean).length;

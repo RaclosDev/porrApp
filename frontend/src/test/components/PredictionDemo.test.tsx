@@ -34,9 +34,9 @@ describe('PredictionDemo', () => {
     expect(screen.getAllByText(/Acierto de signo 1X2/)).toHaveLength(2);
     expect(screen.getByText(/Sin acierto en signo/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Predecir 1 en España - Alemania/ })).toBeDisabled();
-    expect(screen.getByRole('region', { name: 'Podio de la jornada de ejemplo' })).toHaveTextContent(
-      'Tú',
-    );
+    expect(
+      screen.getByRole('region', { name: 'Podio de la jornada de ejemplo' }),
+    ).toHaveTextContent('Tú');
 
     fireEvent.click(screen.getByRole('button', { name: 'Jugar otra vez' }));
     expect(screen.getByRole('button', { name: 'Te faltan 3 partidos' })).toBeDisabled();
