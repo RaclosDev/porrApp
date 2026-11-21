@@ -101,11 +101,6 @@
       column-gap: 16px;
     }
 
-    /* En la landing no hay navegación central: reservar solo columnas para marca y acciones. */
-    .top-bar.top-bar--landing {
-      grid-template-columns: minmax(0, 1fr) auto;
-    }
-
     .header-left {
       min-width: 0;
       justify-self: start;
@@ -172,8 +167,7 @@
     }
 
     @media (max-width: 359px) {
-      #btn-login-header,
-      #btn-header-demo {
+      #btn-login-header {
         padding-inline: 8px;
       }
     }

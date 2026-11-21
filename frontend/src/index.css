@@ -25,6 +25,7 @@
 @import './styles/paper-details.css';
 @import './styles/landing-motion.css';
 @import './styles/landing-wall.css';
+@import './components/landing/family.css';
 @import './styles/sheet-dialog.css';
 @import './styles/radar.css';
 

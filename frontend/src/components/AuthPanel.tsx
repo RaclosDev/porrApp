@@ -39,6 +39,8 @@ interface AuthPanelProps {
   active?: boolean;
   /** Cambiar entre crear cuenta y entrar (p. ej. ir de /login a /registro); si no, cambia aquí. */
   onIntentChange?: (intent: AuthIntent) => void;
+  /** Dentro de la tarjeta de acceso común de la familia (/login y /registro). */
+  family?: boolean;
 }
 
 const linkButton =
@@ -62,6 +64,7 @@ export default function AuthPanel({
   shape = 'pill',
   active = true,
   onIntentChange,
+  family = false,
 }: AuthPanelProps) {
   const [mode, setMode] = useState<EmailSignInMode>(intent === 'signup' ? 'register' : 'login');
   const [step, setStep] = useState<Step>('form');
@@ -95,7 +98,7 @@ export default function AuthPanel({
   const focused = step !== 'form';
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-80 mx-auto">
+    <div className={`flex flex-col gap-4 w-full ${family ? '' : 'max-w-80 mx-auto'}`}>
       {!hideHeading && (
         <div className="flex flex-col gap-2 text-center">
           <h2 id={titleId} className="poster-title m-0 text-[1.8rem]">
@@ -131,10 +134,16 @@ export default function AuthPanel({
               {socialError}
             </p>
           )}
-          <div className="flex items-center gap-3 text-[0.8rem] text-muted" aria-hidden="true">
-            <span className="flex-1 border-t border-current opacity-40" />o con tu email
-            <span className="flex-1 border-t border-current opacity-40" />
-          </div>
+          {family ? (
+            <div className="fam-divider" aria-hidden="true">
+              o con tu email
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 text-[0.8rem] text-muted" aria-hidden="true">
+              <span className="flex-1 border-t border-current opacity-40" />o con tu email
+              <span className="flex-1 border-t border-current opacity-40" />
+            </div>
+          )}
         </>
       )}
 
@@ -153,19 +162,23 @@ export default function AuthPanel({
           {withPasskeys && !registering && (
             <button
               type="button"
-              className="glass-btn flex items-center justify-center gap-2 min-h-11 text-[0.85rem]"
+              className={
+                family
+                  ? 'fam-btn fam-btn--block'
+                  : 'glass-btn flex items-center justify-center gap-2 min-h-11 text-[0.85rem]'
+              }
               disabled={passkeyBusy}
               onClick={() => void signInWithPasskey()}
             >
               <KeyRound size={16} aria-hidden="true" />
-              {passkeyBusy ? 'Comprobando…' : 'Entrar con llave de acceso'}
+              {passkeyBusy ? 'Comprobando…' : 'Entrar con huella o llave de acceso'}
             </button>
           )}
-          <p className="m-0 text-center text-[0.85rem]">
+          <p className={family ? 'fam-card__switch' : 'm-0 text-center text-[0.85rem]'}>
             {registering ? '¿Ya tienes cuenta? ' : '¿No tienes cuenta? '}
             <button
               type="button"
-              className={linkButton}
+              className={family ? 'fam-textlink' : linkButton}
               onClick={() =>
                 onIntentChange
                   ? onIntentChange(registering ? 'login' : 'signup')
@@ -175,7 +188,11 @@ export default function AuthPanel({
               {registering ? 'Inicia sesión' : 'Crea una gratis'}
             </button>
           </p>
-          <p className="m-0 text-center text-[0.76rem] text-muted leading-[1.5]">
+          <p
+            className={
+              family ? 'fam-legal' : 'm-0 text-center text-[0.76rem] text-muted leading-[1.5]'
+            }
+          >
             {registering ? 'Al crear la cuenta aceptas el ' : 'Al continuar aceptas el '}
             <Link to="/aviso-legal" className="underline" onClick={onLegalLinkClick}>
               aviso legal

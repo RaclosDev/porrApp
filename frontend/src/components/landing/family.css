@@ -1,0 +1,378 @@
+/* Shared public-site system for the paper-and-ink family (Ascension, PorrApp, LoopDeck).
+   Same container, header, buttons, type scale and access card in the three apps: keep the
+   three copies of this file identical. */
+.fam {
+  --fam-wall: #e6e0d3;
+  --fam-sheet: #fffdf7;
+  --fam-ink: #111827;
+  --fam-ink-soft: #3f4652;
+  --fam-muted: #48505c;
+  --fam-accent: #0b5f74;
+  --fam-rule: rgba(17, 24, 39, 0.16);
+  --fam-display: 'Anton', 'Arial Narrow', sans-serif;
+  --fam-content: 1120px;
+  --fam-gutter: clamp(20px, 4vw, 40px);
+  --fam-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fam ::selection {
+  background: var(--fam-accent);
+  color: var(--fam-sheet);
+}
+
+.fam-container {
+  width: 100%;
+  max-width: calc(var(--fam-content) + 2 * var(--fam-gutter));
+  margin-inline: auto;
+  padding-inline: var(--fam-gutter);
+}
+
+/* Header: brand, section links, "Entrar". No rule under it. */
+.fam-header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 72px;
+  padding-block: 14px;
+}
+.fam-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--fam-ink);
+  text-decoration: none;
+}
+.fam-brand img {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  flex: none;
+}
+.fam-brand span {
+  font-family: var(--fam-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--fam-ink);
+}
+.fam-header__end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fam-nav {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+@media (min-width: 900px) {
+  .fam-nav {
+    display: flex;
+  }
+}
+.fam-navlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  font-family: var(--fam-display);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fam-muted);
+  text-decoration: none;
+  transition: color 160ms var(--fam-ease);
+}
+.fam-navlink:hover,
+.fam-navlink:focus-visible {
+  color: var(--fam-ink);
+}
+.fam-navlink:focus-visible,
+.fam-brand:focus-visible,
+.fam-link:focus-visible {
+  outline: 3px solid var(--fam-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Buttons: printed blocks with an offset shadow; they lift on hover and press on click. */
+.fam-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  background: var(--fam-sheet);
+  color: var(--fam-ink);
+  border: 2px solid var(--fam-ink);
+  border-radius: 4px;
+  box-shadow: 3px 4px 0 var(--fam-ink);
+  font-family: var(--fam-display);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 160ms var(--fam-ease),
+    box-shadow 160ms var(--fam-ease);
+}
+.fam-btn:hover {
+  transform: translate(-1px, -2px);
+  box-shadow: 4px 6px 0 var(--fam-ink);
+}
+.fam-btn:active {
+  transform: translate(2px, 3px);
+  box-shadow: 0 0 0 var(--fam-ink);
+}
+.fam-btn:focus-visible {
+  outline: 3px solid var(--fam-accent);
+  outline-offset: 3px;
+}
+.fam-btn--ink {
+  background: var(--fam-ink);
+  color: var(--fam-sheet);
+  box-shadow: 3px 4px 0 var(--fam-accent);
+}
+.fam-btn--ink:hover {
+  box-shadow: 4px 6px 0 var(--fam-accent);
+}
+.fam-btn--ink:active {
+  box-shadow: 0 0 0 var(--fam-accent);
+}
+.fam-btn--lg {
+  min-height: 52px;
+  padding: 0 24px;
+  font-size: 1.1rem;
+}
+.fam-btn--block {
+  width: 100%;
+}
+.fam-btn:disabled,
+.fam-btn[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Type scale. The marked word only changes colour. */
+.fam-h1,
+.fam-h2,
+.fam-h3 {
+  font-family: var(--fam-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--fam-ink);
+  text-wrap: balance;
+  margin: 0;
+}
+.fam-h1 {
+  font-size: clamp(3rem, 6vw, 5.25rem);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+.fam-h2 {
+  font-size: clamp(2.25rem, 4.2vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+.fam-h3 {
+  font-size: 1.6rem;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+}
+.fam-mark {
+  color: var(--fam-accent);
+}
+.fam-lede {
+  max-width: 46ch;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--fam-ink-soft);
+  text-wrap: pretty;
+}
+.fam-h1 + .fam-lede {
+  margin-top: 24px;
+}
+.fam-h2 + .fam-lede {
+  margin-top: 16px;
+}
+.fam-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 32px;
+}
+
+/* Footer: brand on the left, links on the right. */
+.fam-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-top: 96px;
+  padding-block: 28px;
+  border-top: 1px solid var(--fam-rule);
+  font-size: 0.875rem;
+  color: var(--fam-muted);
+}
+.fam-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  margin: 0;
+}
+.fam-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-underline-offset: 4px;
+}
+.fam-link:hover {
+  color: var(--fam-ink);
+  text-decoration: underline;
+}
+
+/* Access page: one centred card under the same header. */
+.fam-auth {
+  display: grid;
+  justify-items: center;
+  padding-block: clamp(8px, 2vw, 24px) 48px;
+}
+.fam-card {
+  width: 100%;
+  max-width: 420px;
+  padding: clamp(24px, 4vw, 36px);
+  background: var(--fam-sheet);
+  border: 2px solid var(--fam-ink);
+  border-radius: 4px;
+  box-shadow: 6px 8px 0 rgba(17, 24, 39, 0.18);
+  color: var(--fam-ink);
+}
+.fam-card__title {
+  font-family: var(--fam-display);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.fam-card__sub {
+  margin: 8px 0 20px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--fam-muted);
+}
+.fam-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-block: 4px;
+  font-size: 0.85rem;
+  color: var(--fam-muted);
+}
+.fam-divider::before,
+.fam-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--fam-rule);
+}
+.fam-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.fam-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  background: #fff;
+  color: var(--fam-ink);
+  border: 2px solid var(--fam-ink);
+  border-radius: 4px;
+  font-size: 1rem;
+  caret-color: var(--fam-accent);
+}
+.fam-input::placeholder {
+  color: #6b7280;
+}
+.fam-input:focus-visible {
+  outline: 3px solid var(--fam-accent);
+  outline-offset: 1px;
+}
+.fam-card__switch {
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--fam-rule);
+  font-size: 0.95rem;
+  text-align: center;
+  color: var(--fam-ink-soft);
+}
+.fam-textlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--fam-ink);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.fam-textlink:hover {
+  color: var(--fam-accent);
+}
+.fam-textlink:focus-visible {
+  outline: 3px solid var(--fam-accent);
+  outline-offset: 2px;
+}
+.fam-field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.fam-textlink--sm {
+  min-height: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.fam-legal {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--fam-muted);
+}
+.fam-legal a {
+  color: inherit;
+}
+.fam-auth__demo {
+  margin-top: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fam-btn,
+  .fam-navlink {
+    transition: none;
+  }
+  .fam-btn:hover,
+  .fam-btn:active {
+    transform: none;
+  }
+}
