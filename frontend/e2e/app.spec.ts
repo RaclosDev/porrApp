@@ -71,7 +71,7 @@ for (const viewport of [
 
     test('header login opens the /login page and back returns to the landing', async ({ page }) => {
       await page.goto('/');
-      await page.getByRole('link', { name: 'Entrar', exact: true }).click();
+      await page.getByRole('link', { name: 'Iniciar sesión', exact: true }).click();
       await expect(page).toHaveURL(/\/login$/);
       await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible();
       await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute(

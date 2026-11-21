@@ -156,7 +156,7 @@ it('opens /registro on «Crea tu cuenta» and can switch to signing in', () => {
 
   fireEvent.click(screen.getByRole('button', { name: 'Inicia sesión' }));
   expect(screen.getByRole('heading', { name: 'Inicia sesión en PorrApp' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
 });
 
 it('creates the account with the code from the email and goes to create the league', async () => {
@@ -224,7 +224,7 @@ it('asks for a valid email before sending', () => {
   openEmailForm();
 
   fill('marta', 'otra-clave');
-  fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
   expect(screen.getByRole('alert')).toHaveTextContent('email válido');
   expect(loginWithPassword).not.toHaveBeenCalled();
@@ -242,7 +242,7 @@ it('asks for the reset link with the email already typed and says the same whate
   expect(requestPasswordReset).toHaveBeenCalledWith('marta@test.com');
 
   fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
-  expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
 });
 
 it('shows why the reset link could not be sent', async () => {
@@ -263,7 +263,7 @@ it('shows the server error next to the form when the password is wrong', async (
   openEmailForm();
 
   fill('marta@test.com', 'otra-clave');
-  fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
   expect(await screen.findByRole('alert')).toHaveTextContent('Email o contraseña incorrectos.');
   expect(loginWithPassword).toHaveBeenCalledWith('marta@test.com', 'otra-clave');

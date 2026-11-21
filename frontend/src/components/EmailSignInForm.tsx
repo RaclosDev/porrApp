@@ -191,7 +191,7 @@ export default function EmailSignInForm({
         </p>
       )}
       <button type="submit" className="glass-btn primary-btn font-bold min-h-11" disabled={busy}>
-        {busy ? 'Un momento…' : registering ? 'Crear cuenta' : 'Entrar'}
+        {busy ? 'Un momento…' : registering ? 'Crear cuenta' : 'Iniciar sesión'}
       </button>
     </form>
   );

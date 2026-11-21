@@ -471,34 +471,6 @@
       margin-left: -28px;
       transform: translateY(40px) rotate(6deg);
     }
-
-    /* Portada: el abanico va junto al titular y se mide con su columna, no con la página. */
-    .app-screens-hero {
-      padding: 8px 0 36px;
-    }
-
-    .app-screens-hero .app-screens-item {
-      flex: 0 0 38%;
-    }
-
-    .app-screens-hero .app-screens-item:first-child:not(:last-child) {
-      margin-right: -7%;
-      transform: translateY(28px) rotate(-6deg);
-    }
-
-    .app-screens-hero .app-screens-item:nth-child(3) {
-      margin-left: -7%;
-      transform: translateY(28px) rotate(6deg);
-    }
-
-    .app-screens-hero .app-phone {
-      padding: 5px;
-      border-radius: 26px;
-    }
-
-    .app-screens-hero .app-phone img {
-      border-radius: 21px;
-    }
   }
 
   /*

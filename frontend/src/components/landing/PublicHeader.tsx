@@ -14,13 +14,12 @@ interface PublicHeaderProps {
 
 /**
  * Cabecera de las páginas públicas (portada, contenido y acceso), la misma que en Ascension y
- * LoopDeck: marca a la izquierda, secciones y «Demo» en medio, «Entrar» a la derecha.
+ * LoopDeck: marca a la izquierda, secciones y «Demo» en medio, «Iniciar sesión» a la derecha.
  */
 export default function PublicHeader({ auth = false }: PublicHeaderProps) {
   return (
     <header className="fam fam-container fam-header">
       <Link to="/" state={SMOOTH_SCROLL_STATE} className="fam-brand" aria-label="PorrApp, inicio">
-        <img src="/icon-paper-192.png" alt="" width={32} height={32} />
         <span>PorrApp</span>
       </Link>
       <div className="fam-header__end">
@@ -46,7 +45,7 @@ export default function PublicHeader({ auth = false }: PublicHeaderProps) {
               </Link>
             </nav>
             <Link id="btn-login-header" to="/login" className="fam-btn fam-btn--ink">
-              Entrar
+              Iniciar sesión
             </Link>
           </>
         )}

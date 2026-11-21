@@ -121,7 +121,8 @@ public class SecurityConfig {
                             + " https://appleid.cdn-apple.com"
                             // API de reproductor de YouTube: avisa al modo TV del póker cuando acaba cada canción.
                             + " https://www.youtube.com; " +
-                            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                            // accounts.google.com/gsi/style: la hoja de estilos del botón «Continuar con Google».
+                            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; " +
                             "font-src 'self' https://fonts.gstatic.com; " +
                             // blob: para la vista previa local de una foto antes de subirla.
                             "img-src 'self' data: blob: https:; " +
