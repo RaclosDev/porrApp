@@ -66,7 +66,7 @@ test('la cabecera lleva a /login y una invitación pendiente vuelve a la invitac
   await mockApi(page);
   await page.addInitScript(() => localStorage.setItem('pendingJoinCode', 'BARRIO'));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+  await page.getByRole('link', { name: 'Entrar', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.getByLabel('Email', { exact: true }).fill('ana@example.test');
   await page.locator('input[type="password"]').fill('una-clave-larga');

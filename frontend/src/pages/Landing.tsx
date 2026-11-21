@@ -1,9 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import AppScreens from '../components/landing/AppScreens';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import StickerCard from '../components/StickerCard';
 import NetLine from '../components/landing/NetLine';
-import FixtureSheet from '../components/landing/FixtureSheet';
+import PredictionDemo from '../components/landing/PredictionDemo';
 import Reveal from '../components/landing/Reveal';
 import { revealStyle } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
@@ -18,34 +18,33 @@ const FAN_ANGLES = [-8, -3, 0, 3, 8];
  * y formatos de liga, los cromos de la liga pública destacada y una última llamada a crear la liga.
  */
 export default function Landing() {
-  const { leaders, leagueName, champion, nextFixtures, loading, error } = useLandingData();
+  const { leaders, leagueName, champion, loading, error } = useLandingData();
   const leagueLabel = leagueName ?? 'la liga pública';
-  const navigate = useNavigate();
 
   return (
-    <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
-      <section className="mt-6 sm:mt-12 grid gap-10 lg:grid-cols-[1.25fr_1fr] lg:items-center">
+    <div className="landing-page fam fam-container pb-15">
+      <section className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-[1.25fr_1fr] lg:items-center">
         <div className="flex flex-col gap-6">
           <MarkerHeading
             as="h1"
             onLoad
             text={LANDING_COPY.h1}
             marked={LANDING_COPY.h1Marked}
-            className="text-[clamp(2.8rem,7.4vw,5.75rem)]"
+            className="fam-h1"
           />
           {/* Sin fundido: es el elemento más grande de la primera pantalla (LCP) y debe pintarse ya. */}
-          <p className="text-[#3f4652] text-lg max-w-130 leading-snug">{LANDING_COPY.lede}</p>
+          <p className="fam-lede">{LANDING_COPY.lede}</p>
           <Reveal onLoad className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-3">
               <Link
                 id="btn-hero-login"
                 to={SIGNUP_TO_CREATE_LEAGUE}
-                className="landing-btn landing-btn-ink"
+                className="fam-btn fam-btn--ink fam-btn--lg"
               >
                 Crear mi liga gratis
               </Link>
-              <Link to="/demo" className="landing-btn">
-                Ver una porra de ejemplo
+              <Link to="/demo" className="fam-btn fam-btn--lg">
+                Probar la demo
               </Link>
             </div>
             <p className="text-[#48505c] text-sm">{LANDING_COPY.heroNote}</p>
@@ -62,8 +61,8 @@ export default function Landing() {
 
       <NetLine />
 
-      <section className="py-10">
-        <MarkerHeading text={LANDING_COPY.stepsTitle} className="text-[clamp(2rem,5vw,3.6rem)]" />
+      <section id="como-se-juega" className="py-10 scroll-mt-4">
+        <MarkerHeading text={LANDING_COPY.stepsTitle} className="fam-h2" />
         <Reveal
           as="ol"
           group
@@ -88,8 +87,20 @@ export default function Landing() {
 
       <NetLine />
 
-      <section className="py-10">
-        <MarkerHeading text={LANDING_COPY.formatsTitle} className="text-[clamp(2rem,5vw,3.6rem)]" />
+      <section id="pruebalo" className="py-10 scroll-mt-4" aria-labelledby="pruebalo-title">
+        <h2 id="pruebalo-title" className="fam-h2">
+          Pruébalo aquí
+        </h2>
+        <p className="fam-lede">
+          Una jornada de ejemplo, sin cuenta: tu predicción no se guarda en ningún sitio.
+        </p>
+        <PredictionDemo />
+      </section>
+
+      <NetLine />
+
+      <section id="deportes" className="py-10 scroll-mt-4">
+        <MarkerHeading text={LANDING_COPY.formatsTitle} className="fam-h2" />
         <div className="grid gap-10 lg:grid-cols-[1.15fr_1fr] mt-10 items-start">
           <Reveal
             as="ul"
@@ -109,10 +120,6 @@ export default function Landing() {
           <Reveal as="article" className="landing-poster p-6 sm:p-8 flex flex-col gap-4">
             <h3 className="poster-title text-4xl">{LANDING_COPY.matchdayTitle}</h3>
             <p className="text-[#3f4652] leading-snug">{LANDING_COPY.matchdayText}</p>
-            <FixtureSheet
-              fixtures={nextFixtures}
-              onPick={() => navigate(SIGNUP_TO_CREATE_LEAGUE)}
-            />
             <h3 className="poster-title text-4xl mt-4 pt-6 border-t border-[rgba(17,24,39,0.16)]">
               {LANDING_COPY.bracketTitle}
             </h3>
@@ -127,10 +134,7 @@ export default function Landing() {
       <NetLine />
 
       <section className="py-10">
-        <MarkerHeading
-          text={`Los cromos de ${leagueLabel}`}
-          className="text-[clamp(2rem,5vw,3.6rem)]"
-        />
+        <MarkerHeading text={`Los cromos de ${leagueLabel}`} className="fam-h2" />
         {leaders.length === 0 && loading && !error ? (
           // Mismo alto que el álbum: al llegar los cromos la página no crece de golpe.
           <div className="landing-sticker-album-slot mt-10" aria-hidden="true" />
@@ -201,21 +205,18 @@ export default function Landing() {
         className="landing-poster mt-10 px-6 py-8 sm:px-10 sm:py-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between"
       >
         <div className="flex flex-col gap-3">
-          <h2
-            id="landing-final-cta"
-            className="poster-title text-[clamp(2rem,4.4vw,3.2rem)] leading-[0.95]"
-          >
+          <h2 id="landing-final-cta" className="fam-h2">
             {LANDING_COPY.closingTitle}{' '}
-            <span className="marker-ink">{LANDING_COPY.closingMarked}</span>
+            <span className="fam-mark">{LANDING_COPY.closingMarked}</span>
           </h2>
-          <p className="text-[#3f4652] text-lg max-w-130 leading-snug">{LANDING_COPY.closing}</p>
+          <p className="fam-lede">{LANDING_COPY.closing}</p>
         </div>
         <div className="flex flex-wrap gap-3 lg:shrink-0">
-          <Link to={SIGNUP_TO_CREATE_LEAGUE} className="landing-btn landing-btn-ink">
+          <Link to={SIGNUP_TO_CREATE_LEAGUE} className="fam-btn fam-btn--ink fam-btn--lg">
             Crear mi liga gratis
           </Link>
-          <Link to="/demo" className="landing-btn">
-            Ver una porra de ejemplo
+          <Link to="/demo" className="fam-btn fam-btn--lg">
+            Probar la demo
           </Link>
         </div>
       </Reveal>

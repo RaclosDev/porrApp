@@ -1,23 +1,19 @@
-import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { CredentialResponse } from '@react-oauth/google';
 import AuthPanel, { type AuthIntent } from '../components/AuthPanel';
 import { useAppContext } from '../context/AppContext';
 import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
-import MarkerHeading from '../components/landing/MarkerHeading';
-import { LANDING_COPY } from '../seo/pages';
 import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
 import { safeRedirect } from '../utils/safeRedirect';
 
-const COPY: Record<AuthIntent, { text: string; marked: string; lede: string }> = {
+const COPY: Record<AuthIntent, { title: string; sub: string }> = {
   login: {
-    text: 'Entra y sigue',
-    marked: 'con tu porra.',
-    lede: 'Tus ligas, tus predicciones y la clasificación te esperan donde las dejaste.',
+    title: 'Inicia sesión en PorrApp',
+    sub: 'Tus ligas, tus predicciones y la clasificación te esperan donde las dejaste.',
   },
   signup: {
-    text: 'Monta tu porra',
-    marked: 'con los tuyos.',
-    lede: 'Creas la cuenta, montas tu liga e invitas a los tuyos con un enlace.',
+    title: 'Crea tu cuenta en PorrApp',
+    sub: 'Gratis y en un minuto. Luego montas tu liga e invitas a los tuyos con un enlace.',
   },
 };
 
@@ -54,43 +50,17 @@ export default function Login({ intent = 'login' }: LoginProps) {
   }
 
   return (
-    <div className="landing-page max-w-300 my-0 mx-auto pt-4 pb-15 px-4">
-      <section className="mt-4 sm:mt-12 grid gap-8 lg:gap-14 lg:grid-cols-[1.25fr_1fr] lg:items-center">
-        <div className="flex flex-col gap-6">
-          <MarkerHeading
-            as="h1"
-            onLoad
-            key={intent}
-            text={COPY[intent].text}
-            marked={COPY[intent].marked}
-            className="text-[clamp(2.4rem,6.4vw,5rem)]"
-          />
-          <div className="hidden lg:flex flex-col gap-6">
-            <p className="text-[#3f4652] text-lg max-w-130 leading-snug">{COPY[intent].lede}</p>
-            <ol
-              className="list-none p-0 m-0 max-w-130 border-t border-[rgba(17,24,39,0.16)]"
-              aria-label="Cómo se juega"
-            >
-              {LANDING_COPY.steps.map((step, index) => (
-                <li
-                  key={step.title}
-                  className="flex gap-4 items-baseline py-3 border-b border-[rgba(17,24,39,0.16)]"
-                >
-                  <span className="poster-title text-3xl text-[#0b5f74]" aria-hidden="true">
-                    {index + 1}
-                  </span>
-                  <span className="flex flex-col">
-                    <span className="poster-title text-2xl">{step.title}</span>
-                    <span className="text-[#3f4652] leading-snug">{step.text}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-        <div className="landing-poster paper-panel p-6 sm:p-8 text-center min-w-0">
+    <div className="landing-page fam">
+      <div className="fam-container fam-auth">
+        <section className="fam-card" aria-labelledby="auth-title">
+          <h1 id="auth-title" className="fam-card__title">
+            {COPY[intent].title}
+          </h1>
+          <p className="fam-card__sub">{COPY[intent].sub}</p>
           <AuthPanel
             key={intent}
+            family
+            hideHeading
             intent={intent}
             onIntentChange={(next) => navigate(AUTH_PATH[next] + search, { replace: true })}
             onGoogleSuccess={(response: CredentialResponse) => void googleSignIn(response)}
@@ -98,8 +68,11 @@ export default function Login({ intent = 'login' }: LoginProps) {
             signInOptions={signInOptions}
             shape="rectangular"
           />
-        </div>
-      </section>
+        </section>
+        <Link to="/demo" className="fam-btn fam-auth__demo">
+          Probar la demo sin registrarte
+        </Link>
+      </div>
     </div>
   );
 }
