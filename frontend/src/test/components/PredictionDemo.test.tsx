@@ -1,35 +1,44 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import PredictionDemo from '../../components/landing/PredictionDemo';
 
 const pick = (match: string, sign: string) =>
-  fireEvent.click(
-    within(screen.getByRole('group', { name: `Predicción ${match}` })).getByRole('button', {
-      name: sign,
-    }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: `Predecir ${sign} en ${match}` }));
 
 describe('PredictionDemo', () => {
-  it('pide todos los partidos antes de enseñar los resultados', () => {
+  it('pide todos los partidos antes de jugar la jornada, como la pantalla de jornadas', () => {
     render(<PredictionDemo />);
-    expect(screen.getByRole('button', { name: 'Te faltan 4 partidos' })).toBeDisabled();
-    pick('Real Madrid contra Barcelona', 'X');
+    expect(screen.getByText('0/3 predicciones')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Te faltan 3 partidos' })).toBeDisabled();
+
+    pick('España - Alemania', '1');
+    expect(screen.getByText('1/3 predicciones')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Predecir 1 en España - Alemania' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    // Volver a pulsar el signo lo quita.
+    pick('España - Alemania', '1');
     expect(screen.getByRole('button', { name: 'Te faltan 3 partidos' })).toBeDisabled();
   });
 
-  it('puntúa los signos acertados y deja al jugador líder si acierta todo', () => {
+  it('cierra los partidos con su resultado, sus puntos y el podio', () => {
     render(<PredictionDemo />);
-    pick('Real Madrid contra Barcelona', 'X');
-    pick('Betis contra Sevilla', '1');
-    pick('Athletic contra Real Sociedad', '2');
-    pick('Valencia contra Villarreal', '1');
-    fireEvent.click(screen.getByRole('button', { name: 'Ver los resultados' }));
+    pick('España - Alemania', '1');
+    pick('Argentina - Francia', 'X');
+    pick('Brasil - Portugal', '1');
+    fireEvent.click(screen.getByRole('button', { name: 'Jugar la jornada' }));
 
-    const table = screen.getAllByRole('listitem').filter((li) => li.textContent?.includes('pts'));
-    expect(table[0]).toHaveTextContent('Tú12 pts');
-    expect(screen.getByRole('status')).toHaveTextContent('¡Líder de la jornada!');
+    expect(screen.getByText('Final 2 - 1')).toBeInTheDocument();
+    expect(screen.getAllByText(/Acierto de signo 1X2/)).toHaveLength(2);
+    expect(screen.getByText(/Sin acierto en signo/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Predecir 1 en España - Alemania/ })).toBeDisabled();
+    expect(screen.getByRole('region', { name: 'Podio de la jornada de ejemplo' })).toHaveTextContent(
+      'Tú',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Jugar otra vez' }));
-    expect(screen.getByRole('button', { name: 'Te faltan 4 partidos' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Te faltan 3 partidos' })).toBeDisabled();
   });
 });
