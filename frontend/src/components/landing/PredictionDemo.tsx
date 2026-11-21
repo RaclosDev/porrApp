@@ -1,20 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ChevronDown } from 'lucide-react';
 import FixtureCard from '../matchday/FixtureCard';
 import FightCard from '../matchday/FightCard';
-import SelectMenu from '../SelectMenu';
-import { DriverFace } from '../grandPrix/DriverFace';
-import {
-  EMPTY_PICK,
-  PICK_SLOTS,
-  driverLabel,
-  driverShortName,
-  formatWhen,
-  pickError,
-} from '../grandPrix/grandPrix';
 import { fetchMatches } from '../../services/api';
-import type { GrandPrixPicks, Match, MatchdayFixture, RaceDriver, Sport } from '../../types/api';
+import type { Match, MatchdayFixture, Sport } from '../../types/api';
 import {
   EMPTY_PREDICTION,
   withSign,
@@ -26,22 +15,20 @@ import { SIGNUP_TO_CREATE_LEAGUE } from '../../utils/authRoutes';
 import snapshot from './predictionDemoSnapshot.json';
 
 /*
- * Prueba del hero de la portada: la jornada en curso de LaLiga, el próximo Gran Premio y la cartelera
- * estelar de la próxima UFC, con las mismas tarjetas que la app. Los partidos salen de la API pública;
+ * Prueba del hero de la portada: la jornada en curso de LaLiga y la cartelera estelar de la
+ * próxima UFC, con las mismas tarjetas que la app. Los partidos salen de la API pública;
  * si no responde, de una copia guardada. No se guarda nada.
  */
 
-type DemoTab = 'liga' | 'gp' | 'ufc';
+type DemoTab = 'liga' | 'ufc';
 
 const TABS: { id: DemoTab; label: string; competitionId: number }[] = [
   { id: 'liga', label: 'LaLiga', competitionId: 4 },
-  { id: 'gp', label: 'Fórmula 1', competitionId: 46 },
   { id: 'ufc', label: 'UFC', competitionId: 47 },
 ];
 
 interface DemoData {
   liga: Match[];
-  gp: Match;
   ufc: Match[];
 }
 
@@ -67,10 +54,6 @@ const isOpen = (match: Match) => !match.finished && match.status === 'SCHEDULED'
 const playableFirst = (matches: Match[]) =>
   [...matches].sort((a, b) => Number(isOpen(b)) - Number(isOpen(a)) || byDate(a, b));
 
-/** El próximo Gran Premio que aún no ha empezado. */
-const nextGrandPrix = (matches: Match[], now = Date.now()): Match | undefined =>
-  matches.filter((m) => isUpcoming(m, now)).sort(byDate)[0];
-
 /** La cartelera estelar (main card) del próximo evento de la UFC, de la pelea estelar hacia abajo. */
 function nextMainCard(matches: Match[], now = Date.now()): Match[] {
   const event = matches.filter((m) => m.fight && isUpcoming(m, now)).sort(byDate)[0]
@@ -88,7 +71,6 @@ const PICKERS: { [K in DemoTab]: (matches: Match[]) => DemoData[K] | undefined }
     const round = currentRound(matches);
     return round.length ? round : undefined;
   },
-  gp: (matches) => nextGrandPrix(matches),
   ufc: (matches) => {
     const card = nextMainCard(matches);
     return card.length ? card : undefined;
@@ -153,230 +135,10 @@ function toFixture(match: Match, sport: Sport, prediction?: DraftPrediction): Ma
   };
 }
 
-/** Parrilla de 2026 por escudería (la de la app sale de ESPN y solo la ven los miembros de una liga). */
-const TEAMS: [team: string, color: string, drivers: [string, string][]][] = [
-  [
-    'McLaren',
-    'FF8000',
-    [
-      ['Lando Norris', 'L. Norris'],
-      ['Oscar Piastri', 'O. Piastri'],
-    ],
-  ],
-  [
-    'Ferrari',
-    'E8002D',
-    [
-      ['Charles Leclerc', 'C. Leclerc'],
-      ['Lewis Hamilton', 'L. Hamilton'],
-    ],
-  ],
-  [
-    'Red Bull',
-    '3671C6',
-    [
-      ['Max Verstappen', 'M. Verstappen'],
-      ['Isack Hadjar', 'I. Hadjar'],
-    ],
-  ],
-  [
-    'Mercedes',
-    '27F4D2',
-    [
-      ['George Russell', 'G. Russell'],
-      ['Kimi Antonelli', 'K. Antonelli'],
-    ],
-  ],
-  [
-    'Aston Martin',
-    '229971',
-    [
-      ['Fernando Alonso', 'F. Alonso'],
-      ['Lance Stroll', 'L. Stroll'],
-    ],
-  ],
-  [
-    'Alpine',
-    '0093CC',
-    [
-      ['Pierre Gasly', 'P. Gasly'],
-      ['Franco Colapinto', 'F. Colapinto'],
-    ],
-  ],
-  [
-    'Williams',
-    '64C4FF',
-    [
-      ['Carlos Sainz', 'C. Sainz'],
-      ['Alexander Albon', 'A. Albon'],
-    ],
-  ],
-  [
-    'Racing Bulls',
-    '6692FF',
-    [
-      ['Liam Lawson', 'L. Lawson'],
-      ['Arvid Lindblad', 'A. Lindblad'],
-    ],
-  ],
-  [
-    'Haas',
-    'B6BABD',
-    [
-      ['Esteban Ocon', 'E. Ocon'],
-      ['Oliver Bearman', 'O. Bearman'],
-    ],
-  ],
-  [
-    'Audi',
-    'BB0A30',
-    [
-      ['Nico Hülkenberg', 'N. Hülkenberg'],
-      ['Gabriel Bortoleto', 'G. Bortoleto'],
-    ],
-  ],
-  [
-    'Cadillac',
-    '1E3D2F',
-    [
-      ['Sergio Pérez', 'S. Pérez'],
-      ['Valtteri Bottas', 'V. Bottas'],
-    ],
-  ],
-];
-
-const DRIVERS: RaceDriver[] = TEAMS.flatMap(([team, teamColor, drivers], t) =>
-  drivers.map(([name, shortName], d) => ({
-    id: t * 2 + d + 1,
-    name,
-    shortName,
-    country: null,
-    flagUrl: null,
-    team,
-    teamColor,
-    number: null,
-    headshotUrl: null,
-  })),
-);
-const DRIVER_BY_ID = new Map(DRIVERS.map((driver) => [driver.id, driver]));
-
-const PODIUM = ['first', 'second', 'third'] as const;
-
-/** La tarjeta de un Gran Premio de la app, abierta, con su formulario de predicción. */
-function GrandPrixDemo({ gp }: { gp: Match }) {
-  const [open, setOpen] = useState(true);
-  const [pick, setPick] = useState<GrandPrixPicks>(EMPTY_PICK);
-  const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-  const bodyId = `try-gp-${gp.id}`;
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const problem = pickError(pick);
-    setError(problem);
-    setReady(!problem);
-  };
-
-  return (
-    <article className="gp-card">
-      <button
-        type="button"
-        className="gp-card-head"
-        aria-expanded={open}
-        aria-controls={bodyId}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <span className="gp-card-title">
-          <strong>{gp.round}</strong>
-          <span className="gp-card-meta">{gp.date ? `Carrera ${formatWhen(gp.date)}` : ''}</span>
-          <span className="gp-card-status">Abierto hasta la clasificación</span>
-        </span>
-        <span className="gp-card-side">
-          {ready ? (
-            <span className="gp-badge">
-              <Check size={12} aria-hidden="true" /> Predicho
-            </span>
-          ) : (
-            <span className="gp-badge is-pending">Sin predecir</span>
-          )}
-          <ChevronDown size={18} aria-hidden="true" className={open ? 'is-open' : ''} />
-        </span>
-      </button>
-
-      {open && (
-        <div id={bodyId} className="gp-card-body">
-          <form className="gp-form" onSubmit={submit} noValidate>
-            {PICK_SLOTS.map((slot) => {
-              const id = `try-gp-${slot.key}`;
-              const value = pick[slot.key];
-              const driver = value != null ? DRIVER_BY_ID.get(value) : undefined;
-              const taken = new Set(
-                PODIUM.includes(slot.key as (typeof PODIUM)[number])
-                  ? PODIUM.filter((other) => other !== slot.key).map((other) => pick[other])
-                  : [],
-              );
-              return (
-                <div key={slot.key} className={`gp-field gp-field-${slot.key}`}>
-                  <label htmlFor={id}>
-                    {slot.label}
-                    {slot.optional && <span className="gp-optional"> (opcional)</span>}
-                  </label>
-                  <div className="gp-select-row">
-                    {driver && (
-                      <DriverFace
-                        name={driverShortName(driver)}
-                        color={driver.teamColor}
-                        size={36}
-                      />
-                    )}
-                    <SelectMenu
-                      id={id}
-                      className="gp-select"
-                      label={slot.label}
-                      value={value != null ? String(value) : ''}
-                      style={driver ? { borderLeftColor: `#${driver.teamColor}` } : undefined}
-                      onChange={(next) => {
-                        setReady(false);
-                        setPick((current) => ({
-                          ...current,
-                          [slot.key]: next ? Number(next) : null,
-                        }));
-                      }}
-                      items={[
-                        { value: '', label: slot.optional ? 'Sin elegir' : 'Elige piloto' },
-                        ...DRIVERS.map((option) => ({
-                          value: String(option.id),
-                          label: driverLabel(option),
-                          disabled: taken.has(option.id),
-                        })),
-                      ]}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            {error && (
-              <p className="gp-error" role="alert">
-                {error}
-              </p>
-            )}
-            <button type="submit" className="glass-btn primary-btn gp-save" disabled={ready}>
-              {ready ? 'Predicción lista' : 'Guardar predicción'}
-            </button>
-          </form>
-        </div>
-      )}
-    </article>
-  );
-}
-
-const FRIENDS_NOTE = 'En tu liga, las predicciones de tus amigos se ven cuando empieza.';
-
 /** Va en el hero: elige competición y predice como en la app. */
 export default function PredictionDemo() {
   const [tab, setTab] = useState<DemoTab>('liga');
   const [draft, setDraft] = useState<Draft>({});
-  const [note, setNote] = useState<string | null>(null);
   const data = useDemoData(tab);
 
   const predict = (matchId: number, prediction: DraftPrediction | null) =>
@@ -391,14 +153,6 @@ export default function PredictionDemo() {
     // Como en la app, volver a pulsar el signo elegido lo quita.
     predict(matchId, draft[matchId]?.sign === sign ? null : withSign(sign));
 
-  const showFriends = (fixture: MatchdayFixture) =>
-    setNote(`${fixture.homeTeam} - ${fixture.awayTeam}: ${FRIENDS_NOTE.toLowerCase()}`);
-
-  const choose = (next: DemoTab) => {
-    setTab(next);
-    setNote(null);
-  };
-
   const liga = data.liga && playableFirst(data.liga);
   const ufc = data.ufc;
   const open = (matches: Match[]) => matches.filter(isOpen);
@@ -409,9 +163,6 @@ export default function PredictionDemo() {
   if (tab === 'liga' && liga) {
     title = `${liga[0].round} · LaLiga`;
     progress = `${count(liga)}/${open(liga).length} predicciones`;
-  } else if (tab === 'gp' && data.gp) {
-    title = `${data.gp.round} · Fórmula 1`;
-    progress = 'Podio, pole y vuelta rápida';
   } else if (tab === 'ufc' && ufc) {
     title = ufc[0].fight?.eventName ?? ufc[0].round;
     progress = `Cartelera estelar · ${count(ufc)}/${open(ufc).length} predicciones`;
@@ -429,7 +180,7 @@ export default function PredictionDemo() {
             aria-selected={tab === t.id}
             aria-controls="try-panel"
             className={`paper-tab${tab === t.id ? ' is-active' : ''}`}
-            onClick={() => choose(t.id)}
+            onClick={() => setTab(t.id)}
           >
             {t.label}
           </button>
@@ -458,10 +209,8 @@ export default function PredictionDemo() {
                     prediction={draft[match.id] ?? EMPTY_PREDICTION}
                     locked={toFixture(match, 'FOOTBALL').locked}
                     onQuickSign={quickSign}
-                    onShowFriends={showFriends}
                   />
                 ))}
-              {tab === 'gp' && data.gp && <GrandPrixDemo key={data.gp.id} gp={data.gp} />}
               {tab === 'ufc' &&
                 ufc?.map((match) => {
                   const fixture = toFixture(match, 'MMA', draft[match.id]);
@@ -472,7 +221,6 @@ export default function PredictionDemo() {
                       prediction={draft[match.id] ?? EMPTY_PREDICTION}
                       locked={fixture.locked}
                       onPick={predict}
-                      onShowFriends={showFriends}
                     />
                   );
                 })}
@@ -483,11 +231,6 @@ export default function PredictionDemo() {
         )}
       </div>
 
-      {note && (
-        <p className="try-friends" aria-live="polite">
-          {note}
-        </p>
-      )}
       <Link to={SIGNUP_TO_CREATE_LEAGUE} className="fam-btn fam-btn--ink fam-btn--block">
         Guárdala en tu liga
       </Link>
