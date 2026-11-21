@@ -57,7 +57,7 @@ public class ScoreboardRoster {
                     .filter(other -> !other.getId().equals(player.getId())).toList();
             String newName = ScoreTrackerService.freeName(ScoreTrackerService.displayName(account), others);
             player.setName(newName);
-            sessions.findByLeagueIdAndClosedAtIsNull(leagueId).ifPresent(session -> session.setEntries(
+            sessions.findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(leagueId).forEach(session -> session.setEntries(
                     session.getEntries().stream()
                             .map(entry -> entry.playerId() == player.getId()
                                     ? new Entry(entry.playerId(), newName, entry.rebuys(), entry.addOns(), entry.finalChips())

@@ -7,14 +7,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PokerSessionRepository extends JpaRepository<PokerSession, Long> {
-    @org.springframework.data.jpa.repository.Query("select s.leagueId from PokerSession s where s.startedAt is not null and s.closedAt is null")
+    @org.springframework.data.jpa.repository.Query("select distinct s.leagueId from PokerSession s where s.startedAt is not null and s.closedAt is null")
     List<Long> findRunningLeagueIds();
 
     List<PokerSession> findByLeagueIdAndClosedAtIsNotNullOrderByScheduledOnDescIdDesc(Long leagueId);
 
-    Optional<PokerSession> findByLeagueIdAndClosedAtIsNull(Long leagueId);
+    List<PokerSession> findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(Long leagueId);
 
     Optional<PokerSession> findByIdAndLeagueId(Long id, Long leagueId);
 
-    boolean existsByLeagueIdAndClosedAtIsNull(Long leagueId);
+    long countByLeagueIdAndClosedAtIsNull(Long leagueId);
 }

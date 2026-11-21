@@ -104,6 +104,48 @@ class PokerLeagueIntegrationTest {
     }
 
     @Test
+    void severalScheduledTournamentsCanBeJoinedSeparately() throws Exception {
+        var organizer = user("Ana");
+        var member = user("Luis");
+        var league = decode(send("POST", "/api/poker", organizer,
+                new CreateLeague("Póker de entre semana", UUID.randomUUID())), 201);
+        String path = "/api/poker/" + league.id();
+        memberships.join(league.id(), member.getGoogleEmail());
+        var settings = new Settings(1000, 10000, null, null, List.of(100), List.of(new BlindLevel(15, 25, 50, 0)));
+        var saturday = decode(send("POST", path + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2026, 11, 28), settings)), 201).current();
+        var both = decode(send("POST", path + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2026, 11, 25), settings)), 201);
+        assertThat(both.upcoming()).extracting(Session::date)
+                .containsExactly(LocalDate.of(2026, 11, 25), LocalDate.of(2026, 11, 28));
+        var wednesday = both.current();
+        assertThat(wednesday.date()).isEqualTo(LocalDate.of(2026, 11, 25));
+
+        decode(send("PUT", path + "/sessions/" + saturday.id() + "/attendance", organizer,
+                new Attendance(null, true)), 200);
+        var joined = decode(send("PUT", path + "/sessions/" + saturday.id() + "/attendance", member,
+                new Attendance(null, true)), 200);
+        assertThat(joined.upcoming()).extracting(session -> session.entries().size()).containsExactly(0, 2);
+
+        // El que está en juego va primero aunque haya otro programado antes.
+        var started = decode(send("POST", path + "/sessions/" + saturday.id() + "/commands", organizer,
+                new Command(Action.START, joined.upcoming().get(1).revision(), null)), 200);
+        assertThat(started.current().id()).isEqualTo(saturday.id());
+        assertThat(started.upcoming()).extracting(Session::id).containsExactly(saturday.id(), wednesday.id());
+
+        var cancelled = decode(send("POST", path + "/sessions/" + wednesday.id() + "/commands", organizer,
+                new Command(Action.CANCEL, wednesday.revision(), null)), 200);
+        assertThat(cancelled.upcoming()).extracting(Session::id).containsExactly(saturday.id());
+
+        for (int week = 1; week < 5; week++) {
+            decode(send("POST", path + "/sessions", organizer,
+                    new CreateSession(LocalDate.of(2026, 11, 28).plusWeeks(week), settings)), 201);
+        }
+        assertThat(send("POST", path + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2027, 1, 30), settings)).statusCode()).isEqualTo(409);
+    }
+
+    @Test
     void latecomersCanJoinAStartedTableButNobodyLeavesIt() throws Exception {
         var organizer = user("Ana");
         var member = user("Luis");
@@ -158,7 +200,6 @@ class PokerLeagueIntegrationTest {
         var schedule = new CreateSession(saturday, settings);
         assertThat(send("POST", path + "/sessions", member, schedule).statusCode()).isEqualTo(403);
         var current = decode(send("POST", path + "/sessions", organizer, schedule), 201).current();
-        assertThat(send("POST", path + "/sessions", organizer, schedule).statusCode()).isEqualTo(409);
         String tournament = path + "/sessions/" + current.id();
         assertThat(send("PUT", tournament + "/attendance", member, new Attendance(league.myPlayerId(), true))
                 .statusCode()).isEqualTo(403);
