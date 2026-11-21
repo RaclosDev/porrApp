@@ -2171,3 +2171,7 @@
 .poker-schedule-another {
   margin: 0.6rem 0 0.2rem;
 }
+
+.poker-next-card > .glass-btn + .glass-btn {
+  margin-top: 0.5rem;
+}
