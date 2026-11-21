@@ -26,7 +26,7 @@
   padding-inline: var(--fam-gutter);
 }
 
-/* Header: brand, section links, "Entrar". No rule under it. */
+/* Header: brand, section links, "Iniciar sesión". No rule under it. */
 .fam-header {
   position: relative;
   z-index: 10;
@@ -45,11 +45,10 @@
   color: var(--fam-ink);
   text-decoration: none;
 }
-.fam-brand img {
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
-  flex: none;
+/* The brand is the name alone, one ink, closed by a full stop in the accent. No icon. */
+.fam-brand span::after {
+  content: '.';
+  color: var(--fam-accent);
 }
 .fam-brand span {
   font-family: var(--fam-display);
@@ -211,6 +210,53 @@
   align-items: center;
   gap: 14px;
   margin-top: 32px;
+}
+
+/* Hero: copy on the left, a playable demo on the right. Top-aligned with a fixed top padding, so
+   the headline starts at the same height in the three apps whatever the demo measures. */
+.fam-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 48px;
+  padding: 32px 0 72px;
+}
+@media (min-width: 961px) {
+  .fam-hero {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(40px, 6vw, 88px);
+    padding: 56px 0 96px;
+  }
+}
+.fam-hero__demo {
+  justify-self: center;
+  width: 100%;
+  max-width: 480px;
+  scroll-margin-top: 24px;
+}
+
+/* Password field with its show/hide toggle beside it. */
+.fam-password {
+  display: flex;
+  gap: 6px;
+}
+.fam-password .fam-input {
+  flex: 1;
+  min-width: 0;
+}
+.fam-password__toggle {
+  min-height: 44px;
+  padding: 0 12px;
+  background: var(--fam-sheet);
+  color: var(--fam-ink);
+  border: 2px solid var(--fam-ink);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.fam-password__toggle:focus-visible {
+  outline: 3px solid var(--fam-accent);
+  outline-offset: 1px;
 }
 
 /* Footer: brand on the left, links on the right. */

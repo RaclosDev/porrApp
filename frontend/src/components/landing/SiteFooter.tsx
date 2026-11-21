@@ -16,7 +16,6 @@ export default function SiteFooter({ current }: SiteFooterProps) {
   return (
     <footer className="fam-footer">
       <Link to="/" state={SMOOTH_SCROLL_STATE} className="fam-brand" aria-label="PorrApp, inicio">
-        <img src="/icon-paper-192.png" alt="" width={32} height={32} />
         <span>PorrApp</span>
       </Link>
       <p className="fam-footer__links">

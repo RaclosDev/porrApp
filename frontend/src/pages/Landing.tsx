@@ -23,7 +23,7 @@ export default function Landing() {
 
   return (
     <div className="landing-page fam fam-container pb-15">
-      <section className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-[1.25fr_1fr] lg:items-center">
+      <section className="fam-hero">
         <div className="flex flex-col gap-6">
           <MarkerHeading
             as="h1"
@@ -52,10 +52,11 @@ export default function Landing() {
         </div>
         <Reveal
           onLoad
+          id="pruebalo"
           style={revealStyle({ '--from-y': '40px', '--dur': '0.7s', '--base': '400ms' })}
-          className="min-w-0"
+          className="fam-hero__demo"
         >
-          <AppScreens screens={LANDING_SCREENS} hero />
+          <PredictionDemo />
         </Reveal>
       </section>
 
@@ -87,15 +88,7 @@ export default function Landing() {
 
       <NetLine />
 
-      <section id="pruebalo" className="py-10 scroll-mt-4" aria-labelledby="pruebalo-title">
-        <h2 id="pruebalo-title" className="fam-h2">
-          Pruébalo aquí
-        </h2>
-        <p className="fam-lede">
-          Una jornada de ejemplo, sin cuenta: tu predicción no se guarda en ningún sitio.
-        </p>
-        <PredictionDemo />
-      </section>
+      <AppScreens screens={LANDING_SCREENS} />
 
       <NetLine />
 
