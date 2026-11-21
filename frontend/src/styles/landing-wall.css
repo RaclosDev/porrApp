@@ -187,8 +187,8 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
 }
 
 /*
- * Jornada de ejemplo del hero: la misma hoja de «Jornadas» de la app (cabecera, tarjetas de partido y
- * podio), encajada en la columna del hero en vez de ocupar la página.
+ * Prueba del hero: la jornada de LaLiga, el próximo Gran Premio y la cartelera de la UFC con las
+ * mismas tarjetas que la app, encajadas en la columna del hero en vez de ocupar la página.
  */
 .try-matchday.md-page {
   display: flex;
@@ -201,11 +201,46 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
   border-radius: 4px;
   box-shadow: 6px 8px 0 rgba(17, 24, 39, 0.18);
 }
-.try-matchday .md-page-header {
-  margin-bottom: 0;
+.try-matchday .paper-tabs {
+  display: flex;
 }
-.try-matchday .matchday-podium .ranking-podium {
-  margin-bottom: 0;
+.try-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 320px;
+}
+.try-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.try-head h3 {
+  margin: 0;
+  font-family: 'Anton', 'Outfit', sans-serif;
+  font-weight: 400;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.try-head span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.try-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* La jornada no estira el hero: la lista se desplaza dentro de la hoja. */
+  max-height: min(470px, 62vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+.try-loading {
+  margin: auto;
 }
 .try-friends {
   margin: 0;
