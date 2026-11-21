@@ -17,8 +17,6 @@ import PushReminderPrompt from './layout/PushReminderPrompt';
 import PasskeyPrompt from './layout/PasskeyPrompt';
 import { usePasskeyPrompt } from '../hooks/usePasskeyPrompt';
 import { useAnalyticsConsentPending } from './layout/CookieConsent';
-import LoginModal from './layout/LoginModal';
-import { OPEN_LOGIN_EVENT, type LoginModalRequest } from '../utils/loginModal';
 import { promptInstall } from '../services/installPrompt';
 import { useInstallState } from '../hooks/useInstallState';
 import { useSessionHandoffPending } from '../hooks/useSessionHandoffPending';
@@ -62,9 +60,6 @@ function Layout({ children }: { children: React.ReactNode }) {
   // Basta con los pronósticos propios: la lista de toda la liga solo la piden las pantallas que la usan.
   const myPrediction = useMyLeaguePrediction();
   const navigate = useNavigate();
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  // Con qué intención se abrió el diálogo de acceso (crear cuenta o entrar) y adónde ir después.
-  const [loginRequest, setLoginRequest] = useState<LoginModalRequest>({});
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   // Ajustes de cuenta abiertos y en qué sección: «Avisos» abre directamente la suya.
   const [profileSettings, setProfileSettings] = useState<SettingsSection | null>(null);
@@ -94,6 +89,8 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   const location = useLocation();
   const isDemo = isDemoMode;
+  // Páginas de acceso: /login (entrar) y /registro (crear la cuenta).
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/registro';
 
   // La portada es la portada aunque quede guardado el modo demo de una visita anterior: sin
   // sesión, «/» siempre muestra la landing, sin la barra ni el menú de la demo.
@@ -102,7 +99,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isPaperHeader =
     !isUserLoggedIn &&
     (isLanding ||
-      location.pathname === '/login' ||
+      isAuthPage ||
       (!isDemo && CONTENT_PAGES.some((page) => page.path === location.pathname)));
   // En la pantalla de acceso/invitación no mostrar la navegación global: la propia
   // pantalla ya contiene el acceso con Google y el contexto de la invitación.
@@ -111,7 +108,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     location.pathname.startsWith('/torneos/') ||
     location.pathname.startsWith('/join/') ||
     (!isUserLoggedIn && location.pathname === '/mis-ligas') ||
-    location.pathname === '/login';
+    isAuthPage;
 
   // Con sesión iniciada pero sin ninguna liga, la navegación queda bloqueada:
   // solo se puede crear o unirse a una liga desde Mis Ligas.
@@ -145,29 +142,12 @@ function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setShowLoginModal(false);
         setShowProfileMenu(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  useEffect(() => {
-    const handleOpenLogin = (event: Event) => {
-      // En /login ya está la pantalla de acceso: la ventana nunca se abre encima.
-      if (window.location.pathname === '/login') return;
-      setLoginRequest((event as CustomEvent<LoginModalRequest | null>).detail ?? {});
-      setShowLoginModal(true);
-    };
-    window.addEventListener(OPEN_LOGIN_EVENT, handleOpenLogin);
-    return () => window.removeEventListener(OPEN_LOGIN_EVENT, handleOpenLogin);
-  }, []);
-
-  // Abierto desde la cabecera, la demo o una ruta privada: entrar, sin destino especial.
-  useEffect(() => {
-    if (!showLoginModal) setLoginRequest({});
-  }, [showLoginModal]);
 
   const handleInstallClick = () => {
     void promptInstall();
@@ -181,12 +161,8 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
       {DEMO && <DemoBar />}
-      {isDemo && !isUserLoggedIn && !isLanding && location.pathname !== '/login' && (
-        <DemoBanner
-          exitDemoMode={exitDemoMode}
-          navigate={navigate}
-          setShowLoginModal={setShowLoginModal}
-        />
+      {isDemo && !isUserLoggedIn && !isLanding && !isAuthPage && (
+        <DemoBanner exitDemoMode={exitDemoMode} navigate={navigate} />
       )}
 
       <header
@@ -295,16 +271,6 @@ function Layout({ children }: { children: React.ReactNode }) {
           handleInstallClick={handleInstallClick}
         />
       )}
-
-      <LoginModal
-        exitDemoMode={exitDemoMode}
-        intent={loginRequest.intent ?? 'login'}
-        redirectTo={loginRequest.redirectTo}
-        isDemo={isDemo}
-        navigate={navigate}
-        setShowLoginModal={setShowLoginModal}
-        showLoginModal={showLoginModal}
-      />
 
       {viewerPredictionId && (
         <Suspense fallback={null}>

@@ -210,6 +210,7 @@ function AppShell() {
             <Route path="/" element={<RootPage />} />
             <Route path="/demo" element={<DemoPage />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/registro" element={<Login intent="signup" />} />
             <Route path="/join/:code" element={<JoinRedirect />} />
             <Route path="/t/:publicId" element={<OrganizedTournament publicView />} />
             <Route

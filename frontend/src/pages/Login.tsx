@@ -1,6 +1,6 @@
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { CredentialResponse } from '@react-oauth/google';
-import AuthPanel from '../components/AuthPanel';
+import AuthPanel, { type AuthIntent } from '../components/AuthPanel';
 import { useAppContext } from '../context/AppContext';
 import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import MarkerHeading from '../components/landing/MarkerHeading';
@@ -8,8 +8,34 @@ import { LANDING_COPY } from '../seo/pages';
 import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
 import { safeRedirect } from '../utils/safeRedirect';
 
-/** /login: página pública de acceso (Google, Apple, email con contraseña y llave de acceso). */
-export default function Login() {
+const COPY: Record<AuthIntent, { text: string; marked: string; lede: string }> = {
+  login: {
+    text: 'Entra y sigue',
+    marked: 'con tu porra.',
+    lede: 'Tus ligas, tus predicciones y la clasificación te esperan donde las dejaste.',
+  },
+  signup: {
+    text: 'Monta tu porra',
+    marked: 'con los tuyos.',
+    lede: 'Creas la cuenta, montas tu liga e invitas a los tuyos con un enlace.',
+  },
+};
+
+/** Ruta de la otra pantalla de acceso, conservando el destino (`?redirect=`). */
+const AUTH_PATH: Record<AuthIntent, string> = { login: '/login', signup: '/registro' };
+
+interface LoginProps {
+  /** /login (entrar) o /registro (crear la cuenta). */
+  intent?: AuthIntent;
+}
+
+/**
+ * /login y /registro: páginas públicas de acceso (Google, Apple, email con contraseña y llave de
+ * acceso). Tras entrar se va a la invitación pendiente, al destino de `?redirect=` o al inicio.
+ */
+export default function Login({ intent = 'login' }: LoginProps) {
+  const navigate = useNavigate();
+  const { search } = useLocation();
   const [params] = useSearchParams();
   const redirectTo = safeRedirect(params.get('redirect'));
   const { isAuthenticated, userName } = useAppContext();
@@ -34,14 +60,13 @@ export default function Login() {
           <MarkerHeading
             as="h1"
             onLoad
-            text="Entra y sigue"
-            marked="con tu porra."
+            key={intent}
+            text={COPY[intent].text}
+            marked={COPY[intent].marked}
             className="text-[clamp(2.4rem,6.4vw,5rem)]"
           />
           <div className="hidden lg:flex flex-col gap-6">
-            <p className="text-[#3f4652] text-lg max-w-130 leading-snug">
-              Tus ligas, tus predicciones y la clasificación te esperan donde las dejaste.
-            </p>
+            <p className="text-[#3f4652] text-lg max-w-130 leading-snug">{COPY[intent].lede}</p>
             <ol
               className="list-none p-0 m-0 max-w-130 border-t border-[rgba(17,24,39,0.16)]"
               aria-label="Cómo se juega"
@@ -65,7 +90,9 @@ export default function Login() {
         </div>
         <div className="landing-poster paper-panel p-6 sm:p-8 text-center min-w-0">
           <AuthPanel
-            intent="login"
+            key={intent}
+            intent={intent}
+            onIntentChange={(next) => navigate(AUTH_PATH[next] + search, { replace: true })}
             onGoogleSuccess={(response: CredentialResponse) => void googleSignIn(response)}
             onApple={async () => void (await appleSignIn())}
             signInOptions={signInOptions}
