@@ -13,13 +13,19 @@ import {
   upcomingTournamentDate,
 } from './pokerFormat';
 import { pokerRoutes } from './pokerRoutes';
-import PokerSessionTabs, { pokerTableLink } from './PokerSessionTabs';
+import PokerSessionTabs, {
+  MAX_OPEN_SESSIONS,
+  pokerNewSessionLink,
+  pokerTableLink,
+} from './PokerSessionTabs';
 
 export default function PokerHome({
   league,
   current,
   sessions,
   loading,
+  busy,
+  onAttend,
   onRetry,
   onInvite,
 }: {
@@ -28,6 +34,9 @@ export default function PokerHome({
   current: PokerSession | null;
   sessions: PokerSession[] | undefined;
   loading: boolean;
+  busy: boolean;
+  /** Apunta o desapunta al jugador sin salir de inicio. */
+  onAttend: (session: PokerSession, attending: boolean) => void;
   onRetry: () => void;
   onInvite: () => void;
 }) {
@@ -108,9 +117,27 @@ export default function PokerHome({
               : 'Cuando se programe el próximo, podrás apuntarte desde aquí.'}
           </PokerEmpty>
         )}
+        {current && !live && league.myPlayerId !== null && (
+          <button
+            type="button"
+            className={attending ? 'glass-btn' : 'glass-btn primary-btn'}
+            disabled={busy || (!attending && current.entries.length >= 20)}
+            onClick={() => onAttend(current, !attending)}
+          >
+            {attending ? 'Desapuntarme' : 'Apuntarme al torneo'}
+          </button>
+        )}
         {current && (
-          <Link className="glass-btn primary-btn" to={pokerTableLink(current)}>
-            {!live && !attending ? 'Apuntarme al torneo' : 'Ir a la mesa'}
+          <Link
+            className={live || league.myPlayerId === null ? 'glass-btn primary-btn' : 'glass-btn'}
+            to={pokerTableLink(current)}
+          >
+            Ir a la mesa
+          </Link>
+        )}
+        {current && league.owner && upcoming.length < MAX_OPEN_SESSIONS && (
+          <Link className="glass-btn" to={pokerNewSessionLink}>
+            Programar otro torneo
           </Link>
         )}
       </section>

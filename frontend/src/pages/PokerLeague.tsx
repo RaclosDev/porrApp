@@ -11,7 +11,7 @@ import PokerSettingsForm from '../components/poker/PokerSettingsForm';
 import PokerLive from '../components/poker/PokerLive';
 import PokerLateEntry from '../components/poker/PokerLateEntry';
 import PokerHome from '../components/poker/PokerHome';
-import PokerSessionTabs from '../components/poker/PokerSessionTabs';
+import PokerSessionTabs, { MAX_OPEN_SESSIONS } from '../components/poker/PokerSessionTabs';
 import { lastWinnerIds } from '../components/poker/PokerBadges';
 import { PokerFaces } from '../components/poker/PokerFaces';
 import { PokerHistory, PokerStatistics } from '../components/poker/PokerHistory';
@@ -24,15 +24,13 @@ import {
   fetchPokerLeague,
   pokerCommand,
   savePokerSession,
+  setPokerAttendance,
   type PokerLeagueData,
   type PokerSession,
 } from '../services/endpoints/poker';
 import { queryKeys } from '../services/queryKeys';
 import { errorMessage } from '../utils/errors';
 import '../styles/poker.css';
-
-/** Igual que en el backend: torneos abiertos a la vez por liga. */
-const MAX_OPEN_SESSIONS = 5;
 
 /** Torneos abiertos; si el servidor aún no envía la lista, al menos el actual. */
 const openSessions = (data: PokerLeagueData | undefined) =>
@@ -48,10 +46,13 @@ export default function PokerLeague({
   const client = useQueryClient();
   const navigate = useNavigate();
   const [invite, setInvite] = useState(false);
-  const [form, setForm] = useState<'new' | 'edit' | null>(null);
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const requestedSession = searchParams.get('torneo');
+  // Desde Inicio, «Programar otro torneo» llega a la mesa con el formulario ya abierto.
+  const [form, setForm] = useState<'new' | 'edit' | null>(() =>
+    searchParams.get('nuevo') === '1' ? 'new' : null,
+  );
   /**
    * Tras cerrar un torneo, ventana de propina para el crupier (apoyar el proyecto). Llega en el
    * estado de la navegación porque el historial monta la página de nuevo.
@@ -166,6 +167,10 @@ export default function PokerLeague({
               current={current}
               sessions={history.data}
               loading={history.isPending}
+              busy={busy}
+              onAttend={(session, attending) =>
+                void change(() => setPokerAttendance(league.id, session.id, attending))
+              }
               onRetry={() => void history.refetch()}
               onInvite={() => {
                 setInvite(true);
@@ -223,7 +228,10 @@ export default function PokerLeague({
                     defaultSettings
                   }
                   busy={busy}
-                  onCancel={() => setForm(null)}
+                  onCancel={() => {
+                    setForm(null);
+                    if (searchParams.has('nuevo')) navigate(location.pathname, { replace: true });
+                  }}
                   onSave={async (date, settings) => {
                     const before = new Set(upcoming.map((session) => session.id));
                     const saved = await change(() =>

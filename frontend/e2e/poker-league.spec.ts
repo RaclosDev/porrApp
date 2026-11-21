@@ -270,14 +270,16 @@ test('un miembro confirma su asistencia desde la liga sin controles de organizad
   ]);
   await expect(page.getByRole('heading', { name: 'Próximo torneo' })).toBeVisible();
   await expect(page.getByText('Jugadores confirmados')).toBeVisible();
-  await page.getByRole('link', { name: 'Apuntarme al torneo' }).click();
-  await page.reload();
+  // La asistencia se confirma desde inicio; la mesa es una navegación independiente.
+  await page.getByRole('button', { name: 'Apuntarme al torneo' }).click();
+  await expect(page.getByText('Asistencia confirmada')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Apuntarme al torneo' })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Ir a la mesa' }).click();
   await expect(nav.getByRole('link', { name: 'Mesa', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );
-  await page.getByRole('button', { name: 'Apuntarme', exact: true }).click();
-  await expect(page.getByText('Asistencia confirmada')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Desapuntarme', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Empezar torneo' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Desapuntarme', exact: true }).click();
   await expect(page.getByText('Aún no hay confirmaciones.')).toBeVisible();
