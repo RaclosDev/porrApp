@@ -3,6 +3,12 @@ import type { PokerSession } from '../../services/endpoints/poker';
 import { shortDate } from './pokerFormat';
 import { pokerRoutes } from './pokerRoutes';
 
+/** Igual que en el backend: torneos abiertos a la vez por liga. */
+export const MAX_OPEN_SESSIONS = 5;
+
+/** Abre la mesa con el formulario para programar un torneo más. */
+export const pokerNewSessionLink = `${pokerRoutes.table.to}?nuevo=1`;
+
 /** Enlace a la mesa de un torneo concreto cuando la liga tiene varios programados. */
 export const pokerTableLink = (session: PokerSession) =>
   `${pokerRoutes.table.to}?torneo=${session.id}`;

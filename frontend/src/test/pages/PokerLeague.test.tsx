@@ -20,6 +20,7 @@ const money = (cents: number) => euros(cents).replace(/\s/g, ' ');
 vi.mock('../../services/http', () => ({ request: vi.fn() }));
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
 const api = vi.mocked(request);
+const onAttend = vi.fn();
 const date = '2026-11-14';
 const settings: PokerSettings = {
   buyInCents: 1000,
@@ -317,6 +318,8 @@ it('corona en inicio al último ganador y marca compras en los cromos del histó
         current={league.current}
         sessions={[closed]}
         loading={false}
+        busy={false}
+        onAttend={onAttend}
         onRetry={vi.fn()}
         onInvite={vi.fn()}
       />
@@ -419,6 +422,8 @@ it('con varios torneos programados los enseña en inicio y deja apuntarse al ele
         current={saturday}
         sessions={[]}
         loading={false}
+        busy={false}
+        onAttend={onAttend}
         onRetry={vi.fn()}
         onInvite={vi.fn()}
       />
@@ -428,7 +433,9 @@ it('con varios torneos programados los enseña en inicio y deja apuntarse al ele
   const tabs = within(screen.getByRole('navigation', { name: 'Torneos programados' }));
   expect(tabs.getAllByRole('link')).toHaveLength(2);
   expect(tabs.getAllByRole('link')[1]).toHaveAttribute('aria-current', 'page');
-  expect(screen.getByRole('link', { name: 'Apuntarme al torneo' })).toHaveAttribute(
+  fireEvent.click(screen.getByRole('button', { name: 'Apuntarme al torneo' }));
+  expect(onAttend).toHaveBeenCalledWith(saturday, true);
+  expect(screen.getByRole('link', { name: 'Ir a la mesa' })).toHaveAttribute(
     'href',
     '/poker/mesa?torneo=22',
   );
@@ -452,6 +459,54 @@ it('con varios torneos programados los enseña en inicio y deja apuntarse al ele
     }),
   );
   expect(screen.getByRole('button', { name: 'Programar otro torneo' })).toBeInTheDocument();
+});
+
+it('el organizador programa otro torneo desde inicio', async () => {
+  const home = render(
+    <MemoryRouter>
+      <PokerHome
+        league={league}
+        current={league.current}
+        sessions={[]}
+        loading={false}
+        busy={false}
+        onAttend={onAttend}
+        onRetry={vi.fn()}
+        onInvite={vi.fn()}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('link', { name: 'Programar otro torneo' })).toHaveAttribute(
+    'href',
+    '/poker/mesa?nuevo=1',
+  );
+  home.rerender(
+    <MemoryRouter>
+      <PokerHome
+        league={{ ...league, owner: false }}
+        current={league.current}
+        sessions={[]}
+        loading={false}
+        busy={false}
+        onAttend={onAttend}
+        onRetry={vi.fn()}
+        onInvite={vi.fn()}
+      />
+    </MemoryRouter>,
+  );
+  expect(screen.queryByRole('link', { name: 'Programar otro torneo' })).not.toBeInTheDocument();
+  home.unmount();
+
+  api.mockImplementation((url: string) => Promise.resolve(url.endsWith('/history') ? [] : league));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={['/poker/mesa?nuevo=1']}>
+        <PokerLeague leagueId="8" view="table" />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByRole('button', { name: 'Abrir inscripciones' })).toBeInTheDocument();
 });
 
 it('guarda asistencia, edita con revisión y cancela un torneo abierto', async () => {
@@ -969,6 +1024,8 @@ it('sin torneos cerrados guía los primeros pasos y explica cada sección vacía
         current={null}
         sessions={[]}
         loading={false}
+        busy={false}
+        onAttend={onAttend}
         onRetry={vi.fn()}
         onInvite={onInvite}
       />
@@ -1013,6 +1070,8 @@ it('en el último torneo muestra a todos los empatados en cabeza, primero quien 
         current={league.current}
         sessions={[tied]}
         loading={false}
+        busy={false}
+        onAttend={onAttend}
         onRetry={vi.fn()}
         onInvite={vi.fn()}
       />
