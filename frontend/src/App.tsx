@@ -31,7 +31,7 @@ import { Toaster } from 'react-hot-toast';
 import { useSessionHandoffPending } from './hooks/useSessionHandoffPending';
 import { useRequestedGroup } from './hooks/useRequestedGroup';
 import { hideSplash, isSplashVisible } from './services/splash';
-import { DEMO } from './demo/mode';
+import { DEMO, EMBED } from './demo/mode';
 
 const Leaderboard = lazyPage(() => import('./pages/Leaderboard'));
 const Home = lazyPage(() => import('./pages/Home'));
@@ -195,11 +195,12 @@ function LegacyScoreboardJoin() {
 function AppShell() {
   return (
     <>
-      <PwaUpdater />
-      <PushNavigation />
+      {/* La demo del visor de la portada no instala service worker, ni avisa, ni pregunta por cookies. */}
+      {!EMBED && <PwaUpdater />}
+      {!EMBED && <PushNavigation />}
       <ScrollOnNavigate />
       <RouteHead />
-      <CookieConsent />
+      {!EMBED && <CookieConsent />}
       <ConfirmDialog />
       <LeaveGuard />
       <Layout>

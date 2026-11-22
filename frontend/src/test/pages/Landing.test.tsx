@@ -64,10 +64,13 @@ describe('Landing', () => {
     ).toEqual(['Crea tu liga', 'Invita con un enlace', 'Predice y compite']);
   });
 
-  it('shows the phone screenshots in the hero and every sticker in the album', () => {
+  it('shows the live demo in a phone and every sticker in the album', () => {
     renderLanding();
-    const screens = screen.getByRole('region', { name: 'Así se ve en el móvil' });
-    expect(within(screens).getAllByRole('img')).toHaveLength(3);
+    const demo = screen.getByRole('region', { name: /La app entera/ });
+    expect(within(demo).getByRole('link', { name: /demo|pantalla completa/i })).toHaveAttribute(
+      'href',
+      '/demo',
+    );
     expect(screen.queryByText('Clasificación en vivo')).not.toBeInTheDocument();
     const album = screen.getByRole('list', { name: 'Cromos de Liga abierta' });
     expect(within(album).getAllByRole('listitem')).toHaveLength(4);

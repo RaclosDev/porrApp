@@ -17,7 +17,7 @@ export const AFFILIATION_NOTICE =
   'PorrApp no está afiliada a LaLiga, la UEFA, la FIFA, la Premier League, la RFEF, la Fórmula 1, la UFC, la NBA, la NFL, la ATP ni la WTA, ni cuenta con su patrocinio. Los nombres, escudos e imágenes de competiciones, equipos y deportistas pertenecen a sus titulares y se muestran solo para identificarlos.';
 
 import { CONTENT_PAGES } from './content';
-import type { AppScreen, FaqEntry, PageMeta, PageScreens } from './content/shared';
+import type { FaqEntry, PageMeta } from './content/shared';
 
 export { CONTENT_PAGES };
 export type { ContentPage, FaqEntry, PageMeta, PageScreens } from './content/shared';
@@ -50,7 +50,10 @@ export const LANDING_COPY = {
       text: 'Cada predicción se cierra cuando empieza el partido. Los puntos y la clasificación se actualizan solos con los resultados reales.',
     },
   ],
-  screensTitle: 'Así se ve en el móvil',
+  liveTitle: 'La app entera,',
+  liveMarked: 'para tocarla',
+  liveText:
+    'Es la demo de verdad, con tres ligas de ejemplo: el Mundial, LaLiga y la UFC. Mira el podio del Mundial, haz tus predicciones de LaLiga o cambia de liga en la barra de arriba. Nada de lo que hagas se guarda.',
   formatsTitle: 'Una porra para cada deporte',
   sports: [
     { path: '/porra-laliga', name: 'LaLiga', text: 'Cada jornada, a 1X2 o a marcador exacto.' },
@@ -91,20 +94,6 @@ export const LANDING_COPY = {
   closing:
     'Crea la liga, pasa el enlace y que hablen los resultados. Se instala en el móvil como una app.',
 } as const;
-
-const landingShot = (slug: string): AppScreen => {
-  const shot = CONTENT_PAGES.flatMap((page) => page.screens?.shots ?? []).find((item) =>
-    item.src.endsWith(`/${slug}`),
-  );
-  if (!shot) throw new Error(`Falta la captura ${slug}`);
-  return shot;
-};
-
-/** Capturas de móvil de la portada: tres deportes, con el texto alternativo de su página. */
-export const LANDING_SCREENS: PageScreens = {
-  title: LANDING_COPY.screensTitle,
-  shots: ['f1-carreras', 'laliga-jornada', 'ufc-cartelera'].map(landingShot),
-};
 
 /** Preguntas de la portada: van en su HTML prerenderizado y en sus datos estructurados (FAQPage). */
 export const HOME_FAQ: FaqEntry[] = [
