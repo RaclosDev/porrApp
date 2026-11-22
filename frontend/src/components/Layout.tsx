@@ -9,7 +9,7 @@ import { useAppStore } from '../store/useAppStore';
 import MobileBottomNav from './MobileBottomNav';
 import DemoBanner from './layout/DemoBanner';
 import DemoBar from '../demo/DemoBar';
-import { DEMO } from '../demo/mode';
+import { DEMO, EMBED } from '../demo/mode';
 import MainNav from './layout/MainNav';
 import HeaderActions from './layout/HeaderActions';
 import PublicHeader from './landing/PublicHeader';
@@ -161,7 +161,8 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {DEMO && <DemoBar />}
+      {/* En el visor de la portada sobra: la portada ya dice que es una demo y le quitaría pantalla. */}
+      {DEMO && !EMBED && <DemoBar />}
       {isDemo && !isUserLoggedIn && !isLanding && !isAuthPage && (
         <DemoBanner exitDemoMode={exitDemoMode} navigate={navigate} />
       )}
