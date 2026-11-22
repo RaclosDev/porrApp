@@ -20,6 +20,10 @@
   .home-dashboard-grid:has(> .home-dashboard-sidebar.is-filled) {
     align-items: stretch;
   }
+  /* Con los resultados abiertos, ranking y tabla no crecen con la columna de partidos. */
+  .home-dashboard-sidebar.is-filled.is-frozen {
+    align-self: start;
+  }
 
   /* Inicio: cabecera de liga y lista de partidos */
   .home-hero {
