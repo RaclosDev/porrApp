@@ -7,6 +7,7 @@ interface MarkerHeadingProps {
   /** Texto final remarcado en el color de acento. */
   marked?: string;
   as?: 'h1' | 'h2';
+  id?: string;
   className?: string;
   /** El H1 se anima al cargar; el resto, al entrar en pantalla. */
   onLoad?: boolean;
@@ -27,6 +28,7 @@ export default function MarkerHeading({
   text,
   marked,
   as: Tag = 'h2',
+  id,
   className = '',
   onLoad = false,
 }: MarkerHeadingProps) {
@@ -35,7 +37,7 @@ export default function MarkerHeading({
 
   return (
     <div ref={ref}>
-      <Tag className={`poster-title leading-[0.95] ${className}`}>
+      <Tag id={id} className={`poster-title leading-[0.95] ${className}`}>
         {words.map((word, index) => (
           <Fragment key={`${word}-${index}`}>
             {index > 0 ? ' ' : null}

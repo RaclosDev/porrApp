@@ -17,7 +17,48 @@ export const DEMO_LEAGUES = [
 /** Quien visita la demo entra como este participante ficticio de las tres ligas. */
 export const DEMO_USER = { id: '7', name: 'Marta' } as const;
 
+/** Nombre de la ventana del visor móvil de la portada: sobrevive a una recarga dentro del iframe. */
+const EMBED_NAME = 'porrapp-demo-embed';
+
+/**
+ * La demo dentro del visor móvil de la portada (iframe del mismo origen). Comparte `sessionStorage` con
+ * la pestaña de la portada, así que no deja la marca de demo ni guarda nada ahí: todo vive en memoria.
+ */
+export const EMBED = (() => {
+  try {
+    if (window.parent === window) return false;
+    if (window.location.pathname === '/demo') window.name = EMBED_NAME;
+    return window.name === EMBED_NAME;
+  } catch {
+    return false;
+  }
+})();
+
+/** Almacén en memoria con la interfaz de `Storage`, para la demo incrustada. */
+class MemoryStorage implements Storage {
+  private readonly items = new Map<string, string>();
+  get length() {
+    return this.items.size;
+  }
+  clear() {
+    this.items.clear();
+  }
+  getItem(key: string) {
+    return this.items.get(key) ?? null;
+  }
+  key(index: number) {
+    return [...this.items.keys()][index] ?? null;
+  }
+  removeItem(key: string) {
+    this.items.delete(key);
+  }
+  setItem(key: string, value: string) {
+    this.items.set(key, String(value));
+  }
+}
+
 function detectDemo(): boolean {
+  if (EMBED) return true;
   try {
     if (window.location.pathname === '/demo') {
       window.sessionStorage.setItem(FLAG, '1');
@@ -75,6 +116,13 @@ class DemoStorage implements Storage {
 
 /** Sustituye `localStorage` por el de la demo y deja la sesión ficticia preparada. */
 export function startDemoStorage(): void {
+  if (EMBED) {
+    Object.defineProperty(window, 'sessionStorage', {
+      value: new MemoryStorage(),
+      configurable: true,
+    });
+    document.documentElement.classList.add('is-embed');
+  }
   const real = window.localStorage;
   const storage = new DemoStorage(window.sessionStorage);
   const slug = new URLSearchParams(window.location.search).get('liga');
