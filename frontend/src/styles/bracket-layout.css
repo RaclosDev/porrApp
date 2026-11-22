@@ -30,7 +30,7 @@
 .finale-semifinal h3,
 .finale-final h3,
 .finale-champion h4 {
-  font-family: 'Permanent Marker', cursive;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
   font-weight: 400;
   margin: 0 0 12px;
   color: var(--ink);
@@ -89,7 +89,7 @@
   min-width: 0;
 }
 .finale-versus {
-  font-family: 'Permanent Marker', cursive;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
   color: #596371;
 }
 
@@ -160,7 +160,7 @@
 .bracket-finale .finale-champion .team-slot > span:first-of-type {
   flex: none;
   white-space: normal;
-  font-family: 'Permanent Marker', cursive;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
   font-size: 1.6rem;
   border-bottom: 2px solid currentColor;
   padding-bottom: 4px;
@@ -186,7 +186,7 @@
 }
 .finale-third summary span {
   margin-right: auto;
-  font-family: 'Permanent Marker', cursive;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
 }
 .finale-third summary strong {
   overflow-wrap: break-word;
@@ -283,7 +283,7 @@
   width: 100%;
   margin: 0;
   text-align: center;
-  font-family: 'Permanent Marker', cursive;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
   font-size: 0.8rem;
   font-weight: 400;
   color: var(--ink);

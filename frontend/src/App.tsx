@@ -28,7 +28,6 @@ import { PageSkeleton } from './components/Skeleton';
 import ConfirmDialog from './components/ConfirmDialog';
 import LeaveGuard from './components/LeaveGuard';
 import { Toaster } from 'react-hot-toast';
-import { usePaperTapeAngles } from './hooks/usePaperTapeAngles';
 import { useSessionHandoffPending } from './hooks/useSessionHandoffPending';
 import { useRequestedGroup } from './hooks/useRequestedGroup';
 import { hideSplash, isSplashVisible } from './services/splash';
@@ -426,25 +425,22 @@ function AppShell() {
 const router = createBrowserRouter([{ path: '*', element: <AppShell /> }]);
 
 function App() {
-  usePaperTapeAngles();
   return (
     <AppProvider>
       <Toaster
         position="top-center"
         toastOptions={{
-          className: 'paper-panel landing-tape paper-toast',
+          className: 'paper-panel paper-toast',
           iconTheme: { primary: '#111827', secondary: '#f3ecdc' },
           success: { iconTheme: { primary: '#15803d', secondary: '#f3ecdc' } },
           error: { iconTheme: { primary: '#b91c1c', secondary: '#f3ecdc' } },
           style: {
             background: 'var(--paper)',
-            backgroundImage:
-              'repeating-linear-gradient(0deg, rgba(17, 24, 39, 0.025) 0 1px, transparent 1px 3px)',
             color: '#111827',
             border: '1.5px solid #111827',
             borderRadius: '4px',
             fontSize: '0.95rem',
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             padding: '14px 18px',
             maxWidth: 'min(380px, calc(100vw - 32px))',
             boxShadow: '4px 4px 0 rgba(0, 0, 0, 0.2)',

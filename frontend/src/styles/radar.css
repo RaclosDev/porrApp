@@ -40,7 +40,7 @@
     gap: 8px;
     margin: 0 0 8px;
     color: var(--ink);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -72,7 +72,7 @@
   .radar-day-title {
     margin: 0 0 6px;
     color: var(--text-muted);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 0.78rem;
     font-weight: 600;
   }

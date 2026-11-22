@@ -55,7 +55,7 @@ function KnockoutStatsPage() {
   const insights = useKnockoutInsights();
   const count = insights.entries.length;
   return (
-    <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
+    <section id="view-stats" className="view-section block paper-panel album-sheet">
       <InsightsHeader
         leagueName={insights.leagueName}
         summary={count > 0 ? `${count} ${count === 1 ? 'predicción' : 'predicciones'}` : undefined}
@@ -76,7 +76,7 @@ function GrandPrixStatsPage() {
       ? `${count} ${count === 1 ? 'Gran Premio cerrado' : 'Grandes Premios cerrados'}`
       : undefined;
   return (
-    <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
+    <section id="view-stats" className="view-section block paper-panel album-sheet">
       <InsightsHeader leagueName={insights.leagueName} summary={summary} />
       <GrandPrixInsightsGate insights={insights}>
         <GrandPrixStats races={insights.races} drivers={insights.drivers} />
@@ -89,7 +89,7 @@ function GrandPrixStatsPage() {
 function MatchdayStatsPage() {
   const { activeGroupId, activeGroupName } = useAppContext();
   return (
-    <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
+    <section id="view-stats" className="view-section block paper-panel album-sheet">
       <InsightsHeader leagueName={activeGroupName} summary="Por partido" />
       {activeGroupId ? (
         <MatchdayStatsView groupId={activeGroupId} />
@@ -115,7 +115,7 @@ function GroupStageStatsPage() {
       : 'El torneo no ha empezado';
 
   return (
-    <section id="view-stats" className="view-section block paper-panel album-sheet landing-tape">
+    <section id="view-stats" className="view-section block paper-panel album-sheet">
       <InsightsHeader
         leagueName={insights.leagueName}
         summary={

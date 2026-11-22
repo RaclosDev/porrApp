@@ -15,7 +15,7 @@
   /* Desenfoque común de los overlays de pantalla completa. */
   --overlay-blur: 8px;
   /* Identidad de cartel y álbum de cromos (ver la portada): papel, tinta y sellos. Sobre el
-     fondo oscuro la tinta de rotulador es el cian de la app; sobre papel, un azul tinta. */
+     fondo oscuro la tinta es el cian de la app; sobre papel, un azul tinta. */
   --paper: #f3ecdc;
   --ink: #111827;
   --marker-ink: var(--accent-cyan);
@@ -75,4 +75,16 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Titulares repartidos en líneas parejas y párrafos sin una palabra suelta al final. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p,
+li {
+  text-wrap: pretty;
 }

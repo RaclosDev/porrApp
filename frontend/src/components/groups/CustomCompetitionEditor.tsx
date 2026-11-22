@@ -141,7 +141,7 @@ export default function CustomCompetitionEditor({
         role="dialog"
         aria-modal="true"
         aria-labelledby="custom-admin-title"
-        className="league-admin-panel paper-panel landing-tape paper-dialog"
+        className="league-admin-panel paper-panel paper-dialog"
       >
         <header className="league-admin-header">
           <LeagueAvatar url={group.imageUrl} name={group.name} size={46} />

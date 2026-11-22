@@ -22,7 +22,7 @@
   .leaderboard-table th {
     background: var(--panel-bg);
     color: var(--accent-cyan);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     letter-spacing: 0.5px;
   }
 
@@ -111,7 +111,7 @@
   .lb-matchday-title {
     display: block;
     margin-top: 4px;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.35rem;
     color: var(--text-main);
     line-height: 1.1;

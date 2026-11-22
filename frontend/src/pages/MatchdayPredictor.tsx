@@ -153,7 +153,7 @@ function MatchdayLeague({ context }: { context: ReturnType<typeof useAppContext>
         </p>
       )}
       {!md.isLoading && !md.isError && md.fixtures.length === 0 && (
-        <div className="paper-panel album-sheet landing-tape text-center p-10 text-muted rounded-[12px]">
+        <div className="paper-panel album-sheet text-center p-10 text-muted rounded-[12px]">
           {context.leagueKind === 'tennisDraw' && md.availableRounds.length === 0
             ? 'El cuadro aún no está publicado: los partidos aparecerán aquí en cuanto ESPN lo publique.'
             : 'No hay partidos programados para esta competición o jornada.'}

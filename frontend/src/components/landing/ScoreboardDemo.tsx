@@ -31,7 +31,7 @@ export default function ScoreboardDemo() {
     <section
       id="demo"
       aria-labelledby="scoreboard-demo-title"
-      className="landing-poster landing-tape mt-14 p-6 sm:p-8 max-w-160 mx-auto flex flex-col gap-4"
+      className="landing-poster mt-14 p-6 sm:p-8 max-w-160 mx-auto flex flex-col gap-4"
     >
       <h2 id="scoreboard-demo-title" className="poster-title text-3xl sm:text-4xl">
         Pruébalo aquí mismo
