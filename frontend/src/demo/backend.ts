@@ -3,6 +3,8 @@
  * /demo-data.json. Las predicciones de jornada se guardan en memoria; el resto de cambios se rechaza.
  */
 
+import { withAvatars } from './avatars';
+
 interface DemoFixture {
   matchId: number;
   locked: boolean;
@@ -240,7 +242,7 @@ export function installDemoBackend(): void {
       })
       .then((data) => {
         const days = Math.floor((Date.now() - Date.parse(data.recordedAt)) / DAY_MS);
-        return { ...data, exact: shiftDates(data.exact, Math.max(0, days)) };
+        return { ...data, exact: withAvatars(shiftDates(data.exact, Math.max(0, days))) };
       })
       .catch((error: unknown) => {
         // Una descarga fallida no se recuerda: «Reintentar» vuelve a pedir los datos.
