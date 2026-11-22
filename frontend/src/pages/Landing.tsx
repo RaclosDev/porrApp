@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import AppScreens from '../components/landing/AppScreens';
+import LandingLiveDemo from '../components/landing/LandingLiveDemo';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import StickerCard from '../components/StickerCard';
 import NetLine from '../components/landing/NetLine';
@@ -8,7 +8,7 @@ import Reveal from '../components/landing/Reveal';
 import { revealStyle } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
 import SiteFooter from '../components/landing/SiteFooter';
-import { HOME_FAQ, LANDING_COPY, LANDING_SCREENS } from '../seo/pages';
+import { HOME_FAQ, LANDING_COPY } from '../seo/pages';
 import { SIGNUP_TO_CREATE_LEAGUE } from '../utils/authRoutes';
 
 const FAN_ANGLES = [-8, -3, 0, 3, 8];
@@ -88,7 +88,7 @@ export default function Landing() {
 
       <NetLine />
 
-      <AppScreens screens={LANDING_SCREENS} />
+      <LandingLiveDemo />
 
       <NetLine />
 

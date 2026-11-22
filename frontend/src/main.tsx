@@ -1,4 +1,5 @@
 import './demo/boot';
+import { EMBED } from './demo/mode';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
@@ -19,7 +20,8 @@ initSession();
 installErrorReporting();
 installChunkReload();
 initInstallPrompt();
-initAnalytics();
+// La demo incrustada en la portada no cuenta visitas: ya las cuenta la portada.
+if (!EMBED) initAnalytics();
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
