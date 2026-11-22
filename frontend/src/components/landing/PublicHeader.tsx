@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import { SMOOTH_SCROLL_STATE } from '../ScrollOnNavigate';
 
 const SECTIONS = [
+  { href: '/#pruebalo', label: 'Pruébalo' },
   { href: '/#como-se-juega', label: 'Cómo se juega' },
   { href: '/#deportes', label: 'Deportes' },
-  { href: '/#pruebalo', label: 'Pruébalo' },
 ];
 
 interface PublicHeaderProps {

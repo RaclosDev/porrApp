@@ -75,9 +75,11 @@ function wantsSmoothScroll(state: unknown): boolean {
   );
 }
 
+const reducedMotion = () =>
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
 function scrollToTop(smooth: boolean) {
-  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-  if (smooth && !reduceMotion) window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  if (smooth && !reducedMotion()) window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   else jumpTo(0);
 }
 
@@ -137,9 +139,11 @@ export default function ScrollOnNavigate() {
 
     if (location.hash) {
       const id = decodeURIComponent(location.hash.slice(1));
+      // En la misma página, el enlace del header baja hasta su sección con suavidad.
+      const behavior = smooth && !pathnameChanged && !reducedMotion() ? 'smooth' : 'instant';
       return retryUntilDone(() => {
         const target = document.getElementById(id);
-        target?.scrollIntoView({ block: 'start' });
+        target?.scrollIntoView({ block: 'start', behavior });
         return target !== null;
       });
     }
