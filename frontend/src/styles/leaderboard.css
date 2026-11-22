@@ -519,30 +519,31 @@
     margin-inline: 0;
   }
 
-  /* Las caras empatadas van una al lado de otra, sin taparse; si la tarjeta es estrecha, bajan de línea. */
-  .matchday-podium-avatars {
+  /* Empate: las caras se solapan como una pila de cromos, con un aro blanco que las separa. */
+  .matchday-podium-faces {
     display: flex;
-    flex-wrap: wrap;
     justify-content: center;
-    gap: 4px;
-    max-width: 100%;
+    padding-left: 12px;
   }
-  .matchday-podium-ties {
-    width: 100%;
-    font-size: 0.75rem;
+  .matchday-podium-faces > * {
+    margin-left: -12px;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 3px #fffdf7;
   }
-  .matchday-podium-ties summary {
-    cursor: pointer;
-    min-height: 44px;
-    align-content: center;
+  .matchday-podium-more {
+    display: grid;
+    place-items: center;
+    background: var(--ink);
+    color: #fffdf7;
+    font-family: 'Anton', 'Outfit', sans-serif;
+    font-size: 0.95rem;
   }
-  .matchday-podium-ties ul {
-    list-style: none;
-    padding: 0;
-    overflow-wrap: anywhere;
-  }
-  .matchday-podium-ties li + li {
-    margin-top: 6px;
+  .matchday-podium-tie {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7280;
   }
 
   .share-image-podium.ranking-podium {

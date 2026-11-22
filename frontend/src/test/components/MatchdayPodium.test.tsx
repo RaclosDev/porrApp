@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { expect, it } from 'vitest';
-import MatchdayPodium, { podiumPlaces } from '../../components/MatchdayPodium';
+import MatchdayPodium, { podiumPlaces, tieNames } from '../../components/MatchdayPodium';
 import type { LeaderboardRow } from '../../hooks/useLeaderboard';
 
 const row = (id: number, name: string, total: number, paid = true) =>
@@ -32,7 +32,14 @@ it('keeps the podium with ties, including a third place on zero points', () => {
   ]);
   render(<MatchdayPodium rows={tied} />);
   expect(screen.getByLabelText('Podio de la clasificación general')).toBeInTheDocument();
-  expect(screen.getAllByText('Empate')).toHaveLength(2);
+  expect(screen.getAllByText('Empate · 2')).toHaveLength(2);
+  expect(screen.getByText('Cristian y Giorgi')).toBeInTheDocument();
+});
+
+it('names the tied players instead of a generic label', () => {
+  expect(tieNames(['Ana', 'Luis'])).toBe('Ana y Luis');
+  expect(tieNames(['Ana', 'Luis', 'Sara'])).toBe('Ana, Luis y Sara');
+  expect(tieNames(['Ana', 'Luis', 'Sara', 'Pau', 'Leo'])).toBe('Ana, Luis y 3 más');
 });
 
 it('hides the podium while nobody has scored and skips unpaid members', () => {

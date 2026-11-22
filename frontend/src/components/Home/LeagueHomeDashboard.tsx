@@ -22,6 +22,36 @@ import { boutBilling, fightOutcomes, fightResultText, weightClassLabel } from '.
 import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult';
 
 const RANKING_SIZE = 5;
+/** Rellenos, bordes y márgenes bajo la rejilla hasta el final de la página: también tienen que caber. */
+function spaceBelow(element: Element) {
+  let total = 0;
+  for (
+    let node: Element | null = element;
+    node && node !== document.body;
+    node = node.parentElement
+  ) {
+    const style = getComputedStyle(node);
+    total += Number.parseFloat(style.marginBottom) || 0;
+    if (node !== element) {
+      total +=
+        (Number.parseFloat(style.paddingBottom) || 0) +
+        (Number.parseFloat(style.borderBottomWidth) || 0);
+    }
+  }
+  return total;
+}
+
+/** Alto del contenido de un panel aunque la rejilla lo estire: hasta el final de su último hijo. */
+function contentHeight(panel: Element) {
+  const bounds = panel.getBoundingClientRect();
+  const last = panel.lastElementChild;
+  if (!last) return bounds.height;
+  const style = getComputedStyle(panel);
+  const bottom =
+    (Number.parseFloat(style.paddingBottom) || 0) +
+    (Number.parseFloat(style.borderBottomWidth) || 0);
+  return last.getBoundingClientRect().bottom - bounds.top + bottom;
+}
 
 function usePreviewRows(
   settling: boolean,
@@ -42,16 +72,20 @@ function usePreviewRows(
     const [matches, sidebar] = grid.children;
     if (!matches || !sidebar) return;
 
-    const observer = new ResizeObserver(() => {
-      const matchBounds = matches.getBoundingClientRect();
-      if (matchBounds.width >= grid.getBoundingClientRect().width) {
+    const measure = () => {
+      const gridBounds = grid.getBoundingClientRect();
+      if (matches.getBoundingClientRect().width >= gridBounds.width) {
         setDesktop(null);
         return;
       }
 
+      // Con pocos partidos, ranking y tabla no se encogen: llegan al menos hasta el final de la
+      // pantalla y se reparten ese alto a partes iguales.
+      const toScreenEnd = window.innerHeight - (gridBounds.top + window.scrollY) - spaceBelow(grid);
+      const height = Math.max(contentHeight(matches), toScreenEnd);
       const gap = Number.parseFloat(getComputedStyle(sidebar).rowGap) || 0;
       const panelCount = sidebar.children.length;
-      const panelHeight = Math.max(0, (matchBounds.height - gap * (panelCount - 1)) / panelCount);
+      const panelHeight = Math.max(0, (height - gap * (panelCount - 1)) / panelCount);
       const rowsThatFit = (panel: Element | undefined, total: number) => {
         const list = panel?.querySelector('ol');
         const row = list?.firstElementChild;
@@ -61,8 +95,8 @@ function usePreviewRows(
         const rowHeight = row.getBoundingClientRect().height + listGap;
         if (rowHeight <= 0) return 0;
 
-        const headerAndPadding =
-          panel.getBoundingClientRect().height - list.getBoundingClientRect().height;
+        // Cabecera y relleno del panel, sin contar el hueco que deja la rejilla al estirarlo.
+        const headerAndPadding = contentHeight(panel) - list.getBoundingClientRect().height;
         const capacity = Math.floor((panelHeight - headerAndPadding + listGap) / rowHeight);
         return Math.min(total, capacity);
       };
@@ -76,11 +110,17 @@ function usePreviewRows(
           ? current
           : { panelHeight, rankingLimit, tableLimit },
       );
-    });
+    };
+    const observer = new ResizeObserver(measure);
     observer.observe(grid);
     observer.observe(matches);
     observer.observe(sidebar);
-    return () => observer.disconnect();
+    // Cambiar el alto de la ventana no cambia el tamaño de la rejilla, pero sí lo que hay que llenar.
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, [settling, rankingTotal, tableTotal]);
 
   return {
@@ -519,7 +559,7 @@ export default function LeagueHomeDashboard() {
             </div>
 
             <div
-              className="home-dashboard-sidebar"
+              className={`home-dashboard-sidebar${panelHeight === undefined ? '' : ' is-filled'}`}
               style={
                 panelHeight === undefined
                   ? undefined

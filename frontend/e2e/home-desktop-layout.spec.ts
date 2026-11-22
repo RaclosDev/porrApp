@@ -3,7 +3,7 @@ import { withLeagueKind } from './leagueKind';
 
 test.use({ serviceWorkers: 'block', reducedMotion: 'reduce' });
 
-test('home previews each use half the match column for compact rows', async ({
+test('home previews split the column evenly and fill at least the screen', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -81,6 +81,7 @@ test('home previews each use half the match column for compact rows', async ({
         sidebar: { top: sidebar.top, bottom: sidebar.bottom },
         panels: panels.map(({ top, bottom, height }) => ({ top, bottom, height })),
         overflow: document.documentElement.scrollWidth > innerWidth,
+        viewport: innerHeight,
       };
     });
   const rankingRows = page.getByRole('list', { name: 'Top del ranking' }).getByRole('listitem');
@@ -92,12 +93,9 @@ test('home previews each use half the match column for compact rows', async ({
   const desktopRowHeight = await rowHeight();
   const desktop = await bounds();
   expect(Math.abs(desktop.matches.top - desktop.panels[0].top)).toBeLessThan(2);
-  const panelBudget = (desktop.matches.bottom - desktop.matches.top - 18) / 2;
-  expect(desktop.panels[1].top).toBeCloseTo(desktop.matches.top + panelBudget + 18, 0);
-  expect(desktop.panels[0].height).toBeLessThan(panelBudget);
-  const unusedSpace = desktop.matches.bottom - desktop.panels[1].bottom;
-  expect(unusedSpace).toBeGreaterThanOrEqual(-1);
-  expect(unusedSpace).toBeLessThan(desktopRowHeight + 6);
+  expect(Math.abs(desktop.panels[0].height - desktop.panels[1].height)).toBeLessThan(2);
+  expect(desktop.panels[1].top).toBeCloseTo(desktop.panels[0].bottom + 18, 0);
+  expect(desktop.panels[1].bottom).toBeGreaterThanOrEqual(desktop.matches.bottom - 1);
   expect(desktop.overflow).toBe(false);
   await page.screenshot({ path: testInfo.outputPath('desktop.png'), fullPage: true });
 
@@ -116,9 +114,12 @@ test('home previews each use half the match column for compact rows', async ({
   await page.reload();
   await expect(page.locator('#app-splash')).toBeHidden();
   await expect(page.locator('.home-match-card')).toHaveCount(3);
-  await expect(rankingRows.nth(4)).toHaveCount(0);
-  await expect(tableRows.nth(4)).toHaveCount(0);
-  await expect(rankingRows.first()).toBeVisible();
-  await expect(tableRows.first()).toBeVisible();
+  // Con pocos partidos los paneles no se encogen: se reparten la pantalla.
+  await expect(rankingRows).toHaveCount(6);
+  await expect(tableRows.nth(4)).toBeVisible();
+  const few = await bounds();
+  expect(Math.abs(few.panels[0].height - few.panels[1].height)).toBeLessThan(2);
+  expect(few.panels[1].bottom).toBeGreaterThan(few.viewport - 80);
+  expect(few.panels[1].bottom).toBeLessThanOrEqual(few.viewport + 1);
   expect(await rowHeight()).toBeCloseTo(desktopRowHeight);
 });
