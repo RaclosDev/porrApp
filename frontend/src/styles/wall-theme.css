@@ -1,0 +1,134 @@
+/* Rediseño «la app sobre la pared»: el interior de la app deja el azul noche y vive en la misma
+   pared clara que la portada, Ascension y LoopDeck. Las hojas, la tinta y el acento petróleo no
+   cambian; lo que cambia es el fondo, el cromo (barra superior y barra inferior) y los textos que
+   quedaban fuera de las hojas. */
+:root {
+  --bg-color: #e6e0d3;
+  --panel-bg: #fffdf7;
+  --panel-bg-translucent: rgba(255, 253, 247, 0.92);
+  --border-color: rgba(17, 24, 39, 0.14);
+  --text-main: #111827;
+  --text-muted: #4b5563;
+  --accent-color: #0b5f74;
+  --accent-text: #0b5f74;
+  --input-border: #6b7280;
+  --accent-cyan: #0b5f74;
+  --marker-ink: #0b5f74;
+  --stamp-ink: #0b5f74;
+  --stamp-red: #b42318;
+  --miss: #b42318;
+  --hit: #1f7a45;
+  --pass: #1d5fa8;
+  --tab-active-bg: var(--ink);
+  --tab-active-fg: #fffdf7;
+  --tab-border: rgba(17, 24, 39, 0.25);
+  --connector: rgba(11, 95, 116, 0.5);
+}
+
+@layer components {
+  html,
+  body {
+    background: var(--bg-color);
+    color: var(--ink);
+  }
+
+  .top-bar {
+    background: rgba(230, 224, 211, 0.94);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .glass-input,
+  .glass-input:focus {
+    background: #fffdf7;
+    color: var(--ink);
+  }
+
+  .glass-input::placeholder {
+    color: #6b7280;
+  }
+
+  .mobile-bottom-nav {
+    background: var(--ink);
+    border: 0;
+    box-shadow: 3px 4px 0 rgba(17, 24, 39, 0.25);
+  }
+}
+
+/* Fuera de capas, como el arranque de index.html, para que la pared llegue a html y body. */
+html,
+body {
+  background-color: var(--bg-color);
+}
+
+@layer components {
+  .glass-input:focus {
+    border-color: var(--accent-color);
+  }
+
+  .team-slot {
+    background: #fffdf7;
+    color: var(--ink);
+  }
+}
+
+/* Cromo sobre la pared: lo que iba en papel claro sobre azul pasa a tinta. */
+@layer components {
+  .top-bar {
+    background: rgba(230, 224, 211, 0.94);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .header-brand-link,
+  .top-bar .nav-links a {
+    color: var(--ink);
+  }
+
+  .header-brand-link:hover {
+    color: var(--accent-color);
+  }
+
+  .top-bar .glass-btn {
+    border-color: rgba(17, 24, 39, 0.3);
+  }
+
+  .top-bar .nav-links a.active {
+    background: var(--ink) !important;
+    color: #fffdf7 !important;
+    border-color: var(--ink) !important;
+  }
+
+  .top-bar #btn-active-league-dropdown {
+    background: #fffdf7;
+    border-color: var(--ink);
+    box-shadow: 2px 2px 0 rgba(17, 24, 39, 0.2);
+  }
+
+  .top-bar .glass-btn.primary-btn {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fffdf7;
+  }
+
+  .top-bar .glass-btn.primary-btn:hover:not(:disabled) {
+    background: #000;
+    border-color: #000;
+  }
+
+  .ranking-view-tab.is-active {
+    border-bottom-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .ranking-secondary-link:hover {
+    color: var(--ink);
+  }
+
+  .ranking-share-button {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .ranking-share-button:hover:not(:disabled) {
+    background: rgba(17, 24, 39, 0.06);
+  }
+}

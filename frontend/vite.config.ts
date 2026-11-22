@@ -67,8 +67,8 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        background_color: '#0f172a',
-        theme_color: '#0f172a',
+        background_color: '#e6e0d3',
+        theme_color: '#e6e0d3',
         categories: ['sports', 'entertainment'],
         icons: [
           { src: '/icon-paper-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

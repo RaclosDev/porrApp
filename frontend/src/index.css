@@ -35,6 +35,7 @@
 @import './styles/grand-prix.css';
 @import './styles/tracker.css';
 @import './styles/select-menu.css';
+@import './styles/wall-theme.css';
 
 /* Franja para la barra de estado de la app instalada en iOS 26+. Sin una caja fija de color
    sólido en el borde superior, iOS difumina unos 40 pt de la página bajo la barra de estado
