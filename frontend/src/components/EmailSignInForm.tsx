@@ -138,6 +138,7 @@ export default function EmailSignInForm({
           maxLength={254}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+          placeholder="tu@email.com"
           className="glass-input font-normal"
         />
       </label>
@@ -179,10 +180,10 @@ export default function EmailSignInForm({
       ) : (
         <button
           type="button"
-          className={`self-start ${linkButton}`}
+          className={`self-end ${linkButton}`}
           onClick={() => setStep('forgot')}
         >
-          ¿Has olvidado la contraseña?
+          ¿Has olvidado tu contraseña?
         </button>
       )}
       {error && (

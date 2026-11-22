@@ -150,12 +150,12 @@ const fill = (email: string, password: string) => {
 it('opens /registro on «Crea tu cuenta» and can switch to signing in', () => {
   renderAuthPage({ intent: 'signup' });
 
-  expect(screen.getByRole('heading', { name: 'Crea tu cuenta en PorrApp' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Crea tu cuenta' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Entrar con huella o llave de acceso' })).toBeNull();
 
   fireEvent.click(screen.getByRole('button', { name: 'Inicia sesión' }));
-  expect(screen.getByRole('heading', { name: 'Inicia sesión en PorrApp' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
 });
 
@@ -235,7 +235,7 @@ it('asks for the reset link with the email already typed and says the same whate
   openEmailForm();
 
   fill(' marta@test.com ', '');
-  fireEvent.click(screen.getByRole('button', { name: '¿Has olvidado la contraseña?' }));
+  fireEvent.click(screen.getByRole('button', { name: '¿Has olvidado tu contraseña?' }));
   fireEvent.click(screen.getByRole('button', { name: 'Mandar enlace' }));
 
   expect(await screen.findByRole('status')).toHaveTextContent('te llegará un correo');
@@ -251,7 +251,7 @@ it('shows why the reset link could not be sent', async () => {
   );
   openEmailForm();
 
-  fireEvent.click(screen.getByRole('button', { name: '¿Has olvidado la contraseña?' }));
+  fireEvent.click(screen.getByRole('button', { name: '¿Has olvidado tu contraseña?' }));
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'marta@test.com' } });
   fireEvent.click(screen.getByRole('button', { name: 'Mandar enlace' }));
 

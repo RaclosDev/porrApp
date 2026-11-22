@@ -43,7 +43,7 @@ beforeEach(() => {
 
 it('shows the email form with password-manager friendly fields', () => {
   renderAt('/login');
-  expect(screen.getByRole('heading', { name: 'Inicia sesión en PorrApp' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
   expect(screen.getByLabelText(/^email$/i)).toHaveAttribute(
     'autocomplete',
     expect.stringContaining('username'),
@@ -75,11 +75,11 @@ it('prefers a pending invitation', () => {
 
 it('opens /registro on «Crea tu cuenta» and switches to /login keeping the destination', () => {
   renderAt('/registro?redirect=%2Fcrear-liga');
-  expect(screen.getByRole('heading', { name: 'Crea tu cuenta en PorrApp' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Crea tu cuenta' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Inicia sesión' }));
-  expect(screen.getByRole('heading', { name: 'Inicia sesión en PorrApp' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Crea una gratis' }));
-  expect(screen.getByRole('heading', { name: 'Crea tu cuenta en PorrApp' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Crea tu cuenta' })).toBeInTheDocument();
 });
 
 it('sends a new account from /registro to create the league', () => {
