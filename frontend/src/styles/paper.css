@@ -188,8 +188,10 @@
   }
 
   .landing-net {
-    color: rgba(17, 24, 39, 0.22);
-    margin: 28px 0;
+    height: 0;
+    margin: 56px 0;
+    border: 0;
+    border-top: 2px solid #111827;
   }
 
   /* Sello de tinta: estados (clasificado, cerrada, en directo) y datos destacados. */

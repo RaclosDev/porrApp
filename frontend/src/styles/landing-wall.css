@@ -22,6 +22,13 @@ html:has(.landing-page) ::selection {
   color: #111827;
 }
 
+/* Public pages (landing, /login): thin scrollbar like Ascension and LoopDeck, so the viewport
+   is equally wide in the three apps and the header lands on the same pixel. */
+html:has(.fam) {
+  scrollbar-width: thin;
+  scrollbar-color: #111827 rgba(17, 24, 39, 0.08);
+}
+
 html:has(.landing-page) ::-webkit-scrollbar-track {
   background: rgba(17, 24, 39, 0.08);
 }
