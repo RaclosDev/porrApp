@@ -171,7 +171,7 @@ export default function AuthPanel({
               onClick={() => void signInWithPasskey()}
             >
               <KeyRound size={16} aria-hidden="true" />
-              {passkeyBusy ? 'Comprobando…' : 'Entrar con huella o llave de acceso'}
+              {passkeyBusy ? 'Comprobando…' : 'Entrar con llave de acceso'}
             </button>
           )}
           <p className={family ? 'fam-card__switch' : 'm-0 text-center text-[0.85rem]'}>

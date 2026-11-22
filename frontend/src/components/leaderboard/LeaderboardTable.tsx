@@ -158,7 +158,7 @@ export default function LeaderboardTable({
 
                     {open && (
                       <button
-                        className="glass-btn bg-[rgba(11,_95,_116,_0.08)] bg-none text-accent-text border border-accent py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 whitespace-nowrap text-[0.95rem] leading-[1] inline-flex items-center justify-center"
+                        className="glass-btn bg-transparent bg-none text-[var(--ink)] border-[1.5px] border-[var(--ink)] py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 whitespace-nowrap text-[0.95rem] leading-[1] inline-flex items-center justify-center"
                         onClick={(e) => {
                           e.stopPropagation();
                           open();

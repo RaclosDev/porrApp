@@ -221,7 +221,7 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
   justify-content: space-between;
   gap: 4px 12px;
 }
-.try-head h3 {
+.try-head h2 {
   margin: 0;
   font-family: 'Anton', 'Arial Narrow', sans-serif;
   font-weight: 400;
@@ -242,6 +242,24 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 4px;
+}
+/* En la hoja de prueba los partidos son filas separadas por una línea, no tarjetas dentro de la hoja. */
+.try-list .md-match {
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(17, 24, 39, 0.18);
+  border-radius: 0;
+  background: transparent;
+}
+.try-list .md-match.is-locked {
+  opacity: 1;
+}
+.try-list .md-match .text-muted {
+  color: #4b5563;
+}
+.try-list .md-match:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 .try-loading {
   margin: auto;

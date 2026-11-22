@@ -1,0 +1,25 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-22T03:12:56.169Z",
+        "reason": "El usuario pidió las fuentes de la familia: Anton + Inter, como Ascension y LoopDeck"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "frontend/src/components/landing/family.css",
+          "frontend/src/styles/landing-wall.css",
+          "http://localhost:*/**"
+        ],
+        "createdAt": "2026-11-22T03:13:01.914Z",
+        "reason": "Pared de la familia #e6e0d3 (Ascension, LoopDeck): decisión de marca, ver DESIGN.md"
+      }
+    ]
+  }
+}

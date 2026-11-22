@@ -97,7 +97,7 @@ it('signs in with a passkey and leaves the page', async () => {
   });
   renderAuthPage();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Entrar con huella o llave de acceso' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Entrar con llave de acceso' }));
 
   await signedInAndLeft();
   expect(loginWithPasskey).toHaveBeenCalledWith('req-1', { id: 'abc' });
@@ -113,11 +113,11 @@ it('stays on the page when the system dialog is cancelled', async () => {
   vi.mocked(getPasskey).mockRejectedValue(new DOMException('cancelado', 'NotAllowedError'));
   renderAuthPage();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Entrar con huella o llave de acceso' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Entrar con llave de acceso' }));
 
   await waitFor(() =>
     expect(
-      screen.getByRole('button', { name: 'Entrar con huella o llave de acceso' }),
+      screen.getByRole('button', { name: 'Entrar con llave de acceso' }),
     ).toBeEnabled(),
   );
   expect(loginWithPasskey).not.toHaveBeenCalled();
@@ -128,7 +128,7 @@ it('has no passkey button where the browser cannot use them', () => {
   vi.mocked(passkeysSupported).mockReturnValue(false);
   renderAuthPage();
 
-  expect(screen.queryByRole('button', { name: 'Entrar con huella o llave de acceso' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Entrar con llave de acceso' })).toBeNull();
 });
 
 const session: LoginResponse = {
@@ -152,7 +152,7 @@ it('opens /registro on «Crea tu cuenta» and can switch to signing in', () => {
 
   expect(screen.getByRole('heading', { name: 'Crea tu cuenta' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Entrar con huella o llave de acceso' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Entrar con llave de acceso' })).toBeNull();
 
   fireEvent.click(screen.getByRole('button', { name: 'Inicia sesión' }));
   expect(screen.getByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();

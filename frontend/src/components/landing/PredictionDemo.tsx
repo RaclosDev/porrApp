@@ -198,7 +198,7 @@ export default function PredictionDemo() {
         {title ? (
           <>
             <header className="try-head">
-              <h3>{title}</h3>
+              <h2>{title}</h2>
               <span>{progress}</span>
             </header>
             <div className="try-list">
