@@ -104,10 +104,13 @@ export function PanelHeader({
   onSeeAll,
   children,
   reserveExtra = false,
+  action,
 }: {
   title: string;
   icon?: string;
   onSeeAll: () => void;
+  /** Lo que sustituye a «Ver todo», como la píldora de resultados de la jornada. */
+  action?: ReactNode;
   /** Lo que va entre el título y «Ver todo», como quién ya ha hecho su predicción. */
   children?: ReactNode;
   /** Deja ya el alto de `children` (44 px), que llega después: así no empuja lo de debajo. */
@@ -122,9 +125,11 @@ export function PanelHeader({
         <span>{title}</span>
       </h2>
       {children}
-      <button type="button" className="home-link-btn" onClick={onSeeAll}>
-        Ver todo →
-      </button>
+      {action ?? (
+        <button type="button" className="home-link-btn" onClick={onSeeAll}>
+          Ver todo →
+        </button>
+      )}
     </div>
   );
 }
@@ -348,12 +353,17 @@ export default function LeagueHomeDashboard() {
   const [showRules, setShowRules] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [votersMatch, setVotersMatch] = useState<Match | null>(null);
+  // Liga en la que se están viendo los resultados de la jornada: al cambiar de liga se vuelve a los
+  // pendientes.
+  const [resultsGroup, setResultsGroup] = useState<string | null>(null);
+  const results = matches.results ?? [];
+  const viewingResults = results.length > 0 && resultsGroup === String(activeGroupId);
+  const shownMatches = viewingResults ? results : matches.items;
   // El servidor solo devuelve los partidos ya cerrados: los abiertos siguen ocultos. En las ligas de
   // cuadro cada uno aparece bajo el equipo que pasa en su pronóstico, sin empate.
-  const voters = useMatchVoters(
-    activeGroupId,
-    matches.items.map((match) => match.id).filter(Boolean),
-  );
+  const voters = useMatchVoters(activeGroupId, [
+    ...new Set([...matches.items, ...results].map((match) => match.id).filter(Boolean)),
+  ]);
   const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY' || activeGroupWinnerOnly;
   // Quién ya ha hecho su predicción en la jornada: solo las ligas por jornadas y solo el quién.
   const participants = useRoundParticipants(
@@ -467,11 +477,24 @@ export default function LeagueHomeDashboard() {
                 title={matches.title}
                 onSeeAll={() => navigate(matches.allTo)}
                 reserveExtra={MATCH_KINDS[leagueKind]}
+                action={
+                  results.length > 0 ? (
+                    <button
+                      type="button"
+                      className="home-hero-pill-btn shrink-0"
+                      onClick={() => setResultsGroup(viewingResults ? null : String(activeGroupId))}
+                    >
+                      <span className="home-hero-pill">
+                        {viewingResults ? 'Pendientes' : 'Resultados'}
+                      </span>
+                    </button>
+                  ) : undefined
+                }
               >
                 <RoundParticipants participants={participants} roundLabel={matches.title} />
               </PanelHeader>
-              {matches.items.length > 0 ? (
-                matches.items.map((match) => (
+              {shownMatches.length > 0 ? (
+                shownMatches.map((match) => (
                   <MatchCard
                     key={match.id || match.home + match.away}
                     match={match}
