@@ -138,7 +138,6 @@ export default function EmailSignInForm({
           maxLength={254}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="tu@email.com"
           className="glass-input font-normal"
         />
       </label>
