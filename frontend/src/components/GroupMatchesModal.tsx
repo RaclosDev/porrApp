@@ -42,7 +42,7 @@ const GroupMatchesModal = ({
   return createPortal(
     <DialogBackdrop className="paper-dialog-overlay" onDismiss={onClose}>
       <div
-        className="paper-panel landing-tape paper-dialog"
+        className="paper-panel paper-dialog"
         role="dialog"
         aria-modal="true"
         aria-label={`Partidos del Grupo ${selectedGroup.name}`}

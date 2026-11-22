@@ -11,7 +11,7 @@ const FONT_WAIT_MS = 400;
 export const SPLASH_FAILSAFE_MS = 6000;
 
 /** Fuentes que se ven nada más entrar: la marca, los títulos y el texto. */
-const FIRST_SCREEN_FONTS = ['1em "Permanent Marker"', '1em Outfit', '1em Inter'];
+const FIRST_SCREEN_FONTS = ['1em Anton', '1em Inter'];
 
 let leaving = false;
 /** El fundido de salida ya ha empezado: la app se ve y sus animaciones de entrada pueden arrancar. */

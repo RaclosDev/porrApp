@@ -54,7 +54,7 @@
     text-decoration: none;
     font-size: 0.95rem;
     cursor: pointer;
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -150,7 +150,7 @@
   }
 
   .top-bar h1 {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.5rem;
     font-weight: 800;
     letter-spacing: 0.5px;

@@ -144,10 +144,7 @@ export function RadarView({ matchRadar }: { matchRadar: MatchRadar | null | unde
   ];
 
   return (
-    <section
-      id="view-radar"
-      className="view-section active block paper-panel album-sheet landing-tape"
-    >
+    <section id="view-radar" className="view-section active block paper-panel album-sheet">
       <div className="section-header mb-5 text-center">
         <h2 className="m-0 poster-title">Partidos</h2>
       </div>

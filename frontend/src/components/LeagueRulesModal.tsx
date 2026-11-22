@@ -51,7 +51,7 @@ export default function LeagueRulesModal({
   return (
     <DialogBackdrop className="paper-dialog-overlay" onDismiss={onClose}>
       <div
-        className="paper-panel landing-tape paper-dialog"
+        className="paper-panel paper-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="league-rules-title"

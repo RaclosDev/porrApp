@@ -34,7 +34,7 @@ export default function BracketInfoPanel({
   return (
     <DialogBackdrop className="paper-dialog-overlay" onDismiss={() => setActivePanel(null)}>
       <div
-        className="paper-panel landing-tape paper-dialog"
+        className="paper-panel paper-dialog"
         role="dialog"
         aria-modal="true"
         aria-label={activePanel === 'live' ? 'Partidos en directo' : 'Goleadores'}

@@ -62,7 +62,7 @@ export function ViewerMessage({ inline, dialogRef, onClose, kind, message }: Vie
     <ViewerModal
       dialogRef={dialogRef}
       onClose={onClose}
-      className="modal-content paper-panel album-sheet landing-tape w-[95vw] max-w-150 text-center p-8"
+      className="modal-content paper-panel album-sheet w-[95vw] max-w-150 text-center p-8"
     >
       {body}
       <button onClick={onClose} className="glass-btn primary-btn mt-5">

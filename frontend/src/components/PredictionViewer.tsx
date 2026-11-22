@@ -165,7 +165,7 @@ function GroupStagePredictionViewer({
       <ViewerModal
         dialogRef={dialogRef}
         onClose={handleClose}
-        className="modal-content paper-panel album-sheet landing-tape w-[95vw] max-w-150 py-7 px-6"
+        className="modal-content paper-panel album-sheet w-[95vw] max-w-150 py-7 px-6"
       >
         <PredictionSkeleton compact />
         <button onClick={handleClose} className="glass-btn mt-2 w-full">
@@ -272,7 +272,7 @@ function GroupStagePredictionViewer({
   if (inline) {
     return (
       <div
-        className={`prediction-viewer-inline ${showBracket ? 'viewer-with-bracket' : 'paper-panel landing-tape album-sheet'} w-full max-w-450 my-0 mx-auto`}
+        className={`prediction-viewer-inline ${showBracket ? 'viewer-with-bracket' : 'paper-panel album-sheet'} w-full max-w-450 my-0 mx-auto`}
       >
         {content}
       </div>

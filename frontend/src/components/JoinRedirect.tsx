@@ -140,7 +140,7 @@ export default function JoinRedirect() {
 
   return (
     <section className="max-w-130 mx-auto my-8">
-      <div className="paper-panel album-sheet landing-tape p-6 sm:p-8 flex flex-col gap-5">
+      <div className="paper-panel album-sheet p-6 sm:p-8 flex flex-col gap-5">
         <p className="marker-ink m-0">
           {tournament ? 'Te han invitado a seguir un torneo' : 'Te han invitado a jugar'}
         </p>
