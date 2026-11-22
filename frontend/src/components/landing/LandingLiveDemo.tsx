@@ -52,10 +52,12 @@ export default function LandingLiveDemo() {
     const doc = frame.contentDocument;
     const painted =
       doc && !doc.getElementById('app-splash') && doc.getElementById('root')?.childElementCount;
-    if (painted || tries >= 50) {
+    if (painted) {
       timer.current = window.setTimeout(() => setReady(true), 200);
       return;
     }
+    // Si no llega a pintarse (bloqueada o con error), se queda la captura: mejor que la página de error del navegador.
+    if (tries >= 100) return;
     timer.current = window.setTimeout(() => waitForApp(frame, tries + 1), 120);
   };
 
