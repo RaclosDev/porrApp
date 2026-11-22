@@ -80,7 +80,7 @@ for (const width of [360, 390, 1440]) {
     const podium = page.getByRole('region', { name: 'Podio de la clasificación general' });
     await expect(podium).toBeVisible();
     await expect(podium.getByText('Giorgi - Winamax')).toBeVisible();
-    await expect(podium.getByText('3 empatados')).toBeVisible();
+    await expect(podium.getByText('Empate · 3')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ver desglose por fase' })).toHaveCount(0);
     await expect(page.locator('.ranking-toolbar')).toHaveCount(0);
     const share = page.getByRole('button', { name: 'Compartir clasificación' });
@@ -96,9 +96,7 @@ for (const width of [360, 390, 1440]) {
     await page.screenshot({ path: testInfo.outputPath(`matchday-${width}.png`), fullPage: true });
     await expect(podium.locator('.sticker')).toHaveCount(3);
     await expect(podium.locator('.sticker-featured')).toHaveCount(1);
-    await podium.getByText('3 empatados').click();
-    for (const name of ['Jokin', 'Neglaso', 'Raclos'])
-      await expect(podium.getByText(name, { exact: true })).toBeVisible();
+    await expect(podium.getByText('Jokin, Neglaso y Raclos')).toBeVisible();
     // Ordenar por la jornada pasa la clasificación y el podio a esa jornada.
     await page.getByRole('button', { name: 'Ordenar por Jornada 12' }).click();
     await expect(page.getByRole('heading', { name: 'Clasificación · Jornada 12' })).toBeVisible();
