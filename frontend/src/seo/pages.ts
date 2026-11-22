@@ -53,7 +53,7 @@ export const LANDING_COPY = {
   liveTitle: 'La app entera,',
   liveMarked: 'para tocarla',
   liveText:
-    'Es la demo de verdad, con tres ligas de ejemplo: el Mundial, LaLiga y la UFC. Mira el podio del Mundial, haz tus predicciones de LaLiga o cambia de liga en la barra de arriba. Nada de lo que hagas se guarda.',
+    'Es la demo de verdad, con tres ligas de ejemplo: el Mundial, LaLiga y la UFC. Mira el podio del Mundial, haz tus predicciones de LaLiga o cambia de liga con el selector de arriba. Nada de lo que hagas se guarda.',
   formatsTitle: 'Una porra para cada deporte',
   sports: [
     { path: '/porra-laliga', name: 'LaLiga', text: 'Cada jornada, a 1X2 o a marcador exacto.' },

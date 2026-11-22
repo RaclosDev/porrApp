@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
-import { DEMO_LEAGUES, EMBED, leaveDemo } from './mode';
+import { DEMO_LEAGUES, leaveDemo } from './mode';
 
 /** Aviso fijo de la demo: recuerda que los datos son ficticios y deja cambiar de liga o salir. */
 export default function DemoBar() {
@@ -35,16 +35,13 @@ export default function DemoBar() {
             {league.label}
           </button>
         ))}
-        {/* En el visor de la portada no hay de dónde salir: la portada sigue alrededor. */}
-        {!EMBED && (
-          <button
-            type="button"
-            onClick={() => leaveDemo()}
-            className="min-h-9 cursor-pointer whitespace-nowrap border-none bg-transparent px-2 text-xs text-[#4b5563] underline"
-          >
-            Salir
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => leaveDemo()}
+          className="min-h-9 cursor-pointer whitespace-nowrap border-none bg-transparent px-2 text-xs text-[#4b5563] underline"
+        >
+          Salir
+        </button>
       </div>
     </div>
   );
