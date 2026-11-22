@@ -230,20 +230,56 @@ export function demoResponse(
   return found === undefined ? json({ error: 'No disponible en la demo' }, 404) : json(found);
 }
 
+/** Cuánto se espera a los datos en vivo antes de tirar solo de la copia fija. */
+const LIVE_TIMEOUT_MS = 6000;
+
+/** Datos en vivo de las ligas reales, anonimizados por el servidor; null si no llegan a tiempo. */
+async function loadLive(realFetch: typeof window.fetch): Promise<DemoData | null> {
+  try {
+    const res = await realFetch('/api/demo/data', { signal: AbortSignal.timeout(LIVE_TIMEOUT_MS) });
+    return res.ok ? ((await res.json()) as DemoData) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Lo que llega en vivo manda; la copia fija rellena lo que el servidor no recorre. */
+function mergeLive(base: DemoData, live: DemoData | null): DemoData {
+  if (!live?.exact) return base;
+  const byGroup = <T>(
+    a: Record<string, Record<string, T>>,
+    b?: Record<string, Record<string, T>>,
+  ) => {
+    const out = { ...a };
+    for (const [group, entries] of Object.entries(b ?? {}))
+      out[group] = { ...a[group], ...entries };
+    return out;
+  };
+  return {
+    recordedAt: live.recordedAt,
+    exact: { ...base.exact, ...live.exact },
+    voters: byGroup(base.voters, live.voters),
+    participants: byGroup(base.participants, live.participants),
+  };
+}
+
 /** Atiende /api desde la demo; el resto de peticiones sigue saliendo a la red. */
 export function installDemoBackend(): void {
   const realFetch = window.fetch.bind(window);
   let loading: Promise<DemoData> | null = null;
   const load = () => {
-    loading ??= realFetch('/demo-data.json')
-      .then((res) => {
+    loading ??= Promise.all([
+      realFetch('/demo-data.json').then((res) => {
         if (!res.ok) throw new Error(`demo-data.json: ${res.status}`);
         return res.json() as Promise<DemoData>;
-      })
-      .then((data) => {
+      }),
+      loadLive(realFetch),
+    ])
+      .then(([data, live]) => {
         const days = Math.floor((Date.now() - Date.parse(data.recordedAt)) / DAY_MS);
-        return { ...data, exact: withAvatars(shiftDates(data.exact, Math.max(0, days))) };
+        return mergeLive({ ...data, exact: shiftDates(data.exact, Math.max(0, days)) }, live);
       })
+      .then((data) => ({ ...data, exact: withAvatars(data.exact) }))
       .catch((error: unknown) => {
         // Una descarga fallida no se recuerda: «Reintentar» vuelve a pedir los datos.
         loading = null;
