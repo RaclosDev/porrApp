@@ -169,7 +169,8 @@ describe('instalación del servidor de la demo', () => {
       method: 'post',
     });
     expect(post.status).toBe(403);
-    expect(network).toHaveBeenCalledTimes(1);
+    // La copia fija y los datos en vivo, una vez cada uno.
+    expect(network).toHaveBeenCalledTimes(2);
 
     expect(await (await fetch('https://example.com/api/x')).text()).toBe('fuera');
     expect(await (await fetch('/sw.js')).text()).toBe('fuera');
@@ -177,7 +178,8 @@ describe('instalación del servidor de la demo', () => {
 
   it('vuelve a pedir los datos si la primera descarga falla', async () => {
     let calls = 0;
-    window.fetch = (async () => {
+    window.fetch = (async (input: RequestInfo | URL) => {
+      if (String(input) !== '/demo-data.json') return new Response('', { status: 503 });
       calls++;
       if (calls === 1) return new Response('<html>', { status: 502 });
       return new Response(JSON.stringify({ ...sample(), exact: { '/x': { ok: true } } }));
@@ -187,5 +189,19 @@ describe('instalación del servidor de la demo', () => {
     expect((await fetch('/api/x')).status).toBe(503);
     expect(await (await fetch('/api/x')).json()).toEqual({ ok: true });
     expect(calls).toBe(2);
+  });
+
+  it('usa los datos en vivo y rellena con la copia fija lo que no traen', async () => {
+    window.fetch = (async (input: RequestInfo | URL) => {
+      const live = String(input) === '/api/demo/data';
+      const exact = live
+        ? { '/x': { live: true } }
+        : { '/x': { live: false }, '/y': { fixed: true } };
+      return new Response(JSON.stringify({ ...sample(), exact }));
+    }) as typeof window.fetch;
+    installDemoBackend();
+
+    expect(await (await fetch('/api/x')).json()).toEqual({ live: true });
+    expect(await (await fetch('/api/y')).json()).toEqual({ fixed: true });
   });
 });

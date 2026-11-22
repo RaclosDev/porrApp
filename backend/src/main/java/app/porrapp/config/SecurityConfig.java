@@ -39,7 +39,8 @@ public class SecurityConfig {
             "/api/leaderboard", "/api/leaderboard/**",
             "/api/groups/**",
             "/api/users/*/avatar/*",
-            "/api/competitions/**"
+            "/api/competitions/**",
+            "/api/demo/data"
     };
 
     /** Hash del contenido de &lt;script type="speculationrules"&gt; de frontend/index.html. */

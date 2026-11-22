@@ -9,8 +9,8 @@ const PREFIX = 'porrapp-demo:';
 
 /** Ligas de ejemplo, también por enlace directo: /demo?liga=ufc. */
 export const DEMO_LEAGUES = [
-  { slug: 'mundial', id: '1', label: 'Mundial' },
   { slug: 'laliga', id: '6', label: 'LaLiga' },
+  { slug: 'mundial', id: '1', label: 'Mundial' },
   { slug: 'ufc', id: '39', label: 'UFC' },
 ] as const;
 
