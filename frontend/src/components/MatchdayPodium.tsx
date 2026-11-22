@@ -21,6 +21,17 @@ export function podiumPlaces(rows: LeaderboardRow[], by: PodiumScore = 'total') 
   }));
 }
 
+/** Caras que caben en la pila de un empate; el resto se cuenta en un «+N». */
+const TIE_FACES = 3;
+
+/** «Ana y Luis», «Ana, Luis y Sara» o, si son más, «Ana, Luis y 3 más». */
+export function tieNames(names: string[]) {
+  if (names.length <= 1) return names[0] ?? '';
+  const shown = names.length > TIE_FACES ? names.slice(0, 2) : names.slice(0, -1);
+  const rest = names.length > TIE_FACES ? `${names.length - 2} más` : names[names.length - 1];
+  return `${shown.join(', ')} y ${rest}`;
+}
+
 /** Podio de la clasificación, el mismo en todos los formatos de liga. */
 export default function MatchdayPodium({
   rows,
@@ -38,12 +49,15 @@ export default function MatchdayPodium({
     <section className="matchday-podium" aria-label={label}>
       <ul className="ranking-podium">
         {places.map(({ score, leaders }, index) => {
+          const tied = leaders.length > 1;
+          const hidden = leaders.length - TIE_FACES;
+          const faceSize = index === 0 ? 52 : 40;
           return (
             <li key={score} className={`ranking-podium-place ranking-podium-place-${index + 1}`}>
               <StickerCard
                 leader={{
                   rank: index + 1,
-                  name: leaders.length === 1 ? leaders[0].name : 'Empate',
+                  name: tied ? tieNames(leaders.map((row) => row.name)) : leaders[0].name,
                   userId: leaders[0].userId,
                   avatarUrl: leaders[0].avatarUrl,
                   total: score,
@@ -51,31 +65,34 @@ export default function MatchdayPodium({
                 featured={index === 0}
                 compact
                 avatar={
-                  leaders.length > 1 ? (
-                    <div className="matchday-podium-avatars" aria-hidden="true">
-                      {leaders.slice(0, 3).map((row) => (
+                  tied ? (
+                    <div
+                      className="matchday-podium-faces"
+                      title={leaders.map((row) => row.name).join(', ')}
+                    >
+                      {leaders.slice(0, hidden > 0 ? TIE_FACES - 1 : TIE_FACES).map((row) => (
                         <UserAvatar
                           key={row.key}
                           url={row.avatarUrl}
                           userId={row.userId}
                           name={row.name}
-                          size={36}
+                          size={faceSize}
                         />
                       ))}
+                      {hidden > 0 && (
+                        <span
+                          className="matchday-podium-more"
+                          style={{ width: faceSize, height: faceSize }}
+                          aria-hidden="true"
+                        >
+                          +{hidden + 1}
+                        </span>
+                      )}
                     </div>
                   ) : undefined
                 }
               >
-                {leaders.length > 1 && (
-                  <details className="matchday-podium-ties">
-                    <summary>{leaders.length} empatados</summary>
-                    <ul>
-                      {leaders.map((row) => (
-                        <li key={row.key}>{row.name}</li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
+                {tied && <span className="matchday-podium-tie">Empate · {leaders.length}</span>}
               </StickerCard>
             </li>
           );

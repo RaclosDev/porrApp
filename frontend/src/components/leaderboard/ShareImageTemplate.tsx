@@ -100,7 +100,7 @@ export default function ShareImageTemplate({
               >
                 {members.length > 1 && (
                   <div className="share-image-podium-tie">
-                    <div className="matchday-podium-avatars" aria-hidden="true">
+                    <div className="matchday-podium-faces" aria-hidden="true">
                       {members.slice(0, 3).map((member) => (
                         <UserAvatar
                           key={member.key}
