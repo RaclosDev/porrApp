@@ -28,7 +28,8 @@
 
 /* Header: brand, section links, "Iniciar sesión". No rule under it. */
 .fam-header {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -36,6 +37,45 @@
   gap: 16px;
   min-height: 72px;
   padding-block: 14px;
+}
+/* Sticky: brand, sections and «Iniciar sesión» stay on screen. Once the page moves, a
+   full-width band of wall fades in behind them with a hairline, tied to the scroll itself. */
+.fam-header::before {
+  content: '';
+  position: absolute;
+  inset: 0 calc(50% - 50vw);
+  z-index: -1;
+  background: var(--fam-wall);
+  box-shadow: 0 1px 0 var(--fam-rule), 0 10px 24px -18px rgba(17, 24, 39, 0.35);
+  pointer-events: none;
+}
+@supports (animation-timeline: scroll()) {
+  .fam-header::before {
+    animation: fam-header-band linear both;
+    animation-timeline: scroll();
+    animation-range: 0 96px;
+  }
+  .fam-brand span {
+    transform-origin: left center;
+    animation: fam-header-brand linear both;
+    animation-timeline: scroll();
+    animation-range: 0 96px;
+  }
+}
+/* Section links land below the sticky header, not under it. */
+section[id] {
+  scroll-margin-top: 88px;
+}
+@keyframes fam-header-band {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes fam-header-brand {
+  to {
+    transform: scale(0.88);
+  }
 }
 .fam-brand {
   display: inline-flex;

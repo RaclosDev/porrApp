@@ -33,7 +33,7 @@
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
+    overflow-x: clip; /* clip, not hidden: hidden turns body into a scroller and breaks sticky headers */
     max-width: 100vw;
   }
 
