@@ -46,7 +46,9 @@
   inset: 0 calc(50% - 50vw);
   z-index: -1;
   background: var(--fam-wall);
-  box-shadow: 0 1px 0 var(--fam-rule), 0 10px 24px -18px rgba(17, 24, 39, 0.35);
+  box-shadow:
+    0 1px 0 var(--fam-rule),
+    0 10px 24px -18px rgba(17, 24, 39, 0.35);
   pointer-events: none;
 }
 @supports (animation-timeline: scroll()) {
