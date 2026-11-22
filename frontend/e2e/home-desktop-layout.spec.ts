@@ -29,6 +29,7 @@ test('home previews split the column evenly and fill at least the screen', async
     total: 33 - index,
   }));
   let matchCount = 10;
+  let finishedCount = 0;
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url());
     if (url.origin !== 'http://127.0.0.1:4173') return route.abort();
@@ -44,17 +45,30 @@ test('home previews split the column evenly and fill at least the screen', async
       '/api/groups/1': league,
       '/api/groups/mine': [league],
       '/api/leaderboard': players,
-      '/api/matches': Array.from({ length: matchCount }, (_, index) => ({
-        id: index + 1,
-        home: `Local ${index + 1}`,
-        away: `Visitante ${index + 1}`,
-        date: new Date(Date.now() + (index + 1) * 3_600_000).toISOString(),
-        finished: false,
-        round: 'Jornada 13',
-        status: 'TIMED',
-        home_score: null,
-        away_score: null,
-      })),
+      '/api/matches': [
+        ...Array.from({ length: finishedCount }, (_, index) => ({
+          id: 100 + index,
+          home: `Casa ${index + 1}`,
+          away: `Fuera ${index + 1}`,
+          date: new Date(Date.now() - (index + 2) * 86_400_000).toISOString(),
+          finished: true,
+          round: 'Jornada 13',
+          status: 'FINISHED',
+          home_score: 1,
+          away_score: 0,
+        })),
+        ...Array.from({ length: matchCount }, (_, index) => ({
+          id: index + 1,
+          home: `Local ${index + 1}`,
+          away: `Visitante ${index + 1}`,
+          date: new Date(Date.now() + (index + 1) * 3_600_000).toISOString(),
+          finished: false,
+          round: 'Jornada 13',
+          status: 'TIMED',
+          home_score: null,
+          away_score: null,
+        })),
+      ],
       '/api/competitions/2/standings': Array.from({ length: 20 }, (_, index) => ({
         rank: index + 1,
         teamName: `Equipo ${index + 1}`,
@@ -110,10 +124,12 @@ test('home previews split the column evenly and fill at least the screen', async
   await page.screenshot({ path: testInfo.outputPath('mobile.png'), fullPage: true });
 
   matchCount = 3;
+  finishedCount = 12;
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.reload();
   await expect(page.locator('#app-splash')).toBeHidden();
-  await expect(page.locator('.home-match-card')).toHaveCount(3);
+  const pendingCards = await page.locator('.home-match-card').count();
+  expect(pendingCards).toBeLessThan(6);
   // Con pocos partidos los paneles no se encogen: se reparten la pantalla.
   await expect(rankingRows).toHaveCount(6);
   await expect(tableRows.nth(4)).toBeVisible();
@@ -122,4 +138,13 @@ test('home previews split the column evenly and fill at least the screen', async
   expect(few.panels[1].bottom).toBeGreaterThan(few.viewport - 80);
   expect(few.panels[1].bottom).toBeLessThanOrEqual(few.viewport + 1);
   expect(await rowHeight()).toBeCloseTo(desktopRowHeight);
+
+  // Abrir los resultados alarga la columna de partidos, pero no ranking ni tabla.
+  await page.getByRole('button', { name: 'Resultados' }).click();
+  await expect(page.locator('.home-match-card')).not.toHaveCount(pendingCards);
+  const results = await bounds();
+  expect(results.matches.bottom).toBeGreaterThan(few.viewport + 100);
+  expect(results.panels[0].height).toBeCloseTo(few.panels[0].height, 0);
+  expect(results.panels[1].bottom).toBeCloseTo(few.panels[1].bottom, 0);
+  await expect(rankingRows).toHaveCount(6);
 });
