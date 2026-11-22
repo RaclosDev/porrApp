@@ -1,18 +1,18 @@
 /*
  * Portada: un cartel de papel sobre el fondo oscuro de la app, con los participantes como cromos
- * de álbum. Las letras de cartel (Anton) y de rotulador (Permanent Marker) solo se cargan aquí.
+ * de álbum. Títulos y cifras en letra de cartel (Anton), como en Ascension y LoopDeck.
  * El cartel es el único elemento con sombra: es lo que está «pegado» por encima de la pared.
  */
 @layer components {
   .poster-title {
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.01em;
   }
 
   .marker-ink {
-    font-family: 'Permanent Marker', 'Outfit', cursive;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     color: var(--marker-ink);
   }
@@ -21,7 +21,7 @@
      opaco de la misma tinta para que no se transparente al apilarse. Colores ya mezclados: sin
      color-mix(), que html2canvas no sabe leer. */
   .user-avatar-ink {
-    font-family: 'Permanent Marker', 'Outfit', cursive;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     color: var(--avatar-ink);
     background-color: var(--avatar-fill);
@@ -84,21 +84,6 @@
     border-radius: 4px;
   }
 
-  /* Trozo de cinta adhesiva que sujeta el cartel por arriba. */
-  .landing-tape::after {
-    content: '';
-    position: absolute;
-    top: var(--tape-top, -12px);
-    left: 50%;
-    width: var(--tape-width, 104px);
-    height: 28px;
-    transform: translateX(-50%) rotate(var(--tape-angle, -5deg));
-    background: rgba(255, 230, 140, 0.8);
-    border-left: 1px dashed rgba(0, 0, 0, 0.15);
-    border-right: 1px dashed rgba(0, 0, 0, 0.15);
-    pointer-events: none;
-  }
-
   .landing-btn {
     display: inline-flex;
     align-items: center;
@@ -109,7 +94,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--ink);
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-size: 1.15rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -171,7 +156,7 @@
     position: absolute;
     top: 6px;
     left: 10px;
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-size: 1.1rem;
     color: #4b5563;
   }
@@ -201,12 +186,11 @@
     border: 3px solid currentColor;
     border-radius: 8px;
     color: var(--stamp-red);
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-size: 1.1rem;
     line-height: 1.2;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    transform: rotate(-4deg);
     white-space: nowrap;
   }
 
@@ -230,7 +214,6 @@
     border-radius: 4px;
     font-size: 0.62rem;
     letter-spacing: 0.06em;
-    transform: rotate(-6deg);
     vertical-align: middle;
   }
 
@@ -255,7 +238,7 @@
   .home-hero-title,
   .standings-title,
   .league-admin-title {
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.01em;
@@ -310,12 +293,6 @@
     z-index: -1;
     border-radius: inherit;
     background: var(--paper);
-    background-image: repeating-linear-gradient(
-      0deg,
-      rgba(17, 24, 39, 0.025) 0 1px,
-      transparent 1px 3px
-    );
-    transform: skewY(var(--paper-angle));
     box-shadow:
       4px 5px 0 #d8cfb9,
       5px 6px 0 rgba(17, 24, 39, 0.25),
@@ -345,20 +322,6 @@
   .group-card.album-sheet:nth-child(odd),
   .invite-summary-card.album-sheet {
     --paper-angle: -0.8deg;
-  }
-
-  .group-card.album-sheet::after,
-  .invite-summary-card.album-sheet::after {
-    content: '';
-    position: absolute;
-    top: var(--tape-top, -9px);
-    left: 50%;
-    width: var(--tape-width, 64px);
-    height: 19px;
-    background: rgba(255, 230, 140, 0.8);
-    border-inline: 1px dashed rgba(17, 24, 39, 0.15);
-    transform: translateX(-50%) rotate(var(--tape-angle, -5deg));
-    pointer-events: none;
   }
 
   @media (max-width: 600px) {
@@ -549,12 +512,10 @@
 
   .ranking-podium-place-2 {
     order: 1;
-    rotate: -8deg;
   }
 
   .ranking-podium-place-3 {
     order: 3;
-    rotate: 8deg;
   }
 
   .ranking-podium .sticker {
@@ -606,7 +567,7 @@
 
   .album-sheet-title {
     margin: 0 0 10px;
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     font-size: 1.3rem;
     line-height: 1.1;
@@ -939,7 +900,7 @@
   .paper-panel .md-badge {
     background: transparent;
     border: 1px solid currentColor;
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -966,7 +927,7 @@
     background: transparent;
     border: 1px solid currentColor;
     border-radius: 6px;
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     letter-spacing: 0.04em;
     text-transform: uppercase;

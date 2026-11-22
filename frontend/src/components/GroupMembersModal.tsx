@@ -290,7 +290,7 @@ export default function GroupMembersModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="league-admin-title"
-        className="league-admin-panel paper-panel landing-tape paper-dialog"
+        className="league-admin-panel paper-panel paper-dialog"
       >
         <header className="league-admin-header">
           <LeagueAvatar url={imageUrl} name={groupName} size={46} />

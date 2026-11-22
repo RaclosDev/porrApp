@@ -195,7 +195,7 @@ export function CompetitionTable() {
           </button>
         </div>
       ) : groups.length === 0 ? (
-        <div className="paper-panel album-sheet landing-tape standings-empty">
+        <div className="paper-panel album-sheet standings-empty">
           <p className="standings-empty-title">
             {knockoutCup
               ? 'Esta competición se juega por eliminatorias: no tiene tabla.'

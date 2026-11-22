@@ -26,7 +26,7 @@
   }
 
   .standings-title {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 1.65rem;
     line-height: 1.15;
     color: var(--text-main);
@@ -263,7 +263,7 @@
     flex-shrink: 0;
     border-radius: 6px;
     background: rgba(17, 24, 39, 0.06);
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-size: 0.95rem;
   }
 

@@ -12,9 +12,6 @@ html:has(.landing-page) body {
 
 html:has(.landing-page) body {
   color: #111827;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .07 0 0 0 0 .09 0 0 0 0 .15 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(0deg, rgba(17, 24, 39, 0.024) 0 1px, transparent 1px 3px);
 }
 
 html:has(.landing-page) ::selection {
@@ -226,7 +223,7 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
 }
 .try-head h3 {
   margin: 0;
-  font-family: 'Anton', 'Outfit', sans-serif;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
   font-weight: 400;
   font-size: 1.15rem;
   letter-spacing: 0.02em;

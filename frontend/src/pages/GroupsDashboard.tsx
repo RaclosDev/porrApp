@@ -111,7 +111,7 @@ export default function GroupsDashboard() {
 
   if (!userName) {
     return (
-      <div className="join-auth-screen paper-panel album-sheet landing-tape text-center p-6">
+      <div className="join-auth-screen paper-panel album-sheet text-center p-6">
         <AuthPanel
           intent="login"
           lede="Para crear una liga o unirte a la de tus amigos."

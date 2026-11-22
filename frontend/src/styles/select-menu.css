@@ -140,7 +140,7 @@
   .select-menu-check {
     flex: none;
     width: 1.1em;
-    font-family: 'Permanent Marker', 'Outfit', cursive;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     color: var(--marker-ink);
     text-align: center;
   }
@@ -159,7 +159,7 @@
   .select-menu-heading {
     display: block;
     padding: 8px 8px 2px;
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-size: 0.78rem;
     letter-spacing: 0.04em;
     text-transform: uppercase;

@@ -345,7 +345,7 @@ export default function TennisDrawBoard() {
           </button>
         </div>
       ) : !draw ? (
-        <div className="paper-panel album-sheet landing-tape standings-empty">
+        <div className="paper-panel album-sheet standings-empty">
           <p className="standings-empty-title">El cuadro aún no está publicado.</p>
           {startText && <p className="standings-empty-copy">{startText}</p>}
           <p className="standings-empty-copy">

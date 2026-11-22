@@ -191,7 +191,7 @@ export default function ProfileSettingsModal({
   return (
     <DialogBackdrop className="paper-dialog-overlay" onDismiss={() => void dismiss()}>
       <div
-        className="paper-panel landing-tape paper-dialog"
+        className="paper-panel paper-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="profile-settings-title"

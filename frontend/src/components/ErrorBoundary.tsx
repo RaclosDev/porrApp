@@ -54,7 +54,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center p-4">
-          <div className="paper-panel album-sheet landing-tape w-full max-w-md p-6 text-center space-y-6">
+          <div className="paper-panel album-sheet w-full max-w-md p-6 text-center space-y-6">
             <div className="w-16 h-16 mx-auto flex items-center justify-center marker-ink">
               <AlertTriangle className="w-8 h-8" />
             </div>

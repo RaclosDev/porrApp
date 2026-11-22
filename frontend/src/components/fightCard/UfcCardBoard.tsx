@@ -343,7 +343,7 @@ export default function UfcCardBoard() {
           </button>
         </div>
       ) : segments.length === 0 ? (
-        <div className="paper-panel album-sheet landing-tape standings-empty">
+        <div className="paper-panel album-sheet standings-empty">
           <p className="standings-empty-title">Esta liga aún no tiene peleas.</p>
           <p className="standings-empty-copy">
             La cartelera aparecerá en cuanto se anuncie la próxima velada.

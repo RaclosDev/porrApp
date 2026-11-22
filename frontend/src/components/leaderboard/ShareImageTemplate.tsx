@@ -74,7 +74,7 @@ export default function ShareImageTemplate({
       className="absolute -top-[9999px] -left-[9999px] w-200 p-7.5 paper-panel bg-[var(--paper)] bg-none text-main box-border rounded-[4px]"
       id="share-image-template"
       aria-hidden="true"
-      style={{ fontFamily: "'Outfit', sans-serif" }}
+      style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <div className="text-center mb-5 border-b-2 border-b-[var(--ink)] pb-2.5">
         <h1 className="text-accent-text m-0 text-[28px] uppercase">

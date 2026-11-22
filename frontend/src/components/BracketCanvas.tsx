@@ -314,7 +314,7 @@ export default function BracketCanvas<T extends SlotTeam>({
 
     return (
       <section
-        className={`bracket-sheet bracket-sheet-${side} paper-panel landing-tape album-sheet`}
+        className={`bracket-sheet bracket-sheet-${side} paper-panel album-sheet`}
         aria-label={`Cruces del lado ${side === 'left' ? 'izquierdo' : 'derecho'}`}
       >
         {visible.length === 0 ? (
@@ -364,7 +364,7 @@ export default function BracketCanvas<T extends SlotTeam>({
 
   return (
     <>
-      <div className="bracket-mobile-sheet paper-panel landing-tape album-sheet">
+      <div className="bracket-mobile-sheet paper-panel album-sheet">
         <MobileBracket
           leftRounds={leftRounds}
           rightRounds={rightRounds}
@@ -386,7 +386,7 @@ export default function BracketCanvas<T extends SlotTeam>({
         >
           {sideRounds.length > 0 && renderSide(leftRounds, 'left')}
           <section
-            className="bracket-sheet bracket-sheet-center paper-panel landing-tape album-sheet"
+            className="bracket-sheet bracket-sheet-center paper-panel album-sheet"
             aria-label={centerLabel}
           >
             <BracketFinale

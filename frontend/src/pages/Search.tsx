@@ -91,7 +91,7 @@ function Search() {
 function TennisSearchPage() {
   const { activeGroupId, activeGroupName } = useAppContext();
   return (
-    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
+    <section id="view-search" className="view-section block paper-panel album-sheet">
       <InsightsHeader leagueName={activeGroupName} summary="Por jugador" />
       {activeGroupId ? (
         <TennisSearch groupId={activeGroupId} leagueName={activeGroupName} />
@@ -106,7 +106,7 @@ function KnockoutSearchPage() {
   const insights = useKnockoutInsights();
   const count = insights.entries.length;
   return (
-    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
+    <section id="view-search" className="view-section block paper-panel album-sheet">
       <InsightsHeader
         leagueName={insights.leagueName}
         summary={count > 0 ? `${count} ${count === 1 ? 'predicción' : 'predicciones'}` : undefined}
@@ -130,7 +130,7 @@ function GrandPrixSearchPage() {
   const insights = useGrandPrixInsights();
   const count = insights.races.length;
   return (
-    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
+    <section id="view-search" className="view-section block paper-panel album-sheet">
       <InsightsHeader
         leagueName={insights.leagueName}
         summary={
@@ -196,7 +196,7 @@ function GroupStageSearchPage() {
 
   const count = entries.length;
   return (
-    <section id="view-search" className="view-section block paper-panel album-sheet landing-tape">
+    <section id="view-search" className="view-section block paper-panel album-sheet">
       <InsightsHeader
         leagueName={insights.leagueName}
         summary={count > 0 ? `${count} ${count === 1 ? 'predicción' : 'predicciones'}` : undefined}

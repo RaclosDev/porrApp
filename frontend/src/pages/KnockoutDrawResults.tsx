@@ -21,7 +21,7 @@ export default function KnockoutDrawResults() {
 
   return (
     <section
-      className="view-section active block paper-panel album-sheet landing-tape"
+      className="view-section active block paper-panel album-sheet"
       aria-label={`${nba ? 'Playoffs' : 'Eliminatorias'} de ${activeCompetitionName ?? 'la competición'}`}
     >
       <div className="section-header mb-5 text-center">

@@ -339,7 +339,7 @@
     border-radius: 7px;
     background: transparent;
     color: var(--text-muted);
-    font-family: 'Anton', 'Outfit', sans-serif;
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
     font-weight: 400;
     font-size: clamp(0.8rem, 3vw, 1rem);
     letter-spacing: 0.04em;
@@ -509,7 +509,7 @@
     border: 1px solid var(--accent-cyan);
     background: rgba(0, 210, 211, 0.12);
     color: var(--accent-cyan);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 700;
     font-size: 0.85rem;
     cursor: pointer;
