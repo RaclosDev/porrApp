@@ -426,11 +426,17 @@
     height: 100%;
     border: 0;
     opacity: 0;
-    transition: opacity 450ms ease-out;
+    /* Oculta hasta que la app se ha pintado: mientras, los clics van a la captura. */
+    visibility: hidden;
+    transition:
+      opacity 450ms ease-out,
+      visibility 0s 450ms;
   }
 
   .landing-live__frame.is-ready {
     opacity: 1;
+    visibility: visible;
+    transition: opacity 450ms ease-out;
   }
 
   @media (min-width: 1024px) {
