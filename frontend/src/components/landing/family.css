@@ -251,7 +251,10 @@
   color: var(--fam-ink);
   border: 2px solid var(--fam-ink);
   border-radius: 4px;
+  font-family: var(--fam-display);
   font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 .fam-password__toggle:focus-visible {
@@ -314,10 +317,10 @@
   line-height: 1;
   letter-spacing: 0.01em;
   text-transform: uppercase;
-  margin: 0;
+  margin: 0 0 24px;
 }
 .fam-card__sub {
-  margin: 8px 0 20px;
+  margin: -16px 0 20px;
   font-size: 0.95rem;
   line-height: 1.5;
   color: var(--fam-muted);
@@ -407,6 +410,11 @@
 }
 .fam-legal a {
   color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fam-legal a:hover {
+  color: var(--fam-ink);
 }
 .fam-auth__demo {
   margin-top: 20px;
