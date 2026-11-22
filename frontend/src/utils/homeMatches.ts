@@ -86,24 +86,21 @@ export function currentRoundMatches(matches: Match[]): { round: string | null; m
   return { round: rounds[index], matches: aroundNow(byRound.get(rounds[index]) ?? []) };
 }
 
-/** Jornada a partir de la cual la portada enseña solo los partidos de alrededor de ahora. */
-const LONG_ROUND = 16;
-/** Partidos que enseña la portada de una jornada larga, y cuántos de ellos ya jugados. */
+/** Partidos que enseña la portada de una jornada larga (una semana de la NBA trae unos 50). */
 const LONG_ROUND_SHOWN = 10;
-const LONG_ROUND_PLAYED = 3;
 
 /**
- * Una semana de la NBA trae unos 50 partidos: la portada enseña los últimos resultados y los siguientes
- * por jugar, no la semana entera (que está en Jornadas). Las jornadas normales van enteras.
+ * A mitad de jornada la portada enseña solo el último partido jugado y, tras él, los que están en juego
+ * y los que quedan, para ver el último resultado sin bajar por toda la jornada (entera está en
+ * Jornadas). Una jornada sin nada por jugar va entera, y una larga se corta a los primeros.
  */
 function aroundNow(matches: Match[]): Match[] {
-  if (matches.length <= LONG_ROUND) return matches;
-  const next = matches.findIndex(isPlayableMatch);
-  const start =
-    next === -1
-      ? matches.length - LONG_ROUND_SHOWN
-      : Math.min(Math.max(0, next - LONG_ROUND_PLAYED), matches.length - LONG_ROUND_SHOWN);
-  return matches.slice(start, start + LONG_ROUND_SHOWN);
+  if (!matches.some(isPlayableMatch)) return matches.slice(-LONG_ROUND_SHOWN);
+  const played = matches.filter((match) => match.finished);
+  const lastPlayed = played[played.length - 1];
+  return matches
+    .filter((match) => !match.finished || match === lastPlayed)
+    .slice(0, LONG_ROUND_SHOWN);
 }
 
 /** Un resultado de hace más de tres meses es de la temporada pasada, no un «último resultado». */

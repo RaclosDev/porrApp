@@ -109,14 +109,22 @@ describe('currentRoundMatches', () => {
       }),
     );
 
-  it('una jornada normal va entera', () => {
-    expect(currentRoundMatches(week(5, 10)).matches).toHaveLength(10);
+  it('a mitad de jornada solo enseña el último partido jugado y los que quedan', () => {
+    expect(currentRoundMatches(week(5, 10)).matches.map((m) => m.id)).toEqual([5, 6, 7, 8, 9, 10]);
   });
 
-  it('de una semana de la NBA enseña los últimos resultados y los siguientes partidos', () => {
+  it('sin nada jugado todavía, la jornada va entera', () => {
+    expect(currentRoundMatches(week(0, 10)).matches).toHaveLength(10);
+  });
+
+  it('una jornada ya acabada va entera', () => {
+    expect(currentRoundMatches(week(10, 10)).matches).toHaveLength(10);
+  });
+
+  it('de una semana de la NBA enseña el último resultado y los siguientes partidos', () => {
     const { round, matches } = currentRoundMatches(week(46, 54));
     expect(round).toBe('Semana 3');
-    expect(matches.map((m) => m.id)).toEqual([44, 45, 46, 47, 48, 49, 50, 51, 52, 53]);
+    expect(matches.map((m) => m.id)).toEqual([46, 47, 48, 49, 50, 51, 52, 53, 54]);
   });
 
   it('con la semana recién empezada, desde el primer partido', () => {
