@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import FixtureCard from '../matchday/FixtureCard';
 import FightCard from '../matchday/FightCard';
 import { fetchMatches } from '../../services/api';
@@ -11,13 +10,12 @@ import {
   type DraftPrediction,
   type MatchSign,
 } from '../../utils/matchday';
-import { SIGNUP_TO_CREATE_LEAGUE } from '../../utils/authRoutes';
 import snapshot from './predictionDemoSnapshot.json';
 
 /*
  * Prueba del hero de la portada: la jornada en curso de LaLiga y la cartelera estelar de la
  * próxima UFC, con las mismas tarjetas que la app. Los partidos salen de la API pública;
- * si no responde, de una copia guardada. No se guarda nada.
+ * si no responde, de una copia guardada.
  */
 
 type DemoTab = 'liga' | 'ufc';
@@ -77,25 +75,28 @@ const PICKERS: { [K in DemoTab]: (matches: Match[]) => DemoData[K] | undefined }
   },
 };
 
-/** Los datos de una pestaña: los de la API en cuanto se abre y, si fallan, la copia guardada. */
-function useDemoData(tab: DemoTab) {
+/**
+ * Los datos de las dos pestañas. Se piden a la vez al montar: la de LaLiga se ve primero y la de
+ * la UFC llega por detrás, así al cambiar de pestaña ya está lista. Si la API falla, la copia
+ * guardada.
+ */
+function useDemoData() {
   const [data, setData] = useState<Partial<DemoData>>({});
-  const loaded = data[tab] !== undefined;
-  const competitionId = TABS.find((t) => t.id === tab)!.competitionId;
 
   useEffect(() => {
-    if (loaded) return;
     let active = true;
     const keep = <K extends DemoTab>(key: K, value: DemoData[K] | undefined) => {
       if (active) setData((current) => ({ ...current, [key]: value ?? FALLBACK[key] }));
     };
-    fetchMatches(competitionId)
-      .then((matches) => keep(tab, PICKERS[tab](matches)))
-      .catch(() => keep(tab, undefined));
+    for (const { id, competitionId } of TABS) {
+      fetchMatches(competitionId)
+        .then((matches) => keep(id, PICKERS[id](matches)))
+        .catch(() => keep(id, undefined));
+    }
     return () => {
       active = false;
     };
-  }, [tab, loaded, competitionId]);
+  }, []);
 
   return data;
 }
@@ -139,7 +140,7 @@ function toFixture(match: Match, sport: Sport, prediction?: DraftPrediction): Ma
 export default function PredictionDemo() {
   const [tab, setTab] = useState<DemoTab>('liga');
   const [draft, setDraft] = useState<Draft>({});
-  const data = useDemoData(tab);
+  const data = useDemoData();
 
   const predict = (matchId: number, prediction: DraftPrediction | null) =>
     setDraft((current) => {
@@ -230,11 +231,6 @@ export default function PredictionDemo() {
           <p className="try-friends try-loading">Cargando…</p>
         )}
       </div>
-
-      <Link to={SIGNUP_TO_CREATE_LEAGUE} className="fam-btn fam-btn--ink fam-btn--block">
-        Guárdala en tu liga
-      </Link>
-      <p className="try-friends">Partidos reales; aquí no se guarda nada.</p>
     </article>
   );
 }
