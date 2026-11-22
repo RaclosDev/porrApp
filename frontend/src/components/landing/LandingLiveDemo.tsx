@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const START = '/demo';
-const POSTER = '/landing/porras/mundial-inicio';
+const POSTER = '/landing/porras/laliga-inicio';
 const DESKTOP = '(min-width: 1024px)';
 
 // La /demo de verdad, dentro de un móvil, al lado del texto del hero. Hasta que la app ha cargado (y siempre en
@@ -69,7 +69,9 @@ export default function LandingLiveDemo() {
             srcSet={`${POSTER}-300.webp 300w, ${POSTER}-600.webp 600w`}
             sizes="390px"
             alt={
-              live ? '' : 'Inicio de la demo: el podio de la porra del Mundial y tu puesto final'
+              live
+                ? ''
+                : 'Inicio de la demo: la porra de LaLiga con los partidos de la jornada en curso'
             }
             width="600"
             height="1298"

@@ -100,7 +100,7 @@ for (const viewport of [
       const banner = page.locator('#demo-mode-banner');
       await expect(banner).toContainText('datos ficticios');
       await expect(page).toHaveURL('/');
-      await expect(banner.getByRole('button', { name: 'Mundial' })).toHaveAttribute(
+      await expect(banner.getByRole('button', { name: 'LaLiga' })).toHaveAttribute(
         'aria-pressed',
         'true',
       );

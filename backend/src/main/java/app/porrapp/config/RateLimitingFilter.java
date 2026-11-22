@@ -88,8 +88,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             }
         }
 
-        // Lecturas públicas: 120 por minuto, por usuario si trae sesión y si no por IP.
-        if (isRateLimitedPath(path, request.getMethod())) {
+        // Lecturas públicas: 120 por minuto, por usuario si trae sesión y si no por IP. Las que el
+        // servidor se hace a sí mismo para la demo no cuentan.
+        if (isRateLimitedPath(path, request.getMethod()) && !DemoCrawl.isCrawl(request)) {
             String clientKey = rateLimitKey(request);
             if (!isAllowed(clientKey)) {
                 log.warn("Rate limit excedido para {} en {}", clientKey, path);

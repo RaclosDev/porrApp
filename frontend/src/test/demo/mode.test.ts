@@ -42,7 +42,7 @@ describe('modo demo', () => {
   it('conserva lo hecho al recargar y deja cambiar de liga por enlace', async () => {
     let mode = await loadMode('/demo');
     mode.startDemoStorage();
-    expect(window.localStorage.getItem('activeGroupId')).toBe('1');
+    expect(window.localStorage.getItem('activeGroupId')).toBe('6');
     window.localStorage.setItem('borrador', 'x');
     window.localStorage.setItem('activeGroupId', '6');
 
