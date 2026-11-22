@@ -100,7 +100,7 @@ function MatchRow({ match, kind }: { match: Match; kind: Kind }) {
 function MatchDays({ matches, kind }: { matches: Match[]; kind: Kind }) {
   return byDay(matches).map((group) => (
     <section key={group.key} className="radar-day" aria-label={group.label}>
-      <h4 className="radar-day-title">{group.label}</h4>
+      <h3 className="radar-day-title">{group.label}</h3>
       <ul className="radar-day-list">
         {group.matches.map((match) => (
           <MatchRow key={match.id} match={match} kind={kind} />

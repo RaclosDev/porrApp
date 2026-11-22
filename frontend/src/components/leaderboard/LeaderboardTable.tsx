@@ -131,7 +131,7 @@ export default function LeaderboardTable({
                           <strong>
                             {r.name}
                             {isMe && (
-                              <span className="text-accent-text ml-[5px] text-[0.8em] whitespace-nowrap">
+                              <span className="text-accent-text ml-[5px] text-[0.75rem] whitespace-nowrap">
                                 (Tú)
                               </span>
                             )}
