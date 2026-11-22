@@ -6,16 +6,7 @@ import { useAppleSignIn, useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { usePasskeyAutoSignIn } from '../hooks/usePasskeyAutoSignIn';
 import { safeRedirect } from '../utils/safeRedirect';
 
-const COPY: Record<AuthIntent, { title: string; sub: string }> = {
-  login: {
-    title: 'Inicia sesión en PorrApp',
-    sub: 'Tus ligas, tus predicciones y la clasificación te esperan donde las dejaste.',
-  },
-  signup: {
-    title: 'Crea tu cuenta en PorrApp',
-    sub: 'Gratis y en un minuto. Luego montas tu liga e invitas a los tuyos con un enlace.',
-  },
-};
+const TITLE: Record<AuthIntent, string> = { login: 'Inicia sesión', signup: 'Crea tu cuenta' };
 
 /** Ruta de la otra pantalla de acceso, conservando el destino (`?redirect=`). */
 const AUTH_PATH: Record<AuthIntent, string> = { login: '/login', signup: '/registro' };
@@ -54,9 +45,8 @@ export default function Login({ intent = 'login' }: LoginProps) {
       <div className="fam-container fam-auth">
         <section className="fam-card" aria-labelledby="auth-title">
           <h1 id="auth-title" className="fam-card__title">
-            {COPY[intent].title}
+            {TITLE[intent]}
           </h1>
-          <p className="fam-card__sub">{COPY[intent].sub}</p>
           <AuthPanel
             key={intent}
             family
