@@ -22,6 +22,7 @@ function Controls() {
       <button onClick={() => navigate('/porra-nba', { state: SMOOTH_SCROLL_STATE })}>pie</button>
       <button onClick={() => navigate('/ranking?jornada=3')}>jornada</button>
       <button onClick={() => navigate('/faq#premios')}>ancla</button>
+      <button onClick={() => navigate('/#premios', { state: SMOOTH_SCROLL_STATE })}>sección</button>
       <button onClick={() => navigate(-1)}>atrás</button>
       <section id="premios" />
     </>
@@ -90,9 +91,15 @@ describe('Scroll al navegar', () => {
     renderAt('/');
     userScrollsTo(300);
     click('ancla');
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' });
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById('premios'));
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('un enlace del header baja hasta su sección de la misma página con suavidad', () => {
+    renderAt('/');
+    click('sección');
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
   });
 
   it('atrás vuelve a donde estaba la página anterior', () => {
