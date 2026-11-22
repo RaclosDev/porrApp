@@ -439,6 +439,21 @@
     transition: opacity 450ms ease-out;
   }
 
+  .landing-live-wrap {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .landing-live__caption {
+    max-width: 34ch;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #48505c;
+  }
+
   @media (min-width: 1024px) {
     .landing-live {
       width: 390px;
@@ -446,7 +461,7 @@
 
     .landing-live__screen {
       aspect-ratio: auto;
-      height: clamp(560px, calc(100svh - 140px), 780px);
+      height: clamp(520px, calc(100svh - 260px), 720px);
     }
   }
 
