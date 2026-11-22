@@ -92,11 +92,6 @@ export default function LandingLiveDemo() {
           )}
         </div>
       </div>
-      <figcaption className="landing-live__caption">
-        {desktop
-          ? 'Es la app de verdad, con datos ficticios: tócala. Nada de lo que cambies se guarda.'
-          : 'Toca el móvil para abrir la demo, con datos ficticios.'}
-      </figcaption>
     </figure>
   );
 }

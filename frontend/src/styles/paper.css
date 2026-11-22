@@ -447,13 +447,6 @@
     gap: 14px;
   }
 
-  .landing-live__caption {
-    max-width: 34ch;
-    text-align: center;
-    font-size: 0.875rem;
-    color: #48505c;
-  }
-
   @media (min-width: 1024px) {
     .landing-live {
       width: 390px;
