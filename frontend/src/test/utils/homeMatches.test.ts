@@ -127,6 +127,17 @@ describe('currentRoundMatches', () => {
     expect(matches.map((m) => m.id)).toEqual([46, 47, 48, 49, 50, 51, 52, 53, 54]);
   });
 
+  it('los resultados de la jornada en curso van del último al primero', () => {
+    expect(currentRoundMatches(week(3, 10)).results.map((m) => m.id)).toEqual([3, 2, 1]);
+    expect(currentRoundMatches(week(46, 54)).results.map((m) => m.id)[0]).toBe(46);
+    expect(currentRoundMatches(week(46, 54)).results).toHaveLength(10);
+  });
+
+  it('sin jornada a medias no hay resultados aparte', () => {
+    expect(currentRoundMatches(week(0, 10)).results).toEqual([]);
+    expect(currentRoundMatches(week(10, 10)).results).toEqual([]);
+  });
+
   it('con la semana recién empezada, desde el primer partido', () => {
     expect(currentRoundMatches(week(0, 50)).matches.map((m) => m.id)[0]).toBe(1);
   });
