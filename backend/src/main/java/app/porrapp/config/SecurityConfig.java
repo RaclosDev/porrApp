@@ -100,7 +100,8 @@ public class SecurityConfig {
             .httpBasic(basic -> basic.disable())
             .formLogin(form -> form.disable())
             .headers(headers -> headers
-                .frameOptions(frame -> frame.deny())
+                // Solo su propio dominio puede incrustarla: la portada enseña la /demo dentro de un móvil.
+                .frameOptions(frame -> frame.sameOrigin())
                 .contentTypeOptions(content -> {})
                 .referrerPolicy(ref -> ref.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                 .httpStrictTransportSecurity(hsts -> hsts
@@ -133,7 +134,7 @@ public class SecurityConfig {
                             // Reproductor de música del modo TV del póker (YouTube y Spotify incrustados).
                             "frame-src 'self' https://accounts.google.com https://appleid.apple.com"
                             + " https://www.youtube-nocookie.com https://open.spotify.com; " +
-                            "frame-ancestors 'none';")
+                            "frame-ancestors 'self';")
                 )
                 .permissionsPolicyHeader(perm -> perm
                     .policy("camera=(), microphone=(), geolocation=()")
