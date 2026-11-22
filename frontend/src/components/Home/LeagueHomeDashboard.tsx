@@ -58,8 +58,10 @@ function usePreviewRows(
   rankingTotal: number,
   tableTotal: number,
   tablePreviewLimit: number,
+  frozen: boolean,
 ) {
   const gridRef = useRef<HTMLDivElement>(null);
+  const lastHeight = useRef<number | null>(null);
   const [desktop, setDesktop] = useState<{
     panelHeight: number;
     rankingLimit: number;
@@ -82,7 +84,13 @@ function usePreviewRows(
       // Con pocos partidos, ranking y tabla no se encogen: llegan al menos hasta el final de la
       // pantalla y se reparten ese alto a partes iguales.
       const toScreenEnd = window.innerHeight - (gridBounds.top + window.scrollY) - spaceBelow(grid);
-      const height = Math.max(contentHeight(matches), toScreenEnd);
+      // Al abrir los resultados la columna de partidos crece, pero ranking y tabla conservan el
+      // alto que tenían con los pendientes.
+      const height =
+        frozen && lastHeight.current !== null
+          ? lastHeight.current
+          : Math.max(frozen ? 0 : contentHeight(matches), toScreenEnd);
+      if (!frozen) lastHeight.current = height;
       const gap = Number.parseFloat(getComputedStyle(sidebar).rowGap) || 0;
       const panelCount = sidebar.children.length;
       const panelHeight = Math.max(0, (height - gap * (panelCount - 1)) / panelCount);
@@ -121,7 +129,7 @@ function usePreviewRows(
       observer.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [settling, rankingTotal, tableTotal]);
+  }, [settling, rankingTotal, tableTotal, frozen]);
 
   return {
     gridRef,
@@ -424,6 +432,7 @@ export default function LeagueHomeDashboard() {
     participantCount,
     tableTotal,
     standings?.previewLimit ?? tableTotal,
+    viewingResults,
   );
   const topParticipants = (leaderboardData ?? []).slice(0, rankingLimit);
   // Mismo puesto para los empatados, como en la clasificación completa.
@@ -559,7 +568,7 @@ export default function LeagueHomeDashboard() {
             </div>
 
             <div
-              className={`home-dashboard-sidebar${panelHeight === undefined ? '' : ' is-filled'}`}
+              className={`home-dashboard-sidebar${panelHeight === undefined ? '' : ' is-filled'}${viewingResults ? ' is-frozen' : ''}`}
               style={
                 panelHeight === undefined
                   ? undefined
