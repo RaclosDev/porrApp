@@ -26,8 +26,17 @@
     transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  /* El reflejo solo aparece mientras el puntero mueve el cromo: en reposo no tapa las fotos. */
   .sticker-tilt .sticker-glare {
     left: var(--gx, 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  @media (hover: hover) {
+    .sticker-tilt:hover .sticker-glare {
+      opacity: 1;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
