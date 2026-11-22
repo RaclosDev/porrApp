@@ -4,6 +4,7 @@ import app.porrapp.config.DemoCrawl;
 import app.porrapp.config.JwtUtil;
 import app.porrapp.repository.UserAccountRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -76,6 +77,7 @@ public class DemoSnapshotService {
     record Snapshot(byte[] json, Instant builtAt) {
     }
 
+    @Autowired
     public DemoSnapshotService(JwtUtil jwtUtil, UserAccountRepository users, ObjectMapper mapper,
                                Environment environment,
                                @Value("${app.demo.user-id:7}") long demoUserId,

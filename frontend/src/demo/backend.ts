@@ -244,7 +244,7 @@ async function loadLive(realFetch: typeof window.fetch): Promise<DemoData | null
 }
 
 /** Lo que llega en vivo manda; la copia fija rellena lo que el servidor no recorre. */
-export function mergeLive(base: DemoData, live: DemoData | null): DemoData {
+function mergeLive(base: DemoData, live: DemoData | null): DemoData {
   if (!live?.exact) return base;
   const byGroup = <T>(
     a: Record<string, Record<string, T>>,
