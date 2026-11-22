@@ -66,8 +66,9 @@ describe('Landing', () => {
 
   it('shows the live demo in a phone and every sticker in the album', () => {
     renderLanding();
-    const demo = screen.getByRole('region', { name: /La app entera/ });
-    expect(within(demo).getByRole('link', { name: /demo|pantalla completa/i })).toHaveAttribute(
+    const demo = document.getElementById('pruebalo')!;
+    expect(within(demo).getByRole('figure')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Probar la demo' })[0]).toHaveAttribute(
       'href',
       '/demo',
     );

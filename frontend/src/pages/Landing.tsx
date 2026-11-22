@@ -3,7 +3,6 @@ import LandingLiveDemo from '../components/landing/LandingLiveDemo';
 import MarkerHeading from '../components/landing/MarkerHeading';
 import StickerCard from '../components/StickerCard';
 import NetLine from '../components/landing/NetLine';
-import PredictionDemo from '../components/landing/PredictionDemo';
 import Reveal from '../components/landing/Reveal';
 import { revealStyle } from '../components/landing/motion';
 import { useLandingData } from '../hooks/useLandingData';
@@ -56,7 +55,7 @@ export default function Landing() {
           style={revealStyle({ '--from-y': '40px', '--dur': '0.7s', '--base': '400ms' })}
           className="fam-hero__demo"
         >
-          <PredictionDemo />
+          <LandingLiveDemo />
         </Reveal>
       </section>
 
@@ -85,10 +84,6 @@ export default function Landing() {
           ))}
         </Reveal>
       </section>
-
-      <NetLine />
-
-      <LandingLiveDemo />
 
       <NetLine />
 
