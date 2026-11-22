@@ -67,7 +67,12 @@ export const fixtureAsMatch = (fixture: MatchdayFixture): Match => ({
   fight: fixture.fight ?? null,
 });
 
-export function currentRoundMatches(matches: Match[]): { round: string | null; matches: Match[] } {
+export function currentRoundMatches(matches: Match[]): {
+  round: string | null;
+  matches: Match[];
+  /** Resultados de la jornada en curso (hasta diez), el último primero; vacío si no ha empezado o ya acabó. */
+  results: Match[];
+} {
   const rounds: string[] = [];
   const byRound = new Map<string, Match[]>();
   [...matches].sort(byDate).forEach((match) => {
@@ -79,11 +84,18 @@ export function currentRoundMatches(matches: Match[]): { round: string | null; m
     }
     byRound.get(label)!.push(match);
   });
-  if (rounds.length === 0) return { round: null, matches: [] };
+  if (rounds.length === 0) return { round: null, matches: [], results: [] };
 
   let index = rounds.findIndex((label) => (byRound.get(label) ?? []).some(isPlayableMatch));
   if (index === -1) index = rounds.length - 1;
-  return { round: rounds[index], matches: aroundNow(byRound.get(rounds[index]) ?? []) };
+  const round = byRound.get(rounds[index]) ?? [];
+  const results = round.some(isPlayableMatch)
+    ? round
+        .filter((match) => match.finished)
+        .reverse()
+        .slice(0, LONG_ROUND_SHOWN)
+    : [];
+  return { round: rounds[index], matches: aroundNow(round), results };
 }
 
 /** Partidos que enseña la portada de una jornada larga (una semana de la NBA trae unos 50). */

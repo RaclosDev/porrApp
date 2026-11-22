@@ -65,6 +65,11 @@ interface LeagueHomeData {
   matches: {
     title: string;
     items: Match[];
+    /**
+     * Resultados de la jornada en curso, el último primero: con ellos la portada cambia «Ver todo» por
+     * la píldora «Resultados». Sin ellos (jornada sin empezar o acabada, cuadros) sigue «Ver todo».
+     */
+    results?: Match[];
     /** Página a la que lleva cada partido y su verbo para lectores de pantalla. */
     to: string;
     action: string;
@@ -212,6 +217,7 @@ export function useLeagueHomeData(): LeagueHomeData {
                   ? label
                   : `Partidos ${label}`,
           items: matches,
+          results: current.results,
           to: '/jornadas',
           action: 'hacer tu predicción',
           allTo: ownMatches ? '/jornadas' : '/radar',
