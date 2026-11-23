@@ -12,7 +12,7 @@ export function getTheme(): Theme {
   }
 }
 
-export function applyTheme(theme: Theme): void {
+function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BAR[theme]);
 }

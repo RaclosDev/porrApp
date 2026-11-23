@@ -46,16 +46,22 @@ function spaceBelow(element: Element) {
   return total;
 }
 
-/** Alto del contenido de un panel aunque la rejilla lo estire: hasta el final de su último hijo. */
+/**
+ * Alto del contenido de un panel aunque la rejilla lo estire: hasta donde llega lo que pinta. Se mide
+ * el contenido y no el último hijo, que puede estar oculto («Ver más» fuera del móvil) o ser un
+ * envoltorio sin caja (`display: contents`).
+ */
 function contentHeight(panel: Element) {
   const bounds = panel.getBoundingClientRect();
-  const last = panel.lastElementChild;
-  if (!last) return bounds.height;
+  const range = document.createRange();
+  range.selectNodeContents(panel);
+  const content = range.getBoundingClientRect();
+  if (content.height === 0) return bounds.height;
   const style = getComputedStyle(panel);
   const bottom =
     (Number.parseFloat(style.paddingBottom) || 0) +
     (Number.parseFloat(style.borderBottomWidth) || 0);
-  return last.getBoundingClientRect().bottom - bounds.top + bottom;
+  return content.bottom - bounds.top + bottom;
 }
 
 function usePreviewRows(
