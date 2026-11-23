@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { AdminOverview } from '../../types/api';
 import { KIND_LABELS, METHOD_LABELS, dateTime, kindLabel, normalize } from './adminFormat';
@@ -35,14 +35,61 @@ function ListCount({ shown, total, noun }: { shown: number; total: number; noun:
   );
 }
 
-/** Pestaña «Cuentas»: las últimas cuentas creadas. */
+type AdminUser = AdminOverview['recentUsers'][number];
+type AccountSort = 'name' | 'email' | 'method' | 'joinedAt' | 'lastActiveAt' | 'leagues';
+
+/** Columnas de «Cuentas»; las fechas y los recuentos empiezan por lo más reciente o lo mayor. */
+const ACCOUNT_COLUMNS: {
+  key: AccountSort;
+  label: string;
+  numeric?: boolean;
+  descFirst?: boolean;
+  value: (user: AdminUser) => string | number;
+}[] = [
+  { key: 'name', label: 'Nombre', value: (u) => normalize(u.name) },
+  { key: 'email', label: 'Email', value: (u) => normalize(u.email) },
+  { key: 'method', label: 'Acceso', value: (u) => METHOD_LABELS[u.method] ?? u.method },
+  { key: 'joinedAt', label: 'Alta', descFirst: true, value: (u) => Date.parse(u.joinedAt) },
+  {
+    key: 'lastActiveAt',
+    label: 'Última vez',
+    descFirst: true,
+    value: (u) => Date.parse(u.lastActiveAt),
+  },
+  { key: 'leagues', label: 'Ligas', numeric: true, descFirst: true, value: (u) => u.leagues },
+];
+
+/** Pestaña «Cuentas»: las últimas cuentas creadas, ordenables por cualquier columna. */
 export function AdminAccounts({ users }: { users: AdminOverview['recentUsers'] }) {
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<{ key: AccountSort; desc: boolean }>({
+    key: 'joinedAt',
+    desc: true,
+  });
+  const sortBy = (key: AccountSort) =>
+    setSort((current) =>
+      current.key === key
+        ? { key, desc: !current.desc }
+        : { key, desc: Boolean(ACCOUNT_COLUMNS.find((c) => c.key === key)?.descFirst) },
+    );
   const visible = useMemo(() => {
     const query = normalize(search.trim());
-    if (!query) return users;
-    return users.filter((u) => normalize(`${u.name} ${u.email}`).includes(query));
-  }, [users, search]);
+    const found = query
+      ? users.filter((u) => normalize(`${u.name} ${u.email}`).includes(query))
+      : users;
+    const column = ACCOUNT_COLUMNS.find((c) => c.key === sort.key);
+    if (!column) return found;
+    const direction = sort.desc ? -1 : 1;
+    return [...found].sort((a, b) => {
+      const x = column.value(a);
+      const y = column.value(b);
+      const order =
+        typeof x === 'number' && typeof y === 'number'
+          ? x - y
+          : String(x).localeCompare(String(y), 'es');
+      return order * direction;
+    });
+  }, [users, search, sort]);
 
   return (
     <section className="league-admin-card" aria-labelledby="admin-accounts-title">
@@ -54,22 +101,62 @@ export function AdminAccounts({ users }: { users: AdminOverview['recentUsers'] }
       </div>
       <div className="league-admin-toolbar">
         <SearchBox value={search} onChange={setSearch} label="Buscar por nombre o email" />
+        {/* En el móvil no hay cabeceras que pulsar: el orden se elige aquí. */}
+        <div className="admin-sort-select">
+          <label htmlFor="admin-accounts-sort">Ordenar por</label>
+          <select
+            id="admin-accounts-sort"
+            className="glass-input"
+            value={sort.key}
+            onChange={(event) => sortBy(event.target.value as AccountSort)}
+          >
+            {ACCOUNT_COLUMNS.map((column) => (
+              <option key={column.key} value={column.key}>
+                {column.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="admin-sort-direction"
+            onClick={() => sortBy(sort.key)}
+            aria-label={sort.desc ? 'Orden descendente: cambiar' : 'Orden ascendente: cambiar'}
+          >
+            {sort.desc ? <ArrowDown size={15} /> : <ArrowUp size={15} />}
+          </button>
+        </div>
       </div>
       <div className="admin-table-wrap">
         <table className="admin-table">
           <caption className="sr-only">
-            Últimas cuentas creadas, de la más reciente a la más antigua
+            Últimas cuentas creadas; pulsa una cabecera para ordenar por esa columna
           </caption>
           <thead>
             <tr>
-              <th scope="col">Nombre</th>
-              <th scope="col">Email</th>
-              <th scope="col">Acceso</th>
-              <th scope="col">Alta</th>
-              <th scope="col">Última vez</th>
-              <th scope="col" className="is-num">
-                Ligas
-              </th>
+              {ACCOUNT_COLUMNS.map((column) => {
+                const active = sort.key === column.key;
+                return (
+                  <th
+                    key={column.key}
+                    scope="col"
+                    className={column.numeric ? 'is-num' : undefined}
+                    aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : 'none'}
+                  >
+                    <button
+                      type="button"
+                      className={`admin-sort-btn${active ? ' is-active' : ''}`}
+                      onClick={() => sortBy(column.key)}
+                    >
+                      {column.label}
+                      {active && sort.desc ? (
+                        <ArrowDown size={12} aria-hidden="true" />
+                      ) : (
+                        <ArrowUp size={12} aria-hidden="true" />
+                      )}
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>

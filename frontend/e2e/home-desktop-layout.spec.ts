@@ -101,7 +101,8 @@ test('home previews split the column evenly and fill at least the screen', async
   const rankingRows = page.getByRole('list', { name: 'Top del ranking' }).getByRole('listitem');
   const tableRows = page.getByRole('list', { name: 'Tabla' }).getByRole('listitem');
   await expect(rankingRows).toHaveCount(6);
-  await expect(tableRows.nth(8)).toBeVisible();
+  // En escritorio la tabla enseña un número fijo de filas, no las que quepan en la pantalla.
+  await expect(tableRows).toHaveCount(8);
 
   const rowHeight = async () => (await rankingRows.first().boundingBox())?.height ?? 0;
   const desktopRowHeight = await rowHeight();
@@ -109,7 +110,7 @@ test('home previews split the column evenly and fill at least the screen', async
   expect(Math.abs(desktop.matches.top - desktop.panels[0].top)).toBeLessThan(2);
   expect(Math.abs(desktop.panels[0].height - desktop.panels[1].height)).toBeLessThan(2);
   expect(desktop.panels[1].top).toBeCloseTo(desktop.panels[0].bottom + 18, 0);
-  expect(desktop.panels[1].bottom).toBeGreaterThanOrEqual(desktop.matches.bottom - 1);
+  expect(desktop.panels[1].bottom).toBeLessThan(desktop.matches.bottom);
   expect(desktop.overflow).toBe(false);
   await page.screenshot({ path: testInfo.outputPath('desktop.png'), fullPage: true });
 
@@ -129,13 +130,12 @@ test('home previews split the column evenly and fill at least the screen', async
   await expect(page.locator('#app-splash')).toBeHidden();
   const pendingCards = await page.locator('.home-match-card').count();
   expect(pendingCards).toBeLessThan(6);
-  // Con pocos partidos los paneles no se encogen: se reparten la pantalla.
+  // Con pocos partidos los paneles siguen igual: las mismas filas y el mismo alto.
   await expect(rankingRows).toHaveCount(6);
-  await expect(tableRows.nth(4)).toBeVisible();
+  await expect(tableRows).toHaveCount(8);
   const few = await bounds();
   expect(Math.abs(few.panels[0].height - few.panels[1].height)).toBeLessThan(2);
-  expect(few.panels[1].bottom).toBeGreaterThan(few.viewport - 80);
-  expect(few.panels[1].bottom).toBeLessThanOrEqual(few.viewport + 1);
+  expect(few.panels[0].height).toBeCloseTo(desktop.panels[0].height, 0);
   expect(await rowHeight()).toBeCloseTo(desktopRowHeight);
 
   // A mitad de jornada la lista va en dos bloques con su rótulo: lo que queda por jugar y los
