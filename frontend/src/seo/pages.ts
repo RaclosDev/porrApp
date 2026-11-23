@@ -33,8 +33,6 @@ export const LANDING_COPY = {
   h1: 'La porra con tus amigos,',
   h1Marked: 'pero bien hecha.',
   lede: 'Porras gratis con tus amigos de fútbol, Fórmula 1, UFC, NBA, NFL y tenis. Predice LaLiga jornada a jornada, el podio de cada Gran Premio o el ganador de cada combate. Los puntos se calculan solos con los resultados reales.',
-  heroNote:
-    'Entras con Google o con tu email. Sin anuncios y sin pasar por la tienda de apps: se instala desde el navegador como una app.',
   stepsTitle: 'Cómo se juega',
   steps: [
     {

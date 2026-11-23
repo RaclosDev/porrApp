@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.HeaderWriter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 /**
@@ -47,6 +48,23 @@ public class SecurityConfig {
     static final String INDEX_SPECULATION_RULES_HASH = "'sha256-I3eLRc1Jk/ZvRCXECwqrMwPVfsi5QuCkSMpeXQKg2Fw='";
     /** Hash de onload="this.media = 'all'" de la hoja de fuentes de frontend/index.html. */
     static final String INDEX_FONT_ONLOAD_HASH = "'sha256-C6b/4Iv4ZcrPnfjsnUI/tt1KLtFSZRbC4PywNhjbLfw='";
+
+    /** El portfolio del autor: la única web ajena que puede enseñar la demo dentro de un marco. */
+    static final String PORTFOLIO_ORIGIN = "https://raclosdev.github.io";
+
+    /**
+     * Quién puede enmarcar cada página: la aplicación, solo su propio dominio; la demo (/demo, con
+     * datos de ejemplo y sin sesión), también el portfolio. Va después de la cabecera de la CSP.
+     */
+    static final HeaderWriter FRAMING = (request, response) -> {
+        String path = request.getRequestURI();
+        if (path.equals("/demo") || path.startsWith("/demo/")) {
+            response.setHeader("Content-Security-Policy", response.getHeader("Content-Security-Policy")
+                    .replace("frame-ancestors 'self'", "frame-ancestors 'self' " + PORTFOLIO_ORIGIN));
+        } else {
+            response.setHeader("X-Frame-Options", "SAMEORIGIN");
+        }
+    };
 
     private final JwtAuthFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
@@ -101,8 +119,9 @@ public class SecurityConfig {
             .httpBasic(basic -> basic.disable())
             .formLogin(form -> form.disable())
             .headers(headers -> headers
-                // Solo su propio dominio puede incrustarla: la portada enseña la /demo dentro de un móvil.
-                .frameOptions(frame -> frame.sameOrigin())
+                // La portada enseña la /demo dentro de un móvil. Quién puede enmarcar la web lo decide FRAMING.
+                .frameOptions(frame -> frame.disable())
+                .addHeaderWriter(FRAMING)
                 .contentTypeOptions(content -> {})
                 .referrerPolicy(ref -> ref.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                 .httpStrictTransportSecurity(hsts -> hsts
