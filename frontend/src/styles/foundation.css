@@ -1,10 +1,18 @@
-:root {
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
   --bg-color: #0f172a;
-  --panel-bg: #1e293b;
+  --surface: #1e293b;
+  --surface-raised: #27344a;
+  --panel-bg: var(--surface);
+  --bg-card: var(--surface-raised);
   --panel-bg-translucent: rgba(30, 41, 59, 0.85);
-  --border-color: rgba(255, 255, 255, 0.1);
+  /* Tinte para rellenos y bordes suaves: blanco sobre oscuro, tinta sobre claro. */
+  --ink-rgb: 255 255 255;
+  --border-color: rgb(var(--ink-rgb) / 0.1);
   --text-main: #f8fafc;
-  --text-muted: #94a3b8;
+  --text-primary: var(--text-main);
+  --text-muted: #a3b0c4;
   --accent-color: #2563eb;
   /* Acento para texto: #2563eb no llega a 4,5:1 sobre los fondos oscuros. */
   --accent-text: #60a5fa;
@@ -14,22 +22,51 @@
   --champion-gold: #fbbf24;
   /* Desenfoque común de los overlays de pantalla completa. */
   --overlay-blur: 8px;
-  /* Identidad de cartel y álbum de cromos (ver la portada): papel, tinta y sellos. Sobre el
-     fondo oscuro la tinta es el cian de la app; sobre papel, un azul tinta. */
-  --paper: #f3ecdc;
-  --ink: #111827;
+  /* Acento de marca: crema con tinta en oscuro, tinta con crema en claro. Fuera de los paneles
+     "papel" y "tinta" son ese acento; dentro, la superficie y el texto (ver .paper-panel). */
+  --accent-fill: #f3ecdc;
+  --accent-on: #111827;
+  --paper: var(--accent-fill);
+  --ink: var(--accent-on);
   --marker-ink: var(--accent-cyan);
-  --stamp-red: #f87171;
+  --stamp-red: #fc9a9a;
   --stamp-ink: var(--accent-cyan);
   /* Acierto exacto, pasa de ronda y fallo, en el cuadro y en los grupos. */
   --hit: #2ecc71;
-  --pass: #3498db;
-  --miss: #f87171;
-  /* Pestañas: sobre el fondo oscuro la activa es una pegatina de papel; sobre papel, tinta. */
+  --pass: #5dade2;
+  --miss: #fc9a9a;
+  /* Cuánta tinta original conservan las series de la gráfica (el resto, blanco). */
+  --series-mix: 42%;
   --tab-active-bg: var(--paper);
   --tab-active-fg: var(--ink);
-  --tab-border: rgba(255, 255, 255, 0.18);
+  --tab-border: rgb(var(--ink-rgb) / 0.18);
   --connector: rgba(96, 165, 250, 0.55);
+}
+
+/* Tema claro: fondo crema, paneles casi blancos y tinta oscura. */
+[data-theme='light'] {
+  color-scheme: light;
+  --bg-color: #efe9da;
+  --surface: #f9f5ea;
+  --surface-raised: #fffdf7;
+  --panel-bg-translucent: rgba(249, 245, 234, 0.92);
+  --ink-rgb: 17 24 39;
+  --text-main: #111827;
+  --text-muted: #4b5563;
+  --accent-text: #0b5f74;
+  --input-border: #6b7280;
+  --accent-cyan: #0b5f74;
+  --champion-gold: #92400e;
+  --accent-fill: #111827;
+  --accent-on: #f3ecdc;
+  --stamp-red: #b91c1c;
+  --hit: #166534;
+  --pass: #1d4ed8;
+  --miss: #b91c1c;
+  --series-mix: 100%;
+  --border-color: rgb(var(--ink-rgb) / 0.16);
+  --tab-border: rgb(var(--ink-rgb) / 0.3);
+  --connector: rgb(var(--ink-rgb) / 0.55);
 }
 
 /*

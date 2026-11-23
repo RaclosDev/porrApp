@@ -200,7 +200,7 @@ export default function CreateLeague() {
     <section className="view-section active create-league">
       {/* Unirse con código va por su lado (selector de liga y Mis ligas): aquí solo se crea. */}
       <header className="create-league-header">
-        <h1 className="m-0 poster-title text-[1.8rem] text-white">Crear liga</h1>
+        <h1 className="m-0 poster-title text-[1.8rem] text-[var(--text-main)]">Crear liga</h1>
         <p className="create-league-progress">
           Paso {current + 1} de {LEAGUE_STEPS.length}
         </p>

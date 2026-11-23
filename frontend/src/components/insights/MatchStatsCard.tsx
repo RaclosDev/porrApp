@@ -32,10 +32,12 @@ function Team({
 }) {
   return (
     <span
-      className={`flex min-w-0 flex-1 items-center gap-2 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}
+      className={`flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}
     >
       <Flag team={name} logo={logo} style={{ width: 24, height: 24 }} />
-      <span className="truncate font-semibold text-main">{name}</span>
+      <span className="min-w-0 text-[0.86rem] font-semibold leading-tight text-main [overflow-wrap:anywhere] sm:text-base">
+        {name}
+      </span>
     </span>
   );
 }
@@ -55,7 +57,7 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
     >
       <div className="flex items-center gap-2">
         <Team name={match.homeTeam} logo={match.homeTeamLogo} align="left" />
-        <span className="shrink-0 rounded-[8px] bg-[rgba(17,24,39,0.06)] px-2.5 py-1 text-[1.05rem] font-extrabold tabular-nums text-main">
+        <span className="shrink-0 rounded-[8px] bg-[rgb(var(--ink-rgb)/0.06)] px-2.5 py-1 text-[1.05rem] font-extrabold tabular-nums text-main">
           {hasScore ? `${match.homeScore} - ${match.awayScore}` : 'vs'}
         </span>
         <Team name={match.awayTeam} logo={match.awayTeamLogo} align="right" />
@@ -69,7 +71,7 @@ export default function MatchStatsCard({ match, members }: { match: MatchStats; 
       </p>
 
       <div
-        className="flex h-3 overflow-hidden rounded-full bg-[rgba(17,24,39,0.08)]"
+        className="flex h-3 overflow-hidden rounded-full bg-[rgb(var(--ink-rgb)/0.08)]"
         aria-hidden="true"
       >
         {shares.map((s) =>

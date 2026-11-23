@@ -67,11 +67,14 @@ export const fixtureAsMatch = (fixture: MatchdayFixture): Match => ({
   fight: fixture.fight ?? null,
 });
 
-export function currentRoundMatches(matches: Match[]): {
+export function currentRoundMatches(
+  matches: Match[],
+  now = Date.now(),
+): {
   round: string | null;
   matches: Match[];
-  /** Resultados de la jornada en curso (hasta diez), el último primero; vacío si no ha empezado o ya acabó. */
-  results: Match[];
+  /** Los mismos partidos con los dos bloques cambiados de sitio; vacío si solo hay un bloque. */
+  flipped: Match[];
 } {
   const rounds: string[] = [];
   const byRound = new Map<string, Match[]>();
@@ -84,35 +87,41 @@ export function currentRoundMatches(matches: Match[]): {
     }
     byRound.get(label)!.push(match);
   });
-  if (rounds.length === 0) return { round: null, matches: [], results: [] };
+  if (rounds.length === 0) return { round: null, matches: [], flipped: [] };
 
   let index = rounds.findIndex((label) => (byRound.get(label) ?? []).some(isPlayableMatch));
   if (index === -1) index = rounds.length - 1;
-  const round = byRound.get(rounds[index]) ?? [];
-  const results = round.some(isPlayableMatch)
-    ? round
-        .filter((match) => match.finished)
-        .reverse()
-        .slice(0, LONG_ROUND_SHOWN)
-    : [];
-  return { round: rounds[index], matches: aroundNow(round), results };
+  return { round: rounds[index], ...aroundNow(byRound.get(rounds[index]) ?? [], now) };
 }
 
 /** Partidos que enseña la portada de una jornada larga (una semana de la NBA trae unos 50). */
 const LONG_ROUND_SHOWN = 10;
+/** Hueco que una jornada larga guarda siempre para los últimos resultados. */
+const RESULTS_KEPT = 3;
 
 /**
- * A mitad de jornada la portada enseña solo el último partido jugado y, tras él, los que están en juego
- * y los que quedan, para ver el último resultado sin bajar por toda la jornada (entera está en
- * Jornadas). Una jornada sin nada por jugar va entera, y una larga se corta a los primeros.
+ * A mitad de jornada la portada va en dos bloques: lo que queda por jugar, por orden de horario, y
+ * los resultados, el último primero. Arriba va el bloque más cercano a ahora: los resultados si el
+ * último partido queda más cerca que el siguiente y no hay nada en juego; si no, lo pendiente. Una
+ * jornada sin empezar o ya acabada va entera en su orden, y una larga se corta por los dos lados.
  */
-function aroundNow(matches: Match[]): Match[] {
-  if (!matches.some(isPlayableMatch)) return matches.slice(-LONG_ROUND_SHOWN);
-  const played = matches.filter((match) => match.finished);
-  const lastPlayed = played[played.length - 1];
-  return matches
-    .filter((match) => !match.finished || match === lastPlayed)
-    .slice(0, LONG_ROUND_SHOWN);
+function aroundNow(round: Match[], now: number): { matches: Match[]; flipped: Match[] } {
+  const pending = round.filter((match) => !match.finished);
+  const played = round.filter((match) => match.finished).reverse();
+  if (!round.some(isPlayableMatch) || played.length === 0) {
+    const whole =
+      pending.length > 0 ? round.slice(0, LONG_ROUND_SHOWN) : round.slice(-LONG_ROUND_SHOWN);
+    return { matches: whole, flipped: [] };
+  }
+  const results = played.slice(0, Math.max(RESULTS_KEPT, LONG_ROUND_SHOWN - pending.length));
+  const upcoming = pending.slice(0, LONG_ROUND_SHOWN - results.length);
+  const resultsFirst =
+    !pending.some(isLiveMatch) && now - timeOf(results[0]) < timeOf(upcoming[0]) - now;
+  const pendingFirst = [...upcoming, ...results];
+  const resultsOnTop = [...results, ...upcoming];
+  return resultsFirst
+    ? { matches: resultsOnTop, flipped: pendingFirst }
+    : { matches: pendingFirst, flipped: resultsOnTop };
 }
 
 /** Un resultado de hace más de tres meses es de la temporada pasada, no un «último resultado». */

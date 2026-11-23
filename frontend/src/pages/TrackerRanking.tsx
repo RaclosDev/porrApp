@@ -13,7 +13,7 @@ export default function TrackerRanking({ leagueId }: { leagueId: string | null }
     <section className="view-section active create-league tracker">
       <header className="create-league-header tracker-head">
         <div>
-          <h1 className="m-0 poster-title text-[1.8rem] text-white">Ranking</h1>
+          <h1 className="m-0 poster-title text-[1.8rem] text-[var(--text-main)]">Ranking</h1>
           <p className="create-league-progress">{tracker.name}</p>
         </div>
       </header>

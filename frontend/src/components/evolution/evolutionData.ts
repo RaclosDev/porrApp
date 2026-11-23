@@ -323,7 +323,8 @@ export function buildEvolution(
       key: r.key,
       name: r.name,
       isMe: r.name === userName,
-      color: PALETTE[idx % PALETTE.length],
+      // En oscuro las tintas del papel se aclaran para leerse sobre el fondo.
+      color: `color-mix(in oklab, ${PALETTE[idx % PALETTE.length]} var(--series-mix, 100%), white)`,
       pointsEvolution: [],
       rankEvolution: [],
       totalPoints: Number(r.points?.total) || 0,

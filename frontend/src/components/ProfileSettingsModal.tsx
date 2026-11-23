@@ -298,7 +298,7 @@ export default function ProfileSettingsModal({
                   )}
                 </div>
                 {error && (
-                  <span className="text-[0.8rem] text-[#b91c1c]" role="alert">
+                  <span className="text-[0.8rem] text-[var(--miss)]" role="alert">
                     {error}
                   </span>
                 )}
@@ -369,7 +369,7 @@ export default function ProfileSettingsModal({
                     </button>
                     <button
                       type="button"
-                      className="glass-btn text-[0.8rem] font-bold text-[#b91c1c]"
+                      className="glass-btn text-[0.8rem] font-bold text-[var(--miss)]"
                       disabled={deleting}
                       onClick={() => void deleteAccount()}
                     >
@@ -380,14 +380,14 @@ export default function ProfileSettingsModal({
               ) : (
                 <button
                   type="button"
-                  className="glass-btn text-[0.8rem] self-start text-[#b91c1c]"
+                  className="glass-btn text-[0.8rem] self-start text-[var(--miss)]"
                   onClick={() => setConfirmingDelete(true)}
                 >
                   Borrar mi cuenta
                 </button>
               )}
               {deleteError && (
-                <span className="text-[0.8rem] text-[#b91c1c]" role="alert">
+                <span className="text-[0.8rem] text-[var(--miss)]" role="alert">
                   {deleteError}
                 </span>
               )}

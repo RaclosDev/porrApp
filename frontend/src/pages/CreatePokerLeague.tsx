@@ -32,7 +32,9 @@ export default function CreatePokerLeague() {
   return (
     <section className="view-section active create-league">
       <header className="create-league-header">
-        <h1 className="m-0 poster-title text-[1.8rem] text-white">Crear liga de póker</h1>
+        <h1 className="m-0 poster-title text-[1.8rem] text-[var(--text-main)]">
+          Crear liga de póker
+        </h1>
         <p className="create-league-progress">
           Reúne al grupo y organiza vuestros torneos de Texas Hold’em.
         </p>

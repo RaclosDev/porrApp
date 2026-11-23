@@ -432,13 +432,13 @@ function App() {
         position="top-center"
         toastOptions={{
           className: 'paper-panel paper-toast',
-          iconTheme: { primary: '#111827', secondary: '#f3ecdc' },
-          success: { iconTheme: { primary: '#15803d', secondary: '#f3ecdc' } },
-          error: { iconTheme: { primary: '#b91c1c', secondary: '#f3ecdc' } },
+          iconTheme: { primary: 'var(--text-main)', secondary: 'var(--surface-raised)' },
+          success: { iconTheme: { primary: 'var(--hit)', secondary: 'var(--surface-raised)' } },
+          error: { iconTheme: { primary: 'var(--miss)', secondary: 'var(--surface-raised)' } },
           style: {
-            background: 'var(--paper)',
-            color: '#111827',
-            border: '1.5px solid #111827',
+            background: 'var(--surface-raised)',
+            color: 'var(--text-main)',
+            border: '1.5px solid rgb(var(--ink-rgb) / 0.45)',
             borderRadius: '4px',
             fontSize: '0.95rem',
             fontFamily: "'Inter', sans-serif",

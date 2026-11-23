@@ -20,9 +20,81 @@
   .home-dashboard-grid:has(> .home-dashboard-sidebar.is-filled) {
     align-items: stretch;
   }
-  /* Con los resultados abiertos, ranking y tabla no crecen con la columna de partidos. */
-  .home-dashboard-sidebar.is-filled.is-frozen {
-    align-self: start;
+
+  /* Inicio: tu situación en la liga, antes que nada. */
+  .home-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+  }
+  .home-status-me {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .home-status-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .home-status-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .home-status-value strong {
+    font-family: 'Anton', 'Arial Narrow', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1;
+  }
+  .home-status-cta {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    background: var(--ink);
+    color: var(--paper);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .home-status-ok {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .home-matches-more {
+    display: none;
+    min-height: 44px;
+    border: 1px dashed var(--ink);
+    border-radius: 4px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  @media (max-width: 720px) {
+    .home-matches.is-collapsed .home-match-extra {
+      display: none;
+    }
+    .home-matches.is-collapsed .home-matches-more {
+      display: block;
+    }
   }
 
   /* Inicio: cabecera de liga y lista de partidos */
@@ -90,6 +162,68 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  /* Portada de liga: todo en una línea; la competición se recorta si no cabe. */
+  .home-hero-pills.is-meta {
+    flex-wrap: nowrap;
+  }
+
+  .home-hero-pills.is-meta > .home-hero-pill {
+    min-width: 0;
+  }
+
+  .home-hero-pills.is-meta > .home-hero-pill-btn {
+    flex-shrink: 0;
+  }
+
+  .home-hero-pill.is-swap {
+    display: inline-grid;
+    justify-items: center;
+  }
+
+  .home-hero-pill.is-swap > span {
+    grid-area: 1 / 1;
+  }
+
+  /* Mientras las tarjetas cambian de sitio, los menús siguen por encima de ellas. */
+  .mobile-bottom-nav {
+    view-transition-name: mobile-bottom-nav;
+  }
+
+  .top-bar {
+    view-transition-name: top-bar;
+  }
+
+  .home-hero-pill.is-count {
+    gap: 5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Las reglas, como enlace discreto al fondo de esa línea. */
+  .home-hero-rules {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 5px;
+    min-height: 44px;
+    margin-block: -10px;
+    margin-left: auto;
+    padding: 0 0 0 8px;
+    border: 0;
+    background: transparent;
+    color: var(--accent-cyan);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .home-hero-rules:hover,
+  .home-hero-rules:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .home-hero-pill.muted {
@@ -167,7 +301,7 @@
 
   .round-participants:hover,
   .round-participants:focus-visible {
-    background: rgba(17, 24, 39, 0.06);
+    background: rgb(var(--ink-rgb) / 0.06);
   }
 
   .round-participants-stack {
@@ -221,6 +355,26 @@
     cursor: pointer;
     padding: 4px 0;
     white-space: nowrap;
+  }
+
+  /* Marca dónde empiezan los resultados dentro de la lista de la jornada. */
+  .home-match-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 2px 0;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .home-match-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
   }
 
   .home-match-card {
@@ -363,7 +517,7 @@
     min-width: 52px;
     padding: 4px 8px;
     border-radius: 8px;
-    background: rgba(17, 24, 39, 0.07);
+    background: rgb(var(--ink-rgb) / 0.07);
     color: var(--text-main);
     font-weight: 800;
     font-size: 0.9rem;
@@ -468,4 +622,60 @@
       padding: 16px;
     }
   }
+}
+
+/*
+ * Inicio plano: una sola superficie oscura, sin hojas apiladas. Va fuera de las capas para ganar a
+ * las utilidades; el crema queda para los acentos (botón principal, tu fila).
+ */
+.flat-panel {
+  min-width: 0;
+  padding: 16px;
+}
+/* La cabecera y la lista de partidos no llevan caja: cada partido ya es su tarjeta. */
+.home-hero.flat-panel,
+.home-matches.flat-panel {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.home-hero.flat-panel {
+  margin-bottom: 14px;
+}
+.flat-panel .home-match-card {
+  border-radius: 14px;
+}
+.flat-panel .home-match-score {
+  background: rgb(var(--ink-rgb) / 0.08);
+}
+.flat-panel .home-status-cta {
+  border-color: var(--accent-fill);
+  border-radius: 10px;
+  background: var(--accent-fill);
+  color: var(--accent-on);
+}
+.flat-panel .home-matches-more {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--accent-cyan);
+}
+.flat-panel .home-mini-row {
+  padding-inline: 4px;
+  border: 0;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 0;
+  background: none;
+}
+.flat-panel li:last-child > .home-mini-row,
+.flat-panel .home-mini-row:last-child {
+  border-bottom: 0;
+}
+.flat-panel .home-mini-row.is-me {
+  padding-inline: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent-fill);
+  --text-main: var(--accent-on);
+  --text-muted: color-mix(in srgb, var(--accent-on) 70%, var(--accent-fill));
+  color: var(--accent-on);
 }

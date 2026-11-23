@@ -46,7 +46,7 @@ export default function PickFunnel<T extends string>({
               type="button"
               aria-pressed={active}
               onClick={() => onSelect(row.id)}
-              className={`block min-h-11 w-full rounded-[10px] border px-2.5 py-2 text-left transition-colors ${active ? 'border-cyan bg-[rgba(11,95,116,0.1)]' : 'border-transparent hover:bg-[rgba(17,24,39,0.05)]'}`}
+              className={`block min-h-11 w-full rounded-[10px] border px-2.5 py-2 text-left transition-colors ${active ? 'border-cyan bg-[color-mix(in_srgb,var(--marker-ink)_10%,transparent)]' : 'border-transparent hover:bg-[rgb(var(--ink-rgb)/0.05)]'}`}
             >
               <span className="flex items-center gap-2">
                 <span
@@ -62,7 +62,7 @@ export default function PickFunnel<T extends string>({
                 <span className="shrink-0 font-bold tabular-nums text-main">{row.percent} %</span>
               </span>
               <span className="mt-1.5 flex items-center gap-2">
-                <span className="h-2 flex-1 overflow-hidden rounded-full bg-[rgba(17,24,39,0.08)]">
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-[rgb(var(--ink-rgb)/0.08)]">
                   <span
                     className={`block h-full rounded-full ${row.sub ? 'bg-accent-text' : 'bg-cyan'}`}
                     style={{ width: `${row.percent}%` }}

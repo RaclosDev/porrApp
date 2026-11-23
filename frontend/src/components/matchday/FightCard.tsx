@@ -224,7 +224,7 @@ export default function FightCard({
 
       {showPoints && (
         <div
-          className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${scored ? 'bg-[rgba(21,_128,_61,_0.08)] bg-none' : 'bg-[rgba(17,_24,_39,_0.04)] bg-none'} ${scored ? 'border border-[var(--hit)]' : 'border border-line'}`}
+          className={`mt-2.5 py-2 px-3 rounded-[8px] flex items-center justify-between gap-2 text-[0.85rem] ${scored ? 'bg-[rgba(21,_128,_61,_0.08)] bg-none' : 'bg-[rgb(var(--ink-rgb)/0.04)] bg-none'} ${scored ? 'border border-[var(--hit)]' : 'border border-line'}`}
         >
           <span className={`${scored ? 'text-[var(--hit)]' : 'text-muted'}`}>
             {fixture.finished ? (scored ? '✓ ' : '✗ ') : 'Provisional · '}

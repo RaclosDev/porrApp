@@ -48,7 +48,7 @@
   }
 
   .leaderboard-table tbody tr:hover {
-    background: rgba(17, 24, 39, 0.04) !important;
+    background: rgb(var(--ink-rgb) / 0.04) !important;
   }
 
   .leaderboard-table th:nth-child(2),
@@ -73,7 +73,7 @@
     background: var(--panel-bg);
     box-shadow:
       0 12px 30px rgba(0, 0, 0, 0.28),
-      inset 0 1px 0 rgba(17, 24, 39, 0.05);
+      inset 0 1px 0 rgb(var(--ink-rgb) / 0.05);
   }
 
   .lb-matchday-summary {
@@ -163,7 +163,7 @@
     min-width: 40px;
     border-radius: 10px;
     border: 1px solid var(--border-color);
-    background: rgba(17, 24, 39, 0.05);
+    background: rgb(var(--ink-rgb) / 0.05);
     color: var(--text-main);
     display: inline-flex;
     align-items: center;
@@ -384,7 +384,7 @@
   }
 
   .ranking-share-button:hover:not(:disabled) {
-    background: rgba(243, 236, 220, 0.08);
+    background: rgb(var(--ink-rgb) / 0.08);
   }
 
   .ranking-share-button:disabled {
@@ -515,8 +515,28 @@
     margin: 0 0 12px;
   }
 
+  /*
+   * Los tres cromos acaban a la misma altura y el primero empieza siempre más arriba: un empate
+   * (más caras, nombres más largos) alarga los tres, nunca deja al segundo por encima del líder.
+   */
+  .matchday-podium .ranking-podium {
+    align-items: stretch;
+  }
+  .matchday-podium .ranking-podium-place {
+    display: flex;
+  }
+  .matchday-podium .ranking-podium-place > * {
+    flex: 1 1 auto;
+  }
   .matchday-podium .ranking-podium-place-1 {
     margin-inline: 0;
+    translate: none;
+  }
+  .matchday-podium .ranking-podium-place-2 {
+    margin-top: 18px;
+  }
+  .matchday-podium .ranking-podium-place-3 {
+    margin-top: 32px;
   }
 
   /* Empate: las caras se solapan como una pila de cromos, con un aro blanco que las separa. */
@@ -529,6 +549,15 @@
     margin-left: -12px;
     border-radius: 9999px;
     box-shadow: 0 0 0 3px #fffdf7;
+  }
+  /* En el móvil el cromo es estrecho: la pila se aprieta para no tapar el número del puesto. */
+  @media (max-width: 480px) {
+    .matchday-podium-faces {
+      padding-left: 22px;
+    }
+    .matchday-podium-faces > * {
+      margin-left: -22px;
+    }
   }
   .matchday-podium-more {
     display: grid;
@@ -543,7 +572,7 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #6b7280;
+    color: var(--text-muted);
   }
 
   .share-image-podium.ranking-podium {

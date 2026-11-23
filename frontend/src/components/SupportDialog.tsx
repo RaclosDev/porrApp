@@ -115,7 +115,7 @@ export default function SupportDialog({ open, onClose, variant = 'support' }: Su
         </ul>
 
         <p className="mt-4 mb-0 flex items-center justify-center gap-1.5 text-[0.78rem] text-muted text-center [text-wrap:balance]">
-          <Heart size={14} aria-hidden="true" className="shrink-0 text-[#b91c1c]" />
+          <Heart size={14} aria-hidden="true" className="shrink-0 text-[var(--miss)]" />
           Es voluntario: todo sigue gratis para todos.
         </p>
       </div>

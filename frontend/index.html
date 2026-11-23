@@ -41,10 +41,21 @@
       retira con un fundido al montar (src/services/splash.ts). Mismo color que theme_color y
       background_color del manifiesto: la app solo tiene este tema.
     -->
+    <script>
+      // Antes de pintar: el tema guardado, para que la portada no parpadee en oscuro.
+      try {
+        if (localStorage.getItem('porrapp-theme') === 'light') {
+          document.documentElement.dataset.theme = 'light';
+        }
+      } catch (e) {}
+    </script>
     <style>
+      html[data-theme='light'] {
+        --bg-color: #efe9da;
+      }
       html,
       body {
-        background-color: #0f172a;
+        background-color: var(--bg-color, #0f172a);
       }
       #app-splash {
         position: fixed;
@@ -52,7 +63,7 @@
         z-index: 2147483000;
         display: grid;
         place-items: center;
-        background-color: #0f172a;
+        background-color: var(--bg-color, #0f172a);
         transition: opacity 200ms ease-out;
       }
       #app-splash.is-leaving {

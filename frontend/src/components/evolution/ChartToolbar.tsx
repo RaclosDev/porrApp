@@ -32,7 +32,7 @@ export default function ChartToolbar({
       </div>
 
       <div className="flex gap-2.5 flex-wrap items-center">
-        <div className="flex gap-0.5 bg-[rgba(17,_24,_39,_0.04)] bg-none p-[3px] rounded-[25px] border border-[rgba(17,_24,_39,_0.1)] items-center">
+        <div className="flex gap-0.5 bg-[rgb(var(--ink-rgb)/0.04)] bg-none p-[3px] rounded-[25px] border border-[rgb(var(--ink-rgb)/0.1)] items-center">
           <button
             type="button"
             className={`py-[5px] px-2.5 rounded-[16px] border-none bg-transparent bg-none font-bold text-[0.9rem] [transition:all_0.2s] min-h-11 sm:min-h-0 ${zoomLevel <= 0.75 ? 'cursor-not-allowed' : 'cursor-pointer'} ${zoomLevel <= 0.75 ? 'text-muted' : 'text-main'}`}
@@ -59,7 +59,7 @@ export default function ChartToolbar({
           {zoomLevel !== 1 && (
             <button
               type="button"
-              className="py-[3px] px-2 rounded-[12px] border border-[rgba(17,24,39,0.2)] bg-[rgba(17,24,39,0.1)] bg-none text-main text-[0.7rem] cursor-pointer ml-0.5 [transition:all_0.2s] min-h-11 sm:min-h-0"
+              className="py-[3px] px-2 rounded-[12px] border border-[rgb(var(--ink-rgb)/0.2)] bg-[rgb(var(--ink-rgb)/0.1)] bg-none text-main text-[0.7rem] cursor-pointer ml-0.5 [transition:all_0.2s] min-h-11 sm:min-h-0"
               onClick={() => setZoomLevel(1)}
               title="Restaurar zoom al 100%"
               aria-label="Restaurar zoom al 100%"
@@ -69,7 +69,7 @@ export default function ChartToolbar({
           )}
         </div>
 
-        <div className="flex gap-1 bg-[rgba(17,_24,_39,_0.04)] bg-none p-1 rounded-[25px] border border-[rgba(17,_24,_39,_0.1)]">
+        <div className="flex gap-1 bg-[rgb(var(--ink-rgb)/0.04)] bg-none p-1 rounded-[25px] border border-[rgb(var(--ink-rgb)/0.1)]">
           <button
             type="button"
             className={`py-1.5 px-3.5 text-[0.8rem] ${toggleClass(timeScale === 'rounds')}`}
@@ -94,7 +94,7 @@ export default function ChartToolbar({
           </button>
         </div>
 
-        <div className="flex gap-1 bg-[rgba(17,_24,_39,_0.05)] bg-none p-1 rounded-[25px] border border-[rgba(17,_24,_39,_0.1)]">
+        <div className="flex gap-1 bg-[rgb(var(--ink-rgb)/0.05)] bg-none p-1 rounded-[25px] border border-[rgb(var(--ink-rgb)/0.1)]">
           <button
             type="button"
             className={`py-1.5 px-4 text-[0.85rem] ${toggleClass(mode === 'rank')}`}

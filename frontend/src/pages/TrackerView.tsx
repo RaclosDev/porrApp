@@ -195,7 +195,7 @@ export default function TrackerView({ leagueId }: { leagueId: string | null }) {
     <section className="view-section active create-league tracker">
       <header className="create-league-header tracker-head">
         <div>
-          <h1 className="m-0 poster-title text-[1.8rem] text-white">{tracker.name}</h1>
+          <h1 className="m-0 poster-title text-[1.8rem] text-[var(--text-main)]">{tracker.name}</h1>
           <p className="create-league-progress" role="status">
             {day ? `Día de juego · ${formatDay(day.startedAt)}` : 'Ningún día de juego en curso'}
           </p>

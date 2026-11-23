@@ -46,7 +46,7 @@ function TopScorersPanel({
               : 'Todavía no hay datos de goleadores disponibles.'}
             {error && onRetry && (
               <button
-                className="block mt-3 mb-0 mx-auto py-2 px-3.5 rounded-[8px] border border-cyan bg-[rgba(11,_95,_116,_0.1)] bg-none text-main font-bold cursor-pointer"
+                className="block mt-3 mb-0 mx-auto py-2 px-3.5 rounded-[8px] border border-cyan bg-[color-mix(in_srgb,var(--marker-ink)_10%,transparent)] bg-none text-main font-bold cursor-pointer"
                 type="button"
                 onClick={onRetry}
               >
@@ -94,7 +94,7 @@ function TopScorersPanel({
         >
           {medal}
         </span>
-        <div className="w-11 h-11 rounded-full bg-[rgba(17,24,39,0.08)] bg-none shrink-0 overflow-hidden flex items-center justify-center">
+        <div className="w-11 h-11 rounded-full bg-[rgb(var(--ink-rgb)/0.08)] bg-none shrink-0 overflow-hidden flex items-center justify-center">
           {imageUrl && !imgErrors[s.playerId] ? (
             <div className="w-full h-full overflow-hidden flex items-start justify-center">
               <img

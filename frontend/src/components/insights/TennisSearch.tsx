@@ -211,7 +211,7 @@ function VoterList({
           {voters.map((voter) => (
             <li
               key={voter.userId}
-              className={`flex min-h-11 items-center gap-2.5 rounded-[10px] border px-2.5 py-1.5 ${highlight ? 'border-[rgba(11,95,116,0.35)] bg-[rgba(11,95,116,0.08)]' : 'border-line'}`}
+              className={`flex min-h-11 items-center gap-2.5 rounded-[10px] border px-2.5 py-1.5 ${highlight ? 'border-[color-mix(in_srgb,var(--marker-ink)_35%,transparent)] bg-[color-mix(in_srgb,var(--marker-ink)_8%,transparent)]' : 'border-line'}`}
             >
               <UserAvatar url={voter.avatarUrl} userId={voter.userId} name={voter.name} size={28} />
               <span className="min-w-0 flex-1 truncate font-semibold text-main">{voter.name}</span>

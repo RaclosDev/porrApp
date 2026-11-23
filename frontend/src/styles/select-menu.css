@@ -116,7 +116,7 @@
 
   .select-menu-item:hover:not(:disabled),
   .select-menu-item:focus-visible {
-    background: rgba(17, 24, 39, 0.06);
+    background: rgb(var(--ink-rgb) / 0.06);
     outline: none;
   }
 
@@ -126,7 +126,7 @@
 
   .select-menu-item[aria-checked='true'] {
     border-color: var(--ink);
-    background: rgba(17, 24, 39, 0.06);
+    background: rgb(var(--ink-rgb) / 0.06);
     font-weight: 700;
   }
 
@@ -134,7 +134,7 @@
     color: var(--text-muted);
     cursor: not-allowed;
     text-decoration: line-through;
-    text-decoration-color: rgba(17, 24, 39, 0.35);
+    text-decoration-color: rgb(var(--ink-rgb) / 0.35);
   }
 
   .select-menu-check {

@@ -190,7 +190,7 @@ export default function ActiveLeagueDropdown() {
                     : getCompetitionBadge(g.competitionName);
                 return (
                   <button
-                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgba(17,_24,_39,_0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgba(17,_24,_39,_0.06)] focus-visible:bg-[rgba(17,_24,_39,_0.06)]'} text-main`}
+                    className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgb(var(--ink-rgb)/0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgb(var(--ink-rgb)/0.06)] focus-visible:bg-[rgb(var(--ink-rgb)/0.06)]'} text-main`}
                     key={g.id}
                     type="button"
                     onClick={() => {

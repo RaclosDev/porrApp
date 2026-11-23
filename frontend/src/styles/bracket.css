@@ -73,7 +73,7 @@
   }
 
   .team-slot {
-    background: rgba(15, 23, 42, 0.85);
+    background: var(--panel-bg-translucent);
     border: 1px solid var(--border-color);
     padding: 10px 14px;
     border-radius: 6px;
@@ -90,7 +90,7 @@
   }
 
   .team-slot:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgb(var(--ink-rgb) / 0.12);
     border-color: var(--accent-cyan);
   }
 
@@ -138,7 +138,7 @@
   }
 
   .modal-content {
-    background: #1e293b;
+    background: var(--surface);
     border: 1px solid var(--border-color);
     padding: 30px;
     border-radius: 16px;

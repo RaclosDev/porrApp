@@ -25,7 +25,7 @@ describe('BestThirdsPanel', () => {
     rows.forEach((row, idx) => expect(row.firstElementChild?.textContent).toBe(String(idx + 1)));
 
     // Pasan cuatro: el corte va bajo Eslovenia y los dos últimos quedan atenuados.
-    expect(rows.map((row) => row.style.opacity)).toEqual(['1', '1', '1', '1', '0.5', '0.5']);
+    expect(rows.map((row) => row.style.opacity)).toEqual(['1', '1', '1', '1', '0.65', '0.65']);
     expect(rows.map((row) => row.className.includes('dashed'))).toEqual([
       false,
       false,

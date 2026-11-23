@@ -55,7 +55,7 @@ it('«Ajustes de cuenta» abre los ajustes por arriba y la campana, en los aviso
 it('el botón de apoyar abre una ventana con Ko-fi, Revolut y PayPal en otra pestaña', () => {
   setup();
   expect(screen.queryByRole('dialog')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Apoya el proyecto' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Apoyar el proyecto' }));
 
   const dialog = screen.getByRole('dialog', { name: 'Invítanos a un café' });
   const expected = {

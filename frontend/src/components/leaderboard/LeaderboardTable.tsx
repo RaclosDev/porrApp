@@ -106,7 +106,7 @@ export default function LeaderboardTable({
             const isMe = isOwnRow(r, userId, userName);
             const rowStyle: CSSProperties = {
               background: isMe
-                ? 'rgba(11, 95, 116, 0.08)'
+                ? 'color-mix(in srgb, var(--marker-ink) 8%, transparent)'
                 : isPending
                   ? 'rgba(255, 165, 0, 0.05)'
                   : 'transparent',
@@ -158,7 +158,7 @@ export default function LeaderboardTable({
 
                     {open && (
                       <button
-                        className="glass-btn bg-[rgba(11,_95,_116,_0.08)] bg-none text-accent-text border border-accent py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 whitespace-nowrap text-[0.95rem] leading-[1] inline-flex items-center justify-center"
+                        className="glass-btn bg-[color-mix(in_srgb,var(--marker-ink)_8%,transparent)] bg-none text-accent-text border border-accent py-[5px] px-[7px] min-w-11 min-h-11 ml-auto shrink-0 whitespace-nowrap text-[0.95rem] leading-[1] inline-flex items-center justify-center"
                         onClick={(e) => {
                           e.stopPropagation();
                           open();
