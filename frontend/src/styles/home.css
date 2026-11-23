@@ -13,12 +13,12 @@
     min-width: 0;
   }
 
-  /* En escritorio, ranking y tabla llenan cada uno su mitad y los partidos bajan hasta el mismo sitio. */
-  .home-dashboard-sidebar.is-filled {
-    align-items: stretch;
-  }
-  .home-dashboard-grid:has(> .home-dashboard-sidebar.is-filled) {
-    align-items: stretch;
+  /* En escritorio, ranking y tabla miden lo mismo: el alto del que más filas enseña. */
+  @media (min-width: 721px) {
+    .home-dashboard-sidebar {
+      grid-auto-rows: 1fr;
+      align-items: stretch;
+    }
   }
 
   /* Inicio: tu situación en la liga, antes que nada. */
@@ -632,12 +632,15 @@
   min-width: 0;
   padding: 16px;
 }
-/* La cabecera y la lista de partidos no llevan caja: cada partido ya es su tarjeta. */
-.home-hero.flat-panel,
-.home-matches.flat-panel {
+/* La cabecera no lleva caja. */
+.home-hero.flat-panel {
   padding: 0;
   border: 0;
   background: none;
+}
+/* Dentro de la caja de la jornada, cada partido es una tarjeta hundida, no otra hoja encima. */
+.home-matches.flat-panel .home-match-card {
+  background: rgb(var(--ink-rgb) / 0.04);
 }
 .home-hero.flat-panel {
   margin-bottom: 14px;
