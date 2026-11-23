@@ -31,11 +31,11 @@
 }
 
 .knockout-tie {
-  background: #fffdf7;
+  background: var(--surface-raised);
   color: var(--ink);
-  border: 1px solid rgba(17, 24, 39, 0.55);
+  border: 1px solid rgb(var(--ink-rgb) / 0.55);
   border-radius: 8px;
-  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.08);
+  box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.08);
   overflow: hidden;
 }
 
@@ -46,8 +46,8 @@
   margin: 0;
   padding: 6px 10px;
   font-size: 0.75rem;
-  color: #4b5563;
-  border-bottom: 1px solid rgba(17, 24, 39, 0.12);
+  color: var(--text-muted);
+  border-bottom: 1px solid rgb(var(--ink-rgb) / 0.12);
 }
 
 .knockout-tie-closed {
@@ -69,7 +69,7 @@
 }
 
 .knockout-tie-teams .team-slot + .team-slot {
-  border-top: 1px solid rgba(17, 24, 39, 0.12) !important;
+  border-top: 1px solid rgb(var(--ink-rgb) / 0.12) !important;
 }
 
 .knockout-tie-teams .team-slot-name {
@@ -104,9 +104,9 @@
   margin: 0;
   padding: 8px 10px 10px;
   border: 0;
-  border-top: 1px solid rgba(17, 24, 39, 0.12);
+  border-top: 1px solid rgb(var(--ink-rgb) / 0.12);
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--text-muted);
 }
 
 .knockout-series-games legend {
@@ -121,7 +121,7 @@
 }
 
 .knockout-series-games.is-hit {
-  color: #166534;
+  color: var(--hit);
   font-weight: 700;
 }
 
@@ -134,9 +134,9 @@
 
 .knockout-series-option {
   min-height: 44px;
-  border: 1px solid rgba(17, 24, 39, 0.45);
+  border: 1px solid rgb(var(--ink-rgb) / 0.45);
   border-radius: 6px;
-  background: #fff;
+  background: var(--surface-raised);
   color: var(--ink);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -145,7 +145,7 @@
 
 .knockout-series-option.is-active {
   background: var(--ink);
-  color: #fffdf7;
+  color: var(--surface-raised);
   border-color: var(--ink);
 }
 

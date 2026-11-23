@@ -46,31 +46,34 @@
   }
 
   /* Sobre papel claro, las mismas tintas en versión oscura sobre un lavado claro. */
-  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink {
+  :where(.landing-poster, [data-theme='light'], .sticker) .user-avatar-ink {
     --avatar-ink: #0b5f74;
     --avatar-fill: #d6eaec;
   }
-  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink[data-ink='1'] {
+  :where(.landing-poster, [data-theme='light'], .sticker) .user-avatar-ink[data-ink='1'] {
     --avatar-ink: #a3177f;
     --avatar-fill: #f3dbec;
   }
-  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink[data-ink='2'] {
+  :where(.landing-poster, [data-theme='light'], .sticker) .user-avatar-ink[data-ink='2'] {
     --avatar-ink: #a8470b;
     --avatar-fill: #f6e1cf;
   }
-  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink[data-ink='3'] {
+  :where(.landing-poster, [data-theme='light'], .sticker) .user-avatar-ink[data-ink='3'] {
     --avatar-ink: #6b5200;
     --avatar-fill: #efe5c2;
   }
-  :where(.landing-poster, .paper-panel, .sticker) .user-avatar-ink[data-ink='4'] {
+  :where(.landing-poster, [data-theme='light'], .sticker) .user-avatar-ink[data-ink='4'] {
     --avatar-ink: #1d4ed8;
     --avatar-fill: #dbe4f8;
   }
 
   /* Cualquier superficie de papel: tinta oscura y sellos de tinta más oscuros. */
   .landing-poster,
-  .paper-panel,
   .sticker {
+    --paper: #f3ecdc;
+    --ink: #111827;
+    --text-main: #111827;
+    --text-muted: #4b5563;
     --marker-ink: #0b5f74;
     --stamp-red: #b91c1c;
     --stamp-ink: #0b5f74;
@@ -245,29 +248,21 @@
   }
 
   /*
-   * Hoja de papel. Los tokens de color cambian aquí, así que las clases de siempre (text-muted,
-   * border-line, .team-slot, .leaderboard-table…) salen en tinta sin tocar cada componente.
+   * Panel plano. Dentro, "papel" y "tinta" son la superficie y el texto del tema: las reglas de
+   * siempre (.paper-panel .x { color: var(--ink) }) valen así en oscuro y en claro.
    */
-  .paper-panel {
-    background: var(--paper);
-    color: var(--ink);
-    --text-main: #111827;
-    --text-primary: #111827;
-    --text-muted: #4b5563;
-    --border-color: rgba(17, 24, 39, 0.18);
-    --panel-bg: #fffdf7;
-    --panel-bg-translucent: rgba(255, 253, 247, 0.92);
-    --bg-card: #fffdf7;
-    --accent-cyan: #0b5f74;
-    --accent-text: #0b5f74;
-    --champion-gold: #92400e;
-    --hit: #166534;
-    --pass: #1d4ed8;
-    --miss: #b91c1c;
-    --tab-active-bg: var(--ink);
-    --tab-active-fg: var(--paper);
-    --tab-border: rgba(17, 24, 39, 0.3);
-    --connector: rgba(17, 24, 39, 0.55);
+  .paper-panel,
+  .flat-panel {
+    background: var(--surface);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    --paper: var(--surface);
+    --ink: var(--text-main);
+    --panel-bg: var(--surface-raised);
+    --bg-card: var(--surface-raised);
+    --tab-active-bg: var(--text-main);
+    --tab-active-fg: var(--surface);
   }
 
   /* El papel se dibuja por separado: el contenido nunca hereda su giro. */
@@ -275,17 +270,15 @@
     position: relative;
     isolation: isolate;
     padding: 18px 16px;
-    border-radius: 4px;
+    border-radius: 14px;
     --paper-angle: -0.4deg;
   }
 
-  .paper-panel.album-sheet,
   .landing-poster {
     background: transparent;
     box-shadow: none;
   }
 
-  .album-sheet::before,
   .landing-poster::before {
     content: '';
     position: absolute;
@@ -651,10 +644,8 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    border-radius: 6px;
-    box-shadow:
-      4px 5px 0 #d8cfb9,
-      0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   }
 
   .paper-dialog-heading {
@@ -672,13 +663,13 @@
     height: 44px;
     border: none;
     border-radius: 50%;
-    background: rgba(17, 24, 39, 0.08);
+    background: rgb(var(--ink-rgb) / 0.08);
     color: var(--ink);
     cursor: pointer;
   }
 
   .paper-dialog-close:hover {
-    background: rgba(17, 24, 39, 0.16);
+    background: rgb(var(--ink-rgb) / 0.16);
   }
 
   .paper-dialog-body {
@@ -721,22 +712,13 @@
   .paper-panel .standings-row:hover,
   .paper-panel .standings-toggle button:hover {
     color: var(--ink);
-    background: rgba(17, 24, 39, 0.06);
+    background: rgb(var(--ink-rgb) / 0.06);
   }
 
   .paper-panel .standings-toggle button.is-active {
     background: var(--ink);
     color: var(--paper);
     box-shadow: none;
-  }
-
-  .paper-panel .standings-rank.is-podium-1,
-  .paper-panel .standings-rank.is-podium-3 {
-    color: #92400e;
-  }
-
-  .paper-panel .standings-rank.is-podium-2 {
-    color: #374151;
   }
 
   .paper-panel .standings-win-cell,
@@ -773,39 +755,40 @@
   }
 
   .paper-panel .leaderboard-table tbody tr:hover {
-    background: rgba(17, 24, 39, 0.05) !important;
+    background: rgb(var(--ink-rgb) / 0.05) !important;
   }
 
   /* Casillas del cuadro como pegatinas blancas con borde de tinta. */
   .paper-panel .team-slot {
-    background: #fffdf7;
-    border: 1.5px solid var(--ink);
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
     color: var(--ink);
   }
 
   .paper-panel .team-slot:hover {
-    background: #ffffff;
+    background: var(--surface-raised);
     border-color: var(--accent-cyan);
   }
 
   .paper-panel .team-slot.empty {
     border-style: dashed;
-    border-color: rgba(17, 24, 39, 0.35);
+    border-color: rgb(var(--ink-rgb) / 0.35);
   }
 
   /* Cuadro en móvil: pestañas y tarjetas de cruce sobre el papel. */
   .paper-panel .mb-match-card {
-    background: #fffdf7;
-    border: 1px solid rgba(17, 24, 39, 0.55);
-    box-shadow: 0 1px 0 rgba(17, 24, 39, 0.08);
+    background: var(--surface-raised);
+    border: 1px solid rgb(var(--ink-rgb) / 0.55);
+    box-shadow: 0 1px 0 rgb(var(--ink-rgb) / 0.08);
   }
 
   .paper-panel .mb-match-card .team-slot + .team-slot {
-    border-top-color: rgba(17, 24, 39, 0.12) !important;
+    border-top-color: rgb(var(--ink-rgb) / 0.12) !important;
   }
 
   .paper-panel .mb-match-placeholder {
-    border-color: rgba(17, 24, 39, 0.35);
+    border-color: rgb(var(--ink-rgb) / 0.35);
     box-shadow: none;
   }
 
@@ -830,7 +813,7 @@
   }
 
   .paper-panel .glass-input {
-    background: #ffffff;
+    background: var(--surface-raised);
     border-color: var(--ink);
     color: var(--ink);
   }
@@ -874,8 +857,9 @@
   /* Jornadas sobre papel: partidos como pegatinas, marcadores y 1X2 en tinta. */
   .paper-panel .md-match,
   .paper-panel .home-match-card {
-    background: #fffdf7;
-    border: 1.5px solid var(--ink);
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
   }
 
   .paper-panel .md-sign-btn,
@@ -908,12 +892,13 @@
   }
 
   .paper-panel .home-link-btn,
+  .paper-panel .home-hero-rules,
   .paper-panel .home-list-header a {
     color: var(--marker-ink);
   }
 
   .paper-panel .home-match-score {
-    background: rgba(17, 24, 39, 0.06);
+    background: rgb(var(--ink-rgb) / 0.06);
     color: var(--ink);
   }
 
@@ -1006,19 +991,19 @@
 
   .paper-panel .glass-btn {
     background: transparent;
-    border-color: var(--ink);
+    border-color: rgb(var(--ink-rgb) / 0.3);
     color: var(--ink);
   }
 
   .paper-panel .glass-btn:hover {
-    background: rgba(17, 24, 39, 0.08);
+    background: rgb(var(--ink-rgb) / 0.08);
   }
 
   .paper-panel .glass-btn.active,
   .paper-panel .primary-btn {
-    background: var(--ink) !important;
-    border-color: var(--ink) !important;
-    color: var(--paper) !important;
+    background: var(--accent-fill) !important;
+    border-color: var(--accent-fill) !important;
+    color: var(--accent-on) !important;
   }
 
   /* Mientras se envía: que se note que no se puede volver a pulsar. */
@@ -1028,12 +1013,12 @@
   }
 
   .paper-panel .rules-tabs {
-    border-color: rgba(17, 24, 39, 0.2);
-    background: rgba(17, 24, 39, 0.05);
+    border-color: rgb(var(--ink-rgb) / 0.2);
+    background: rgb(var(--ink-rgb) / 0.05);
   }
 
   .paper-panel .rules-tabs button {
-    color: #4b5563;
+    color: var(--text-muted);
   }
 
   .paper-panel .rules-tabs button:hover {
@@ -1054,11 +1039,11 @@
   }
 
   .paper-panel .scoring-rows {
-    border-color: rgba(17, 24, 39, 0.2);
+    border-color: rgb(var(--ink-rgb) / 0.2);
   }
 
   .paper-panel .scoring-row {
-    border-top-color: rgba(17, 24, 39, 0.12);
+    border-top-color: rgb(var(--ink-rgb) / 0.12);
   }
 
   .paper-panel .scoring-row-label,
@@ -1067,6 +1052,6 @@
   }
 
   .paper-panel .scoring-row-hint {
-    color: #4b5563;
+    color: var(--text-muted);
   }
 }

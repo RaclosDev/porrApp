@@ -19,18 +19,20 @@ export default function StageInspector({
 }: StageInspectorProps) {
   return (
     <div
-      className={`py-3 px-4 mb-4 [transition:all_0.3s] ${currentInspectedStage ? 'bg-[rgba(11,_95,_116,_0.07)] bg-none' : 'bg-[rgba(17,_24,_39,_0.02)] bg-none'}`}
+      className={`py-3 px-4 mb-4 [transition:all_0.3s] ${currentInspectedStage ? 'bg-[color-mix(in_srgb,var(--marker-ink)_7%,transparent)] bg-none' : 'bg-[rgb(var(--ink-rgb)/0.02)] bg-none'}`}
       style={{
         border: '1px solid',
-        borderColor: currentInspectedStage ? 'rgba(11, 95, 116, 0.3)' : 'rgba(17, 24, 39, 0.06)',
+        borderColor: currentInspectedStage
+          ? 'color-mix(in srgb, var(--marker-ink) 30%, transparent)'
+          : 'rgb(var(--ink-rgb)/0.06)',
         borderRadius: '12px',
       }}
     >
       {currentInspectedStage ? (
         <div>
-          <div className="flex justify-between items-center flex-wrap gap-2.5 border-b border-b-[rgba(17,_24,_39,_0.08)] pb-2 mb-2.5">
+          <div className="flex justify-between items-center flex-wrap gap-2.5 border-b border-b-[rgb(var(--ink-rgb)/0.08)] pb-2 mb-2.5">
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="font-bold text-accent-text text-[0.95rem] bg-[rgba(11,_95,_116,_0.15)] bg-none py-[3px] px-2.5 rounded-[15px] border border-[rgba(11,_95,_116,_0.4)]">
+              <span className="font-bold text-accent-text text-[0.95rem] bg-[color-mix(in_srgb,var(--marker-ink)_15%,transparent)] bg-none py-[3px] px-2.5 rounded-[15px] border border-[color-mix(in_srgb,var(--marker-ink)_40%,transparent)]">
                 {currentInspectedStage.roundName || currentInspectedStage.label}
               </span>
               {currentInspectedStage.matchTitle && (
@@ -44,7 +46,7 @@ export default function StageInspector({
             </div>
             <button
               type="button"
-              className="bg-[rgba(17,24,39,0.08)] bg-none border-none text-muted cursor-pointer text-[0.8rem] py-1 px-2.5 rounded-[12px] [transition:background_0.2s]"
+              className="bg-[rgb(var(--ink-rgb)/0.08)] bg-none border-none text-muted cursor-pointer text-[0.8rem] py-1 px-2.5 rounded-[12px] [transition:background_0.2s]"
               onClick={() => setHoveredStageIdx(null)}
               title="Cerrar inspección"
             >
@@ -68,7 +70,7 @@ export default function StageInspector({
                 const pts = u.pointsEvolution[inspectedIdx];
                 return (
                   <div
-                    className={`flex items-center gap-1.5 py-1 px-2.5 rounded-[16px] text-[0.8rem] text-main whitespace-nowrap shrink-0 ${u.isMe ? 'bg-[rgba(11,_95,_116,_0.2)] bg-none' : 'bg-[rgba(17,_24,_39,_0.06)] bg-none'} ${u.isMe ? 'border border-accent' : 'border border-[rgba(17,_24,_39,_0.1)]'}`}
+                    className={`flex items-center gap-1.5 py-1 px-2.5 rounded-[16px] text-[0.8rem] text-main whitespace-nowrap shrink-0 ${u.isMe ? 'bg-[color-mix(in_srgb,var(--marker-ink)_20%,transparent)] bg-none' : 'bg-[rgb(var(--ink-rgb)/0.06)] bg-none'} ${u.isMe ? 'border border-accent' : 'border border-[rgb(var(--ink-rgb)/0.1)]'}`}
                     key={u.key}
                   >
                     <span

@@ -58,21 +58,21 @@ export default function LeagueRulesModal({
         ref={dialogRef}
         tabIndex={-1}
       >
-        <div className="py-4 px-5 border-b border-b-[rgba(17,_24,_39,_0.15)] flex flex-col gap-3">
+        <div className="py-4 px-5 border-b border-b-[rgb(var(--ink-rgb)/0.15)] flex flex-col gap-3">
           <div className="flex justify-between items-center gap-3">
             <div className="min-w-0">
               <div className="marker-ink text-[1rem]">
                 {tournament ? 'Reglas del torneo' : 'Reglas de la liga'}
               </div>
               <h2
-                className="m-0 poster-title text-[1.35rem] text-[#111827] overflow-hidden text-ellipsis whitespace-nowrap"
+                className="m-0 poster-title text-[1.35rem] text-[var(--text-main)] overflow-hidden text-ellipsis whitespace-nowrap"
                 id="league-rules-title"
               >
                 {group?.name}
               </h2>
             </div>
             <button
-              className="bg-[rgba(17,_24,_39,_0.08)] bg-none border-none text-[#111827] w-11 h-11 rounded-full cursor-pointer shrink-0"
+              className="bg-[rgb(var(--ink-rgb)/0.08)] bg-none border-none text-[var(--text-main)] w-11 h-11 rounded-full cursor-pointer shrink-0"
               type="button"
               onClick={onClose}
               aria-label="Cerrar"
@@ -91,13 +91,13 @@ export default function LeagueRulesModal({
               aria-labelledby="league-rules-tab-scoring"
             >
               {groupId == null && (
-                <p className="m-0 text-[#4b5563] text-[0.9rem]">
+                <p className="m-0 text-[var(--text-muted)] text-[0.9rem]">
                   Elige una liga para ver su puntuación.
                 </p>
               )}
               {isLoading && <PaperLoading label="Cargando puntuación" embedded />}
               {error && (
-                <p className="m-0 text-[#4b5563] text-[0.9rem]" role="alert">
+                <p className="m-0 text-[var(--text-muted)] text-[0.9rem]" role="alert">
                   {errorMessage(error, 'No se pudo cargar la puntuación.')}
                 </p>
               )}
@@ -112,11 +112,11 @@ export default function LeagueRulesModal({
               aria-labelledby={tournament ? undefined : 'league-rules-tab-norms'}
             >
               {rules ? (
-                <p className="m-0 whitespace-pre-wrap leading-[1.6] text-[0.95rem] text-[#1f2937]">
+                <p className="m-0 whitespace-pre-wrap leading-[1.6] text-[0.95rem] text-[var(--text-main)]">
                   {rules}
                 </p>
               ) : (
-                <p className="m-0 text-[#4b5563] text-[0.9rem]">
+                <p className="m-0 text-[var(--text-muted)] text-[0.9rem]">
                   {tournament
                     ? 'Todavía no se han publicado las normas del torneo.'
                     : 'El administrador de esta liga todavía no ha escrito normas: cuota, pagos o premios.'}

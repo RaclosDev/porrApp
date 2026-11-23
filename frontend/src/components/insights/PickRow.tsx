@@ -79,7 +79,7 @@ export default function PickRow({
       {to ? (
         <Link
           to={to}
-          className={`${frame} text-inherit no-underline transition-colors hover:bg-[rgba(17,24,39,0.05)]`}
+          className={`${frame} text-inherit no-underline transition-colors hover:bg-[rgb(var(--ink-rgb)/0.05)]`}
         >
           {body}
         </Link>

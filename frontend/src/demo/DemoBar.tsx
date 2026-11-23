@@ -38,7 +38,7 @@ export default function DemoBar() {
         <button
           type="button"
           onClick={() => leaveDemo()}
-          className="min-h-9 cursor-pointer whitespace-nowrap border-none bg-transparent px-2 text-xs text-[#4b5563] underline"
+          className="min-h-9 cursor-pointer whitespace-nowrap border-none bg-transparent px-2 text-xs text-[var(--ink)] opacity-75 underline"
         >
           Salir
         </button>

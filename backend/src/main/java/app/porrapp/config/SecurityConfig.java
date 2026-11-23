@@ -44,6 +44,8 @@ public class SecurityConfig {
             "/api/demo/data"
     };
 
+    /** Hash del script inline de frontend/index.html que aplica el tema guardado antes de pintar. */
+    static final String INDEX_THEME_SCRIPT_HASH = "'sha256-RcjgSyxkK2eS1BasChNbRtRQhj4DNDJokvmKnImnMGY='";
     /** Hash del contenido de &lt;script type="speculationrules"&gt; de frontend/index.html. */
     static final String INDEX_SPECULATION_RULES_HASH = "'sha256-I3eLRc1Jk/ZvRCXECwqrMwPVfsi5QuCkSMpeXQKg2Fw='";
     /** Hash de onload="this.media = 'all'" de la hoja de fuentes de frontend/index.html. */
@@ -134,7 +136,8 @@ public class SecurityConfig {
                             // Sin 'unsafe-inline': solo el script inline de index.html (reglas de
                             // precarga) y el onload de las fuentes, por su hash. Si cambian, hay que
                             // actualizar los hashes (lo comprueba cspHashes.test.ts en el frontend).
-                            "script-src 'self' " + INDEX_SPECULATION_RULES_HASH + " 'unsafe-hashes' "
+                            "script-src 'self' " + INDEX_THEME_SCRIPT_HASH + " " + INDEX_SPECULATION_RULES_HASH
+                            + " 'unsafe-hashes' "
                             + INDEX_FONT_ONLOAD_HASH + " https://accounts.google.com https://apis.google.com"
                             // Google Analytics: solo se carga si el visitante acepta la analítica.
                             + " https://www.googletagmanager.com"

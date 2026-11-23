@@ -57,7 +57,7 @@ export default function GroupStandingsCard({
 
       {rows.map((team, idx) => (
         <div
-          className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${idx < 2 ? 'bg-[rgba(17,_24,_39,_0.04)] bg-none' : 'bg-transparent bg-none'}`}
+          className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${idx < 2 ? 'bg-[rgb(var(--ink-rgb)/0.04)] bg-none' : 'bg-transparent bg-none'}`}
           key={team.name}
         >
           <span className="w-4.5 font-bold text-muted text-[0.85em] shrink-0">{idx + 1}</span>

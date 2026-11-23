@@ -38,7 +38,7 @@ function BestThirdsPanel({ officialPoints, qualifying = 8 }: BestThirdsPanelProp
                   <div
                     className={`grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 py-[5px] px-0 items-center text-[0.85rem] ${idx === qualifying - 1 ? CUT_LINE : 'border-b-0'}`}
                     key={t.name}
-                    style={{ opacity: qualifies ? 1 : 0.5 }}
+                    style={{ opacity: qualifies ? 1 : 0.65 }}
                   >
                     <span
                       className={`font-bold text-center ${qualifies ? 'text-[var(--hit)]' : 'text-muted'}`}
@@ -51,7 +51,7 @@ function BestThirdsPanel({ officialPoints, qualifying = 8 }: BestThirdsPanelProp
                         {t.name}
                       </span>
                     </div>
-                    <span className="font-bold text-center bg-[rgba(17,24,39,0.06)] bg-none rounded-[4px]">
+                    <span className="font-bold text-center bg-[rgb(var(--ink-rgb)/0.06)] bg-none rounded-[4px]">
                       {t.pts}
                     </span>
                     <span className="text-center text-muted">
@@ -88,7 +88,7 @@ function BestThirdsPanel({ officialPoints, qualifying = 8 }: BestThirdsPanelProp
                   <div
                     className={`grid grid-cols-[20px_1fr_25px_30px_28px] gap-1.5 py-[5px] px-0 items-center text-[0.85rem] ${globalIdx === qualifying - 1 ? CUT_LINE : 'border-b-0'}`}
                     key={t.name}
-                    style={{ opacity: qualifies ? 1 : hasPlayed ? 0.5 : 0.3 }}
+                    style={{ opacity: qualifies ? 1 : hasPlayed ? 0.65 : 0.5 }}
                   >
                     <span
                       className={`font-bold text-center ${qualifies ? 'text-[var(--hit)]' : 'text-muted'}`}
@@ -101,7 +101,7 @@ function BestThirdsPanel({ officialPoints, qualifying = 8 }: BestThirdsPanelProp
                         {t.name}
                       </span>
                     </div>
-                    <span className="font-bold text-center bg-[rgba(17,24,39,0.06)] bg-none rounded-[4px]">
+                    <span className="font-bold text-center bg-[rgb(var(--ink-rgb)/0.06)] bg-none rounded-[4px]">
                       {t.pts}
                     </span>
                     <span className="text-center text-muted">

@@ -72,7 +72,7 @@ export default function ChartCanvas({
                     y1={y}
                     x2={width - padding.right}
                     y2={y}
-                    stroke="rgba(17,24,39,0.06)"
+                    stroke="rgb(var(--ink-rgb)/0.06)"
                     strokeDasharray="4 4"
                   />
                   <text
@@ -97,7 +97,7 @@ export default function ChartCanvas({
                     y1={y}
                     x2={width - padding.right}
                     y2={y}
-                    stroke="rgba(17,24,39,0.06)"
+                    stroke="rgb(var(--ink-rgb)/0.06)"
                     strokeDasharray="4 4"
                   />
                   <text
@@ -133,7 +133,11 @@ export default function ChartCanvas({
                 y={padding.top}
                 width={colWidth}
                 height={chartH}
-                fill={isHovered ? 'rgba(11, 95, 116, 0.12)' : 'transparent'}
+                fill={
+                  isHovered
+                    ? 'color-mix(in srgb, var(--marker-ink) 12%, transparent)'
+                    : 'transparent'
+                }
               />
               <line
                 x1={x}
@@ -142,10 +146,10 @@ export default function ChartCanvas({
                 y2={padding.top + chartH}
                 stroke={
                   isHovered
-                    ? 'rgba(11, 95, 116, 0.6)'
+                    ? 'color-mix(in srgb, var(--marker-ink) 60%, transparent)'
                     : st.isRoundBoundary
-                      ? 'rgba(17,24,39,0.15)'
-                      : 'rgba(17,24,39,0.04)'
+                      ? 'rgb(var(--ink-rgb)/0.15)'
+                      : 'rgb(var(--ink-rgb)/0.04)'
                 }
                 strokeWidth={isHovered ? 2 : st.isRoundBoundary ? 1.5 : 1}
                 strokeDasharray={st.isRoundBoundary && !isHovered ? '3 3' : undefined}

@@ -124,7 +124,6 @@ test('home previews split the column evenly and fill at least the screen', async
   await page.screenshot({ path: testInfo.outputPath('mobile.png'), fullPage: true });
 
   matchCount = 3;
-  finishedCount = 12;
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.reload();
   await expect(page.locator('#app-splash')).toBeHidden();
@@ -139,12 +138,23 @@ test('home previews split the column evenly and fill at least the screen', async
   expect(few.panels[1].bottom).toBeLessThanOrEqual(few.viewport + 1);
   expect(await rowHeight()).toBeCloseTo(desktopRowHeight);
 
-  // Abrir los resultados alarga la columna de partidos, pero no ranking ni tabla.
+  // A mitad de jornada la lista va en dos bloques con su rótulo: lo que queda por jugar y los
+  // resultados, el último primero. La píldora sube arriba el otro bloque.
+  finishedCount = 12;
+  await page.reload();
+  await expect(page.locator('#app-splash')).toBeHidden();
+  const cards = page.locator('.home-match-card');
+  const blocks = page.locator('.home-match-divider');
+  await expect(cards).toHaveCount(10);
+  await expect(blocks).toHaveText(['Por jugar', 'Resultados']);
+  await expect(cards.first()).toContainText('Local 1');
+  await expect(cards.nth(3)).toContainText('Casa 1');
+  await expect(cards.last()).toContainText('Casa 7');
   await page.getByRole('button', { name: 'Resultados' }).click();
-  await expect(page.locator('.home-match-card')).not.toHaveCount(pendingCards);
-  const results = await bounds();
-  expect(results.matches.bottom).toBeGreaterThan(few.viewport + 100);
-  expect(results.panels[0].height).toBeCloseTo(few.panels[0].height, 0);
-  expect(results.panels[1].bottom).toBeCloseTo(few.panels[1].bottom, 0);
-  await expect(rankingRows).toHaveCount(6);
+  await expect(cards).toHaveCount(10);
+  await expect(blocks).toHaveText(['Resultados', 'Por jugar']);
+  await expect(cards.first()).toContainText('Casa 1');
+  await expect(cards.last()).toContainText('Local 3');
+  await page.getByRole('button', { name: 'Por jugar' }).click();
+  await expect(cards.first()).toContainText('Local 1');
 });

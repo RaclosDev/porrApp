@@ -109,33 +109,45 @@ describe('currentRoundMatches', () => {
       }),
     );
 
-  it('a mitad de jornada solo enseña el último partido jugado y los que quedan', () => {
-    expect(currentRoundMatches(week(5, 10)).matches.map((m) => m.id)).toEqual([5, 6, 7, 8, 9, 10]);
+  // Los partidos de `week` van de hora en hora desde el 2 de noviembre a medianoche.
+  const at = (hour: number, minutes = 0) =>
+    Date.parse('2026-11-02T00:00:00Z') + hour * 3_600_000 + minutes * 60_000;
+  const ids = (list: { id: number }[]) => list.map((m) => m.id);
+
+  it('con el siguiente partido cerca, primero lo que queda y después los resultados, el último arriba', () => {
+    const { matches, flipped } = currentRoundMatches(week(5, 10), at(4, 50));
+    expect(ids(matches)).toEqual([6, 7, 8, 9, 10, 5, 4, 3, 2, 1]);
+    expect(ids(flipped)).toEqual([5, 4, 3, 2, 1, 6, 7, 8, 9, 10]);
   });
 
-  it('sin nada jugado todavía, la jornada va entera', () => {
-    expect(currentRoundMatches(week(0, 10)).matches).toHaveLength(10);
+  it('con el último resultado más cerca que el siguiente partido, primero los resultados', () => {
+    const { matches, flipped } = currentRoundMatches(week(5, 10), at(4, 10));
+    expect(ids(matches)).toEqual([5, 4, 3, 2, 1, 6, 7, 8, 9, 10]);
+    expect(ids(flipped)).toEqual([6, 7, 8, 9, 10, 5, 4, 3, 2, 1]);
   });
 
-  it('una jornada ya acabada va entera', () => {
-    expect(currentRoundMatches(week(10, 10)).matches).toHaveLength(10);
+  it('con un partido en juego, lo pendiente va siempre primero', () => {
+    const games = week(5, 10);
+    games[5] = { ...games[5], status: 'IN_PROGRESS' };
+    expect(ids(currentRoundMatches(games, at(4, 10)).matches)[0]).toBe(6);
   });
 
-  it('de una semana de la NBA enseña el último resultado y los siguientes partidos', () => {
-    const { round, matches } = currentRoundMatches(week(46, 54));
+  it('sin nada jugado todavía, la jornada va entera y sin bloques', () => {
+    const { matches, flipped } = currentRoundMatches(week(0, 10), at(0));
+    expect(matches).toHaveLength(10);
+    expect(flipped).toEqual([]);
+  });
+
+  it('una jornada ya acabada va entera y sin bloques', () => {
+    const { matches, flipped } = currentRoundMatches(week(10, 10), at(12));
+    expect(ids(matches)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(flipped).toEqual([]);
+  });
+
+  it('de una semana de la NBA enseña los siguientes partidos y guarda sitio para los últimos resultados', () => {
+    const { round, matches } = currentRoundMatches(week(46, 54), at(45, 50));
     expect(round).toBe('Semana 3');
-    expect(matches.map((m) => m.id)).toEqual([46, 47, 48, 49, 50, 51, 52, 53, 54]);
-  });
-
-  it('los resultados de la jornada en curso van del último al primero', () => {
-    expect(currentRoundMatches(week(3, 10)).results.map((m) => m.id)).toEqual([3, 2, 1]);
-    expect(currentRoundMatches(week(46, 54)).results.map((m) => m.id)[0]).toBe(46);
-    expect(currentRoundMatches(week(46, 54)).results).toHaveLength(10);
-  });
-
-  it('sin jornada a medias no hay resultados aparte', () => {
-    expect(currentRoundMatches(week(0, 10)).results).toEqual([]);
-    expect(currentRoundMatches(week(10, 10)).results).toEqual([]);
+    expect(ids(matches)).toEqual([47, 48, 49, 50, 51, 52, 53, 46, 45, 44]);
   });
 
   it('con la semana recién empezada, desde el primer partido', () => {

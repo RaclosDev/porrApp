@@ -31,7 +31,7 @@ export default function DemoBanner({ exitDemoMode, navigate }: DemoBannerProps) 
             exitDemoMode?.();
             navigate('/', { replace: true });
           }}
-          className="cursor-pointer whitespace-nowrap border-none bg-transparent min-h-11 px-3 py-0.5 text-xs text-[#4b5563] underline"
+          className="cursor-pointer whitespace-nowrap border-none bg-transparent min-h-11 px-3 py-0.5 text-xs text-[var(--ink)] opacity-75 underline"
         >
           Salir
         </button>

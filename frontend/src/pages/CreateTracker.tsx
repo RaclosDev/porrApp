@@ -36,7 +36,9 @@ export default function CreateTracker() {
   return (
     <section className="view-section active create-league">
       <header className="create-league-header">
-        <h1 className="m-0 poster-title text-[1.8rem] text-white">Marcadores de juegos</h1>
+        <h1 className="m-0 poster-title text-[1.8rem] text-[var(--text-main)]">
+          Marcadores de juegos
+        </h1>
         <p className="create-league-progress">
           Un grupo para llevar la cuenta de todos los juegos a los que juguéis.
         </p>

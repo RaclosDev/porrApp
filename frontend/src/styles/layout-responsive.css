@@ -459,7 +459,7 @@
 
   .mb-match-card {
     background: var(--panel-bg);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgb(var(--ink-rgb) / 0.14);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -476,7 +476,7 @@
   }
 
   .mb-match-card .team-slot + .team-slot {
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: 1px solid rgb(var(--ink-rgb) / 0.08) !important;
   }
 
   .mb-match-next {

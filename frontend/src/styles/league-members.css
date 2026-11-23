@@ -14,14 +14,14 @@
     padding: 10px 12px;
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    background: rgba(17, 24, 39, 0.025);
+    background: rgb(var(--ink-rgb) / 0.025);
     transition:
       background 0.15s ease,
       border-color 0.15s ease;
   }
 
   .league-admin-member:hover {
-    background: rgba(17, 24, 39, 0.045);
+    background: rgb(var(--ink-rgb) / 0.045);
   }
 
   .league-admin-member.is-confirming {
@@ -96,8 +96,8 @@
   }
 
   .league-admin-badge.is-you {
-    border-color: rgba(17, 24, 39, 0.12);
-    background: rgba(17, 24, 39, 0.07);
+    border-color: rgb(var(--ink-rgb) / 0.12);
+    background: rgb(var(--ink-rgb) / 0.07);
     color: var(--text-muted);
   }
 
@@ -157,7 +157,7 @@
     align-items: center;
     gap: 8px;
     padding: 32px 16px;
-    border: 1px dashed rgba(17, 24, 39, 0.2);
+    border: 1px dashed rgb(var(--ink-rgb) / 0.2);
     border-radius: 12px;
     color: var(--text-muted);
     text-align: center;
@@ -300,7 +300,7 @@
     flex-wrap: wrap;
     flex-shrink: 0;
     padding: 12px 22px calc(12px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid rgba(17, 24, 39, 0.14);
+    border-top: 1px solid rgb(var(--ink-rgb) / 0.14);
     background: var(--paper);
   }
 
@@ -388,7 +388,7 @@
     margin: -6px 0 16px;
     padding: 10px 12px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgb(var(--ink-rgb) / 0.05);
     color: var(--text-main);
     font-size: 0.85rem;
     font-variant-numeric: tabular-nums;

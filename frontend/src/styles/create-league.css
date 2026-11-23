@@ -268,7 +268,7 @@
   .create-league-option.is-checked {
     border-color: var(--ink);
     box-shadow: inset 0 0 0 1px var(--ink);
-    background: #ffffff;
+    background: var(--surface-raised);
   }
 
   .create-league-option:has(input:focus-visible) {
@@ -515,6 +515,22 @@
 
   .create-league-nav-btn.is-primary {
     flex: 1 1 auto;
+  }
+
+  /* En el móvil Atrás / Siguiente se quedan a la vista, justo encima de la barra inferior. */
+  @media (max-width: 639px) {
+    /* `hidden` haría de contenedor de scroll y el pie no se pegaría a la ventana. */
+    .app-container:has(.create-league) {
+      overflow: clip;
+    }
+
+    .create-league-nav {
+      position: sticky;
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      z-index: 2;
+      padding-bottom: 12px;
+      background: var(--paper);
+    }
   }
 
   @media (min-width: 640px) {

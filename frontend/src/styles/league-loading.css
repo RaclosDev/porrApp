@@ -59,7 +59,7 @@
     overflow: hidden;
     line-height: 0;
     border-radius: 4px;
-    background: rgba(17, 24, 39, 0.09);
+    background: rgb(var(--ink-rgb) / 0.09);
     animation: none;
   }
 
@@ -69,7 +69,7 @@
     inset: 0;
     transform: translateX(-100%);
     animation: skeleton-shimmer 1.4s ease-in-out infinite;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    background: linear-gradient(90deg, transparent, rgb(var(--ink-rgb) / 0.5), transparent);
   }
 
   @keyframes skeleton-shimmer {
@@ -109,7 +109,7 @@
     display: block;
     flex: none;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgb(var(--ink-rgb) / 0.08);
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import SelectMenu from '../SelectMenu';
 
 const stepClass =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-[rgba(17,24,39,0.05)] text-main disabled:cursor-not-allowed disabled:opacity-35';
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-line bg-[rgb(var(--ink-rgb)/0.05)] text-main disabled:cursor-not-allowed disabled:opacity-35';
 
 interface StepSelectProps {
   /** Qué se elige: «Jornada», «Gran Premio»… */
