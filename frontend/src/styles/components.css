@@ -25,6 +25,16 @@
     background: #1d4ed8;
   }
 
+  /* La demo dentro de un visor móvil (portada o portfolio): sin barras de desplazamiento, como en un teléfono. */
+  html.is-embed,
+  html.is-embed * {
+    scrollbar-width: none !important;
+  }
+  html.is-embed::-webkit-scrollbar,
+  html.is-embed *::-webkit-scrollbar {
+    display: none;
+  }
+
   html,
   body {
     font-family: 'Inter', sans-serif;
