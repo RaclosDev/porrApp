@@ -145,7 +145,7 @@ class SessionServiceTest {
     }
 
     @Test
-    void sessionsRecordTheLastActivityAtMostOnceADay() {
+    void sessionsRecordTheLastActivity() {
         UserAccount eva = user("eva@test.com");
         Instant longAgo = Instant.now().minus(Duration.ofDays(400));
         eva.setLastActiveAt(longAgo);
