@@ -58,7 +58,7 @@ public class SessionService {
      */
     static final Duration REUSE_GRACE = Duration.ofSeconds(30);
 
-    private static final Duration ACTIVITY_PRECISION = Duration.ofDays(1);
+    private static final Duration ACTIVITY_PRECISION = Duration.ofMinutes(15);
     private static final int REFRESH_TOKEN_BYTES = 32;
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -180,7 +180,7 @@ public class SessionService {
         return new SessionTokens(accessToken, refreshToken, family.getExpiresAt(), user);
     }
 
-    /** Como mucho una escritura al día por usuario: basta para el plazo de cuentas inactivas. */
+    /** Como mucho una escritura cada cuarto de hora por usuario: lo que tarda en renovarse la sesión. */
     private static void markActive(UserAccount user, Instant now) {
         Instant last = user.getLastActiveAt();
         if (last == null || last.isBefore(now.minus(ACTIVITY_PRECISION))) {
