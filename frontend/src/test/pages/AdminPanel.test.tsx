@@ -80,6 +80,50 @@ it('shows the figures, the latest accounts and the leagues in their tabs', async
   expect(screen.getByRole('tab', { name: /Ligas/ })).toHaveFocus();
 });
 
+it('sorts the accounts by the column that is clicked', async () => {
+  vi.mocked(fetchAdminOverview).mockResolvedValue({
+    ...overview,
+    recentUsers: [
+      ...overview.recentUsers,
+      {
+        id: 2,
+        name: 'Álvaro',
+        email: 'zeta@example.com',
+        method: 'email',
+        joinedAt: '2026-11-10T08:00:00Z',
+        lastActiveAt: '2026-11-20T09:00:00Z',
+        leagues: 5,
+      },
+    ],
+  });
+  renderPanel();
+  fireEvent.click(await screen.findByRole('tab', { name: /Cuentas/ }));
+  const names = () =>
+    screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.firstElementChild?.textContent);
+
+  // De entrada, la última alta primero.
+  expect(names()).toEqual(['Marta', 'Álvaro']);
+  expect(screen.getByRole('columnheader', { name: 'Alta' })).toHaveAttribute(
+    'aria-sort',
+    'descending',
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Nombre' }));
+  expect(names()).toEqual(['Álvaro', 'Marta']);
+  fireEvent.click(screen.getByRole('button', { name: 'Nombre' }));
+  expect(names()).toEqual(['Marta', 'Álvaro']);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Última vez' }));
+  expect(names()).toEqual(['Álvaro', 'Marta']);
+  fireEvent.click(screen.getByRole('button', { name: 'Email' }));
+  expect(names()).toEqual(['Marta', 'Álvaro']);
+  fireEvent.click(screen.getByRole('button', { name: 'Ligas' }));
+  expect(names()).toEqual(['Álvaro', 'Marta']);
+});
+
 it('filters the leagues by name and kind', async () => {
   vi.mocked(fetchAdminOverview).mockResolvedValue({
     ...overview,

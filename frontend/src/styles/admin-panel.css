@@ -154,6 +154,37 @@
     white-space: nowrap;
   }
 
+  /* Cabecera que ordena: el botón hereda el rótulo y la flecha solo se ve en la columna activa. */
+  .admin-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+  }
+  .admin-sort-btn svg {
+    opacity: 0;
+  }
+  .admin-sort-btn:hover svg,
+  .admin-sort-btn:focus-visible svg {
+    opacity: 0.5;
+  }
+  .admin-sort-btn.is-active {
+    color: var(--text-main);
+  }
+  .admin-sort-btn.is-active svg {
+    opacity: 1;
+  }
+  .admin-sort-select {
+    display: none;
+  }
+
   .admin-table td {
     padding: 9px 12px;
     border-bottom: 1px solid rgb(var(--ink-rgb) / 0.08);
@@ -212,6 +243,32 @@
 
   /* En el móvil cada fila es una ficha: el nombre arriba y el resto con su etiqueta. */
   @media (max-width: 720px) {
+    .admin-sort-select {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .admin-sort-select select {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .admin-sort-direction {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: none;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
     .admin-table thead {
       position: absolute;
       width: 1px;

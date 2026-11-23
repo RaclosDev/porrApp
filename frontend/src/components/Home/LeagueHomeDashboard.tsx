@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -24,122 +24,25 @@ import { boutBilling, fightOutcomes, fightResultText, weightClassLabel } from '.
 import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult';
 
 const RANKING_SIZE = 5;
-/** Rellenos, bordes y márgenes bajo la rejilla hasta el final de la página: también tienen que caber. */
+/** Filas de ranking y de tabla en escritorio: un número fijo, no lo que quepa en la pantalla. */
+const DESKTOP_ROWS = 8;
+const DESKTOP_QUERY = '(min-width: 721px)';
 /** Partidos que se ven en el móvil antes de «Ver más». */
 const MOBILE_MATCHES = 4;
 
-function spaceBelow(element: Element) {
-  let total = 0;
-  for (
-    let node: Element | null = element;
-    node && node !== document.body;
-    node = node.parentElement
-  ) {
-    const style = getComputedStyle(node);
-    total += Number.parseFloat(style.marginBottom) || 0;
-    if (node !== element) {
-      total +=
-        (Number.parseFloat(style.paddingBottom) || 0) +
-        (Number.parseFloat(style.borderBottomWidth) || 0);
-    }
-  }
-  return total;
+function subscribeDesktop(onChange: () => void) {
+  if (typeof window.matchMedia !== 'function') return () => {};
+  const query = window.matchMedia(DESKTOP_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
 }
 
-/**
- * Alto del contenido de un panel aunque la rejilla lo estire: hasta donde llega lo que pinta. Se mide
- * el contenido y no el último hijo, que puede estar oculto («Ver más» fuera del móvil) o ser un
- * envoltorio sin caja (`display: contents`).
- */
-function contentHeight(panel: Element) {
-  const bounds = panel.getBoundingClientRect();
-  const range = document.createRange();
-  range.selectNodeContents(panel);
-  const content = range.getBoundingClientRect();
-  if (content.height === 0) return bounds.height;
-  const style = getComputedStyle(panel);
-  const bottom =
-    (Number.parseFloat(style.paddingBottom) || 0) +
-    (Number.parseFloat(style.borderBottomWidth) || 0);
-  return content.bottom - bounds.top + bottom;
-}
-
-function usePreviewRows(
-  settling: boolean,
-  rankingTotal: number,
-  tableTotal: number,
-  tablePreviewLimit: number,
-) {
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [desktop, setDesktop] = useState<{
-    panelHeight: number;
-    rankingLimit: number;
-    tableLimit: number;
-  } | null>(null);
-
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (settling || !grid || typeof ResizeObserver === 'undefined') return;
-    const [matches, sidebar] = grid.children;
-    if (!matches || !sidebar) return;
-
-    const measure = () => {
-      const gridBounds = grid.getBoundingClientRect();
-      if (matches.getBoundingClientRect().width >= gridBounds.width) {
-        setDesktop(null);
-        return;
-      }
-
-      // Con pocos partidos, ranking y tabla no se encogen: llegan al menos hasta el final de la
-      // pantalla y se reparten ese alto a partes iguales.
-      const toScreenEnd = window.innerHeight - (gridBounds.top + window.scrollY) - spaceBelow(grid);
-      const height = Math.max(contentHeight(matches), toScreenEnd);
-      const gap = Number.parseFloat(getComputedStyle(sidebar).rowGap) || 0;
-      const panelCount = sidebar.children.length;
-      const panelHeight = Math.max(0, (height - gap * (panelCount - 1)) / panelCount);
-      const rowsThatFit = (panel: Element | undefined, total: number) => {
-        const list = panel?.querySelector('ol');
-        const row = list?.firstElementChild;
-        if (!panel || !list || !row) return 0;
-
-        const listGap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
-        const rowHeight = row.getBoundingClientRect().height + listGap;
-        if (rowHeight <= 0) return 0;
-
-        // Cabecera y relleno del panel, sin contar el hueco que deja la rejilla al estirarlo.
-        const headerAndPadding = contentHeight(panel) - list.getBoundingClientRect().height;
-        const capacity = Math.floor((panelHeight - headerAndPadding + listGap) / rowHeight);
-        return Math.min(total, capacity);
-      };
-
-      const rankingLimit = rowsThatFit(sidebar.children[0], rankingTotal);
-      const tableLimit = rowsThatFit(sidebar.children[1], tableTotal);
-      setDesktop((current) =>
-        current?.panelHeight === panelHeight &&
-        current.rankingLimit === rankingLimit &&
-        current.tableLimit === tableLimit
-          ? current
-          : { panelHeight, rankingLimit, tableLimit },
-      );
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(grid);
-    observer.observe(matches);
-    observer.observe(sidebar);
-    // Cambiar el alto de la ventana no cambia el tamaño de la rejilla, pero sí lo que hay que llenar.
-    window.addEventListener('resize', measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', measure);
-    };
-  }, [settling, rankingTotal, tableTotal]);
-
-  return {
-    gridRef,
-    panelHeight: desktop?.panelHeight,
-    rankingLimit: Math.max(1, desktop?.rankingLimit ?? RANKING_SIZE),
-    tableLimit: Math.max(1, desktop?.tableLimit ?? tablePreviewLimit),
-  };
+function useDesktop() {
+  return useSyncExternalStore(
+    subscribeDesktop,
+    () => typeof window.matchMedia === 'function' && window.matchMedia(DESKTOP_QUERY).matches,
+    () => false,
+  );
 }
 
 function formatKickOff(date: string | null) {
@@ -448,12 +351,14 @@ export default function LeagueHomeDashboard() {
       (activeGroupName || '').trim().toLowerCase();
   const participantCount = leaderboardData?.length || 0;
   const tableTotal = standings?.rows.length ?? 0;
-  const { gridRef, panelHeight, rankingLimit, tableLimit } = usePreviewRows(
-    settling,
-    participantCount,
-    tableTotal,
-    standings?.previewLimit ?? tableTotal,
-  );
+  const desktop = useDesktop();
+  const rankingLimit = desktop ? DESKTOP_ROWS : RANKING_SIZE;
+  const tableLimit =
+    standings?.previewLimit === undefined
+      ? tableTotal
+      : desktop
+        ? DESKTOP_ROWS
+        : standings.previewLimit;
   // Puesto de cada uno; los empatados lo comparten, como en la clasificación completa.
   const allTotals = [...new Set((leaderboardData ?? []).map((p) => p.total || 0))].sort(
     (a, b) => b - a,
@@ -577,7 +482,7 @@ export default function LeagueHomeDashboard() {
             </div>
           )}
 
-          <div className="home-dashboard-grid" ref={gridRef}>
+          <div className="home-dashboard-grid">
             <div
               className={`home-matches flat-panel flex flex-col gap-2 min-w-0${collapsed ? ' is-collapsed' : ''}`}
             >
@@ -665,14 +570,7 @@ export default function LeagueHomeDashboard() {
               )}
             </div>
 
-            <div
-              className={`home-dashboard-sidebar${panelHeight === undefined ? '' : ' is-filled'}`}
-              style={
-                panelHeight === undefined
-                  ? undefined
-                  : { gridAutoRows: `minmax(${panelHeight}px, auto)` }
-              }
-            >
+            <div className="home-dashboard-sidebar">
               <div className="home-summary-panel flat-panel p-4">
                 <PanelHeader title="Ranking" onSeeAll={() => navigate('/ranking')} />
                 {topParticipants.length > 0 ? (
