@@ -179,7 +179,7 @@ export default function ActiveLeagueDropdown() {
             </span>
           </div>
 
-          <div className="max-h-60 overflow-y-auto flex flex-col gap-[3px]">
+          <div className="active-league-list max-h-60 overflow-y-auto flex flex-col gap-[3px]">
             {sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);

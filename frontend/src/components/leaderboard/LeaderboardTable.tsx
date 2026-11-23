@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { UserAvatar } from '../Avatar';
+import ZoomableAvatar from '../ZoomableAvatar';
 import type { LeaderboardRow, SortColumn } from '../../hooks/useLeaderboard';
 import { isOwnRow, rankLabel, type LeaderboardColumn } from './leaderboardColumns';
 
@@ -125,7 +125,7 @@ export default function LeaderboardTable({
                 <td>
                   <div className="flex justify-start items-center flex-nowrap gap-1.5">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <UserAvatar url={r.avatarUrl} userId={r.userId} name={r.name} size={28} />
+                      <ZoomableAvatar url={r.avatarUrl} userId={r.userId} name={r.name} size={28} />
                       <div className="flex items-center flex-wrap gap-1.5 min-w-0">
                         <span className="text-[1.1em]">
                           <strong>
