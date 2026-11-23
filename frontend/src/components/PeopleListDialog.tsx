@@ -1,7 +1,6 @@
-import { useState, type ReactNode } from 'react';
-import { UserAvatar } from './Avatar';
-import PhotoViewer from './PhotoViewer';
+import type { ReactNode } from 'react';
 import SheetDialog from './SheetDialog';
+import ZoomableAvatar from './ZoomableAvatar';
 
 export interface PersonItem {
   userId: number;
@@ -13,43 +12,21 @@ export interface PersonItem {
 
 /** Lista de personas (foto y nombre) en filas, para las hojas de miembros. Al pulsar una foto se ve en grande. */
 export function PeopleList({ people }: { people: PersonItem[] }) {
-  const [zoomed, setZoomed] = useState<PersonItem | null>(null);
   return (
-    <>
-      <ul className="sheet-people">
-        {people.map((person) => {
-          const avatar = (
-            <UserAvatar
-              url={person.avatarUrl}
-              userId={person.userId}
-              name={person.name}
-              size={36}
-            />
-          );
-          return (
-            <li key={person.userId} className="sheet-person">
-              {person.avatarUrl ? (
-                <button
-                  type="button"
-                  className="sheet-person-photo"
-                  onClick={() => setZoomed(person)}
-                  aria-label={`Ver la foto de ${person.name}`}
-                >
-                  {avatar}
-                </button>
-              ) : (
-                avatar
-              )}
-              <span className="sheet-person-name">{person.name}</span>
-              {person.badge && <span className="sheet-person-badge">{person.badge}</span>}
-            </li>
-          );
-        })}
-      </ul>
-      {zoomed?.avatarUrl && (
-        <PhotoViewer url={zoomed.avatarUrl} name={zoomed.name} onClose={() => setZoomed(null)} />
-      )}
-    </>
+    <ul className="sheet-people">
+      {people.map((person) => (
+        <li key={person.userId} className="sheet-person">
+          <ZoomableAvatar
+            url={person.avatarUrl}
+            userId={person.userId}
+            name={person.name}
+            size={36}
+          />
+          <span className="sheet-person-name">{person.name}</span>
+          {person.badge && <span className="sheet-person-badge">{person.badge}</span>}
+        </li>
+      ))}
+    </ul>
   );
 }
 
