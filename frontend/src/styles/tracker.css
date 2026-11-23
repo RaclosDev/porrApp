@@ -51,7 +51,7 @@
   .tracker-table td {
     padding: 8px 6px;
     text-align: left;
-    border-bottom: 1px solid rgb(0 0 0 / 0.12);
+    border-bottom: 1px solid rgb(var(--ink-rgb) / 0.12);
   }
 
   .tracker-table thead th {
@@ -114,7 +114,7 @@
     justify-content: space-between;
     gap: 10px;
     padding: 6px 0;
-    border-bottom: 1px solid rgb(0 0 0 / 0.12);
+    border-bottom: 1px solid rgb(var(--ink-rgb) / 0.12);
   }
 
   .tracker-round-scores {
@@ -171,7 +171,7 @@
     block-size: 44px;
     border-radius: 10px;
     background: var(--ink);
-    color: #fff;
+    color: var(--paper);
   }
 
   .tracker-actions.is-center {
@@ -235,9 +235,9 @@
   .tracker-chip {
     min-height: 44px;
     padding: 6px 14px;
-    border: 1px solid rgb(0 0 0 / 0.25);
+    border: 1px solid rgb(var(--ink-rgb) / 0.25);
     border-radius: 999px;
-    background: rgb(255 255 255 / 0.6);
+    background: var(--surface-raised);
     color: var(--ink);
     font-weight: 700;
     cursor: pointer;
@@ -246,7 +246,7 @@
   .tracker-chip.is-on {
     border-color: var(--ink);
     background: var(--ink);
-    color: #fff;
+    color: var(--paper);
   }
 
   .tracker-chip.is-big {
@@ -442,13 +442,13 @@
     align-items: baseline;
     gap: 4px 8px;
     padding: 8px 10px;
-    border: 1px solid var(--paper-line, rgba(0, 0, 0, 0.12));
+    border: 1px solid var(--paper-line, rgb(var(--ink-rgb) / 0.12));
     border-radius: 8px;
   }
 
   .tracker-podium .is-leader {
     border-color: var(--ink);
-    background: #fff;
+    background: var(--surface-raised);
   }
 
   .tracker-podium-rank {
@@ -469,7 +469,7 @@
   .tracker-unit-options .is-active {
     border-color: var(--ink);
     box-shadow: inset 0 0 0 1px var(--ink);
-    background: #fff;
+    background: var(--surface-raised);
   }
 }
 
@@ -571,7 +571,7 @@
 
 .tracker-invite-code:hover,
 .tracker-invite-code:focus-visible {
-  background: rgba(17, 24, 39, 0.06);
+  background: rgb(var(--ink-rgb) / 0.06);
 }
 
 .tracker-invite-code-label {

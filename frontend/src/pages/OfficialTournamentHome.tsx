@@ -93,7 +93,7 @@ export default function OfficialTournamentHome() {
                 return (
                   <li
                     key={row.team}
-                    className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${through ? 'bg-[rgba(17,_24,_39,_0.04)] bg-none' : ''}`}
+                    className={`flex items-center py-1.5 px-2 mb-1 rounded-[6px] ${through ? 'bg-[rgb(var(--ink-rgb)/0.04)] bg-none' : ''}`}
                   >
                     <span className="w-5 font-bold text-muted text-[0.85em] shrink-0">
                       {index + 1}

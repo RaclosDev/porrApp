@@ -21,7 +21,7 @@
     height: 44px;
     border-radius: 10px;
     border: 1px solid var(--border-color);
-    background: rgba(17, 24, 39, 0.05);
+    background: rgb(var(--ink-rgb) / 0.05);
     color: var(--text-main);
     cursor: pointer;
   }
@@ -101,7 +101,7 @@
   }
 
   .ufc-bout.is-cancelled {
-    opacity: 0.6;
+    opacity: 0.78;
   }
 
   .ufc-bout-top {
@@ -187,7 +187,7 @@
     border-radius: 50%;
     object-fit: cover;
     object-position: top;
-    background: rgba(17, 24, 39, 0.08);
+    background: rgb(var(--ink-rgb) / 0.08);
     color: var(--text-muted);
     font-weight: 800;
   }
@@ -244,7 +244,7 @@
     height: 10px;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(17, 24, 39, 0.08);
+    background: rgb(var(--ink-rgb) / 0.08);
   }
 
   .ufc-split-bar .is-red {
@@ -287,7 +287,7 @@
     margin: 10px 0 0;
     padding: 8px 10px;
     border-radius: 10px;
-    background: rgba(17, 24, 39, 0.05);
+    background: rgb(var(--ink-rgb) / 0.05);
     font-size: 0.82rem;
     color: var(--text-muted);
   }

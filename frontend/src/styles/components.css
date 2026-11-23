@@ -12,7 +12,7 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(30, 41, 59, 0.5);
+    background: rgb(var(--ink-rgb) / 0.06);
     border-radius: 4px;
   }
 
@@ -55,7 +55,7 @@
   }
 
   .glass-btn {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgb(var(--ink-rgb) / 0.05);
     border: 1px solid var(--border-color);
     color: var(--text-main);
     padding: 10px 18px;
@@ -80,8 +80,8 @@
   }
 
   .glass-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgb(var(--ink-rgb) / 0.12);
+    border-color: rgb(var(--ink-rgb) / 0.25);
     transform: translateY(-1px);
   }
 
@@ -94,7 +94,7 @@
   .nav-links a.active {
     background: rgba(0, 210, 211, 0.15) !important;
     border: 1px solid var(--accent-cyan) !important;
-    color: #ffffff !important;
+    color: var(--text-main) !important;
     border-radius: 10px !important;
   }
 
@@ -110,24 +110,23 @@
   }
 
   .primary-btn:hover {
-    background: #ffffff;
-    border-color: #ffffff;
+    filter: brightness(1.08);
     transform: translateY(-1px);
   }
 
   .primary-btn:disabled {
-    background: #334155;
-    border-color: #334155;
-    color: #94a3b8;
+    background: rgb(var(--ink-rgb) / 0.14);
+    border-color: transparent;
+    color: var(--text-muted);
     cursor: not-allowed;
     box-shadow: none;
     transform: none;
   }
 
   .glass-input {
-    background: rgba(15, 23, 42, 0.85);
+    background: color-mix(in srgb, var(--bg-color) 85%, var(--surface-raised));
     border: 1px solid var(--input-border);
-    color: white;
+    color: var(--text-main);
     padding: 10px 14px;
     min-height: 44px;
     border-radius: 8px;
@@ -136,12 +135,12 @@
   }
 
   .glass-input::placeholder {
-    color: rgba(255, 255, 255, 0.65);
+    color: rgb(var(--ink-rgb) / 0.65);
   }
 
   .glass-input:focus {
     border-color: var(--accent-cyan);
-    background: rgba(15, 23, 42, 0.95);
+    background: var(--bg-color);
   }
 
   /* Layout */
@@ -151,7 +150,7 @@
     align-items: center;
     padding: 14px 20px;
     gap: 15px;
-    background: rgba(15, 23, 42, 0.92);
+    background: var(--panel-bg-translucent);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
@@ -203,25 +202,6 @@
     padding: 0;
     border-radius: 9999px;
     cursor: pointer;
-  }
-
-  /* Apoyar: el mismo botón que la campana; lleva además el texto. */
-  .header-support-btn {
-    gap: 6px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .header-icon-btn.header-support-btn {
-    width: auto;
-    padding-inline: 10px;
-  }
-
-  @media (min-width: 769px) {
-    .header-icon-btn.header-support-btn {
-      padding-inline: 12px;
-    }
   }
 
   .nav-links {

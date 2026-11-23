@@ -95,7 +95,7 @@ export default function MobileBottomNav() {
               height: '100%',
               minWidth: 0,
               borderRadius: '999px',
-              color: isActive ? 'var(--ink)' : '#94a3b8',
+              color: isActive ? 'var(--ink)' : 'var(--text-muted)',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               WebkitTapHighlightColor: 'transparent',
             })}
@@ -106,7 +106,7 @@ export default function MobileBottomNav() {
                   <IconComponent
                     size={24}
                     strokeWidth={isActive ? 2.4 : 1.8}
-                    color={isActive ? 'var(--ink)' : '#94a3b8'}
+                    color={isActive ? 'var(--ink)' : 'var(--text-muted)'}
                   />
                 </span>
                 <span className="sr-only">{item.mobileLabel ?? item.label}</span>

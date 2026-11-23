@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { ScrollText, Users } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
 import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
@@ -23,6 +25,9 @@ import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult
 
 const RANKING_SIZE = 5;
 /** Rellenos, bordes y márgenes bajo la rejilla hasta el final de la página: también tienen que caber. */
+/** Partidos que se ven en el móvil antes de «Ver más». */
+const MOBILE_MATCHES = 4;
+
 function spaceBelow(element: Element) {
   let total = 0;
   for (
@@ -58,10 +63,8 @@ function usePreviewRows(
   rankingTotal: number,
   tableTotal: number,
   tablePreviewLimit: number,
-  frozen: boolean,
 ) {
   const gridRef = useRef<HTMLDivElement>(null);
-  const lastHeight = useRef<number | null>(null);
   const [desktop, setDesktop] = useState<{
     panelHeight: number;
     rankingLimit: number;
@@ -84,13 +87,7 @@ function usePreviewRows(
       // Con pocos partidos, ranking y tabla no se encogen: llegan al menos hasta el final de la
       // pantalla y se reparten ese alto a partes iguales.
       const toScreenEnd = window.innerHeight - (gridBounds.top + window.scrollY) - spaceBelow(grid);
-      // Al abrir los resultados la columna de partidos crece, pero ranking y tabla conservan el
-      // alto que tenían con los pendientes.
-      const height =
-        frozen && lastHeight.current !== null
-          ? lastHeight.current
-          : Math.max(frozen ? 0 : contentHeight(matches), toScreenEnd);
-      if (!frozen) lastHeight.current = height;
+      const height = Math.max(contentHeight(matches), toScreenEnd);
       const gap = Number.parseFloat(getComputedStyle(sidebar).rowGap) || 0;
       const panelCount = sidebar.children.length;
       const panelHeight = Math.max(0, (height - gap * (panelCount - 1)) / panelCount);
@@ -129,7 +126,7 @@ function usePreviewRows(
       observer.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [settling, rankingTotal, tableTotal, frozen]);
+  }, [settling, rankingTotal, tableTotal]);
 
   return {
     gridRef,
@@ -196,7 +193,7 @@ export function MiniRow({
 }) {
   return (
     <li
-      className={`flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] border bg-none ${highlighted ? 'bg-[rgba(11,_95,_116,_0.1)] border-[var(--marker-ink)]' : 'bg-[rgba(17,_24,_39,_0.04)] border-transparent'}`}
+      className={`home-mini-row${highlighted ? ' is-me' : ''} flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] border bg-none ${highlighted ? 'border-[var(--marker-ink)]' : 'bg-[rgb(var(--ink-rgb)/0.04)] border-transparent'}`}
     >
       <div className="flex items-center gap-2 min-w-0">
         <span className="w-4 text-center text-[0.78rem] text-muted shrink-0">{rank}</span>
@@ -259,7 +256,11 @@ function MatchCard({
       />
     ) : null;
   return (
-    <div className={`home-match-card${isLive ? ' is-live' : ''}`}>
+    <div
+      className={`home-match-card${isLive ? ' is-live' : ''}`}
+      // Nombre propio para que la tarjeta viaje a su sitio al reordenar la jornada.
+      style={match.id ? { viewTransitionName: `home-match-${match.id}` } : undefined}
+    >
       <button
         type="button"
         className="home-match-open"
@@ -355,16 +356,16 @@ function DashboardSkeleton() {
       aria-label="Cargando la liga"
       aria-busy="true"
     >
-      <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0 p-4">
+      <div className="flat-panel flex flex-col gap-2 min-w-0 p-4">
         <Skeleton width="40%" height={20} />
         <SkeletonRows count={5} height={74} />
       </div>
       <div className="home-dashboard-sidebar">
-        <div className="paper-panel album-sheet p-4 flex flex-col gap-2.5">
+        <div className="flat-panel p-4 flex flex-col gap-2.5">
           <Skeleton width="30%" height={20} />
           <SkeletonRows count={5} height={32} />
         </div>
-        <div className="paper-panel album-sheet p-4 flex flex-col gap-2.5">
+        <div className="flat-panel p-4 flex flex-col gap-2.5">
           <Skeleton width="30%" height={20} />
           <SkeletonRows count={5} height={32} />
         </div>
@@ -401,16 +402,30 @@ export default function LeagueHomeDashboard() {
   const [showRules, setShowRules] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [votersMatch, setVotersMatch] = useState<Match | null>(null);
-  // Liga en la que se están viendo los resultados de la jornada: al cambiar de liga se vuelve a los
-  // pendientes.
+  // Liga en la que se ha subido arriba el otro bloque de la jornada: al cambiar de liga se vuelve
+  // al orden de entrada.
   const [resultsGroup, setResultsGroup] = useState<string | null>(null);
-  const results = matches.results ?? [];
-  const viewingResults = results.length > 0 && resultsGroup === String(activeGroupId);
-  const shownMatches = viewingResults ? results : matches.items;
+  const flipped = matches.flipped ?? [];
+  const viewingResults = flipped.length > 0 && resultsGroup === String(activeGroupId);
+  const shownMatches = viewingResults ? flipped : matches.items;
+  const blockName = (match: Match) => (match.finished ? 'Resultados' : 'Por jugar');
+  // Las tarjetas se deslizan a su nuevo sitio en vez de saltar.
+  const toggleResults = () => {
+    const apply = () => setResultsGroup(viewingResults ? null : String(activeGroupId));
+    if (
+      typeof document.startViewTransition === 'function' &&
+      document.visibilityState === 'visible' &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      document.startViewTransition(() => flushSync(apply));
+    } else {
+      apply();
+    }
+  };
   // El servidor solo devuelve los partidos ya cerrados: los abiertos siguen ocultos. En las ligas de
   // cuadro cada uno aparece bajo el equipo que pasa en su pronóstico, sin empate.
   const voters = useMatchVoters(activeGroupId, [
-    ...new Set([...matches.items, ...results].map((match) => match.id).filter(Boolean)),
+    ...new Set(matches.items.map((match) => match.id).filter(Boolean)),
   ]);
   const twoWayVoters = activeGroupPoolFormat !== 'MATCH_DAY' || activeGroupWinnerOnly;
   // Quién ya ha hecho su predicción en la jornada: solo las ligas por jornadas y solo el quién.
@@ -432,11 +447,30 @@ export default function LeagueHomeDashboard() {
     participantCount,
     tableTotal,
     standings?.previewLimit ?? tableTotal,
-    viewingResults,
   );
-  const topParticipants = (leaderboardData ?? []).slice(0, rankingLimit);
-  // Mismo puesto para los empatados, como en la clasificación completa.
-  const topTotals = [...new Set(topParticipants.map((p) => p.total || 0))];
+  // Puesto de cada uno; los empatados lo comparten, como en la clasificación completa.
+  const allTotals = [...new Set((leaderboardData ?? []).map((p) => p.total || 0))].sort(
+    (a, b) => b - a,
+  );
+  // Tu situación en la liga, arriba del todo: puesto (empatados comparten) y puntos.
+  const me = (leaderboardData ?? []).find(
+    (p) => p.userId?.toString() === userId?.toString() || p.name === userName,
+  );
+  const myRank = me
+    ? new Set(
+        (leaderboardData ?? []).map((p) => p.total || 0).filter((total) => total > (me.total || 0)),
+      ).size + 1
+    : 0;
+  // Si quedas fuera de los primeros, tu fila ocupa la última: siempre te ves en el ranking.
+  const firstParticipants = (leaderboardData ?? []).slice(0, rankingLimit);
+  const topParticipants =
+    me && rankingLimit > 0 && !firstParticipants.includes(me)
+      ? [...firstParticipants.slice(0, rankingLimit - 1), me]
+      : firstParticipants;
+  // En el móvil la lista larga de partidos no entierra el ranking: se enseñan los primeros.
+  const [allMatchesGroup, setAllMatchesGroup] = useState<string | null>(null);
+  const collapsed =
+    shownMatches.length > MOBILE_MATCHES && allMatchesGroup !== String(activeGroupId);
 
   return (
     <section className="view-section active max-w-270 my-0 mx-auto pt-1 pb-6 px-0">
@@ -475,10 +509,11 @@ export default function LeagueHomeDashboard() {
         />
       )}
 
-      <header className="home-hero paper-panel album-sheet">
+      <header className="home-hero flat-panel">
         <div className="home-hero-info">
           <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
-          <div className="home-hero-pills">
+          {/* Una sola línea: la competición, cuántos juegan y, al fondo, las reglas. */}
+          <div className="home-hero-pills is-meta">
             {showCompetition && <span className="home-hero-pill">{activeCompetitionName}</span>}
             {participantCount > 0 && activeGroupId ? (
               <button
@@ -488,53 +523,84 @@ export default function LeagueHomeDashboard() {
                 aria-haspopup="dialog"
                 aria-label={`${participantCount} ${participantCount === 1 ? 'participante' : 'participantes'}: ver la lista`}
               >
-                <span className="home-hero-pill muted">
-                  {participantCount} {participantCount === 1 ? 'participante' : 'participantes'}
+                <span className="home-hero-pill muted is-count">
+                  {participantCount}
+                  <Users size={13} strokeWidth={2.5} aria-hidden="true" />
                 </span>
               </button>
             ) : (
               <span className="home-hero-pill muted">{subtitle}</span>
             )}
+            <button type="button" className="home-hero-rules" onClick={() => setShowRules(true)}>
+              <ScrollText size={15} strokeWidth={2.25} aria-hidden="true" />
+              Reglas
+            </button>
           </div>
         </div>
-        <button type="button" className="home-rules-btn" onClick={() => setShowRules(true)}>
-          Reglas
-        </button>
       </header>
 
       {settling ? (
         <DashboardSkeleton />
       ) : (
         <>
-          {pending > 0 && (
-            <button
-              type="button"
-              className="paper-panel album-sheet w-full flex items-center justify-between gap-3 px-4 py-3 mb-4.5 text-left cursor-pointer font-[inherit] border-0"
-              onClick={() => navigate(matches.to)}
-            >
-              <span className="font-bold text-[var(--stamp-red)]">
-                Te {pending === 1 ? 'falta 1 predicción' : `faltan ${pending} predicciones`} para
-                {leagueKind === 'fightCard' ? ' las próximas peleas' : ' los próximos partidos'}
-              </span>
-              <span className="shrink-0 font-bold">Predecir →</span>
-            </button>
+          {(me || pending > 0) && (
+            <div className="home-status flat-panel">
+              {me && (
+                <button
+                  type="button"
+                  className="home-status-me"
+                  onClick={() => navigate('/ranking')}
+                >
+                  <span className="home-status-label">Tu puesto</span>
+                  <span className="home-status-value">
+                    <strong>{myRank}.º</strong> de {participantCount} · {me.total || 0} pts
+                  </span>
+                </button>
+              )}
+              {pending > 0 ? (
+                <button
+                  type="button"
+                  className="home-status-cta"
+                  onClick={() => navigate(matches.to)}
+                >
+                  Predecir ({pending}) →
+                </button>
+              ) : (
+                me && matches.items.length > 0 && <span className="home-status-ok">Al día</span>
+              )}
+            </div>
           )}
 
           <div className="home-dashboard-grid" ref={gridRef}>
-            <div className="paper-panel album-sheet flex flex-col gap-2 min-w-0">
+            <div
+              className={`home-matches flat-panel flex flex-col gap-2 min-w-0${collapsed ? ' is-collapsed' : ''}`}
+            >
               <PanelHeader
                 title={matches.title}
                 onSeeAll={() => navigate(matches.allTo)}
                 reserveExtra={MATCH_KINDS[leagueKind]}
                 action={
-                  results.length > 0 ? (
+                  flipped.length > 0 ? (
                     <button
                       type="button"
                       className="home-hero-pill-btn shrink-0"
-                      onClick={() => setResultsGroup(viewingResults ? null : String(activeGroupId))}
+                      onClick={toggleResults}
                     >
-                      <span className="home-hero-pill">
-                        {viewingResults ? 'Pendientes' : 'Resultados'}
+                      {/* Los dos rótulos ocupan el mismo hueco: la píldora no cambia de ancho. */}
+                      <span className="home-hero-pill is-swap">
+                        {['Por jugar', 'Resultados'].map((label) => {
+                          const current =
+                            label === blockName(shownMatches[shownMatches.length - 1]);
+                          return (
+                            <span
+                              key={label}
+                              aria-hidden={!current}
+                              className={current ? '' : 'invisible'}
+                            >
+                              {label}
+                            </span>
+                          );
+                        })}
                       </span>
                     </button>
                   ) : undefined
@@ -543,39 +609,65 @@ export default function LeagueHomeDashboard() {
                 <RoundParticipants participants={participants} roundLabel={matches.title} />
               </PanelHeader>
               {shownMatches.length > 0 ? (
-                shownMatches.map((match) => (
-                  <MatchCard
+                shownMatches.map((match, index) => (
+                  <div
                     key={match.id || match.home + match.away}
-                    match={match}
-                    // Empezado el partido, la tarjeta enseña quién eligió cada opción; antes, lleva a
-                    // hacer tu predicción (las de los demás siguen ocultas hasta el pitido inicial).
-                    action={
-                      voters.has(match.id) ? 'ver quién ha elegido cada opción' : matches.action
-                    }
-                    onOpen={() =>
-                      voters.has(match.id) ? setVotersMatch(match) : navigate(matches.to)
-                    }
-                    voters={voters.get(match.id)}
-                    onShowVoters={setVotersMatch}
-                    twoWay={twoWayVoters}
-                  />
+                    className={`contents${index >= MOBILE_MATCHES ? ' home-match-extra' : ''}`}
+                  >
+                    {/* Cada bloque lleva su rótulo: lo que queda por jugar y los resultados. */}
+                    {flipped.length > 0 &&
+                      (index === 0 || shownMatches[index - 1].finished !== match.finished) && (
+                        <div
+                          className="home-match-divider"
+                          role="separator"
+                          style={{
+                            viewTransitionName: match.finished
+                              ? 'home-block-results'
+                              : 'home-block-pending',
+                          }}
+                        >
+                          {blockName(match)}
+                        </div>
+                      )}
+                    <MatchCard
+                      match={match}
+                      // Empezado el partido, la tarjeta enseña quién eligió cada opción; antes, lleva a
+                      // hacer tu predicción (las de los demás siguen ocultas hasta el pitido inicial).
+                      action={
+                        voters.has(match.id) ? 'ver quién ha elegido cada opción' : matches.action
+                      }
+                      onOpen={() =>
+                        voters.has(match.id) ? setVotersMatch(match) : navigate(matches.to)
+                      }
+                      voters={voters.get(match.id)}
+                      onShowVoters={setVotersMatch}
+                      twoWay={twoWayVoters}
+                    />
+                  </div>
                 ))
               ) : (
-                <div className="paper-panel album-sheet p-6 text-center text-muted">
-                  {matches.empty}
-                </div>
+                <div className="flat-panel p-6 text-center text-muted">{matches.empty}</div>
+              )}
+              {collapsed && (
+                <button
+                  type="button"
+                  className="home-matches-more"
+                  onClick={() => setAllMatchesGroup(String(activeGroupId))}
+                >
+                  Ver {shownMatches.length - MOBILE_MATCHES} más
+                </button>
               )}
             </div>
 
             <div
-              className={`home-dashboard-sidebar${panelHeight === undefined ? '' : ' is-filled'}${viewingResults ? ' is-frozen' : ''}`}
+              className={`home-dashboard-sidebar${panelHeight === undefined ? '' : ' is-filled'}`}
               style={
                 panelHeight === undefined
                   ? undefined
                   : { gridAutoRows: `minmax(${panelHeight}px, auto)` }
               }
             >
-              <div className="home-summary-panel paper-panel album-sheet p-4">
+              <div className="home-summary-panel flat-panel p-4">
                 <PanelHeader title="Ranking" onSeeAll={() => navigate('/ranking')} />
                 {topParticipants.length > 0 ? (
                   <ol
@@ -588,7 +680,7 @@ export default function LeagueHomeDashboard() {
                       return (
                         <MiniRow
                           key={p.id ?? `member-${p.userId ?? index}`}
-                          rank={topTotals.indexOf(p.total || 0) + 1}
+                          rank={allTotals.indexOf(p.total || 0) + 1}
                           name={`${p.name}${isMe ? ' (Tú)' : ''}`}
                           value={`${p.total || 0} pts`}
                           highlighted={isMe}
@@ -604,7 +696,7 @@ export default function LeagueHomeDashboard() {
               </div>
 
               {standings && standings.rows.length > 0 && (
-                <div className="home-summary-panel paper-panel album-sheet p-4">
+                <div className="home-summary-panel flat-panel p-4">
                   <PanelHeader title={standings.title} onSeeAll={() => navigate(standings.to)} />
                   <ol
                     className="flex flex-col gap-1.5 m-0 p-0 list-none"

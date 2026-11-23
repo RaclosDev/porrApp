@@ -58,7 +58,7 @@
     height: 42px;
     border-radius: 10px;
     padding: 0 14px;
-    background-color: rgba(17, 24, 39, 0.05);
+    background-color: rgb(var(--ink-rgb) / 0.05);
     color: var(--text-main);
     border: 1px solid var(--border-color);
     font-family: inherit;
@@ -83,7 +83,7 @@
     font-size: 0.78rem;
     font-weight: 700;
     color: var(--text-muted);
-    background: rgba(17, 24, 39, 0.04);
+    background: rgb(var(--ink-rgb) / 0.04);
     border: 1px solid var(--border-color);
     cursor: pointer;
     display: flex;
@@ -206,7 +206,7 @@
 
   /* Le falta un rival: no está cerrado por la hora, sino a la espera de los dos equipos. */
   .md-badge.is-pending {
-    background: rgba(17, 24, 39, 0.08);
+    background: rgb(var(--ink-rgb) / 0.08);
     color: var(--text-muted);
   }
 
@@ -301,7 +301,7 @@
     font-family: inherit;
     font-size: 0.85rem;
     font-weight: 800;
-    background: rgba(17, 24, 39, 0.04);
+    background: rgb(var(--ink-rgb) / 0.04);
     color: var(--text-muted);
     border: 1px solid var(--border-color);
     cursor: pointer;
@@ -319,6 +319,11 @@
   .md-sign-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  /* Tu signo sigue leyéndose con el partido ya cerrado. */
+  .md-sign-btn.is-active:disabled {
+    opacity: 1;
   }
 
   /* Partido terminado: el signo real se marca en verde; la predicción fallada, tachada. */
@@ -472,7 +477,7 @@
     border-radius: 50%;
     object-fit: cover;
     object-position: top;
-    background: rgba(17, 24, 39, 0.06);
+    background: rgb(var(--ink-rgb) / 0.06);
   }
 
   .md-fight-record {
@@ -503,7 +508,7 @@
   }
 
   .md-badge.is-cancelled {
-    background: rgba(17, 24, 39, 0.08);
+    background: rgb(var(--ink-rgb) / 0.08);
     color: var(--text-muted);
   }
 

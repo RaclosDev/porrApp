@@ -73,7 +73,7 @@ export default function TrackerHome({ leagueId }: { leagueId: string | null }) {
     <section className="view-section active create-league tracker">
       <header className="create-league-header tracker-head">
         <div>
-          <h1 className="m-0 poster-title text-[1.8rem] text-white">{tracker.name}</h1>
+          <h1 className="m-0 poster-title text-[1.8rem] text-[var(--text-main)]">{tracker.name}</h1>
           <p className="create-league-progress">Liga de juegos de mesa</p>
         </div>
         <div className="tracker-actions">

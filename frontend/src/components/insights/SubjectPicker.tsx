@@ -69,7 +69,7 @@ export default function SubjectPicker({
                 type="button"
                 aria-pressed={shortcut.value === value}
                 onClick={() => onChange(shortcut.value)}
-                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[0.88rem] font-semibold ${shortcut.value === value ? 'border-cyan bg-[rgba(11,95,116,0.15)] text-cyan' : 'border-line bg-[rgba(17,24,39,0.04)] text-main'}`}
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[0.88rem] font-semibold ${shortcut.value === value ? 'border-cyan bg-[color-mix(in_srgb,var(--marker-ink)_15%,transparent)] text-cyan' : 'border-line bg-[rgb(var(--ink-rgb)/0.04)] text-main'}`}
               >
                 {icon(shortcut.value)}
                 {shortcut.label}

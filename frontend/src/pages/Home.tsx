@@ -168,7 +168,7 @@ function GroupStageGroups() {
 
           return (
             <div
-              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgba(17,_24,_39,_0.04)] bg-none' : 'bg-transparent bg-none'}`}
+              className={`flex items-center py-1.5 px-2 mb-1 ${idx < 2 ? 'bg-[rgb(var(--ink-rgb)/0.04)] bg-none' : 'bg-transparent bg-none'}`}
               key={team.name}
               style={{ borderLeft: borderLeftStyle, borderRadius: '0 6px 6px 0' }}
             >
@@ -191,7 +191,7 @@ function GroupStageGroups() {
                 >
                   {team.stats.fp || 0}
                 </span>
-                <span className="font-bold bg-[rgba(17,24,39,0.08)] bg-none py-0.5 px-1.5 rounded-[4px] text-main w-6 text-center">
+                <span className="font-bold bg-[rgb(var(--ink-rgb)/0.08)] bg-none py-0.5 px-1.5 rounded-[4px] text-main w-6 text-center">
                   {team.stats.pts}
                 </span>
               </div>

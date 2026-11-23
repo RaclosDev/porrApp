@@ -66,10 +66,11 @@ interface LeagueHomeData {
     title: string;
     items: Match[];
     /**
-     * Resultados de la jornada en curso, el último primero: con ellos la portada cambia «Ver todo» por
-     * la píldora «Resultados». Sin ellos (jornada sin empezar o acabada, cuadros) sigue «Ver todo».
+     * Los mismos partidos con los bloques «Por jugar» y «Resultados» cambiados de sitio: con ellos
+     * la portada cambia «Ver todo» por la píldora que sube el otro bloque. Sin ellos (jornada sin
+     * empezar o acabada, cuadros) sigue «Ver todo».
      */
-    results?: Match[];
+    flipped?: Match[];
     /** Página a la que lleva cada partido y su verbo para lectores de pantalla. */
     to: string;
     action: string;
@@ -217,7 +218,8 @@ export function useLeagueHomeData(): LeagueHomeData {
                   ? label
                   : `Partidos ${label}`,
           items: matches,
-          results: current.results,
+          // La velada ya va entera en el orden de su cartelera.
+          flipped: ufc ? [] : current.flipped,
           to: '/jornadas',
           action: 'hacer tu predicción',
           allTo: ownMatches ? '/jornadas' : '/radar',

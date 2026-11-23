@@ -144,7 +144,7 @@
   .admin-table th {
     padding: 10px 12px;
     border-bottom: 1px solid var(--border-color);
-    background: rgba(17, 24, 39, 0.04);
+    background: rgb(var(--ink-rgb) / 0.04);
     color: var(--text-muted);
     font-size: 0.7rem;
     font-weight: 800;
@@ -156,7 +156,7 @@
 
   .admin-table td {
     padding: 9px 12px;
-    border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+    border-bottom: 1px solid rgb(var(--ink-rgb) / 0.08);
     color: var(--text-main);
     vertical-align: middle;
   }
@@ -198,7 +198,7 @@
     padding: 2px 8px;
     border: 1px solid var(--border-color);
     border-radius: 999px;
-    background: rgba(17, 24, 39, 0.04);
+    background: rgb(var(--ink-rgb) / 0.04);
     font-size: 0.7rem;
     font-weight: 700;
     white-space: nowrap;
@@ -232,7 +232,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 6px 12px;
       padding: 12px 14px;
-      border-bottom: 1px solid rgba(17, 24, 39, 0.1);
+      border-bottom: 1px solid rgb(var(--ink-rgb) / 0.1);
     }
 
     .admin-table tbody tr:last-child {
@@ -317,7 +317,7 @@
   }
 
   .admin-league-option:hover {
-    background: rgba(17, 24, 39, 0.05);
+    background: rgb(var(--ink-rgb) / 0.05);
   }
 
   .admin-league-option.is-checked {
@@ -408,7 +408,7 @@
     padding: 12px 14px;
     border: 1px solid var(--border-color);
     border-radius: 16px;
-    background: #fff;
+    background: var(--surface-raised);
     box-shadow: 0 10px 24px -16px rgba(0, 0, 0, 0.5);
   }
 

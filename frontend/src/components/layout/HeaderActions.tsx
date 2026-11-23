@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { UserAvatar } from '../Avatar';
 import InstallAppButton from './InstallAppButton';
+import ThemeToggle from './ThemeToggle';
 import NotificationBell from './NotificationBell';
 import SupportDialog from '../SupportDialog';
 import type { NavigateFunction } from 'react-router-dom';
@@ -92,18 +93,8 @@ export default function HeaderActions({
         )
       ) : (
         <>
-          <button
-            type="button"
-            onClick={() => setShowSupport(true)}
-            title="Apoya el proyecto"
-            aria-label="Apoya el proyecto"
-            aria-haspopup="dialog"
-            className="glass-btn header-icon-btn header-support-btn"
-          >
-            <SupportCupIcon />
-            <span className="header-support-label">Apoyar</span>
-          </button>
           <SupportDialog open={showSupport} onClose={() => setShowSupport(false)} />
+          <ThemeToggle />
           <InstallAppButton />
           {showNotificationBell && (
             <NotificationBell onOpenSettings={() => onOpenSettings('reminders')} />
@@ -154,6 +145,19 @@ export default function HeaderActions({
                   Panel de gestión
                 </button>
               )}
+
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  setShowSupport(true);
+                }}
+                className="glass-btn py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] font-bold w-full flex items-center justify-center gap-2"
+              >
+                <SupportCupIcon />
+                Apoyar el proyecto
+              </button>
 
               <button
                 className="bg-[rgba(185,_28,_28,_0.08)] bg-none border border-[var(--miss)] text-[var(--miss)] py-[9px] px-3 rounded-[8px] cursor-pointer text-[0.88rem] flex items-center gap-2 font-bold w-full justify-center [transition:all_0.15s_ease]"

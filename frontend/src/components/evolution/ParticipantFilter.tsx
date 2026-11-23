@@ -26,7 +26,7 @@ export default function ParticipantFilter({
   users,
 }: ParticipantFilterProps) {
   return (
-    <div className="mt-4 border-t border-t-[rgba(17,_24,_39,_0.08)] pt-3.5 pb-0 px-1">
+    <div className="mt-4 border-t border-t-[rgb(var(--ink-rgb)/0.08)] pt-3.5 pb-0 px-1">
       <div className="flex justify-between items-center flex-wrap gap-2.5 mb-3">
         <span className="text-[0.85rem] text-muted">
           Participantes mostrados ({Object.values(selectedUsers).filter(Boolean).length}/
@@ -35,28 +35,28 @@ export default function ParticipantFilter({
         <div className="flex gap-2 flex-wrap">
           <button
             type="button"
-            className="bg-[rgba(17,24,39,0.05)] bg-none text-main border border-[rgba(17,24,39,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s] min-h-11 sm:min-h-0"
+            className="bg-[rgb(var(--ink-rgb)/0.05)] bg-none text-main border border-[rgb(var(--ink-rgb)/0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s] min-h-11 sm:min-h-0"
             onClick={() => selectTopN(5)}
           >
             Top 5
           </button>
           <button
             type="button"
-            className="bg-[rgba(17,24,39,0.05)] bg-none text-main border border-[rgba(17,24,39,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s] min-h-11 sm:min-h-0"
+            className="bg-[rgb(var(--ink-rgb)/0.05)] bg-none text-main border border-[rgb(var(--ink-rgb)/0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s] min-h-11 sm:min-h-0"
             onClick={() => selectTopN(10)}
           >
             Top 10
           </button>
           <button
             type="button"
-            className="bg-[rgba(17,24,39,0.05)] bg-none text-main border border-[rgba(17,24,39,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s] min-h-11 sm:min-h-0"
+            className="bg-[rgb(var(--ink-rgb)/0.05)] bg-none text-main border border-[rgb(var(--ink-rgb)/0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s] min-h-11 sm:min-h-0"
             onClick={selectAll}
           >
             Todos
           </button>
           <button
             type="button"
-            className="bg-[rgba(17,24,39,0.05)] bg-none text-main border border-[rgba(17,24,39,0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s] min-h-11 sm:min-h-0"
+            className="bg-[rgb(var(--ink-rgb)/0.05)] bg-none text-main border border-[rgb(var(--ink-rgb)/0.15)] py-1 px-2.5 rounded-[15px] text-[0.75rem] cursor-pointer [transition:background_0.2s] min-h-11 sm:min-h-0"
             onClick={selectNone}
           >
             Ninguno
@@ -85,10 +85,10 @@ export default function ParticipantFilter({
                 borderRadius: '20px',
                 background: isSel
                   ? isHovered
-                    ? 'rgba(17,24,39,0.2)'
-                    : 'rgba(17,24,39,0.08)'
+                    ? 'rgb(var(--ink-rgb)/0.2)'
+                    : 'rgb(var(--ink-rgb)/0.08)'
                   : 'transparent',
-                border: isSel ? `1px solid ${u.color}` : '1px solid rgba(17,24,39,0.1)',
+                border: isSel ? `1px solid ${u.color}` : '1px solid rgb(var(--ink-rgb)/0.1)',
                 boxShadow: 'none',
               }}
             >

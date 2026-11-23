@@ -117,7 +117,7 @@ const GroupMatchesModal = ({
                     <Flag team={m.home} logo={m.homeLogo || m.homeTeamLogo} badge={m.homeFlag} />
                   </div>
                   <div
-                    className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasScore ? 'text-main' : 'text-muted'} ${hasScore ? 'bg-[rgba(17,24,39,0.08)]' : 'bg-transparent bg-none'}`}
+                    className={`py-0.5 px-0 font-bold text-center rounded-[4px] ${hasScore ? 'text-main' : 'text-muted'} ${hasScore ? 'bg-[rgb(var(--ink-rgb)/0.08)]' : 'bg-transparent bg-none'}`}
                   >
                     {hasScore ? `${homeScore} - ${awayScore}` : 'VS'}
                   </div>

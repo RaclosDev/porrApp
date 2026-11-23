@@ -39,7 +39,7 @@
 
   .match-picker-mode.is-checked {
     box-shadow: inset 0 0 0 1px var(--ink);
-    background: #ffffff;
+    background: var(--surface-raised);
   }
 
   .match-picker-mode:has(input:focus-visible),
@@ -172,7 +172,7 @@
   .match-picker-filter button[aria-pressed='true'] {
     border-color: var(--ink);
     background: var(--ink);
-    color: #ffffff;
+    color: var(--paper);
   }
 
   .match-picker-filter button:focus-visible {
@@ -211,7 +211,7 @@
 
   .match-picker-team.is-checked {
     border-color: var(--ink);
-    background: #ffffff;
+    background: var(--surface-raised);
   }
 
   .match-picker-team img {
