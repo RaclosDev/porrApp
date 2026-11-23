@@ -25,12 +25,12 @@ Proyecto personal de **Carlos Sanz Tomero**, desarrollador full-stack. PorrApp r
   <tr>
     <td align="center" width="33%"><img src="docs/screenshots/league-home.png" alt="Inicio de una liga de LaLiga con los partidos de la próxima jornada y sus escudos" width="240"><br><sub><b>Tu liga</b> · la jornada que viene</sub></td>
     <td align="center" width="33%"><img src="docs/screenshots/matchday.png" alt="Predicciones 1X2 de una jornada con las elecciones guardadas y cada partido abierto" width="240"><br><sub><b>Jornadas</b> · cada partido tiene su cierre</sub></td>
-    <td align="center" width="33%"><img src="docs/screenshots/league-ranking.png" alt="Podio de la jornada y clasificación general de la liga con los avatares de los participantes" width="240"><br><sub><b>Ranking</b> · general y por jornada</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/league-ranking.png" alt="Podio y clasificación general de una liga de LaLiga, con los puntos de cada participante en la última jornada" width="240"><br><sub><b>Ranking</b> · general y por jornada</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/ranking.png" alt="Podio y clasificación de una porra del Mundial con veinte participantes" width="240"><br><sub><b>Mundial</b> · podio y desglose por fase</sub></td>
     <td align="center"><img src="docs/screenshots/bracket.png" alt="Cuadro de cuartos de final del Mundial con los equipos clasificados y eliminados" width="240"><br><sub><b>Cuadro</b> · camino hasta la final</sub></td>
     <td align="center"><img src="docs/screenshots/groups.png" alt="Clasificación de los grupos del Mundial con equipos clasificados y eliminados" width="240"><br><sub><b>Grupos</b> · clasificación y desempates</sub></td>
+    <td align="center"><img src="docs/screenshots/ufc.png" alt="Predicciones de una velada de UFC con el ganador, el método y el asalto de cada pelea" width="240"><br><sub><b>UFC</b> · ganador, método y asalto</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="frontend/public/landing/porras/poker-mesa-600.webp" alt="Reloj de un torneo de póker con nivel de ciegas, jugadores en mesa y bote" width="240"><br><sub><b>Póker</b> · reloj, ciegas y mesa</sub></td>
@@ -39,7 +39,7 @@ Proyecto personal de **Carlos Sanz Tomero**, desarrollador full-stack. PorrApp r
   </tr>
 </table>
 
-Capturas de la interfaz real con la sesión iniciada, renovadas en noviembre de 2026. Las dos primeras filas muestran ligas reales sobre una copia local de la base de datos, con avatares ilustrados en lugar de las fotos de los participantes; la fila de póker usa datos ficticios. [Origen de las capturas](docs/screenshots/README.md).
+Capturas de la interfaz real, renovadas en noviembre de 2026. Las dos primeras filas salen de la [demo](https://porrapp.app/demo), con ligas, participantes y predicciones ficticios; la fila de póker usa también datos inventados. [Origen de las capturas](docs/screenshots/README.md).
 
 ## Qué permite hacer
 
