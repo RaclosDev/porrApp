@@ -255,9 +255,26 @@ function mergeLive(base: DemoData, live: DemoData | null): DemoData {
       out[group] = { ...a[group], ...entries };
     return out;
   };
+  // Las listas de ligas se unen por id: el servidor solo recorre algunas y la porra de la UFC vive en la copia fija.
+  const byId = (key: string, id: string) => {
+    const a = base.exact[key];
+    const b = live.exact[key];
+    if (!Array.isArray(a) || !Array.isArray(b)) return {};
+    const fresh = new Map(b.map((item: Record<string, unknown>) => [item[id], item]));
+    const merged = a.map((item: Record<string, unknown>) => fresh.get(item[id]) ?? item);
+    const known = new Set(a.map((item: Record<string, unknown>) => item[id]));
+    return {
+      [key]: [...merged, ...b.filter((item: Record<string, unknown>) => !known.has(item[id]))],
+    };
+  };
   return {
     recordedAt: live.recordedAt,
-    exact: { ...base.exact, ...live.exact },
+    exact: {
+      ...base.exact,
+      ...live.exact,
+      ...byId('/groups/mine', 'id'),
+      ...byId('/groups/mine/summary', 'groupId'),
+    },
     voters: byGroup(base.voters, live.voters),
     participants: byGroup(base.participants, live.participants),
   };
@@ -279,7 +296,8 @@ export function installDemoBackend(): void {
         const days = Math.floor((Date.now() - Date.parse(data.recordedAt)) / DAY_MS);
         return mergeLive({ ...data, exact: shiftDates(data.exact, Math.max(0, days)) }, live);
       })
-      .then((data) => ({ ...data, exact: withAvatars(data.exact) }))
+      // Fotos también en votantes y participantes, que van aparte de `exact`.
+      .then((data) => withAvatars(data))
       .catch((error: unknown) => {
         // Una descarga fallida no se recuerda: «Reintentar» vuelve a pedir los datos.
         loading = null;

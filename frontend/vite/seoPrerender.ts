@@ -118,7 +118,7 @@ const faqStructuredData = (faq: readonly FaqEntry[], url: string) => ({
 
 const landingMarkup = () =>
   `<main><h1>${escapeHtml(`${LANDING_COPY.h1} ${LANDING_COPY.h1Marked}`)}</h1>` +
-  paragraphs([LANDING_COPY.lede, LANDING_COPY.heroNote]) +
+  paragraphs([LANDING_COPY.lede]) +
   `<p><a href="/demo">Ver una porra de ejemplo</a></p>` +
   `<h2>${escapeHtml(LANDING_COPY.stepsTitle)}</h2><ol>${LANDING_COPY.steps
     .map((step) => `<li><h3>${escapeHtml(step.title)}</h3>${paragraphs([step.text])}</li>`)
