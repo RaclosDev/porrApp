@@ -5,24 +5,83 @@
     outline-offset: 2px;
   }
 
-  /* Custom Scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  /*
+   * Barras de desplazamiento: finas, sin carril y en la tinta del tema, para que no compitan con
+   * el contenido. :where() no suma especificidad, así que cualquier regla que las oculte gana.
+   */
+  :where(*) {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--ink-rgb) / 0.28) transparent;
   }
 
-  ::-webkit-scrollbar-track {
-    background: rgb(var(--ink-rgb) / 0.06);
-    border-radius: 4px;
+  /* Safari, que aún no entiende scrollbar-color. */
+  @supports not (scrollbar-color: auto) {
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      border: 3px solid transparent;
+      border-radius: 999px;
+      background: rgb(var(--ink-rgb) / 0.28);
+      background-clip: content-box;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: rgb(var(--ink-rgb) / 0.45);
+    }
   }
 
-  ::-webkit-scrollbar-thumb {
-    background: var(--accent-color);
-    border-radius: 4px;
+  /*
+   * Lista del selector de ligas: sin barra a la vista (es un menú estrecho y la barra pisaba las
+   * filas). Que hay más ligas lo dice el borde, que se difumina por el lado que queda por ver.
+   */
+  .active-league-list {
+    scrollbar-width: none;
+    overscroll-behavior: contain;
   }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #1d4ed8;
+  .active-league-list::-webkit-scrollbar {
+    display: none;
+  }
+  @supports (animation-timeline: scroll()) {
+    @property --league-fade-top {
+      syntax: '<length>';
+      inherits: false;
+      initial-value: 0px;
+    }
+    @property --league-fade-bottom {
+      syntax: '<length>';
+      inherits: false;
+      initial-value: 0px;
+    }
+    @keyframes league-list-fade {
+      0% {
+        --league-fade-top: 0px;
+        --league-fade-bottom: 36px;
+      }
+      12%,
+      88% {
+        --league-fade-top: 36px;
+        --league-fade-bottom: 36px;
+      }
+      100% {
+        --league-fade-top: 36px;
+        --league-fade-bottom: 0px;
+      }
+    }
+    .active-league-list {
+      mask-image: linear-gradient(
+        to bottom,
+        transparent,
+        #000 var(--league-fade-top),
+        #000 calc(100% - var(--league-fade-bottom)),
+        transparent
+      );
+      animation: league-list-fade linear both;
+      animation-timeline: scroll(self);
+    }
   }
 
   /* La demo dentro de un visor móvil (portada o portfolio): sin barras de desplazamiento, como en un teléfono. */

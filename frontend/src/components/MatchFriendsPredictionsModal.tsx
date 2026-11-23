@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
-import { UserAvatar } from './Avatar';
+import ZoomableAvatar from './ZoomableAvatar';
 import type { FriendPrediction, MatchdayFixture } from '../types/api';
 import SheetDialog from './SheetDialog';
 import { fightOutcomes, methodRoundText } from '../utils/fights';
@@ -76,7 +76,7 @@ function PredictionRow({
   const formattedTime = showTime ? formatTimestamp(prediction.updatedAt) : null;
   return (
     <div className={`friends-prediction${prediction.isCaller ? ' is-caller' : ''}`}>
-      <UserAvatar
+      <ZoomableAvatar
         url={prediction.avatarUrl}
         userId={prediction.userId}
         name={prediction.participantName}
