@@ -56,6 +56,23 @@ class SecurityConfigTest {
     }
 
     @Test
+    void onlyTheDemoCanBeFramedByThePortfolio() throws Exception {
+        var headers = org.springframework.test.web.servlet.result.MockMvcResultMatchers.header();
+        for (String path : new String[] {"/demo", "/demo/grupos/1"}) {
+            mockMvc.perform(get(path))
+                    .andExpect(headers.string("Content-Security-Policy",
+                            org.hamcrest.Matchers.endsWith("frame-ancestors 'self' https://raclosdev.github.io;")))
+                    .andExpect(headers.doesNotExist("X-Frame-Options"));
+        }
+        for (String path : new String[] {"/", "/login", "/demos", "/api/competitions/1/tournament/scorers"}) {
+            mockMvc.perform(get(path))
+                    .andExpect(headers.string("Content-Security-Policy",
+                            org.hamcrest.Matchers.endsWith("frame-ancestors 'self';")))
+                    .andExpect(headers.string("X-Frame-Options", "SAMEORIGIN"));
+        }
+    }
+
+    @Test
     void healthProbeUsedByRailwayIsPublic() throws Exception {
         int status = mockMvc.perform(get("/actuator/health/liveness")).andReturn().getResponse().getStatus();
         org.junit.jupiter.api.Assertions.assertNotEquals(401, status);

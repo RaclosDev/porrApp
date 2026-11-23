@@ -46,7 +46,6 @@ export default function Landing() {
                 Probar la demo
               </Link>
             </div>
-            <p className="text-[#48505c] text-sm">{LANDING_COPY.heroNote}</p>
           </Reveal>
         </div>
         <Reveal

@@ -399,44 +399,42 @@
     border-radius: 27px;
   }
 
-  /* Visor de la demo en la portada: la captura debajo y la app real encima cuando ya se ha pintado. */
+  /* Visor de la demo en la portada, con las proporciones de un iPhone 17: pantalla de 402 × 874 puntos y
+     esquinas de unos 55 puntos. La app va dentro a su tamaño real de 402 × 874 y se escala para caber. */
   .landing-live {
-    width: min(100%, 320px);
+    --screen-w: min(calc(100vw - 48px), 320px);
+    --bezel: 7px;
+    width: fit-content;
+    padding: var(--bezel);
+    border-radius: calc(var(--screen-w) * 55 / 402 + var(--bezel));
   }
 
   .landing-live__screen {
     position: relative;
     overflow: hidden;
-    aspect-ratio: 600 / 1298;
-    border-radius: 27px;
+    width: var(--screen-w);
+    aspect-ratio: 402 / 874;
+    border-radius: calc(var(--screen-w) * 55 / 402);
     background: #fff;
   }
 
   .app-phone .landing-live__poster {
     width: 100%;
     height: 100%;
+    border-radius: 0;
     object-fit: cover;
     object-position: top;
   }
 
   .landing-live__frame {
     position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    top: 0;
+    left: 0;
+    width: 402px;
+    height: 874px;
     border: 0;
-    opacity: 0;
-    /* Oculta hasta que la app se ha pintado: mientras, los clics van a la captura. */
-    visibility: hidden;
-    transition:
-      opacity 450ms ease-out,
-      visibility 0s 450ms;
-  }
-
-  .landing-live__frame.is-ready {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 450ms ease-out;
+    transform: scale(var(--live-scale, 1));
+    transform-origin: 0 0;
   }
 
   .landing-live-wrap {
@@ -448,19 +446,11 @@
   }
 
   @media (min-width: 1024px) {
+    /* En el ordenador, del tamaño de un iPhone 17: pantalla de 66,6 × 144,8 mm y cuerpo de 71,5 mm de ancho. Son
+       mm de CSS (96 ppp): el navegador no sabe cuánto mide el monitor, así que en uno más denso sale más pequeño. */
     .landing-live {
-      width: 390px;
-    }
-
-    .landing-live__screen {
-      aspect-ratio: auto;
-      height: clamp(520px, calc(100svh - 260px), 720px);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .landing-live__frame {
-      transition: none;
+      --screen-w: 66.6mm;
+      --bezel: 2.45mm;
     }
   }
 

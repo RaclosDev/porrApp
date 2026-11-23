@@ -34,7 +34,14 @@ export function demoAvatar(userId: unknown): string | null {
   return typeof userId === 'number' ? (AVATARS[userId] ?? null) : null;
 }
 
-/** Rellena las fotos que faltan en cualquier objeto con `userId` y `avatarUrl`. */
+// Foto de cada liga de la demo, por id de grupo: las ligas reales suelen tener una.
+const LEAGUE_IMAGES: Record<number, string> = {
+  1: '/demo-ligas/mundial.jpg',
+  6: '/demo-ligas/laliga.jpg',
+  39: '/demo-ligas/ufc.jpg',
+};
+
+/** Rellena las fotos que faltan: personas (`userId` + `avatarUrl`) y ligas (`adminUserId` + `imageUrl`). */
 export function withAvatars<T>(value: T): T {
   if (Array.isArray(value)) return value.map(withAvatars) as T;
   if (value && typeof value === 'object') {
@@ -42,6 +49,9 @@ export function withAvatars<T>(value: T): T {
     const record = Object.fromEntries(entries) as Record<string, unknown>;
     if ('avatarUrl' in record && record.avatarUrl == null) {
       record.avatarUrl = demoAvatar(record.userId);
+    }
+    if ('adminUserId' in record && 'imageUrl' in record && record.imageUrl == null) {
+      record.imageUrl = typeof record.id === 'number' ? (LEAGUE_IMAGES[record.id] ?? null) : null;
     }
     return record as T;
   }
