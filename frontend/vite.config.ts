@@ -50,7 +50,7 @@ export default defineConfig({
       includeAssets: [
         'favicon.ico',
         'favicon-paper.png',
-        'apple-touch-icon-paper.png',
+        'apple-touch-icon-dark.png',
         'icon-paper-192.png',
         'icon-paper-512.png',
         'maskable-paper-512.png',
