@@ -645,6 +645,14 @@
 .home-hero.flat-panel {
   margin-bottom: 14px;
 }
+/*
+ * La hoja de papel aísla su contenido (isolation), así que el desplegable de ligas no puede
+ * salir de ella por sí solo: la cabecera entera va por encima de las hojas que la siguen
+ * (póker, carreras), como en las demás ligas.
+ */
+.home-hero.album-sheet {
+  z-index: 1;
+}
 .flat-panel .home-match-card {
   border-radius: 14px;
 }
