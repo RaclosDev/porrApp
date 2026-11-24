@@ -8,6 +8,7 @@ import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHo
 import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
 import { finishedLabel, formatMatchDate, resultNote } from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
+import ActiveLeagueDropdown from '../ActiveLeagueDropdown';
 import Flag from '../Flag';
 import { Skeleton } from '../SkeletonBlock';
 import LeagueRulesModal from '../LeagueRulesModal';
@@ -283,7 +284,8 @@ function DashboardSkeleton() {
   );
 }
 
-export default function LeagueHomeDashboard() {
+/** `afterHero` va justo bajo el título de la liga: el cierre de una liga terminada. */
+export default function LeagueHomeDashboard({ afterHero }: { afterHero?: ReactNode }) {
   const {
     activeGroupId,
     activeGroupName,
@@ -422,7 +424,7 @@ export default function LeagueHomeDashboard() {
 
       <header className="home-hero flat-panel">
         <div className="home-hero-info">
-          <h1 className="home-hero-title">{activeGroupName || 'Mi Porra'}</h1>
+          <ActiveLeagueDropdown variant="title" fallbackName="Mi Porra" />
           {/* Una sola línea: la competición, cuántos juegan y, al fondo, las reglas. */}
           <div className="home-hero-pills is-meta">
             {showCompetition && <span className="home-hero-pill">{activeCompetitionName}</span>}
@@ -449,6 +451,7 @@ export default function LeagueHomeDashboard() {
           </div>
         </div>
       </header>
+      {afterHero}
 
       {settling ? (
         <DashboardSkeleton />

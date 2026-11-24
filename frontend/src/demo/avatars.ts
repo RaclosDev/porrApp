@@ -36,9 +36,9 @@ export function demoAvatar(userId: unknown): string | null {
 
 // Foto de cada liga de la demo, por id de grupo: las ligas reales suelen tener una.
 const LEAGUE_IMAGES: Record<number, string> = {
-  1: '/demo-ligas/mundial.jpg',
-  6: '/demo-ligas/laliga.jpg',
-  39: '/demo-ligas/ufc.jpg',
+  1: '/demo-ligas/mundial.svg',
+  6: '/demo-ligas/laliga.svg',
+  39: '/demo-ligas/ufc.svg',
 };
 
 /** Rellena las fotos que faltan: personas (`userId` + `avatarUrl`) y ligas (`adminUserId` + `imageUrl`). */
