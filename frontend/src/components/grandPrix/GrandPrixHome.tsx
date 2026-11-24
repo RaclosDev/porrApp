@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronRight, Lock } from 'lucide-react';
@@ -6,6 +6,7 @@ import { useAppContext } from '../../context/AppContext';
 import { fetchFormulaOneStandings, fetchGrandPrixBoard } from '../../services/api';
 import { queryKeys } from '../../services/queryKeys';
 import type { GrandPrix, RaceDriver } from '../../types/api';
+import ActiveLeagueDropdown from '../ActiveLeagueDropdown';
 import PaperLoading from '../PaperLoading';
 import { MiniRow, PanelHeader } from '../Home/LeagueHomeDashboard';
 import RaceClassificationSheet from './RaceClassificationSheet';
@@ -24,10 +25,9 @@ const TOP_COUNT = 5;
  * Inicio de una liga de carreras, como el de las ligas por jornadas: las dos próximas carreras con tu
  * predicción, el ranking de la liga, el Mundial y las ya disputadas con su podio.
  */
-export default function GrandPrixHome() {
+export default function GrandPrixHome({ afterHero }: { afterHero?: ReactNode }) {
   const {
     activeGroupId,
-    activeGroupName,
     activeCompetitionName,
     isAuthenticated,
     leaderboardData,
@@ -97,7 +97,7 @@ export default function GrandPrixHome() {
     <section className="view-section active max-w-270 my-0 mx-auto pt-1 pb-6 px-0">
       <header className="home-hero paper-panel album-sheet">
         <div className="home-hero-info">
-          <h1 className="home-hero-title">{activeGroupName || 'Carreras'}</h1>
+          <ActiveLeagueDropdown variant="title" fallbackName="Carreras" />
           <div className="home-hero-pills">
             <span className="home-hero-pill">
               {activeCompetitionName || 'Fórmula 1'}
@@ -110,6 +110,7 @@ export default function GrandPrixHome() {
           </div>
         </div>
       </header>
+      {afterHero}
 
       {missing.length > 0 && (
         <button
