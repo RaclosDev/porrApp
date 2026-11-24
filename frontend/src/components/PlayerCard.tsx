@@ -122,6 +122,9 @@ function ranks(rows: ParticipantScore[]) {
   return byId;
 }
 
+/** Puntos con su unidad: «18 pts», «1 pt». */
+const pts = (value: number, text = String(value)) => `${text} ${value === 1 ? 'pt' : 'pts'}`;
+
 function matchdayStats(id: number, rows: ParticipantScore[], matchdays: MatchdayPoints[]) {
   const paidIds = rows.filter((row) => !row.pending).map((row) => String(row.id));
   const played = matchdays.filter(
@@ -129,8 +132,17 @@ function matchdayStats(id: number, rows: ParticipantScore[], matchdays: Matchday
   );
   const entries = played.map((matchday) => {
     const points = matchday.pointsByPrediction[String(id)] ?? 0;
-    const best = Math.max(0, ...paidIds.map((key) => matchday.pointsByPrediction[key] ?? 0));
-    return { label: displayRoundLabel(matchday.label), points, won: points > 0 && points === best };
+    // Puesto en la jornada entre los que han pagado: los empates lo comparten.
+    const higher = new Set(
+      paidIds.map((key) => matchday.pointsByPrediction[key] ?? 0).filter((other) => other > points),
+    );
+    const place = higher.size + 1;
+    return {
+      label: displayRoundLabel(matchday.label),
+      points,
+      place,
+      won: points > 0 && place === 1,
+    };
   });
   const best = entries.reduce<(typeof entries)[number] | null>(
     (top, entry) => (!top || entry.points > top.points ? entry : top),
@@ -172,14 +184,22 @@ function PlayerCard({ player, onClose }: { player: PlayerRef; onClose: () => voi
   const subtitle = row?.predictionName && row.predictionName !== name ? row.predictionName : null;
   const cells = row
     ? [
-        { label: 'Puntos', value: String(row.total) },
+        { label: 'Puntos', value: pts(row.total) },
         { label: 'Puesto', value: rank ? `${rank}.º` : 'Sin pagar' },
         ...(stats && stats.count > 0
           ? [
               { label: 'Jornadas ganadas', value: String(stats.wins) },
-              { label: 'Media por jornada', value: average.format(stats.mean) },
+              {
+                label: 'Media por jornada',
+                value: pts(stats.mean, average.format(stats.mean)),
+              },
               ...(stats.best
-                ? [{ label: 'Mejor jornada', value: `${stats.best.points} · ${stats.best.label}` }]
+                ? [
+                    {
+                      label: 'Mejor jornada',
+                      value: `${pts(stats.best.points)} · ${stats.best.label}`,
+                    },
+                  ]
                 : []),
             ]
           : []),
@@ -206,14 +226,19 @@ function PlayerCard({ player, onClose }: { player: PlayerRef; onClose: () => voi
             {stats && stats.recent.length > 0 && (
               <div className="player-card-recent">
                 <p>Últimas jornadas</p>
-                <ol aria-label="Puntos en las últimas jornadas, de la más reciente a la más antigua">
+                <ol aria-label="Puesto y puntos en las últimas jornadas, de la más reciente a la más antigua">
                   {stats.recent.map((entry) => (
                     <li
                       key={entry.label}
-                      className={entry.won ? 'is-podium-1' : undefined}
-                      title={entry.won ? `${entry.label} · la ganó` : entry.label}
+                      className={
+                        entry.points > 0 && entry.place <= 3
+                          ? `is-podium-${entry.place}`
+                          : undefined
+                      }
+                      title={`${entry.label} · ${entry.place}.º con ${pts(entry.points)}`}
                     >
-                      {entry.points}
+                      <b>{entry.place}.º</b>
+                      <span>{pts(entry.points)}</span>
                     </li>
                   ))}
                 </ol>

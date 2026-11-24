@@ -60,16 +60,35 @@ describe('Cromo de jugador', () => {
     const card = screen.getByRole('dialog', { name: 'Cromo de Ana' });
     // Empata a puntos con Luis: comparten el primer puesto; quien no ha pagado no cuenta.
     expect(within(card).getByText('Puesto').nextElementSibling).toHaveTextContent('1.º');
-    expect(within(card).getByText('Puntos').nextElementSibling).toHaveTextContent('30');
+    expect(within(card).getByText('Puntos').nextElementSibling).toHaveTextContent('30 pts');
     expect(within(card).getByText('Jornadas ganadas').nextElementSibling).toHaveTextContent('1');
-    expect(within(card).getByText('Media por jornada').nextElementSibling).toHaveTextContent('15');
-    expect(within(card).getByText('Mejor jornada').nextElementSibling).toHaveTextContent(
-      '18 · Jornada 1',
+    expect(within(card).getByText('Media por jornada').nextElementSibling).toHaveTextContent(
+      '15 pts',
     );
-    expect(within(card).getByRole('list', { name: /últimas jornadas/ })).toHaveTextContent('1218');
+    expect(within(card).getByText('Mejor jornada').nextElementSibling).toHaveTextContent(
+      '18 pts · Jornada 1',
+    );
+    // De la más reciente a la más antigua: 2.ª en la jornada 2 y 1.ª en la 1 (no cuenta quien no paga).
+    expect(within(card).getByRole('list', { name: /últimas jornadas/ })).toHaveTextContent(
+      '2.º12 pts1.º18 pts',
+    );
+    expect(document.body.style.overflow).toBe('hidden');
 
     fireEvent.click(within(card).getByRole('button', { name: 'Ver la foto de Ana' }));
     expect(screen.getByRole('dialog', { name: 'Foto de Ana' })).toBeTruthy();
+  });
+
+  it('al cerrar el cromo la página vuelve a desplazarse', () => {
+    render(
+      <PlayerCards>
+        <PlayerName name="Ana" userId={1} />
+      </PlayerCards>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Ver el cromo de Ana' }));
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar cromo' }));
+    expect(document.documentElement.style.overflow).toBe('');
+    expect(document.body.style.overflow).toBe('');
   });
 
   it('el nombre abre el cromo y su acción, aunque no tenga foto', () => {

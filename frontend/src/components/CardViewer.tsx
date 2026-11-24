@@ -24,6 +24,17 @@ export default function CardViewer({
     onCloseRef.current = onClose;
   }, [onClose]);
 
+  // Con el cromo abierto, la página de detrás no se desplaza.
+  useEffect(() => {
+    const { documentElement: html, body } = document;
+    const previous = [html.style.overflow, body.style.overflow];
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    return () => {
+      [html.style.overflow, body.style.overflow] = previous;
+    };
+  }, []);
+
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
