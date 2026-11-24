@@ -64,6 +64,7 @@ export default function MatchdayPodium({
                 }}
                 featured={index === 0}
                 compact
+                zoomable
                 avatar={
                   tied ? (
                     <div

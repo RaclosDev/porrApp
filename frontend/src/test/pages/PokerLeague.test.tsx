@@ -7,6 +7,7 @@ import PokerLive from '../../components/poker/PokerLive';
 import PokerLateEntry from '../../components/poker/PokerLateEntry';
 import { PokerHistory, PokerStatistics } from '../../components/poker/PokerHistory';
 import PokerSettingsForm from '../../components/poker/PokerSettingsForm';
+import { PokerProfiles } from '../../components/poker/PokerPlayerCard';
 import PokerLeague from '../../pages/PokerLeague';
 import type { PokerLeagueData, PokerSession, PokerSettings } from '../../services/endpoints/poker';
 import { request } from '../../services/http';
@@ -1078,4 +1079,36 @@ it('en el último torneo muestra a todos los empatados en cabeza, primero quien 
     </MemoryRouter>,
   );
   expect(screen.getByText(/^Ganaron/)).toHaveTextContent('Ganaron Luis, Ana y Paz');
+});
+
+it('al pulsar un cromo del podio abre el perfil del jugador con sus números en la liga', () => {
+  const closed: PokerSession = {
+    ...session,
+    id: 12,
+    startedAt: 500,
+    closedAt: 900,
+    results: entries.map((entry, index) => ({
+      ...entry,
+      place: index + 1,
+      paidCents: 1000,
+      prizeCents: index === 0 ? 2100 : index === 1 ? 900 : 0,
+    })),
+  };
+  render(
+    <PokerProfiles sessions={[closed]}>
+      <PokerStatistics sessions={[closed]} />
+    </PokerProfiles>,
+  );
+  click('Ver el perfil de Ana: 1.º, 1 victoria');
+  const card = screen.getByRole('dialog', { name: 'Perfil de Ana' });
+  expect(card).toHaveTextContent('1.º de la liga · 1 victoria');
+  expect(within(card).getByText('Neto').nextElementSibling).toHaveTextContent('+11');
+  expect(
+    within(card).getByRole('list', { name: /Puestos en los últimos torneos/ }),
+  ).toHaveTextContent('1.º');
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(screen.queryByRole('dialog')).toBeNull();
+
+  click('Ver el perfil de Paz');
+  expect(screen.getByRole('dialog', { name: 'Perfil de Paz' })).toHaveTextContent('3.º de la liga');
 });

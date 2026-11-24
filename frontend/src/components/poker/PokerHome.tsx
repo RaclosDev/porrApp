@@ -5,6 +5,7 @@ import PokerEmpty from './PokerEmpty';
 import PokerHands from './PokerHands';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
+import { PokerPlayerName } from './PokerPlayerCard';
 import {
   euros,
   pokerStandings,
@@ -87,8 +88,9 @@ export default function PokerHome({
                       rebuys={live ? entry.rebuys : 0}
                       addOns={live ? entry.addOns : 0}
                       crowned={crowned.includes(entry.playerId)}
+                      zoomable
                     />
-                    <span>{entry.name}</span>
+                    <PokerPlayerName playerId={entry.playerId} name={entry.name} />
                   </li>
                 ))}
               </ul>
@@ -170,6 +172,7 @@ export default function PokerHome({
                         playerId={champion.playerId}
                         name={champion.name}
                         size={champions.length > 1 ? 48 : 64}
+                        zoomable
                       />
                     ))}
                   </span>
@@ -181,7 +184,9 @@ export default function PokerHome({
                       {champions.map((champion, index) => (
                         <span key={champion.playerId}>
                           {index > 0 && (index === champions.length - 1 ? ' y ' : ', ')}
-                          <strong>{champion.name}</strong>
+                          <PokerPlayerName playerId={champion.playerId} name={champion.name}>
+                            <strong>{champion.name}</strong>
+                          </PokerPlayerName>
                         </span>
                       ))}
                     </p>

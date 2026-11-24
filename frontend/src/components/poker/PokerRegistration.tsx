@@ -121,7 +121,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
           <ul className="poker-faces">
             {session.entries.map((entry) => (
               <li key={entry.playerId}>
-                <PokerAvatar playerId={entry.playerId} name={entry.name} size={48} />
+                <PokerAvatar playerId={entry.playerId} name={entry.name} size={48} zoomable />
                 <span>{entry.name}</span>
               </li>
             ))}
