@@ -1,7 +1,6 @@
 import type { LeagueMemberRole } from '../../services/endpoints/leagues';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { GroupMember, PaymentStatus } from '../../types/api';
-import { UserAvatar } from '../Avatar';
 import type { CopyTarget } from './useInviteCode';
 import type { PaymentFilter } from './useLeagueMembersAdmin';
 import type { UseMutationResult } from '@tanstack/react-query';
@@ -21,6 +20,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import SelectMenu from '../SelectMenu';
+import { PlayerAvatar, PlayerName } from '../PlayerCard';
 
 const PAYMENT_FILTERS: { id: PaymentFilter; label: string }[] = [
   { id: 'ALL', label: 'Todos' },
@@ -353,7 +353,7 @@ export default function LeagueMembersTab({
                 className={`league-admin-member ${confirmingKick ? 'is-confirming' : ''}`}
               >
                 <div className="league-admin-member-main">
-                  <UserAvatar
+                  <PlayerAvatar
                     url={member.avatarUrl}
                     userId={member.userId}
                     name={member.participantName}
@@ -361,7 +361,11 @@ export default function LeagueMembersTab({
                   />
                   <div className="league-admin-member-info">
                     <div className="league-admin-member-name">
-                      <span>{member.participantName}</span>
+                      <PlayerName
+                        name={member.participantName}
+                        userId={member.userId}
+                        avatarUrl={member.avatarUrl}
+                      />
                       {member.isAdmin && (
                         <span className="league-admin-badge">
                           <Crown size={10} aria-hidden="true" />

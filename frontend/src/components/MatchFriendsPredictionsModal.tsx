@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMatchdayFriendPredictions } from '../services/api';
-import ZoomableAvatar from './ZoomableAvatar';
+import { PlayerAvatar, PlayerName } from './PlayerCard';
 import type { FriendPrediction, MatchdayFixture } from '../types/api';
 import SheetDialog from './SheetDialog';
 import { fightOutcomes, methodRoundText } from '../utils/fights';
@@ -76,7 +76,7 @@ function PredictionRow({
   const formattedTime = showTime ? formatTimestamp(prediction.updatedAt) : null;
   return (
     <div className={`friends-prediction${prediction.isCaller ? ' is-caller' : ''}`}>
-      <ZoomableAvatar
+      <PlayerAvatar
         url={prediction.avatarUrl}
         userId={prediction.userId}
         name={prediction.participantName}
@@ -84,7 +84,11 @@ function PredictionRow({
       />
       <div className="friends-prediction-main">
         <div className="friends-prediction-name">
-          <span>{prediction.participantName}</span>
+          <PlayerName
+            name={prediction.participantName}
+            userId={prediction.userId}
+            avatarUrl={prediction.avatarUrl}
+          />
           {prediction.isCaller && <span className="friends-prediction-you">Tú</span>}
         </div>
         {formattedTime && <div className="friends-prediction-time">{formattedTime}</div>}

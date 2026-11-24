@@ -460,7 +460,6 @@
 
 .poker-table thead {
   color: var(--text-muted);
-  background: color-mix(in srgb, var(--ink) 5%, var(--paper));
 }
 
 .poker :is(summary, [tabindex='0']):focus-visible {
@@ -1302,23 +1301,92 @@
   color: #fecaca;
 }
 
+/* Cabeceras de las tablas: rótulos pequeños en versalitas, sin fondo gris, con una raya de tinta. */
+.poker-table thead th {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: bottom;
+}
+
+.poker-table thead tr:last-child > * {
+  border-bottom: 2px solid color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.poker-table thead > tr > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--paper);
+}
+
+.poker-table-groups > * {
+  padding-block: 0.5rem 0.1rem;
+  border-bottom: 0;
+}
+
+.poker-table-groups th {
+  color: var(--ink);
+  font-size: 0.66rem;
+  text-align: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+/* Cada grupo empieza con una raya fina para que se lean las columnas de un vistazo. */
+.poker-stats-table
+  :is(th, td):is(:nth-child(2), :nth-child(5), :nth-child(11), :nth-child(14)):not(
+    .poker-table-groups > *
+  ),
+.poker-table-groups th + th {
+  border-left: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.poker-table tbody tr:nth-child(even) > * {
+  background: color-mix(in srgb, var(--ink) 3%, var(--paper));
+}
+
+.poker-table tbody tr:hover > * {
+  background: color-mix(in srgb, var(--accent-cyan) 9%, var(--paper));
+}
+
+.poker-strong {
+  font-weight: 800;
+}
+
 .poker-sort {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
   min-height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.poker-sort::after {
-  content: '↕';
-  opacity: 0.55;
+.poker-sort-icon {
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.poker-sort-icon path {
+  opacity: 0.28;
+  transition: opacity 120ms ease;
+}
+
+.poker-sort:hover .poker-sort-icon path {
+  opacity: 0.6;
 }
 
 [aria-sort='ascending'] > .poker-sort,
@@ -1326,23 +1394,54 @@
   color: var(--ink);
 }
 
-[aria-sort='ascending'] > .poker-sort::after {
-  content: '↑';
+[aria-sort='ascending'] > .poker-sort .poker-sort-up,
+[aria-sort='descending'] > .poker-sort .poker-sort-down {
   opacity: 1;
 }
 
-[aria-sort='descending'] > .poker-sort::after {
-  content: '↓';
-  opacity: 1;
-}
-
-.poker-sort:hover {
-  text-decoration: underline;
+[aria-sort='ascending'] > .poker-sort .poker-sort-down,
+[aria-sort='descending'] > .poker-sort .poker-sort-up {
+  opacity: 0.12;
 }
 
 .poker-sort:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* Puesto en una ficha redonda; oro, plata y bronce para el podio. */
+.poker-place-badge {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding-inline: 0.3rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.poker-place-badge.is-podium-1 {
+  border-color: #b45309;
+  background: #fde68a;
+  color: #1f2937;
+}
+
+.poker-place-badge.is-podium-2 {
+  border-color: #6b7280;
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.poker-place-badge.is-podium-3 {
+  border-color: #c2410c;
+  background: #fed7aa;
+  color: #1f2937;
 }
 
 /* Cuánto queda para recomprar o hacer add-on, en pequeño en la esquina de la mesa. */
@@ -2174,126 +2273,4 @@
 
 .poker-next-card > .glass-btn + .glass-btn {
   margin-top: 0.5rem;
-}
-
-/* Nombre que abre el perfil del jugador: parece texto hasta que se pasa por encima. */
-.poker-profile-link {
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: inherit;
-  overflow-wrap: anywhere;
-  cursor: pointer;
-}
-
-.poker-profile-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.poker-profile-link:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Perfil del jugador: el cromo en grande con sus números en la liga. */
-.poker-profile-card.sticker {
-  gap: 0.55rem;
-  padding: 30px 18px 20px;
-}
-
-.poker-profile-name {
-  margin: 0;
-  max-width: 100%;
-  font-size: 1.9rem;
-  line-height: 1.05;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-
-.poker-profile-summary {
-  margin: 0;
-  text-align: center;
-}
-
-.poker-profile-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
-  width: 100%;
-  margin: 0.3rem 0 0;
-}
-
-.poker-profile-stats > div {
-  padding: 0.4rem 0.5rem;
-  border: 1px solid rgb(17 24 39 / 0.14);
-  border-radius: 6px;
-  background: rgb(255 255 255 / 0.6);
-}
-
-.poker-profile-stats dt,
-.poker-profile-recent p {
-  color: #4b5563;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.poker-profile-stats dd {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
-}
-
-.poker-profile-stats dd.is-up {
-  color: #166534;
-}
-
-.poker-profile-stats dd.is-down {
-  color: #9f1239;
-}
-
-.poker-profile-recent {
-  width: 100%;
-}
-
-.poker-profile-recent p {
-  margin: 0.2rem 0 0.3rem;
-}
-
-.poker-profile-recent ol {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.poker-profile-recent li {
-  min-width: 2.2rem;
-  padding: 0.15rem 0.35rem;
-  border: 1px solid rgb(17 24 39 / 0.2);
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-align: center;
-}
-
-.poker-profile-recent li.is-podium-1 {
-  border-color: #b45309;
-  background: #fde68a;
-}
-
-.poker-profile-recent li.is-podium-2 {
-  background: #e5e7eb;
-}
-
-.poker-profile-recent li.is-podium-3 {
-  background: #fed7aa;
 }

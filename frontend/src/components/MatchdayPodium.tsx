@@ -65,6 +65,16 @@ export default function MatchdayPodium({
                 featured={index === 0}
                 compact
                 zoomable
+                player={
+                  tied
+                    ? undefined
+                    : {
+                        name: leaders[0].name,
+                        userId: leaders[0].userId,
+                        avatarUrl: leaders[0].avatarUrl,
+                        predictionId: leaders[0].id,
+                      }
+                }
                 avatar={
                   tied ? (
                     <div

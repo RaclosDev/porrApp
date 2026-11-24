@@ -356,6 +356,7 @@ function Leaderboard() {
                   sortDirection={sortDirection}
                   onSort={handleSort}
                   onOpenRow={layout.openRow ? openRow : undefined}
+                  openRowLabel={layout.openRow === '/jornadas' ? 'Ver las jornadas' : undefined}
                 />
               </div>
             </div>

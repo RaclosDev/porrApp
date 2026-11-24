@@ -610,4 +610,130 @@
       animation: photo-viewer-fade 160ms ease-out;
     }
   }
+
+  /* Nombre o foto que abre el cromo del jugador: parece texto hasta que se pasa por encima. */
+  .player-link {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+
+  .player-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .player-link:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Cromo del jugador: en grande, con sus números en la liga. */
+  .player-card.sticker {
+    gap: 0.55rem;
+    padding: 30px 18px 20px;
+  }
+
+  .player-card-name {
+    margin: 0;
+    max-width: 100%;
+    font-size: 1.9rem;
+    line-height: 1.05;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .player-card-summary {
+    margin: 0;
+    text-align: center;
+  }
+
+  .player-card-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    width: 100%;
+    margin: 0.3rem 0 0;
+  }
+
+  .player-card-stats > div {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid rgb(17 24 39 / 0.14);
+    border-radius: 6px;
+    background: rgb(255 255 255 / 0.6);
+  }
+
+  .player-card-stats dt,
+  .player-card-recent p {
+    color: #4b5563;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .player-card-stats dd {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .player-card-stats dd.is-up {
+    color: #166534;
+  }
+
+  .player-card-stats dd.is-down {
+    color: #9f1239;
+  }
+
+  .player-card-recent {
+    width: 100%;
+  }
+
+  .player-card-recent p {
+    margin: 0.2rem 0 0.3rem;
+  }
+
+  .player-card-recent ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .player-card-recent li {
+    min-width: 2.2rem;
+    padding: 0.15rem 0.35rem;
+    border: 1px solid rgb(17 24 39 / 0.2);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .player-card-recent li.is-podium-1 {
+    border-color: #b45309;
+    background: #fde68a;
+  }
+
+  .player-card-recent li.is-podium-2 {
+    background: #e5e7eb;
+  }
+
+  .player-card-recent li.is-podium-3 {
+    background: #fed7aa;
+  }
+
+  .player-card-action {
+    margin-top: 0.4rem;
+  }
 }

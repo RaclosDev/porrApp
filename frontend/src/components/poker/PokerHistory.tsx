@@ -221,12 +221,19 @@ export function PokerHistory({
               <tbody>
                 {session.results.map((result) => (
                   <tr key={result.playerId}>
-                    <td>{result.place}.º</td>
+                    <td>
+                      <PlaceBadge place={result.place} />
+                    </td>
                     <th scope="row">
                       <span className="poker-player">
-                        <PokerAvatar playerId={result.playerId} name={result.name} size={28} />
+                        <PokerAvatar
+                          playerId={result.playerId}
+                          name={result.name}
+                          size={28}
+                          zoomable
+                        />
                         <span>
-                          {result.name}
+                          <PokerPlayerName playerId={result.playerId} name={result.name} />
                           <small className="poker-row-extra">
                             {result.finalChips != null && `${chips(result.finalChips)} fichas · `}
                             aportó {euros(result.paidCents)}
@@ -252,7 +259,9 @@ export function PokerHistory({
                       </td>
                     )}
                     <td className="poker-col-paid">{euros(result.paidCents)}</td>
-                    <td>{euros(result.prizeCents)}</td>
+                    <td className={result.prizeCents > 0 ? 'poker-strong' : undefined}>
+                      {euros(result.prizeCents)}
+                    </td>
                     <Net cents={result.prizeCents - result.paidCents} />
                   </tr>
                 ))}
@@ -266,8 +275,13 @@ export function PokerHistory({
 }
 
 type Standing = ReturnType<typeof pokerStandings>[number];
-const statisticColumns: { label: string; value: (row: Standing) => number | string }[] = [
-  { label: 'Jugador', value: (row) => row.name },
+const statisticColumns: {
+  label: string;
+  value: (row: Standing) => number | string;
+  /** Si sube cuanto más bajo es (el puesto medio): el primer clic ordena de menor a mayor. */
+  lowFirst?: boolean;
+}[] = [
+  { label: 'Jugador', value: (row) => row.name, lowFirst: true },
   { label: 'Torneos', value: (row) => row.played },
   { label: 'Recompras', value: (row) => row.rebuys },
   { label: 'Add-ons', value: (row) => row.addOns },
@@ -276,7 +290,7 @@ const statisticColumns: { label: string; value: (row: Standing) => number | stri
   { label: 'Podios', value: (row) => row.podiums },
   { label: 'Aplausos', value: (row) => row.applause },
   { label: '% con premio', value: (row) => row.cashes / row.played },
-  { label: 'Puesto medio', value: (row) => row.places / row.played },
+  { label: 'Puesto medio', value: (row) => row.places / row.played, lowFirst: true },
   { label: 'Premios', value: (row) => row.prizes },
   { label: 'Neto', value: (row) => row.prizes - row.paid },
   { label: 'ROI', value: (row) => roi(row) ?? -Infinity },
@@ -284,11 +298,37 @@ const statisticColumns: { label: string; value: (row: Standing) => number | stri
   { label: 'Mejor racha', value: (row) => row.bestStreak },
 ];
 
+/** Grupos de columnas de la cabecera, en el orden de `statisticColumns` sin el jugador. */
+const statisticGroups = [
+  { label: 'Participación', span: 3 },
+  { label: 'Resultados', span: 6 },
+  { label: 'Dinero', span: 3 },
+  { label: 'Rachas', span: 2 },
+];
+
+/** Flechas de ordenar: las dos tenues sin orden; la del sentido elegido, marcada. */
+function SortIcon() {
+  return (
+    <svg className="poker-sort-icon" viewBox="0 0 12 16" width="10" height="14" aria-hidden="true">
+      <path className="poker-sort-up" d="M2 6.5 6 2.5l4 4" />
+      <path className="poker-sort-down" d="M2 9.5l4 4 4-4" />
+    </svg>
+  );
+}
+
+/** Puesto con medalla para los tres primeros. */
+function PlaceBadge({ place }: { place: number }) {
+  return (
+    <span className={`poker-place-badge${place <= 3 ? ` is-podium-${place}` : ''}`}>{place}</span>
+  );
+}
+
 /** Rentabilidad: neto entre lo aportado; no existe si el jugador nunca puso dinero. */
 const roi = (row: Standing) => (row.paid > 0 ? (row.prizes - row.paid) / row.paid : null);
 
 export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
   const standings = pokerStandings(sessions);
+  const rankOf = new Map(standings.map((row, index) => [row.playerId, index + 1]));
   const [sort, setSort] = useState<{ column: number; ascending: boolean } | null>(null);
   const sorted = [...standings];
   if (sort) {
@@ -339,8 +379,16 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
             aria-label="Clasificación de la liga de póker"
             tabIndex={0}
           >
-            <table className="poker-table">
+            <table className="poker-table poker-stats-table">
               <thead>
+                <tr className="poker-table-groups">
+                  <td />
+                  {statisticGroups.map((group) => (
+                    <th key={group.label} scope="colgroup" colSpan={group.span}>
+                      {group.label}
+                    </th>
+                  ))}
+                </tr>
                 <tr>
                   {statisticColumns.map((column, index) => (
                     <th
@@ -361,11 +409,14 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                           setSort((previous) => ({
                             column: index,
                             ascending:
-                              previous?.column === index ? !previous.ascending : index === 0,
+                              previous?.column === index
+                                ? !previous.ascending
+                                : Boolean(column.lowFirst),
                           }))
                         }
                       >
-                        {column.label}
+                        <span>{column.label}</span>
+                        <SortIcon />
                       </button>
                     </th>
                   ))}
@@ -376,6 +427,7 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                   <tr key={row.playerId}>
                     <th scope="row">
                       <span className="poker-player">
+                        <PlaceBadge place={rankOf.get(row.playerId) ?? 0} />
                         <PokerAvatar playerId={row.playerId} name={row.name} size={28} zoomable />
                         <PokerPlayerName playerId={row.playerId} name={row.name} />
                       </span>
@@ -383,7 +435,7 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                     <td>{row.played}</td>
                     <td>{row.rebuys}</td>
                     <td>{row.addOns}</td>
-                    <td>{row.wins}</td>
+                    <td className="poker-strong">{row.wins}</td>
                     <td>{percent(row.wins / row.played)}</td>
                     <td>{row.podiums}</td>
                     <td>{row.applause}</td>

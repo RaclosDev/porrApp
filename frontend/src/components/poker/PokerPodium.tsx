@@ -1,5 +1,5 @@
 import { BadgedAvatar } from './PokerBadges';
-import { usePokerProfile } from './PokerPlayerCard';
+import { usePokerProfile } from './PokerFaces';
 
 interface Place {
   playerId: number;
