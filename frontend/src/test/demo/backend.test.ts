@@ -96,7 +96,19 @@ describe('servidor de la demo', () => {
     );
     expect(picks).toHaveLength(2);
     expect(picks[0]).toMatchObject({ isCaller: true, hasPredicted: true, sign: '1' });
-    expect(picks[1]).toMatchObject({ isCaller: false, hasPredicted: false });
+    expect(picks[1]).toMatchObject({
+      isCaller: false,
+      hasPredicted: true,
+      sign: null,
+      scoringDetails: 'Predicción oculta hasta el pitido inicial',
+    });
+  });
+
+  it('la jornada abierta llega con gente que ya la ha completado', async () => {
+    const people = '/predictions/matchday/stats/participants?groupId=6&matchIds=21';
+    expect(await body(demoResponse(sample(), 'GET', people))).toEqual([
+      { userId: 8, name: 'Nico', avatarUrl: null },
+    ]);
   });
 
   it('los partidos ya jugados enseñan lo grabado', async () => {
