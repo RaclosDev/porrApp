@@ -1,4 +1,5 @@
 import { BadgedAvatar } from './PokerBadges';
+import { usePokerProfile } from './PokerPlayerCard';
 
 interface Place {
   playerId: number;
@@ -12,11 +13,29 @@ interface Place {
 
 /** Podio de cromos, como el de la clasificación de las ligas de predicciones. */
 export default function PokerPodium({ places, label }: { places: Place[]; label: string }) {
+  // Con perfiles, cada cromo se pulsa y gira hasta verse en grande con los números del jugador.
+  const openProfile = usePokerProfile();
   return (
     <ol className="ranking-podium poker-podium" aria-label={label}>
       {places.slice(0, 3).map(({ playerId, name, value, place, rebuys, addOns }, index) => (
         <li key={playerId} className={`ranking-podium-place ranking-podium-place-${index + 1}`}>
-          <div className={index === 0 ? 'sticker sticker-featured' : 'sticker'}>
+          <div
+            className={`${index === 0 ? 'sticker sticker-featured' : 'sticker'}${openProfile ? ' sticker-zoomable' : ''}`}
+            {...(openProfile
+              ? {
+                  role: 'button',
+                  tabIndex: 0,
+                  'aria-label': `Ver el perfil de ${name}: ${place ?? index + 1}.º, ${value}`,
+                  onClick: () => openProfile({ playerId, name }),
+                  onKeyDown: (event: React.KeyboardEvent) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    openProfile({ playerId, name });
+                  },
+                }
+              : {})}
+          >
             <BadgedAvatar
               playerId={playerId}
               name={name}

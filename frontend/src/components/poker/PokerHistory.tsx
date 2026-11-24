@@ -4,6 +4,7 @@ import { confirmAction } from '../../utils/confirmAction';
 import SheetDialog from '../SheetDialog';
 import PokerEmpty from './PokerEmpty';
 import { PokerAvatar } from './PokerFaces';
+import { PokerPlayerName } from './PokerPlayerCard';
 import PokerPodium from './PokerPodium';
 import PokerResultEditor from './PokerResultEditor';
 import {
@@ -375,8 +376,8 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                   <tr key={row.playerId}>
                     <th scope="row">
                       <span className="poker-player">
-                        <PokerAvatar playerId={row.playerId} name={row.name} size={28} />
-                        {row.name}
+                        <PokerAvatar playerId={row.playerId} name={row.name} size={28} zoomable />
+                        <PokerPlayerName playerId={row.playerId} name={row.name} />
                       </span>
                     </th>
                     <td>{row.played}</td>

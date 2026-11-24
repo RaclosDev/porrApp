@@ -124,11 +124,13 @@ export function BadgedAvatar({
   rebuys?: number;
   addOns?: number;
   crowned?: boolean;
+  zoomable?: boolean;
 }) {
+  const { zoomable, ...seat } = badges;
   return (
     <span className="poker-badged">
-      <PokerAvatar playerId={playerId} name={name} size={size} />
-      <SeatBadges {...badges} />
+      <PokerAvatar playerId={playerId} name={name} size={size} zoomable={zoomable} />
+      <SeatBadges {...seat} />
     </span>
   );
 }
