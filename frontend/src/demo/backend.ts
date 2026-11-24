@@ -132,6 +132,40 @@ function savePicks(data: DemoData, groupId: string, picks: DemoPick[]): number {
   return saved;
 }
 
+interface DemoMember {
+  userId: number;
+  participantName: string;
+  avatarUrl: string | null;
+}
+
+const myId = (data: DemoData) => (data.exact['/users/me'] as { userId: number }).userId;
+const membersOf = (data: DemoData, groupId: string) =>
+  (data.exact[`/groups/${groupId}/members`] ?? []) as DemoMember[];
+
+/** Partido de la liga en el que todavía se puede predecir. */
+function isOpen(data: DemoData, groupId: string, matchId: number): boolean {
+  const current = (data.exact[fixturesKey(groupId, 'current')] ?? []) as DemoFixture[];
+  const fixture = [...allFixtures(data, groupId), ...current].find(
+    (item) => item.matchId === matchId,
+  );
+  return Boolean(fixture && !fixture.locked && !fixture.finished);
+}
+
+/**
+ * En las ligas reales casi nadie predice hasta que se acerca el partido, así que la jornada abierta
+ * llegaría vacía: la demo hace como que la mitad ya la ha completado, uno de cada cuatro va a medias
+ * y el resto aún no ha empezado. Siempre los mismos, para que la demo no cambie al recargar.
+ */
+function alreadyPicked(data: DemoData, groupId: string, userId: number, matchId: number) {
+  const others = membersOf(data, groupId)
+    .map((member) => member.userId)
+    .filter((id) => id !== myId(data))
+    .sort((a, b) => a - b);
+  const rank = others.indexOf(userId);
+  if (rank < 0 || rank % 4 === 3) return false;
+  return rank % 4 !== 2 || (userId + matchId) % 3 !== 0;
+}
+
 /** Quién ha predicho un partido: lo grabado o, si nadie lo ha hecho aún, todos pendientes. */
 function matchPicks(
   data: DemoData,
@@ -139,11 +173,10 @@ function matchPicks(
   matchId: number,
   key: string,
 ): DemoMatchPick[] {
-  const me = (data.exact['/users/me'] as { userId: number }).userId;
-  const members = (data.exact[`/groups/${groupId}/members`] ?? []) as DemoMatchPick[];
-  const rows =
+  const me = myId(data);
+  const recorded =
     (data.exact[key] as DemoMatchPick[] | undefined) ??
-    members.map((member) => ({
+    membersOf(data, groupId).map((member) => ({
       userId: member.userId,
       participantName: member.participantName,
       avatarUrl: member.avatarUrl,
@@ -160,6 +193,21 @@ function matchPicks(
       isCaller: member.userId === me,
       hasPredicted: false,
     }));
+  // Lo de los demás sigue oculto hasta el pitido inicial, como en el servidor.
+  const rows = isOpen(data, groupId, matchId)
+    ? recorded.map((row) =>
+        !row.isCaller && !row.hasPredicted && alreadyPicked(data, groupId, row.userId, matchId)
+          ? {
+              ...row,
+              hasPredicted: true,
+              scoringDetails: 'Predicción oculta hasta el pitido inicial',
+              updatedAt: new Date(
+                Date.now() - (2 + ((row.userId + matchId) % 40)) * 3600_000,
+              ).toISOString(),
+            }
+          : row,
+      )
+    : recorded;
   const mine = allFixtures(data, groupId).find((fixture) => fixture.matchId === matchId);
   if (!mine || mine.locked || mine.finished) return rows;
   // Mientras el partido sigue abierto, la fila propia refleja lo último guardado en la demo.
@@ -209,6 +257,14 @@ export function demoResponse(
     ids.forEach((id) =>
       data.participants[groupId]?.[id]?.forEach((voter) => people.set(voter.userId, voter)),
     );
+    for (const id of ids.map(Number).filter((id) => isOpen(data, groupId, id)))
+      for (const member of membersOf(data, groupId))
+        if (!people.has(member.userId) && alreadyPicked(data, groupId, member.userId, id))
+          people.set(member.userId, {
+            userId: member.userId,
+            name: member.participantName,
+            avatarUrl: member.avatarUrl,
+          } as DemoVoter);
     return json([...people.values()]);
   }
 
