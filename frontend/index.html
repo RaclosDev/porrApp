@@ -33,7 +33,11 @@
       href="/favicon-dark.png"
       media="(prefers-color-scheme: dark)"
     />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-paper.png" />
+    <!--
+      En el iPhone, el icono tinta: con los iconos en «Oscuro» (iOS 18+) el sistema vuelve negro
+      un fondo claro y la P tinta desaparecía. Tinta con letras papel se ve bien en todos los modos.
+    -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-dark.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!--
       Pantalla de arranque: el fondo de la pared se pinta antes de que lleguen el CSS y el JS, y el
