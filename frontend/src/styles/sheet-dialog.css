@@ -720,6 +720,28 @@
     text-align: center;
   }
 
+  /* En las porras cada jornada lleva su puesto y, debajo, los puntos. */
+  .player-card-recent ol:has(> li > b) {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .player-card-recent li:has(> b) {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0.25rem 0.2rem;
+    border-radius: 10px;
+    line-height: 1.1;
+  }
+
+  .player-card-recent li > span {
+    font-size: 0.66rem;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0.75;
+  }
+
   .player-card-recent li.is-podium-1 {
     border-color: #b45309;
     background: #fde68a;
