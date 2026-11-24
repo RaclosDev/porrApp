@@ -9,6 +9,7 @@ import app.porrapp.repository.LeagueRepository;
 import app.porrapp.repository.MembershipRepository;
 import app.porrapp.repository.PredictionRepository;
 import app.porrapp.repository.UserAccountRepository;
+import app.porrapp.util.JoinCodeGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -182,6 +183,14 @@ public class LeagueMembershipService {
 
         Membership.MembershipId memId = new Membership.MembershipId(targetUserId, groupId);
         membershipRepository.deleteById(memId);
+
+        // El expulsado conoce el código: sin cambiarlo podría volver a entrar al momento.
+        String newCode;
+        do {
+            newCode = JoinCodeGenerator.next();
+        } while (leagueRepository.findByJoinCode(newCode).isPresent());
+        group.setJoinCode(newCode);
+        leagueRepository.save(group);
     }
 
     /**

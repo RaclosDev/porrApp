@@ -137,6 +137,27 @@ public class SessionService {
     }
 
     /**
+     * Cierra todas las sesiones de la cuenta y anula su traspaso pendiente. Se usa cuando cambia la
+     * credencial (reset de contraseña, cuenta reclamada por Google o Apple): nada emitido antes debe
+     * poder abrir una sesión nueva.
+     */
+    @Transactional
+    public void revokeAllOfUser(Long userId) {
+        familyRepository.revokeAllOfUser(userId, Instant.now());
+        handoffRepository.deleteByUserId(userId);
+    }
+
+    /**
+     * True si la cuenta tiene alguna sesión viva. El access token no se puede revocar y dura unos
+     * minutos más: las acciones que crean una credencial nueva (traspaso, llave de acceso) lo exigen
+     * para que un token anterior a un cierre de sesiones no sirva para volver a entrar.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasLiveSession(Long userId) {
+        return familyRepository.existsLiveOfUser(userId, Instant.now());
+    }
+
+    /**
      * Borra cada noche las sesiones caducadas, que ya no sirven ni para detectar reutilizaciones,
      * los tokens rotados hace más de {@link #REUSE_DETECTION_WINDOW}, los traspasos caducados y los
      * retos de llaves de acceso que nadie completó.

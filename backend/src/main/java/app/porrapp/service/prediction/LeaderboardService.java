@@ -498,8 +498,11 @@ public class LeaderboardService {
                     official.orderedTeamsPerGroup(), official.bestThirds(), tournaments.scorersFor(pred), official.roundOf16(),
                     official.quarterFinals(), official.semiFinals(), official.finalists(), official.champion(),
                     tournaments.scorerChoiceFor(pred)));
-            score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
-            score.setThirdPlaceWinner(participant.getThirdPlaceWinner());
+            // El cuadro de los demás no se ve antes del cierre (igual que en PredictionService).
+            if (edition != null && edition.isLocked()) {
+                score.setThirdPlaceMatch(participant.getThirdPlaceMatch());
+                score.setThirdPlaceWinner(participant.getThirdPlaceWinner());
+            }
         } else {
             score = emptyScore();
         }

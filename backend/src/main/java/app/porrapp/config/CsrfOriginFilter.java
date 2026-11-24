@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -49,7 +50,8 @@ public class CsrfOriginFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        // Decodificada, para que una ruta con escapes no se salte la comprobación.
+        String path = UrlPathHelper.defaultInstance.getPathWithinApplication(request);
         return !"POST".equalsIgnoreCase(request.getMethod()) || path == null || !path.startsWith(PROTECTED_PREFIX);
     }
 

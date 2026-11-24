@@ -4,7 +4,6 @@ import app.porrapp.model.PasswordResetToken;
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.PasskeyRepository;
 import app.porrapp.repository.PasswordResetTokenRepository;
-import app.porrapp.repository.RefreshTokenFamilyRepository;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.account.SessionService.SessionTokens;
 import app.porrapp.service.notification.EmailSender;
@@ -45,7 +44,6 @@ public class PasswordResetService {
 
     private final PasswordResetTokenRepository tokenRepository;
     private final UserAccountRepository userAccountRepository;
-    private final RefreshTokenFamilyRepository refreshTokenFamilyRepository;
     private final PasskeyRepository passkeyRepository;
     private final SessionService sessionService;
     private final EmailSender emailSender;
@@ -54,7 +52,6 @@ public class PasswordResetService {
 
     public PasswordResetService(PasswordResetTokenRepository tokenRepository,
                                 UserAccountRepository userAccountRepository,
-                                RefreshTokenFamilyRepository refreshTokenFamilyRepository,
                                 PasskeyRepository passkeyRepository,
                                 SessionService sessionService,
                                 EmailSender emailSender,
@@ -62,7 +59,6 @@ public class PasswordResetService {
                                 @Value("${app.public-base-url:https://porrapp.app}") String publicBaseUrl) {
         this.tokenRepository = tokenRepository;
         this.userAccountRepository = userAccountRepository;
-        this.refreshTokenFamilyRepository = refreshTokenFamilyRepository;
         this.passkeyRepository = passkeyRepository;
         this.sessionService = sessionService;
         this.emailSender = emailSender;
@@ -124,7 +120,7 @@ public class PasswordResetService {
                 .filter(account -> account.getPasswordHash() != null)
                 .orElseThrow(PasswordResetService::invalidLink);
         user.setPasswordHash(PasswordAuthService.hashPassword(newPassword));
-        refreshTokenFamilyRepository.revokeAllOfUser(user.getId(), Instant.now());
+        sessionService.revokeAllOfUser(user.getId());
         passkeyRepository.deleteAllOfUser(user.getId());
         log.info("Contraseña cambiada con el enlace del correo (usuario {}).", user.getId());
         return sessionService.start(user);

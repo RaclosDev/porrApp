@@ -103,6 +103,22 @@ class LeagueMembershipServiceTest {
     }
 
     @Test
+    @DisplayName("expulsar a alguien cambia el código de invitación que ya conocía")
+    void kick_RotatesTheJoinCode() {
+        Membership.MembershipId memId = new Membership.MembershipId(member.getId(), league.getId());
+        when(leagueRepository.findById(10L)).thenReturn(Optional.of(league));
+        when(membershipRepository.findById(memId)).thenReturn(Optional.of(Membership.builder()
+                .id(memId).user(member).league(league).role("MEMBER").build()));
+        when(leagueRepository.findByJoinCode(any())).thenReturn(Optional.empty());
+
+        membershipService.kick(10L, member.getId(), "admin@test.com");
+
+        verify(membershipRepository).deleteById(memId);
+        assertNotEquals("AMIGOS", league.getJoinCode());
+        verify(leagueRepository).save(league);
+    }
+
+    @Test
     @DisplayName("getMembers no expone el email de ningún miembro")
     void getMembers_NeverExposesEmails() {
         when(userAccountRepository.findByGoogleEmail("member@test.com")).thenReturn(Optional.of(member));

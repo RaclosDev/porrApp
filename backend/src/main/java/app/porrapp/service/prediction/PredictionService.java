@@ -93,7 +93,9 @@ public class PredictionService {
             if (existing.isEmpty() && state.anyLocked() && !DrawnKnockout.applies(edition)) {
                 throw BusinessException.conflict("La competición ya ha empezado: no se admiten predicciones nuevas.");
             }
-            existing.ifPresent(saved -> customLockService.requireLockedPartsUnchanged(state, saved.getBracketData(), predictionData));
+            // También al entrar tarde: lo ya cerrado tiene que llegar vacío, o se apostaría con el resultado sabido.
+            customLockService.requireLockedPartsUnchanged(state,
+                    existing.map(Prediction::getBracketData).orElse(null), predictionData);
         }
         if (existing.isPresent()) {
             Prediction prediction = existing.get();

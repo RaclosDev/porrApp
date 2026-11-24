@@ -101,6 +101,26 @@ class RateLimitingFilterTest {
         assertEquals(429, blockedRes.getStatus());
     }
 
+    @Test
+    @DisplayName("Una ruta de login con escapes cuenta como login: /api/%61uth/ es /api/auth/")
+    void encodedLoginPathsShareTheLoginLimit() throws Exception {
+        ReflectionTestUtils.setField(rateLimitingFilter, "maxRequestsPerMinute", 1000);
+        for (int i = 0; i < 15; i++) {
+            MockHttpServletRequest req = new MockHttpServletRequest("POST", "/api/%61uth/password/login");
+            req.setRemoteAddr("10.0.0.9");
+            MockHttpServletResponse res = new MockHttpServletResponse();
+            rateLimitingFilter.doFilterInternal(req, res, filterChain);
+            assertEquals(200, res.getStatus());
+        }
+
+        MockHttpServletRequest blocked = new MockHttpServletRequest("POST", "/api/%61uth/password/login");
+        blocked.setRemoteAddr("10.0.0.9");
+        MockHttpServletResponse blockedRes = new MockHttpServletResponse();
+        rateLimitingFilter.doFilterInternal(blocked, blockedRes, filterChain);
+
+        assertEquals(429, blockedRes.getStatus());
+    }
+
     private MockHttpServletRequest proxied(String forwardedFor) {
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/predictions");
         req.setRemoteAddr("100.64.0.2"); // proxy de Railway

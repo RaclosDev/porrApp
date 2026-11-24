@@ -72,6 +72,7 @@ public class PasskeyService {
     @Transactional
     public Ceremony startRegistration(String email) {
         UserAccount user = requireUser(email);
+        requireLiveSession(user);
         ensureRoomForAnother(user);
         ByteArray userHandle = passkeyRepository.findFirstByUserId(user.getId())
                 .map(passkey -> new ByteArray(passkey.getUserHandle()))
@@ -106,6 +107,7 @@ public class PasskeyService {
         PasskeyChallenge challenge = consume(requestId)
                 .filter(found -> user.getId().equals(found.getUserId()))
                 .orElseThrow(() -> BusinessException.badRequest("Ha pasado demasiado tiempo. Vuelve a intentarlo."));
+        requireLiveSession(user);
         ensureRoomForAnother(user);
         try {
             PublicKeyCredentialCreationOptions request = PublicKeyCredentialCreationOptions.fromJson(challenge.getRequestJson());
@@ -223,6 +225,13 @@ public class PasskeyService {
     private void ensureRoomForAnother(UserAccount user) {
         if (passkeyRepository.countByUserId(user.getId()) >= MAX_PASSKEYS) {
             throw BusinessException.badRequest("Ya tienes " + MAX_PASSKEYS + " llaves de acceso. Borra alguna para añadir otra.");
+        }
+    }
+
+    /** Un access token sigue valiendo unos minutos tras cerrar las sesiones: sin sesión viva no se añaden llaves. */
+    private void requireLiveSession(UserAccount user) {
+        if (!sessionService.hasLiveSession(user.getId())) {
+            throw BusinessException.forbidden("Tu sesión se ha cerrado. Vuelve a entrar para añadir una llave.");
         }
     }
 
