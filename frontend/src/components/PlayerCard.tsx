@@ -181,7 +181,6 @@ function PlayerCard({ player, onClose }: { player: PlayerRef; onClose: () => voi
   const name = player.name;
   const avatarUrl = player.avatarUrl ?? row?.avatarUrl ?? null;
   const userId = player.userId ?? row?.userId ?? null;
-  const subtitle = row?.predictionName && row.predictionName !== name ? row.predictionName : null;
   const cells = row
     ? [
         { label: 'Puntos', value: pts(row.total) },
@@ -212,7 +211,6 @@ function PlayerCard({ player, onClose }: { player: PlayerRef; onClose: () => voi
         {rank !== null && <span className="sticker-rank">{rank}.º</span>}
         <ZoomableAvatar url={avatarUrl} name={name} userId={userId} size={112} />
         <h2 className="poster-title player-card-name">{name}</h2>
-        {subtitle && <p className="marker-ink player-card-summary">{subtitle}</p>}
         {row ? (
           <>
             <dl className="player-card-stats">
