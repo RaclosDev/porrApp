@@ -1,15 +1,8 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import CardViewer from '../CardViewer';
 import type { PokerSession } from '../../services/endpoints/poker';
-import { PokerAvatar } from './PokerFaces';
+import { PokerAvatar, PokerProfileContext, usePokerProfile } from './PokerFaces';
 import { euros, percent, pokerStandings, shortDate, signedEuros } from './pokerFormat';
-
-type OpenProfile = (player: { playerId: number; name: string }) => void;
-
-const Profiles = createContext<OpenProfile | null>(null);
-
-/** Abre el cromo de un jugador; fuera de una liga de póker no hay perfil que abrir. */
-export const usePokerProfile = () => useContext(Profiles);
 
 const placeFormat = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
 const RECENT = 6;
@@ -27,7 +20,7 @@ export function PokerProfiles({
 }) {
   const [player, setPlayer] = useState<{ playerId: number; name: string } | null>(null);
   return (
-    <Profiles.Provider value={setPlayer}>
+    <PokerProfileContext.Provider value={setPlayer}>
       {children}
       {player && (
         <PokerPlayerCard
@@ -37,7 +30,7 @@ export function PokerProfiles({
           onClose={() => setPlayer(null)}
         />
       )}
-    </Profiles.Provider>
+    </PokerProfileContext.Provider>
   );
 }
 
@@ -58,7 +51,7 @@ export function PokerPlayerName({
   return (
     <button
       type="button"
-      className={`poker-profile-link${className ? ` ${className}` : ''}`}
+      className={`player-link${className ? ` ${className}` : ''}`}
       onClick={(event) => {
         event.stopPropagation();
         open({ playerId, name });
@@ -118,16 +111,16 @@ function PokerPlayerCard({
 
   return (
     <CardViewer label={`Perfil de ${name}`} onClose={onClose}>
-      <div className={`sticker poker-profile-card${rank === 1 ? ' sticker-featured' : ''}`}>
+      <div className={`sticker player-card${rank === 1 ? ' sticker-featured' : ''}`}>
         {rank !== null && <span className="sticker-rank">{rank}.º</span>}
-        <PokerAvatar playerId={playerId} name={name} size={112} zoomable />
-        <h2 className="poster-title poker-profile-name">{name}</h2>
+        <PokerAvatar playerId={playerId} name={name} size={112} photoOnly />
+        <h2 className="poster-title player-card-name">{name}</h2>
         {row ? (
           <>
-            <p className="marker-ink poker-profile-summary">
+            <p className="marker-ink player-card-summary">
               {rank}.º de la liga · {row.wins} {row.wins === 1 ? 'victoria' : 'victorias'}
             </p>
-            <dl className="poker-profile-stats">
+            <dl className="player-card-stats">
               {stats.map((stat) => (
                 <div key={stat.label}>
                   <dt>{stat.label}</dt>
@@ -136,7 +129,7 @@ function PokerPlayerCard({
               ))}
             </dl>
             {recent.length > 0 && (
-              <div className="poker-profile-recent">
+              <div className="player-card-recent">
                 <p>Últimos torneos</p>
                 <ol aria-label="Puestos en los últimos torneos, del más reciente al más antiguo">
                   {recent.map((entry) => (
@@ -153,7 +146,7 @@ function PokerPlayerCard({
             )}
           </>
         ) : (
-          <p className="poker-note poker-profile-summary">
+          <p className="poker-note player-card-summary">
             {sessions ? 'Todavía no ha jugado ningún torneo cerrado.' : 'Cargando sus números…'}
           </p>
         )}

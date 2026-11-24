@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import SheetDialog from './SheetDialog';
-import ZoomableAvatar from './ZoomableAvatar';
+import { PlayerAvatar, PlayerName } from './PlayerCard';
 
 export interface PersonItem {
   userId: number;
@@ -10,19 +10,24 @@ export interface PersonItem {
   badge?: string;
 }
 
-/** Lista de personas (foto y nombre) en filas, para las hojas de miembros. Al pulsar una foto se ve en grande. */
+/** Lista de personas (foto y nombre) en filas, para las hojas de miembros. Al pulsar la foto o el nombre se abre su cromo. */
 export function PeopleList({ people }: { people: PersonItem[] }) {
   return (
     <ul className="sheet-people">
       {people.map((person) => (
         <li key={person.userId} className="sheet-person">
-          <ZoomableAvatar
+          <PlayerAvatar
             url={person.avatarUrl}
             userId={person.userId}
             name={person.name}
             size={36}
           />
-          <span className="sheet-person-name">{person.name}</span>
+          <PlayerName
+            className="sheet-person-name"
+            name={person.name}
+            userId={person.userId}
+            avatarUrl={person.avatarUrl}
+          />
           {person.badge && <span className="sheet-person-badge">{person.badge}</span>}
         </li>
       ))}

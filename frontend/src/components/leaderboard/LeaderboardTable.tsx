@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import ZoomableAvatar from '../ZoomableAvatar';
+import { PlayerAvatar, PlayerName } from '../PlayerCard';
 import type { LeaderboardRow, SortColumn } from '../../hooks/useLeaderboard';
 import { isOwnRow, rankLabel, type LeaderboardColumn } from './leaderboardColumns';
 
@@ -16,6 +16,8 @@ interface LeaderboardTableProps {
   /** Abre lo que se ve de un participante: su porra o la pantalla de jornadas. */
   /** Abre las predicciones de una fila; sin él, las filas no se abren (la Fórmula 1). */
   onOpenRow?: (row: LeaderboardRow) => void;
+  /** Texto del botón del cromo que hace lo mismo que pulsar la fila. */
+  openRowLabel?: string;
 }
 
 const TOTAL_CELL_STYLE: CSSProperties = {
@@ -37,6 +39,7 @@ export default function LeaderboardTable({
   sortDirection,
   onSort,
   onOpenRow,
+  openRowLabel = 'Ver su predicción',
 }: LeaderboardTableProps) {
   const sortIndicator = (key: SortColumn) =>
     sortColumn !== key ? '' : sortDirection === 'desc' ? ' ▼' : ' ▲';
@@ -102,6 +105,7 @@ export default function LeaderboardTable({
           )}
           {rows.map((r) => {
             const open = r.id != null && onOpenRow ? () => onOpenRow(r) : undefined;
+            const action = open ? { label: openRowLabel, run: open } : undefined;
             const isPending = !r.paid;
             const isMe = isOwnRow(r, userId, userName);
             const rowStyle: CSSProperties = {
@@ -125,11 +129,24 @@ export default function LeaderboardTable({
                 <td>
                   <div className="flex justify-start items-center flex-nowrap gap-1.5">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <ZoomableAvatar url={r.avatarUrl} userId={r.userId} name={r.name} size={28} />
+                      <PlayerAvatar
+                        url={r.avatarUrl}
+                        userId={r.userId}
+                        name={r.name}
+                        size={28}
+                        predictionId={r.id}
+                        action={action}
+                      />
                       <div className="flex items-center flex-wrap gap-1.5 min-w-0">
                         <span className="text-[1.1em]">
                           <strong>
-                            {r.name}
+                            <PlayerName
+                              name={r.name}
+                              userId={r.userId}
+                              avatarUrl={r.avatarUrl}
+                              predictionId={r.id}
+                              action={action}
+                            />
                             {isMe && (
                               <span className="text-accent-text ml-[5px] text-[0.75rem] whitespace-nowrap">
                                 (Tú)
