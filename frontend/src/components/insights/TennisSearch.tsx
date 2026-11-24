@@ -13,13 +13,13 @@ import {
   searchablePlayers,
   type PlayerMatch,
 } from '../../utils/tennisSearch';
-import { UserAvatar } from '../Avatar';
 import Flag from '../Flag';
 import PaperLoading from '../PaperLoading';
 import WhatsAppIcon from '../WhatsAppIcon';
 import { InsightsNotice } from './InsightCard';
 import PickFunnel from './PickFunnel';
 import SubjectPicker from './SubjectPicker';
+import { PlayerAvatar, PlayerName } from '../PlayerCard';
 
 const SHORTCUTS = 6;
 
@@ -213,8 +213,18 @@ function VoterList({
               key={voter.userId}
               className={`flex min-h-11 items-center gap-2.5 rounded-[10px] border px-2.5 py-1.5 ${highlight ? 'border-[color-mix(in_srgb,var(--marker-ink)_35%,transparent)] bg-[color-mix(in_srgb,var(--marker-ink)_8%,transparent)]' : 'border-line'}`}
             >
-              <UserAvatar url={voter.avatarUrl} userId={voter.userId} name={voter.name} size={28} />
-              <span className="min-w-0 flex-1 truncate font-semibold text-main">{voter.name}</span>
+              <PlayerAvatar
+                url={voter.avatarUrl}
+                userId={voter.userId}
+                name={voter.name}
+                size={28}
+              />
+              <PlayerName
+                className="min-w-0 flex-1 truncate text-left font-semibold text-main"
+                name={voter.name}
+                userId={voter.userId}
+                avatarUrl={voter.avatarUrl}
+              />
             </li>
           ))}
         </ul>

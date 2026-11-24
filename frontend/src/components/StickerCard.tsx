@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { UserAvatar } from './Avatar';
+import { usePlayerCard, type PlayerRef } from './PlayerCard';
 import CardViewer from './CardViewer';
 import { useLandingMotion } from './landing/motion';
 
@@ -12,6 +13,8 @@ export interface StickerLeader {
 }
 
 interface StickerCardProps {
+  /** Jugador del cromo: al pulsarlo se abre su cromo de jugador en vez de ampliar este. */
+  player?: PlayerRef;
   leader: StickerLeader;
   /** El líder va en un cromo grande con borde dorado. */
   featured?: boolean;
@@ -85,8 +88,10 @@ export default function StickerCard({
   avatar,
   children,
   zoomable = false,
+  player,
 }: StickerCardProps) {
   const [zoomed, setZoomed] = useState(false);
+  const openPlayer = usePlayerCard();
   const { reduced } = useLandingMotion();
   const animateCard = !reduced && !staticCard;
   const [pointsRef, shownPoints] = useCountUp(leader.total, animateCard);
@@ -112,7 +117,8 @@ export default function StickerCard({
 
   const size = compact ? (featured ? 64 : 44) : featured ? 96 : 56;
 
-  const open = () => setZoomed(true);
+  // Un solo jugador abre su cromo completo; un empate amplía este cromo con todas las caras.
+  const open = () => (player && openPlayer ? openPlayer(player) : setZoomed(true));
   const card = (
     <div
       className={`sticker ${featured ? 'sticker-featured' : ''} ${animateCard ? 'sticker-tilt' : ''} ${zoomable ? 'sticker-zoomable' : ''} ${className}`}

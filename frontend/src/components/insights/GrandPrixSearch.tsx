@@ -14,7 +14,6 @@ import {
   type DriverRace,
   type RaceEntry,
 } from '../../utils/grandPrixStats';
-import { UserAvatar } from '../Avatar';
 import WhatsAppIcon from '../WhatsAppIcon';
 import { driverShortName } from '../grandPrix/grandPrix';
 import { TeamStripe } from './DriverTag';
@@ -22,6 +21,7 @@ import { InsightsNotice } from './InsightCard';
 import PickFunnel, { type FunnelRow } from './PickFunnel';
 import { RealMark } from './PickRow';
 import SubjectPicker, { type PickerOption } from './SubjectPicker';
+import { PlayerAvatar, PlayerName } from '../PlayerCard';
 
 type Drivers = Map<number, RaceDriver>;
 
@@ -231,7 +231,7 @@ function RacePickers({ race, driverId }: { race: DriverRace; driverId: number })
             key={`${member.userId}-${member.name}`}
             className="flex min-h-11 items-center gap-2.5 rounded-[10px] border border-line px-2.5 py-1.5"
           >
-            <UserAvatar
+            <PlayerAvatar
               url={member.avatarUrl}
               userId={member.userId}
               name={member.name}
@@ -239,8 +239,10 @@ function RacePickers({ race, driverId }: { race: DriverRace; driverId: number })
             />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-semibold text-main">
-                {member.name}
-                {member.mine ? ' (tú)' : ''}
+                <PlayerName name={member.name} userId={member.userId} avatarUrl={member.avatarUrl}>
+                  {member.name}
+                  {member.mine ? ' (tú)' : ''}
+                </PlayerName>
               </span>
               <span className="block truncate text-[0.78rem] text-muted">
                 {slots.map((slot, index) => (

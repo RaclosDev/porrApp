@@ -189,6 +189,12 @@ export default function GrandPrixHome({ afterHero }: { afterHero?: ReactNode }) 
                       name={`${p.name}${isMe ? ' (Tú)' : ''}`}
                       value={`${p.total || 0} pts`}
                       highlighted={isMe}
+                      player={{
+                        name: p.name,
+                        userId: p.userId,
+                        avatarUrl: p.avatarUrl,
+                        predictionId: p.id,
+                      }}
                     />
                   );
                 })}

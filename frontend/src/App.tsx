@@ -10,6 +10,7 @@ import {
   useParams,
 } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
+import { PlayerCards } from './components/PlayerCard';
 import { useAppStore } from './store/useAppStore';
 import { useLeaguePredictions } from './hooks/useLeaguePredictions';
 import { leaderPredictionId } from './utils/demoPrediction';
@@ -203,220 +204,222 @@ function AppShell() {
       {!EMBED && <CookieConsent />}
       <ConfirmDialog />
       <LeaveGuard />
-      <Layout>
-        <Suspense fallback={<RouteFallback />}>
-          <SplashDone />
-          <Routes>
-            <Route path="/" element={<RootPage />} />
-            <Route path="/demo" element={<DemoPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/registro" element={<Login intent="signup" />} />
-            <Route path="/join/:code" element={<JoinRedirect />} />
-            <Route path="/t/:publicId" element={<OrganizedTournament publicView />} />
-            <Route
-              path="/torneos/nuevo"
-              element={
-                <ProtectedRoute>
-                  <CreateTournament />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/torneos/:id"
-              element={
-                <ProtectedRoute>
-                  <OrganizedTournament />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/linkedin" element={<LinkedInEntry />} />
-            <Route path="/privacidad" element={<Legal kind="privacy" />} />
-            <Route path="/aviso-legal" element={<Legal kind="legal" />} />
-            <Route path="/restablecer-contrasena" element={<ResetPassword />} />
-            <Route
-              path="/gestion-7k2q"
-              element={
-                <ProtectedRoute>
-                  <AdminPanel />
-                </ProtectedRoute>
-              }
-            />
-            {CONTENT_PAGES.map((page) => (
-              <Route key={page.path} path={page.path} element={<ContentPage page={page} />} />
-            ))}
+      <PlayerCards>
+        <Layout>
+          <Suspense fallback={<RouteFallback />}>
+            <SplashDone />
+            <Routes>
+              <Route path="/" element={<RootPage />} />
+              <Route path="/demo" element={<DemoPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/registro" element={<Login intent="signup" />} />
+              <Route path="/join/:code" element={<JoinRedirect />} />
+              <Route path="/t/:publicId" element={<OrganizedTournament publicView />} />
+              <Route
+                path="/torneos/nuevo"
+                element={
+                  <ProtectedRoute>
+                    <CreateTournament />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/torneos/:id"
+                element={
+                  <ProtectedRoute>
+                    <OrganizedTournament />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/linkedin" element={<LinkedInEntry />} />
+              <Route path="/privacidad" element={<Legal kind="privacy" />} />
+              <Route path="/aviso-legal" element={<Legal kind="legal" />} />
+              <Route path="/restablecer-contrasena" element={<ResetPassword />} />
+              <Route
+                path="/gestion-7k2q"
+                element={
+                  <ProtectedRoute>
+                    <AdminPanel />
+                  </ProtectedRoute>
+                }
+              />
+              {CONTENT_PAGES.map((page) => (
+                <Route key={page.path} path={page.path} element={<ContentPage page={page} />} />
+              ))}
 
-            {/* Rutas de lectura - accesibles en guest_mode */}
-            <Route
-              path="/radar"
-              element={
-                <ProtectedRoute guestAllowed>
-                  <RequireLeague title="Partidos" what="los partidos">
-                    <Radar />
+              {/* Rutas de lectura - accesibles en guest_mode */}
+              <Route
+                path="/radar"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <RequireLeague title="Partidos" what="los partidos">
+                      <Radar />
+                    </RequireLeague>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ranking"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <Leaderboard />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
+              <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
+              <Route
+                path="/grupos"
+                element={
+                  <RequireLeague title="Grupos" what="los grupos">
+                    <Home defaultMode="groups" />
                   </RequireLeague>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ranking"
-              element={
-                <ProtectedRoute guestAllowed>
-                  <Leaderboard />
-                </ProtectedRoute>
-              }
-            />
-            {/* Alias antiguo: conserva enlaces y marcadores existentes. */}
-            <Route path="/clasificacion" element={<Navigate to="/ranking" replace />} />
-            <Route
-              path="/grupos"
-              element={
-                <RequireLeague title="Grupos" what="los grupos">
-                  <Home defaultMode="groups" />
-                </RequireLeague>
-              }
-            />
-            <Route
-              path="/stats"
-              element={
-                <ProtectedRoute guestAllowed>
-                  <RequireLeague title="Estadísticas" what="las estadísticas">
-                    <Stats />
+                }
+              />
+              <Route
+                path="/stats"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <RequireLeague title="Estadísticas" what="las estadísticas">
+                      <Stats />
+                    </RequireLeague>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <RequireLeague title="Buscar" what="las predicciones">
+                      <Search />
+                    </RequireLeague>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mis-ligas"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <GroupsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/crear-liga"
+                element={
+                  <ProtectedRoute>
+                    <CreateLeague />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/marcador/nuevo"
+                element={
+                  <ProtectedRoute>
+                    <CreateTracker />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/poker/nueva"
+                element={
+                  <ProtectedRoute>
+                    <CreatePokerLeague />
+                  </ProtectedRoute>
+                }
+              />
+              {(Object.keys(pokerRoutes) as PokerSection[]).map((view) => {
+                const { to, label } = pokerRoutes[view];
+                return (
+                  <Route
+                    key={to}
+                    path={to}
+                    element={
+                      <ProtectedRoute>
+                        <RequireLeague title={label} what="la liga de póker">
+                          <PokerLeagueRoute view={view} />
+                        </RequireLeague>
+                      </ProtectedRoute>
+                    }
+                  />
+                );
+              })}
+              {/* Liga de juegos de mesa: la hoja de la partida y el histórico por días. */}
+              <Route
+                path="/partida"
+                element={
+                  <ProtectedRoute>
+                    <RequireLeague title="Partida" what="la partida">
+                      <ScoreboardOnly>
+                        {(leagueId) => <TrackerView leagueId={leagueId} />}
+                      </ScoreboardOnly>
+                    </RequireLeague>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/historico"
+                element={
+                  <ProtectedRoute>
+                    <RequireLeague title="Histórico" what="el histórico">
+                      <ScoreboardOnly>
+                        {(leagueId) => <TrackerHistoryPage leagueId={leagueId} />}
+                      </ScoreboardOnly>
+                    </RequireLeague>
+                  </ProtectedRoute>
+                }
+              />
+              {/* Enlaces y QR antiguos de los marcadores: la invitación es la de cualquier liga. */}
+              <Route path="/marcador/unirse/:code" element={<LegacyScoreboardJoin />} />
+              {/* Los ids de los marcadores antiguos ya no son los de sus ligas: se elige en Mis ligas. */}
+              <Route path="/marcador/:id" element={<Navigate to="/mis-ligas" replace />} />
+              <Route
+                path="/bracket"
+                element={
+                  <RequireLeague title="Resultados" what="los resultados">
+                    <OfficialBracket />
                   </RequireLeague>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/search"
-              element={
-                <ProtectedRoute guestAllowed>
-                  <RequireLeague title="Buscar" what="las predicciones">
-                    <Search />
-                  </RequireLeague>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/mis-ligas"
-              element={
-                <ProtectedRoute guestAllowed>
-                  <GroupsDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/crear-liga"
-              element={
-                <ProtectedRoute>
-                  <CreateLeague />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/marcador/nuevo"
-              element={
-                <ProtectedRoute>
-                  <CreateTracker />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/poker/nueva"
-              element={
-                <ProtectedRoute>
-                  <CreatePokerLeague />
-                </ProtectedRoute>
-              }
-            />
-            {(Object.keys(pokerRoutes) as PokerSection[]).map((view) => {
-              const { to, label } = pokerRoutes[view];
-              return (
-                <Route
-                  key={to}
-                  path={to}
-                  element={
-                    <ProtectedRoute>
-                      <RequireLeague title={label} what="la liga de póker">
-                        <PokerLeagueRoute view={view} />
-                      </RequireLeague>
-                    </ProtectedRoute>
-                  }
-                />
-              );
-            })}
-            {/* Liga de juegos de mesa: la hoja de la partida y el histórico por días. */}
-            <Route
-              path="/partida"
-              element={
-                <ProtectedRoute>
-                  <RequireLeague title="Partida" what="la partida">
-                    <ScoreboardOnly>
-                      {(leagueId) => <TrackerView leagueId={leagueId} />}
-                    </ScoreboardOnly>
-                  </RequireLeague>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/historico"
-              element={
-                <ProtectedRoute>
-                  <RequireLeague title="Histórico" what="el histórico">
-                    <ScoreboardOnly>
-                      {(leagueId) => <TrackerHistoryPage leagueId={leagueId} />}
-                    </ScoreboardOnly>
-                  </RequireLeague>
-                </ProtectedRoute>
-              }
-            />
-            {/* Enlaces y QR antiguos de los marcadores: la invitación es la de cualquier liga. */}
-            <Route path="/marcador/unirse/:code" element={<LegacyScoreboardJoin />} />
-            {/* Los ids de los marcadores antiguos ya no son los de sus ligas: se elige en Mis ligas. */}
-            <Route path="/marcador/:id" element={<Navigate to="/mis-ligas" replace />} />
-            <Route
-              path="/bracket"
-              element={
-                <RequireLeague title="Resultados" what="los resultados">
-                  <OfficialBracket />
-                </RequireLeague>
-              }
-            />
-            <Route
-              path="/tabla"
-              element={
-                <ProtectedRoute guestAllowed>
-                  <RequireLeague title="Tabla" what="la tabla">
-                    <LeagueStandings />
-                  </RequireLeague>
-                </ProtectedRoute>
-              }
-            />
+                }
+              />
+              <Route
+                path="/tabla"
+                element={
+                  <ProtectedRoute guestAllowed>
+                    <RequireLeague title="Tabla" what="la tabla">
+                      <LeagueStandings />
+                    </RequireLeague>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Rutas privadas - siempre requieren login real */}
-            <Route
-              path="/prediction"
-              element={
-                <ProtectedRoute>
-                  <RequireLeague title="Mi porra" what="las predicciones">
-                    <Bracket />
-                  </RequireLeague>
-                </ProtectedRoute>
-              }
-            />
+              {/* Rutas privadas - siempre requieren login real */}
+              <Route
+                path="/prediction"
+                element={
+                  <ProtectedRoute>
+                    <RequireLeague title="Mi porra" what="las predicciones">
+                      <Bracket />
+                    </RequireLeague>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/jornadas"
-              element={
-                <ProtectedRoute>
-                  <RequireLeague title="Mi porra" what="las predicciones">
-                    <MatchdayPredictor />
-                  </RequireLeague>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/jornadas"
+                element={
+                  <ProtectedRoute>
+                    <RequireLeague title="Mi porra" what="las predicciones">
+                      <MatchdayPredictor />
+                    </RequireLeague>
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </Layout>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </Layout>
+      </PlayerCards>
     </>
   );
 }

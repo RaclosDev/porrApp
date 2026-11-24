@@ -23,6 +23,7 @@ import type { Match, MatchVoter, MatchVoters } from '../../types/api';
 import { MATCH_KINDS } from '../../context/leagueKind';
 import { boutBilling, fightOutcomes, fightResultText, weightClassLabel } from '../../utils/fights';
 import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult';
+import { PlayerAvatar, PlayerName, type PlayerRef } from '../PlayerCard';
 
 const RANKING_SIZE = 5;
 /** Filas de ranking y de tabla en escritorio: un número fijo, no lo que quepa en la pantalla. */
@@ -97,10 +98,14 @@ export function MiniRow({
   detail,
   value,
   highlighted = false,
+  player,
 }: Pick<MiniStandingRow, 'rank' | 'name' | 'detail' | 'value'> & {
   crest?: ReactNode;
   highlighted?: boolean;
+  /** Jugador de la fila: su foto y su nombre abren su cromo. */
+  player?: PlayerRef;
 }) {
+  const nameClass = `text-[0.85rem] text-main overflow-hidden text-ellipsis whitespace-nowrap ${highlighted ? 'font-bold' : 'font-semibold'}`;
   return (
     <li
       className={`home-mini-row${highlighted ? ' is-me' : ''} flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-[8px] border bg-none ${highlighted ? 'border-[var(--marker-ink)]' : 'bg-[rgb(var(--ink-rgb)/0.04)] border-transparent'}`}
@@ -108,11 +113,22 @@ export function MiniRow({
       <div className="flex items-center gap-2 min-w-0">
         <span className="w-4 text-center text-[0.78rem] text-muted shrink-0">{rank}</span>
         {crest}
-        <span
-          className={`text-[0.85rem] text-main overflow-hidden text-ellipsis whitespace-nowrap ${highlighted ? 'font-bold' : 'font-semibold'}`}
-        >
-          {name}
-        </span>
+        {player ? (
+          <>
+            <PlayerAvatar
+              url={player.avatarUrl}
+              name={player.name}
+              userId={player.userId}
+              predictionId={player.predictionId}
+              size={22}
+            />
+            <PlayerName {...player} className={nameClass}>
+              {name}
+            </PlayerName>
+          </>
+        ) : (
+          <span className={nameClass}>{name}</span>
+        )}
       </div>
       <div className="flex gap-2.5 text-[0.85rem] items-baseline shrink-0">
         {detail && <span className="text-muted text-[0.75rem]">{detail}</span>}
@@ -591,6 +607,12 @@ export default function LeagueHomeDashboard({ afterHero }: { afterHero?: ReactNo
                           name={`${p.name}${isMe ? ' (Tú)' : ''}`}
                           value={`${p.total || 0} pts`}
                           highlighted={isMe}
+                          player={{
+                            name: p.name,
+                            userId: p.userId,
+                            avatarUrl: p.avatarUrl,
+                            predictionId: p.id,
+                          }}
                         />
                       );
                     })}

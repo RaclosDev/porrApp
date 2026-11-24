@@ -14,7 +14,6 @@ import { errorMessage } from '../../utils/errors';
 import PaperLoading from '../PaperLoading';
 import SheetDialog from '../SheetDialog';
 import RaceClassificationSheet from './RaceClassificationSheet';
-import { UserAvatar } from '../Avatar';
 import { DriverFace } from './DriverFace';
 import {
   EMPTY_PICK,
@@ -30,6 +29,7 @@ import {
 } from './grandPrix';
 import { useUnsavedChanges } from '../../utils/unsavedChanges';
 import SelectMenu from '../SelectMenu';
+import { PlayerAvatar, PlayerName } from '../PlayerCard';
 
 type Drivers = Map<number, RaceDriver>;
 
@@ -509,7 +509,7 @@ function MemberPicksSheet({
         )}
         {picks.data?.map((member) => (
           <div key={`${member.userId}-${member.name}`} className="gp-member">
-            <UserAvatar
+            <PlayerAvatar
               url={member.avatarUrl}
               name={member.name}
               userId={member.userId}
@@ -517,8 +517,10 @@ function MemberPicksSheet({
             />
             <div className="gp-member-copy">
               <strong>
-                {member.name}
-                {member.mine ? ' (tú)' : ''}
+                <PlayerName name={member.name} userId={member.userId} avatarUrl={member.avatarUrl}>
+                  {member.name}
+                  {member.mine ? ' (tú)' : ''}
+                </PlayerName>
               </strong>
               <span>
                 {name(member.pick.first)}, {name(member.pick.second)}, {name(member.pick.third)} ·

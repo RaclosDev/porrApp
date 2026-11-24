@@ -911,7 +911,10 @@ it('acumula recompras, add-ons y aplausos por jugador entre torneos cerrados', (
   };
   const second = { ...first, id: 14, results: [{ ...first.results[0], rebuys: 3, addOns: 1 }] };
   render(<PokerStatistics sessions={[second, first]} />);
-  const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+  // La primera fila de la cabecera agrupa columnas; la segunda trae una por columna.
+  const headers = within(screen.getAllByRole('row')[1])
+    .getAllByRole('columnheader')
+    .map((header) => header.textContent);
   const ana = within(screen.getByRole('row', { name: /Ana/ })).getAllByRole('cell');
   const luis = within(screen.getByRole('row', { name: /Luis/ })).getAllByRole('cell');
   expect(ana[headers.indexOf('Recompras') - 1]).toHaveTextContent(/^5$/);
@@ -952,7 +955,7 @@ it('ordena cada columna por su valor y alterna el sentido sin cambiar el podio',
     ['Victorias', ['Ana', 'Luis']],
     ['% victorias', ['Ana', 'Luis']],
     ['% con premio', ['Luis', 'Ana']],
-    ['Puesto medio', ['Ana', 'Luis']],
+    ['Puesto medio', ['Luis', 'Ana']],
     ['Premios', ['Luis', 'Ana']],
     ['Neto', ['Luis', 'Ana']],
   ];
@@ -961,7 +964,7 @@ it('ordena cada columna por su valor y alterna el sentido sin cambiar el podio',
     expect(order()).toEqual(names);
     expect(screen.getByRole('columnheader', { name: label })).toHaveAttribute(
       'aria-sort',
-      label === 'Jugador' ? 'ascending' : 'descending',
+      label === 'Jugador' || label === 'Puesto medio' ? 'ascending' : 'descending',
     );
     click(label);
     expect(order()).toEqual([...names].reverse());
@@ -1109,6 +1112,7 @@ it('al pulsar un cromo del podio abre el perfil del jugador con sus números en 
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.queryByRole('dialog')).toBeNull();
 
-  click('Ver el perfil de Paz');
+  // La foto y el nombre abren el mismo perfil.
+  fireEvent.click(screen.getAllByRole('button', { name: 'Ver el perfil de Paz' })[0]);
   expect(screen.getByRole('dialog', { name: 'Perfil de Paz' })).toHaveTextContent('3.º de la liga');
 });
