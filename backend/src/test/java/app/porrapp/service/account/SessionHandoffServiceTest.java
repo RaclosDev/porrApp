@@ -54,7 +54,9 @@ class SessionHandoffServiceTest {
     private RefreshTokenRepository tokenRepository;
 
     private UserAccount user(String email) {
-        return em.persist(UserAccount.builder().googleEmail(email).googleName(email).participantName(email).build());
+        UserAccount saved = em.persist(UserAccount.builder().googleEmail(email).googleName(email).participantName(email).build());
+        sessionService.start(saved);
+        return saved;
     }
 
     private SessionHandoff stored(Handoff handoff) {
@@ -92,6 +94,19 @@ class SessionHandoffServiceTest {
         assertThat(familyId(app.refreshToken())).isNotEqualTo(familyId(safari.refreshToken()));
         assertThat(sessionService.refresh(app.refreshToken())).isPresent();
         assertThat(sessionService.refresh(safari.refreshToken())).isPresent();
+    }
+
+    @Test
+    void closingAllSessionsVoidsThePendingCodeAndBlocksNewOnes() {
+        UserAccount ana = user("ana@test.com");
+        Handoff pending = handoffService.prepare("ana@test.com").orElseThrow();
+
+        // Reset de contraseña o cuenta reclamada por Google/Apple.
+        sessionService.revokeAllOfUser(ana.getId());
+
+        assertThat(handoffService.redeem(pending.code())).isEmpty();
+        // Un access token anterior al cierre sigue vivo unos minutos, pero ya no abre un traspaso.
+        assertThat(handoffService.prepare("ana@test.com")).isEmpty();
     }
 
     @Test

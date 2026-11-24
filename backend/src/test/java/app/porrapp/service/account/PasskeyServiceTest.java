@@ -48,7 +48,9 @@ class PasskeyServiceTest {
     @Autowired private TestEntityManager em;
 
     private UserAccount user(String email) {
-        return em.persist(UserAccount.builder().googleEmail(email).googleName(email).participantName("Ana").build());
+        UserAccount saved = em.persist(UserAccount.builder().googleEmail(email).googleName(email).participantName("Ana").build());
+        sessionService.start(saved);
+        return saved;
     }
 
     private PasskeyView register(String email, FakeAuthenticator device, String name) throws Exception {
@@ -212,5 +214,14 @@ class PasskeyServiceTest {
         assertThat(PasskeyService.cleanName(null)).isEqualTo("Llave de acceso");
         assertThat(PasskeyService.cleanName(" Mac\u0007 ")).isEqualTo("Mac");
         assertThat(PasskeyService.cleanName("x".repeat(100))).hasSize(PasskeyService.MAX_NAME_LENGTH);
+    }
+
+    @Test
+    void aClosedAccountCannotAddAPasskeyWithAnOldAccessToken() {
+        UserAccount ana = user("ana@example.com");
+        sessionService.revokeAllOfUser(ana.getId());
+
+        assertThatThrownBy(() -> passkeys.startRegistration("ana@example.com"))
+                .isInstanceOf(BusinessException.class);
     }
 }

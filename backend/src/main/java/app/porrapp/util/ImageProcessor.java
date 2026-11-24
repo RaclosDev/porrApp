@@ -39,6 +39,11 @@ public final class ImageProcessor {
     public static final long MAX_SOURCE_PIXELS = 6_000_000L;
     /** Lado máximo de la imagen guardada. */
     public static final int MAX_OUTPUT_DIMENSION = 512;
+    /**
+     * Máximo de pasadas (SOS) de un JPEG. Uno progresivo normal trae unas 10; cada pasada obliga a
+     * recorrer la imagen entera, así que miles de ellas en 3 MB bloquearían un hueco de decodificación.
+     */
+    static final int MAX_JPEG_SCANS = 32;
 
     private static final float JPEG_QUALITY = 0.85f;
 
@@ -80,6 +85,9 @@ public final class ImageProcessor {
         String format = detectFormat(raw);
         if (format == null) {
             throw BusinessException.badRequest("Formato no admitido. Usa una imagen JPG o PNG.");
+        }
+        if ("jpeg".equals(format) && jpegScans(raw) > MAX_JPEG_SCANS) {
+            throw invalid();
         }
 
         acquire(slots, waitMillis);
@@ -126,6 +134,34 @@ public final class ImageProcessor {
             return "jpeg";
         }
         return null;
+    }
+
+    /**
+     * Cuenta las pasadas (marcadores SOS) recorriendo los segmentos del JPEG, sin decodificarlo.
+     * Para en cuanto pasa del máximo; si el archivo está mal formado, lo rechazará el decodificador.
+     */
+    static int jpegScans(byte[] raw) {
+        int scans = 0;
+        int i = 2;
+        while (i + 1 < raw.length) {
+            if ((raw[i] & 0xFF) != 0xFF) return scans;
+            int marker = raw[i + 1] & 0xFF;
+            if (marker == 0xFF) { i++; continue; }
+            if (marker == 0xD9) return scans;
+            if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7)) { i += 2; continue; }
+            if (i + 3 >= raw.length) return scans;
+            int length = ((raw[i + 2] & 0xFF) << 8) | (raw[i + 3] & 0xFF);
+            i += 2 + length;
+            if (marker != 0xDA) continue;
+            if (++scans > MAX_JPEG_SCANS) return scans;
+            // Datos comprimidos de la pasada: un 0xFF solo va seguido de 0x00 (relleno) o de un RSTn.
+            while (i + 1 < raw.length) {
+                int next = raw[i + 1] & 0xFF;
+                if ((raw[i] & 0xFF) == 0xFF && next != 0x00 && (next < 0xD0 || next > 0xD7)) break;
+                i++;
+            }
+        }
+        return scans;
     }
 
     private static BufferedImage decode(byte[] raw, String format) {

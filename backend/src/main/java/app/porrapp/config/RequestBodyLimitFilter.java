@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -69,7 +70,7 @@ public class RequestBodyLimitFilter extends OncePerRequestFilter {
     }
 
     static int limitFor(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        String path = UrlPathHelper.defaultInstance.getPathWithinApplication(request);
         return path != null && path.startsWith(CLIENT_ERRORS_PATH) ? MAX_CLIENT_ERROR_BYTES : MAX_BODY_BYTES;
     }
 

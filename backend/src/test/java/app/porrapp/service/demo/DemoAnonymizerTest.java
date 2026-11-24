@@ -43,6 +43,30 @@ class DemoAnonymizerTest {
     }
 
     @Test
+    void losIdsDeUsuarioSonPropiosDeLaDemo() {
+        JsonNode league = mapper.readTree("""
+                {"id":6,"name":"Liga","joinCode":"XK2P9","adminUserId":7,"adminUserIds":[7,501],"organizerUserIds":[501]}""");
+        JsonNode members = mapper.readTree("""
+                [{"userId":7,"participantName":"Marta Real"},{"userId":501,"participantName":"Dummy Real"}]""");
+        JsonNode me = mapper.readTree("""
+                {"userId":7,"participantName":"Marta Real"}""");
+        List<JsonNode> nodes = new ArrayList<>(List.of(league, members, me));
+
+        new DemoAnonymizer(Map.of(6L, "Liga demo")).anonymize(nodes);
+
+        // Marta es la quinta conocida: siempre 105, como su retrato en la app.
+        long marta = DemoAnonymizer.FIRST_KNOWN_ID + 4;
+        assertThat(members.get(0).path("userId").asLong()).isEqualTo(marta);
+        assertThat(me.path("userId").asLong()).isEqualTo(marta);
+        assertThat(league.path("adminUserId").asLong()).isEqualTo(marta);
+        long other = members.get(1).path("userId").asLong();
+        assertThat(other).isGreaterThanOrEqualTo(DemoAnonymizer.FIRST_SPARE_ID);
+        assertThat(league.path("adminUserIds").get(1).asLong()).isEqualTo(other);
+        assertThat(league.path("organizerUserIds").get(0).asLong()).isEqualTo(other);
+        assertThat(nodes.toString()).doesNotContain("501", "Real");
+    }
+
+    @Test
     void codificaLaJornadaComoElNavegador() {
         assertThat(DemoSnapshotService.encode("Jornada 13 (aplazada)")).isEqualTo("Jornada%2013%20(aplazada)");
     }

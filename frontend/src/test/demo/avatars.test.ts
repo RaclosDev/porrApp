@@ -5,12 +5,12 @@ describe('withAvatars', () => {
   it('pone foto a quien no la tiene y respeta las que ya existen', () => {
     const data = {
       ranking: [
-        { userId: 7, name: 'Marta', avatarUrl: null },
-        { userId: 1, name: 'Dani', avatarUrl: 'https://x/dani.png' },
+        { userId: 105, name: 'Marta', avatarUrl: null },
+        { userId: 101, name: 'Dani', avatarUrl: 'https://x/dani.png' },
       ],
     };
     const out = withAvatars(data);
-    expect(out.ranking[0].avatarUrl).toBe(demoAvatar(7));
+    expect(out.ranking[0].avatarUrl).toBe(demoAvatar(105));
     expect(out.ranking[0].avatarUrl).toMatch(/^https:\/\/randomuser\.me\//);
     expect(out.ranking[1].avatarUrl).toBe('https://x/dani.png');
   });

@@ -2,7 +2,6 @@ package app.porrapp.service.account;
 
 import app.porrapp.model.UserAccount;
 import app.porrapp.repository.PasskeyRepository;
-import app.porrapp.repository.RefreshTokenFamilyRepository;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.account.AppleCredentialVerifier.AppleIdentity;
 import app.porrapp.service.account.GoogleCredentialVerifier.GoogleIdentity;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -38,7 +36,6 @@ public class AuthService {
     private final GoogleCredentialVerifier googleCredentialVerifier;
     private final AppleCredentialVerifier appleCredentialVerifier;
     private final SessionService sessionService;
-    private final RefreshTokenFamilyRepository refreshTokenFamilyRepository;
     private final PasskeyRepository passkeyRepository;
 
     @Transactional
@@ -141,7 +138,7 @@ public class AuthService {
     private void claimPasswordAccount(UserAccount user) {
         log.info("El usuario {} se registró con contraseña y ahora entra con Google: la cuenta pasa a Google.", user.getId());
         user.setPasswordHash(null);
-        refreshTokenFamilyRepository.revokeAllOfUser(user.getId(), Instant.now());
+        sessionService.revokeAllOfUser(user.getId());
         passkeyRepository.deleteAllOfUser(user.getId());
     }
 

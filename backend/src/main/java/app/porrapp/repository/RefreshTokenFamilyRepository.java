@@ -27,4 +27,8 @@ public interface RefreshTokenFamilyRepository extends JpaRepository<RefreshToken
     @Modifying
     @Query("UPDATE RefreshTokenFamily f SET f.revokedAt = :now WHERE f.user.id = :userId AND f.revokedAt IS NULL")
     int revokeAllOfUser(@Param("userId") Long userId, @Param("now") Instant now);
+
+    /** True si la cuenta tiene alguna sesión sin revocar ni caducar. */
+    @Query("SELECT COUNT(f) > 0 FROM RefreshTokenFamily f WHERE f.user.id = :userId AND f.revokedAt IS NULL AND f.expiresAt > :now")
+    boolean existsLiveOfUser(@Param("userId") Long userId, @Param("now") Instant now);
 }

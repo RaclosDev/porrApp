@@ -17,7 +17,8 @@ import java.util.regex.Pattern;
 /**
  * Quita de los datos de la demo todo lo que identifica a alguien: cada participante pasa a llamarse
  * con un nombre de pila inventado (siempre el mismo para el mismo usuario), las ligas llevan su
- * nombre de demo y desaparecen correos, fotos y códigos de invitación.
+ * nombre de demo y desaparecen correos, fotos y códigos de invitación. Los ids de usuario se cambian
+ * por otros propios de la demo: los reales se ven junto al nombre verdadero en las ligas públicas.
  */
 final class DemoAnonymizer {
 
@@ -31,6 +32,18 @@ final class DemoAnonymizer {
             Map.entry(15L, "Nerea"), Map.entry(17L, "Irene"), Map.entry(18L, "Mateo"), Map.entry(19L, "Carla"),
             Map.entry(20L, "Adri"), Map.entry(21L, "Óscar"), Map.entry(22L, "Julia"), Map.entry(23L, "Álex"),
             Map.entry(24L, "Javi"), Map.entry(25L, "Hugo"), Map.entry(29L, "Vega"));
+
+    /**
+     * Id de demo de cada persona de {@link #KNOWN}, el mismo siempre para que la app pueda ponerle su
+     * retrato (frontend/src/demo/avatars.ts). Los demás reciben uno a partir de {@link #FIRST_SPARE_ID}.
+     */
+    private static final List<Long> KNOWN_ORDER = List.of(
+            1L, 3L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 17L, 18L, 19L, 20L, 21L, 22L, 23L, 24L, 25L, 29L);
+    static final long FIRST_KNOWN_ID = 101;
+    static final long FIRST_SPARE_ID = 201;
+    /** Campos con el id de un usuario, o con una lista de ids. */
+    private static final Set<String> USER_ID_FIELDS = Set.of("userId", "adminUserId");
+    private static final Set<String> USER_ID_LISTS = Set.of("adminUserIds", "organizerUserIds");
 
     /** Para quien entre después en alguna de las ligas. */
     private static final List<String> SPARE = List.of(
@@ -48,6 +61,8 @@ final class DemoAnonymizer {
     private static final Set<String> NO_IMAGE = Set.of("avatarUrl", "imageUrl");
 
     private final Map<Long, String> pseudonyms = new LinkedHashMap<>();
+    private final Map<Long, Long> demoIds = new LinkedHashMap<>();
+    private long nextSpareId = FIRST_SPARE_ID;
     private final Map<String, String> replacements = new LinkedHashMap<>();
     /**
      * Nombres de pronóstico elegidos por cada uno: pueden ser cualquier cosa («Real Madrid»), así que
@@ -75,7 +90,7 @@ final class DemoAnonymizer {
             String alias = KNOWN.get(person.getKey());
             if (alias == null) {
                 while (spare < SPARE.size() && used.contains(SPARE.get(spare))) spare++;
-                alias = spare < SPARE.size() ? SPARE.get(spare++) : "Participante " + person.getKey();
+                alias = spare < SPARE.size() ? SPARE.get(spare++) : "Participante " + demoId(person.getKey());
                 used.add(alias);
             }
             pseudonyms.put(person.getKey(), alias);
@@ -107,7 +122,16 @@ final class DemoAnonymizer {
     }
 
     String pseudonym(long userId) {
-        return pseudonyms.getOrDefault(userId, KNOWN.getOrDefault(userId, "Participante " + userId));
+        String known = pseudonyms.getOrDefault(userId, KNOWN.get(userId));
+        return known != null ? known : "Participante " + demoId(userId);
+    }
+
+    /** Id con el que sale cada usuario en la demo; no se puede cruzar con el real. */
+    long demoId(long userId) {
+        return demoIds.computeIfAbsent(userId, id -> {
+            int known = KNOWN_ORDER.indexOf(id);
+            return known >= 0 ? FIRST_KNOWN_ID + known : nextSpareId++;
+        });
     }
 
     /** Sustituye nombres reales de personas y ligas dentro de un texto libre. */
@@ -191,6 +215,18 @@ final class DemoAnonymizer {
             if (leagueId != null && leagueNames.containsKey(leagueId)) {
                 object.put("name", leagueNames.get(leagueId));
                 object.put("publicLeague", true);
+            }
+            // Al final: los nombres de arriba se eligen con el id real.
+            for (String field : USER_ID_FIELDS) {
+                Long id = number(object, field);
+                if (id != null) object.put(field, demoId(id));
+            }
+            for (String field : USER_ID_LISTS) {
+                if (object.get(field) instanceof ArrayNode ids) {
+                    for (int i = 0; i < ids.size(); i++) {
+                        if (ids.get(i).isIntegralNumber()) ids.set(i, ids.numberNode(demoId(ids.get(i).asLong())));
+                    }
+                }
             }
         } else if (node instanceof ArrayNode array) {
             for (int i = 0; i < array.size(); i++) {
