@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { UserAvatar } from './Avatar';
+import CardViewer from './CardViewer';
 import { useLandingMotion } from './landing/motion';
 
 export interface StickerLeader {
@@ -21,6 +22,8 @@ interface StickerCardProps {
   staticCard?: boolean;
   avatar?: ReactNode;
   children?: ReactNode;
+  /** Al pulsarlo, el cromo gira y se ve en grande. */
+  zoomable?: boolean;
 }
 
 /** Los puntos suben de 0 al total la primera vez que el cromo se ve. */
@@ -81,7 +84,9 @@ export default function StickerCard({
   staticCard = false,
   avatar,
   children,
+  zoomable = false,
 }: StickerCardProps) {
+  const [zoomed, setZoomed] = useState(false);
   const { reduced } = useLandingMotion();
   const animateCard = !reduced && !staticCard;
   const [pointsRef, shownPoints] = useCountUp(leader.total, animateCard);
@@ -107,11 +112,26 @@ export default function StickerCard({
 
   const size = compact ? (featured ? 64 : 44) : featured ? 96 : 56;
 
-  return (
+  const open = () => setZoomed(true);
+  const card = (
     <div
-      className={`sticker ${featured ? 'sticker-featured' : ''} ${animateCard ? 'sticker-tilt' : ''} ${className}`}
+      className={`sticker ${featured ? 'sticker-featured' : ''} ${animateCard ? 'sticker-tilt' : ''} ${zoomable ? 'sticker-zoomable' : ''} ${className}`}
       onPointerMove={staticCard ? undefined : onPointerMove}
       onPointerLeave={staticCard ? undefined : onPointerLeave}
+      {...(zoomable
+        ? {
+            role: 'button',
+            tabIndex: 0,
+            'aria-label': `Ver el cromo de ${leader.name}: puesto ${leader.rank}, ${leader.total} puntos`,
+            onClick: open,
+            onKeyDown: (event: React.KeyboardEvent) => {
+              if (event.target !== event.currentTarget) return;
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              open();
+            },
+          }
+        : {})}
     >
       <span className="sticker-rank" aria-label={`Puesto ${leader.rank}`}>
         {leader.rank}
@@ -136,5 +156,18 @@ export default function StickerCard({
       {children}
       {animateCard ? <span aria-hidden="true" className="sticker-glare" /> : null}
     </div>
+  );
+  if (!zoomable) return card;
+  return (
+    <>
+      {card}
+      {zoomed && (
+        <CardViewer label={`Cromo de ${leader.name}`} onClose={() => setZoomed(false)}>
+          <StickerCard leader={leader} featured caption={caption} avatar={avatar}>
+            {children}
+          </StickerCard>
+        </CardViewer>
+      )}
+    </>
   );
 }

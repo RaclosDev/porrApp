@@ -2175,3 +2175,125 @@
 .poker-next-card > .glass-btn + .glass-btn {
   margin-top: 0.5rem;
 }
+
+/* Nombre que abre el perfil del jugador: parece texto hasta que se pasa por encima. */
+.poker-profile-link {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.poker-profile-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.poker-profile-link:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Perfil del jugador: el cromo en grande con sus números en la liga. */
+.poker-profile-card.sticker {
+  gap: 0.55rem;
+  padding: 30px 18px 20px;
+}
+
+.poker-profile-name {
+  margin: 0;
+  max-width: 100%;
+  font-size: 1.9rem;
+  line-height: 1.05;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.poker-profile-summary {
+  margin: 0;
+  text-align: center;
+}
+
+.poker-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  width: 100%;
+  margin: 0.3rem 0 0;
+}
+
+.poker-profile-stats > div {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid rgb(17 24 39 / 0.14);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.6);
+}
+
+.poker-profile-stats dt,
+.poker-profile-recent p {
+  color: #4b5563;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.poker-profile-stats dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.poker-profile-stats dd.is-up {
+  color: #166534;
+}
+
+.poker-profile-stats dd.is-down {
+  color: #9f1239;
+}
+
+.poker-profile-recent {
+  width: 100%;
+}
+
+.poker-profile-recent p {
+  margin: 0.2rem 0 0.3rem;
+}
+
+.poker-profile-recent ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-profile-recent li {
+  min-width: 2.2rem;
+  padding: 0.15rem 0.35rem;
+  border: 1px solid rgb(17 24 39 / 0.2);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.poker-profile-recent li.is-podium-1 {
+  border-color: #b45309;
+  background: #fde68a;
+}
+
+.poker-profile-recent li.is-podium-2 {
+  background: #e5e7eb;
+}
+
+.poker-profile-recent li.is-podium-3 {
+  background: #fed7aa;
+}
