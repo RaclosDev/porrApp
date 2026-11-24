@@ -38,20 +38,22 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
   }, [defaultMode]);
 
   const home = viewMode === 'home';
+  // Una liga terminada enseña su cierre (campeón, podio y compartir) justo bajo el título.
+  const closing = home ? <LeagueClosing /> : null;
   const views: Record<LeagueKind, ReactNode> = {
     loading: <LeagueLoadState />,
     error: <LeagueLoadState error={groupError} />,
     none: <NoLeagueState title="Inicio" what="los partidos y el ranking" />,
     unknown: <UnsupportedLeagueState />,
-    groupStage: home ? <LeagueHomeDashboard /> : <GroupStageGroups />,
-    customBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
-    ownBracket: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
-    knockoutDraw: home ? <LeagueHomeDashboard /> : <OfficialBracket />,
-    matchday: <LeagueHomeDashboard />,
-    fightCard: <LeagueHomeDashboard />,
-    tennisDraw: <LeagueHomeDashboard />,
+    groupStage: home ? <LeagueHomeDashboard afterHero={closing} /> : <GroupStageGroups />,
+    customBracket: home ? <LeagueHomeDashboard afterHero={closing} /> : <OfficialBracket />,
+    ownBracket: home ? <LeagueHomeDashboard afterHero={closing} /> : <OfficialBracket />,
+    knockoutDraw: home ? <LeagueHomeDashboard afterHero={closing} /> : <OfficialBracket />,
+    matchday: <LeagueHomeDashboard afterHero={closing} />,
+    fightCard: <LeagueHomeDashboard afterHero={closing} />,
+    tennisDraw: <LeagueHomeDashboard afterHero={closing} />,
     // Carreras: las dos próximas, el ranking, el Mundial y las ya disputadas.
-    grandPrix: <GrandPrixHome />,
+    grandPrix: <GrandPrixHome afterHero={closing} />,
     // Juegos de mesa: el inicio es el resumen de la liga (hoy, podio y último día).
     scoreboard: <TrackerHome leagueId={activeGroupId} />,
     poker: activeGroupId && (
@@ -66,16 +68,7 @@ function Home({ defaultMode = 'home' }: { defaultMode?: HomeMode }) {
       </section>
     ),
   };
-  return (
-    <>
-      {/* Una liga terminada abre su inicio con el cierre: campeón, podio y compartir. */}
-      {home &&
-        leagueKind !== 'scoreboard' &&
-        leagueKind !== 'tournament' &&
-        leagueKind !== 'poker' && <LeagueClosing />}
-      {views[leagueKind]}
-    </>
-  );
+  return views[leagueKind];
 }
 
 /** Fase de grupos del Mundial: clasificación de cada grupo, mejores terceros, partidos y pichichi. */

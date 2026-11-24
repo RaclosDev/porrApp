@@ -54,11 +54,164 @@
   }
 
   .top-bar #btn-active-league-dropdown {
-    background: var(--surface);
+    background: transparent;
     color: var(--text-main);
-    border: 1px solid var(--border-color);
+    border: 1px solid transparent;
     border-radius: 12px;
     box-shadow: none;
+    padding-left: 4px;
+  }
+
+  .top-bar #btn-active-league-dropdown:hover {
+    background: var(--surface);
+  }
+
+  /* En la cabecera la liga es solo su foto; el nombre vive en el título de Inicio. */
+  .top-bar #btn-active-league-dropdown.league-switch--compact {
+    gap: 2px;
+    padding: 4px !important;
+  }
+
+  .league-switch--compact .league-selection {
+    display: none !important;
+  }
+
+  /* En Inicio el título ya es el selector: la foto de la cabecera no se repite. */
+  body:has(#btn-league-title) .top-bar :has(> .league-switch--compact) {
+    display: none !important;
+  }
+
+  .league-title {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .league-title .home-hero-title {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .league-title-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .league-title-btn .league-selection {
+    overflow-wrap: anywhere;
+  }
+
+  .league-title-caret,
+  .league-switch-caret {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+  }
+
+  .league-switch-caret {
+    width: 16px;
+    height: 16px;
+  }
+
+  .league-title-btn:hover .league-title-caret {
+    color: var(--text-main);
+  }
+
+  /* Menú de ligas: rótulos y acciones en la letra de lectura, no en la de cartel, que a este tamaño no se lee. */
+  .league-menu-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 10px 8px;
+    font:
+      700 0.72rem/1.2 Inter,
+      sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .league-menu-count {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .league-menu-actions {
+    display: grid;
+    gap: 2px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .league-menu-action {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-main);
+    font:
+      600 0.9rem/1.2 Inter,
+      sans-serif;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .league-menu-action::before {
+    content: '+';
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px dashed rgb(var(--ink-rgb) / 0.35);
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .league-menu-action + .league-menu-action::before {
+    content: '#';
+  }
+
+  .league-menu-action:hover,
+  .league-menu-action:focus-visible {
+    background: rgb(var(--ink-rgb) / 0.06);
+  }
+
+  .league-title .active-league-menu {
+    left: 0;
+    right: auto;
+  }
+
+  /* El cambio de tema es solo el icono, sin recuadro; el fondo aparece al pasar por encima. */
+  .top-bar .header-theme-btn {
+    border-color: transparent;
+  }
+
+  .top-bar .header-theme-btn:hover {
+    background: var(--surface);
   }
 
   .paper-dialog-body > .album-sheet::before {
@@ -314,4 +467,9 @@
     vertical-align: -2px;
     color: var(--hit);
   }
+}
+
+/* Anton solo tiene un peso: sin esto el navegador inventa la negrita y las letras salen emborronadas. */
+html {
+  font-synthesis-weight: none;
 }

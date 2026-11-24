@@ -169,7 +169,7 @@ describe('league home', () => {
     expect(within(table).getAllByRole('listitem')[1]).toHaveTextContent('2Sevilla3 PJ6 pts');
   });
 
-  it('opens with the closing once the league is over, above the usual home', async () => {
+  it('shows the closing once the league is over, right under the league title', async () => {
     vi.mocked(api.fetchMyLeagueSummaries).mockResolvedValue([
       {
         groupId: 10,
@@ -190,6 +190,6 @@ describe('league home', () => {
     const closing = await screen.findByRole('region', { name: 'Ana gana Liga de amigos' });
     expect(within(closing).getByText('Has quedado 2.º de 6 con 50 pts')).toBeInTheDocument();
     const home = screen.getByRole('heading', { name: 'Liga de amigos' });
-    expect(closing.compareDocumentPosition(home) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(closing.compareDocumentPosition(home) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
   });
 });

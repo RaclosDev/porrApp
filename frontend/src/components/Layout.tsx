@@ -190,7 +190,7 @@ function Layout({ children }: { children: React.ReactNode }) {
                 </span>
               ) : (
                 <>
-                  <ActiveLeagueDropdown />
+                  <ActiveLeagueDropdown variant="compact" />
 
                   {loading ||
                   !showsFillBracketButton(leagueKind) ||

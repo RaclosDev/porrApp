@@ -30,7 +30,35 @@ function getCompetitionBadge(competitionName: string | null | undefined) {
   return null;
 }
 
-export default function ActiveLeagueDropdown() {
+/**
+ * Selector de liga. `title` es el título de Inicio (foto, nombre y flecha); `compact` es solo la
+ * foto, para la cabecera del resto de pantallas.
+ */
+/** Flecha del selector: trazo fino, del color del texto secundario. */
+function Chevron({ className }: { className: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export default function ActiveLeagueDropdown({
+  variant = 'full',
+  fallbackName = 'Liga',
+}: {
+  variant?: 'full' | 'compact' | 'title';
+  fallbackName?: string;
+}) {
   const {
     activeGroupId,
     activeGroupName,
@@ -98,8 +126,17 @@ export default function ActiveLeagueDropdown() {
 
   // Mientras llegan las ligas o se elige cuál abrir, «Crear o unirse» o «Ninguna liga» asomarían
   // un instante antes del selector.
+  if (variant === 'title' && (!isAuthenticated || !userGroupsLoaded || leagueCount === 0)) {
+    return <h1 className="home-hero-title">{activeGroupName || fallbackName}</h1>;
+  }
+
   if (isAuthenticated && (!userGroupsLoaded || choosingLeague)) {
-    return <span className="chrome-placeholder w-50 h-11" aria-hidden="true" />;
+    return (
+      <span
+        className={`chrome-placeholder h-11 ${variant === 'compact' ? 'w-11' : 'w-50'}`}
+        aria-hidden="true"
+      />
+    );
   }
 
   // Sin ligas va a Mis ligas, que ofrece crear y unirse; el asistente de crear liga solo crea.
@@ -124,7 +161,7 @@ export default function ActiveLeagueDropdown() {
     ? '🎲'
     : getCompetitionBadge(activeCompetitionName);
   const activeImageUrl = activeGroup?.imageUrl || null;
-  const displayLeagueName = activeGroupName || 'Liga';
+  const displayLeagueName = activeGroupName || fallbackName;
   // Solo la competición real de la liga: sin liga (o sin dato) no se supone ninguna.
   const displayCompName = !activeGroupId
     ? 'Elige una de tus ligas'
@@ -137,44 +174,72 @@ export default function ActiveLeagueDropdown() {
           : activeCompetitionName || '';
 
   return (
-    <div className="relative inline-flex items-center z-[105]" ref={dropdownRef}>
-      <button
-        type="button"
-        id="btn-active-league-dropdown"
-        onClick={() => setIsOpen(!isOpen)}
-        className="glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem]"
-        aria-expanded={isOpen}
-        title={`Cambiar de liga (${[displayLeagueName, displayCompName].filter(Boolean).join(' · ')})`}
-      >
-        <LeagueAvatar
-          url={activeImageUrl}
-          badge={currentBadge}
-          name={displayLeagueName}
-          size={26}
-        />
-        <div
-          key={activeGroupId}
-          className="league-selection flex flex-col items-start text-left leading-[1.15] min-w-0"
+    <div
+      className={`relative inline-flex items-center ${variant === 'title' ? 'league-title z-[20]' : 'z-[105]'}`}
+      ref={dropdownRef}
+    >
+      {variant === 'title' ? (
+        <h1 className="home-hero-title">
+          <button
+            type="button"
+            id="btn-league-title"
+            onClick={() => setIsOpen(!isOpen)}
+            className="league-title-btn"
+            aria-expanded={isOpen}
+            title="Cambiar de liga"
+          >
+            <LeagueAvatar
+              url={activeImageUrl}
+              badge={currentBadge}
+              name={displayLeagueName}
+              size={34}
+            />
+            <span key={activeGroupId} className="league-selection min-w-0">
+              {displayLeagueName}
+            </span>
+            <Chevron
+              className={`league-title-caret ${isOpen ? '[transform:rotate(180deg)]' : '[transform:none]'}`}
+            />
+          </button>
+        </h1>
+      ) : (
+        <button
+          type="button"
+          id="btn-active-league-dropdown"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`glass-btn flex items-center gap-2 py-1.5 px-3 min-h-11 rounded-[10px] cursor-pointer normal-case tracking-normal font-[Inter,sans-serif] font-semibold text-[0.88rem] ${variant === 'compact' ? 'league-switch--compact' : ''}`}
+          aria-expanded={isOpen}
+          aria-label={variant === 'compact' ? `Cambiar de liga (${displayLeagueName})` : undefined}
+          title={`Cambiar de liga (${[displayLeagueName, displayCompName].filter(Boolean).join(' · ')})`}
         >
-          <span className="poster-title w-full max-w-35 lg:max-w-60 overflow-hidden text-ellipsis whitespace-nowrap text-main text-[0.95rem] tracking-[0.02em]">
-            {displayLeagueName}
-          </span>
-          <span className="w-full text-[0.7rem] text-muted font-medium max-w-32.5 lg:max-w-60 overflow-hidden text-ellipsis whitespace-nowrap">
-            {displayCompName}
-          </span>
-        </div>
-        <span
-          className={`text-[0.75rem] text-muted [transition:transform_0.2s_ease] ml-0.5 ${isOpen ? '[transform:rotate(180deg)]' : '[transform:none]'}`}
-        >
-          ▾
-        </span>
-      </button>
+          <LeagueAvatar
+            url={activeImageUrl}
+            badge={currentBadge}
+            name={displayLeagueName}
+            size={26}
+          />
+          <div
+            key={activeGroupId}
+            className="league-selection flex flex-col items-start text-left leading-[1.15] min-w-0"
+          >
+            <span className="poster-title w-full max-w-35 lg:max-w-60 overflow-hidden text-ellipsis whitespace-nowrap text-main text-[0.95rem] tracking-[0.02em]">
+              {displayLeagueName}
+            </span>
+            <span className="w-full text-[0.7rem] text-muted font-medium max-w-32.5 lg:max-w-60 overflow-hidden text-ellipsis whitespace-nowrap">
+              {displayCompName}
+            </span>
+          </div>
+          <Chevron
+            className={`league-switch-caret ${isOpen ? '[transform:rotate(180deg)]' : '[transform:none]'}`}
+          />
+        </button>
+      )}
 
       {isOpen && (
         <div className="active-league-menu paper-panel absolute top-[calc(100%_+_8px)] rounded-[6px] shadow-[0_16px_36px_rgba(0,_0,_0,_0.6)] p-2 flex flex-col gap-1">
-          <div className="poster-title py-1.5 px-2.5 text-[0.8rem] text-muted border-b border-b-line mb-1 flex justify-between items-center">
-            <span>Mis Ligas</span>
-            <span className="text-[0.7rem] text-muted normal-case font-[Inter,sans-serif] tracking-normal">
+          <div className="league-menu-head">
+            <span>Mis ligas</span>
+            <span className="league-menu-count">
               {leagueCount} {leagueCount === 1 ? 'liga' : 'ligas'}
             </span>
           </div>
@@ -237,7 +302,7 @@ export default function ActiveLeagueDropdown() {
           </div>
 
           {/* Sin sesión, Mis ligas pide iniciarla antes de crear o unirse. */}
-          <div className="border-t border-t-line pt-1.5 mt-1 grid grid-cols-2 gap-1.5">
+          <div className="league-menu-actions">
             {[
               { label: 'Crear liga', to: isAuthenticated ? '/crear-liga' : '/mis-ligas' },
               {
@@ -247,7 +312,7 @@ export default function ActiveLeagueDropdown() {
             ].map(({ label, to }) => (
               <button
                 key={label}
-                className="glass-btn py-2 px-2.5 rounded-[8px] border-dashed text-[0.82rem] cursor-pointer flex items-center justify-center"
+                className="league-menu-action"
                 type="button"
                 onClick={() => {
                   setIsOpen(false);

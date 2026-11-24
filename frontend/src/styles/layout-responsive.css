@@ -618,14 +618,6 @@
       }
     }
 
-    /*
-     * Con una liga activa la cabecera no repite la marca: el selector de liga ocupa su sitio a la
-     * izquierda y tiene más ancho para el nombre.
-     */
-    .header-title-row:has(#btn-active-league-dropdown) > .header-brand-link {
-      display: none !important;
-    }
-
     #btn-active-league-dropdown {
       max-width: min(260px, 100%) !important;
     }
