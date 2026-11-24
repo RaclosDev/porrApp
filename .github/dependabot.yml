@@ -18,6 +18,10 @@ updates:
     groups:
       frontend:
         update-types: ["minor", "patch"]
+    ignore:
+      # eslint-plugin-jsx-a11y aún no admite ESLint 10.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "maven"
     directory: "/backend"
