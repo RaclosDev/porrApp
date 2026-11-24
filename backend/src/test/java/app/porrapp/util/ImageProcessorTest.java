@@ -30,6 +30,27 @@ class ImageProcessorTest {
     }
 
     @Test
+    @DisplayName("Rechaza un JPEG con miles de pasadas antes de decodificarlo")
+    void rejectsJpegsWithTooManyScans() throws Exception {
+        byte[] normal = image(64, 64, "jpg", false);
+        assertEquals(1, ImageProcessor.jpegScans(normal));
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(new byte[]{(byte) 0xFF, (byte) 0xD8});
+        for (int i = 0; i < 5_000; i++) {
+            out.write(new byte[]{(byte) 0xFF, (byte) 0xDA, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3F, 0x00, 0x12, 0x34});
+        }
+        out.write(new byte[]{(byte) 0xFF, (byte) 0xD9});
+        byte[] bomb = out.toByteArray();
+
+        assertTrue(ImageProcessor.jpegScans(bomb) > ImageProcessor.MAX_JPEG_SCANS);
+        // Sin huecos libres: si llegara a decodificar, fallaría por esperar al semáforo, no por la validación.
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> ImageProcessor.process(bomb, new Semaphore(0), 1));
+        assertTrue(ex.getMessage().contains("imagen"));
+    }
+
+    @Test
     @DisplayName("Reduce un PNG grande a 512 px conservando proporción y transparencia")
     void downscalesLargePng() throws Exception {
         ImageProcessor.ProcessedImage result = ImageProcessor.process(image(2000, 1000, "png", true));

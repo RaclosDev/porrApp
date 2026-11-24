@@ -61,10 +61,12 @@ public class ParticipantScoreDTO {
 
     /**
      * Copia sin el desglose (log, aciertos exactos, equipos que pasan) para la lista de la
-     * clasificación; el detalle se pide al abrir cada pronóstico.
+     * clasificación; el detalle se pide al abrir cada pronóstico. Tampoco lleva el partido por el
+     * tercer puesto elegido: es parte del cuadro, que no se enseña a los demás antes del cierre.
      */
     public ParticipantScoreDTO withoutBreakdown() {
-        return toBuilder().log(null).exactMatches(null).passedTeams(null).build();
+        return toBuilder().log(null).exactMatches(null).passedTeams(null)
+                .thirdPlaceMatch(null).thirdPlaceWinner(null).build();
     }
 
     /**

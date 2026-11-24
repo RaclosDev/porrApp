@@ -46,11 +46,13 @@ public class SessionHandoffService {
     private final UserAccountRepository userAccountRepository;
     private final SessionService sessionService;
 
-    /** Prepara un traspaso para la cuenta del email y devuelve el código. Vacío si la cuenta no existe. */
+    /** Prepara un traspaso para la cuenta del email y devuelve el código. Vacío si la cuenta no existe
+     * o ya no tiene ninguna sesión viva (p. ej. tras un reset de contraseña). */
     @Transactional
     public Optional<Handoff> prepare(String email) {
         return Optional.ofNullable(email)
                 .flatMap(userAccountRepository::findByGoogleEmail)
+                .filter(user -> sessionService.hasLiveSession(user.getId()))
                 .map(this::prepare);
     }
 

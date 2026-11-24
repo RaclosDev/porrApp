@@ -179,6 +179,18 @@ class CustomLockServiceTest {
     }
 
     @Test
+    void lateEntrantsCannotPickTiesThatAreAlreadyLocked() {
+        match("bracket-1", null, "A", "B", NOW.minus(1, ChronoUnit.HOURS));
+        match("bracket-1", null, "C", "D", NOW.plus(1, ChronoUnit.DAYS));
+        var state = service.state(edition(PredictionLockMode.PER_MATCH, 0));
+
+        assertThrows(BusinessException.class, () -> service.requireLockedPartsUnchanged(state, null,
+                bracket(List.of(List.of("A", "C"), List.of("C")), "C")));
+        assertDoesNotThrow(() -> service.requireLockedPartsUnchanged(state, null,
+                bracket(List.of(java.util.Arrays.asList(null, "C"), List.of("C")), "C")));
+    }
+
+    @Test
     void othersOnlySeeWhatIsAlreadyLocked() {
         match("group", "A", "A", "B", NOW.minus(2, ChronoUnit.HOURS));
         match("group", "B", "C", "D", NOW.plus(1, ChronoUnit.DAYS));

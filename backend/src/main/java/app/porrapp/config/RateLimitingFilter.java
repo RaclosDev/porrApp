@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -70,7 +71,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             return;
         }
 
-        String path = request.getRequestURI();
+        // La ruta ya decodificada, como la ve el enrutado: /api/%61uth/... es /api/auth/...
+        String path = UrlPathHelper.defaultInstance.getPathWithinApplication(request);
 
         // Login (con Google, Apple, contraseña o llave de acceso), registro con contraseña y canje del traspaso de sesión a la app instalada:
         // 15 peticiones por minuto e IP.

@@ -15,7 +15,7 @@ export const DEMO_LEAGUES = [
 ] as const;
 
 /** Quien visita la demo entra como este participante ficticio de las tres ligas. */
-export const DEMO_USER = { id: '7', name: 'Marta' } as const;
+export const DEMO_USER = { id: '105', name: 'Marta' } as const;
 
 /** Nombre de la ventana del visor móvil de la portada: sobrevive a una recarga dentro del iframe. */
 const EMBED_NAME = 'porrapp-demo-embed';

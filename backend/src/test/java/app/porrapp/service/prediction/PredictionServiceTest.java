@@ -27,6 +27,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -340,5 +341,25 @@ class PredictionServiceTest {
 
         verify(customBracketValidator).validate(eq(knockouts), any());
         verify(predictionRepository).save(any());
+    }
+
+    @Test
+    void lateEntriesInDrawnKnockoutsAreCheckedAgainstTheLockedTies() {
+        app.porrapp.model.Competition champions = app.porrapp.model.Competition.builder().id(5L)
+                .externalId("uefa.champions").formatType("LEAGUE").build();
+        Edition knockouts = Edition.builder().league(group).competition(champions)
+                .poolFormat(app.porrapp.model.PoolFormat.KNOCKOUTS_ONLY)
+                .lockMode(app.porrapp.model.PredictionLockMode.PER_ROUND).build();
+        when(userAccountRepository.findByGoogleEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(editionRepository.findByLeagueIdAndStatus(100L, "ACTIVE")).thenReturn(Optional.of(knockouts));
+        when(membershipRepository.existsById(any())).thenReturn(true);
+        when(predictionRepository.findByUserGoogleEmailAndEditionLeagueId("owner@test.com", 100L)).thenReturn(Optional.empty());
+        when(customLockService.state(knockouts)).thenReturn(lockState(true));
+        doThrow(BusinessException.conflict("Ese cruce ya ha empezado y no se puede cambiar"))
+                .when(customLockService).requireLockedPartsUnchanged(any(), isNull(), any());
+
+        assertThrows(BusinessException.class,
+                () -> predictionService.createPrediction("owner@test.com", "Tarde", new PredictionDataDTO(), 100L));
+        verify(predictionRepository, never()).save(any());
     }
 }
