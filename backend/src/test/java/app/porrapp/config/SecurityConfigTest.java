@@ -61,7 +61,7 @@ class SecurityConfigTest {
         for (String path : new String[] {"/demo", "/demo/grupos/1"}) {
             mockMvc.perform(get(path))
                     .andExpect(headers.string("Content-Security-Policy",
-                            org.hamcrest.Matchers.endsWith("frame-ancestors 'self' https://raclosdev.github.io;")))
+                            org.hamcrest.Matchers.endsWith("frame-ancestors 'self' https://portfolio.raclos.es;")))
                     .andExpect(headers.doesNotExist("X-Frame-Options"));
         }
         for (String path : new String[] {"/", "/login", "/demos", "/api/competitions/1/tournament/scorers"}) {

@@ -52,7 +52,7 @@ public class SecurityConfig {
     static final String INDEX_FONT_ONLOAD_HASH = "'sha256-C6b/4Iv4ZcrPnfjsnUI/tt1KLtFSZRbC4PywNhjbLfw='";
 
     /** El portfolio del autor: la única web ajena que puede enseñar la demo dentro de un marco. */
-    static final String PORTFOLIO_ORIGIN = "https://raclosdev.github.io";
+    static final String PORTFOLIO_ORIGIN = "https://portfolio.raclos.es";
 
     /**
      * Quién puede enmarcar cada página: la aplicación, solo su propio dominio; la demo (/demo, con
