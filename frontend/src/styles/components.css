@@ -151,7 +151,7 @@
   /* Active Nav / Tab state */
   .glass-btn.active,
   .nav-links a.active {
-    background: rgba(0, 210, 211, 0.15) !important;
+    background: rgba(243, 236, 220, 0.15) !important;
     border: 1px solid var(--accent-cyan) !important;
     color: var(--text-main) !important;
     border-radius: 10px !important;

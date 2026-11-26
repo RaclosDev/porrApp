@@ -29,7 +29,7 @@
     width: min(560px, 100%);
     max-height: min(86dvh, 720px);
     overflow: hidden;
-    border: 1px solid rgba(11, 95, 116, 0.22);
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, transparent);
     border-radius: 22px;
     background: var(--paper);
     box-shadow:
@@ -164,8 +164,8 @@
   }
 
   .friends-prediction.is-caller {
-    border-color: rgba(11, 95, 116, 0.28);
-    background: rgba(11, 95, 116, 0.07);
+    border-color: color-mix(in srgb, var(--accent-cyan) 28%, transparent);
+    background: color-mix(in srgb, var(--accent-cyan) 7%, transparent);
   }
 
   .friends-prediction-main {

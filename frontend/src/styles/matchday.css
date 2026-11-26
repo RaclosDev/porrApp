@@ -217,7 +217,7 @@
   }
 
   .md-badge.is-open {
-    background: rgba(11, 95, 116, 0.15);
+    background: color-mix(in srgb, var(--accent-cyan) 15%, transparent);
     color: var(--accent-cyan);
   }
 
