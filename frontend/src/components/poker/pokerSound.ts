@@ -101,11 +101,12 @@ export function unlockAudio() {
   }
 }
 
+/** Apagado mientras no se active a mano: en la mesa casi todos miran el torneo desde su móvil. */
 export function soundEnabled() {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) !== 'off';
+    return window.localStorage.getItem(STORAGE_KEY) === 'on';
   } catch {
-    return true;
+    return false;
   }
 }
 

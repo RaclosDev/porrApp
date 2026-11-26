@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Flag, Maximize, Pause, Pencil, Play, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type {
@@ -604,31 +605,40 @@ export default function PokerLive({
             ))}
           </ul>
         )}
-        {!winner && !finishView && selectedPlayer && (
-          <section
-            id="poker-seat-actions"
-            className="poker-seat-actions"
-            aria-label={`Acciones de ${selectedPlayer.name}`}
-          >
-            <div className="poker-player">
-              <PokerAvatar
-                playerId={selectedPlayer.playerId}
-                name={selectedPlayer.name}
-                size={44}
-              />
-              <div>
-                <strong className="poster-title">{selectedPlayer.name}</strong>
-                <Purchases rebuys={selectedPlayer.rebuys} addOns={selectedPlayer.addOns} />
+        {!winner &&
+          !finishView &&
+          selectedPlayer &&
+          // Fuera de la mesa: su escena aísla las capas y otros paneles (la música) lo taparían.
+          createPortal(
+            <section
+              id="poker-seat-actions"
+              className="poker poker-felt poker-empty poker-seat-actions"
+              aria-label={`Acciones de ${selectedPlayer.name}`}
+            >
+              <div className="poker-player">
+                <PokerAvatar
+                  playerId={selectedPlayer.playerId}
+                  name={selectedPlayer.name}
+                  size={44}
+                />
+                <div>
+                  <strong className="poster-title">{selectedPlayer.name}</strong>
+                  <Purchases rebuys={selectedPlayer.rebuys} addOns={selectedPlayer.addOns} />
+                </div>
               </div>
-            </div>
-            <div className="poker-actions">
-              {playerActions(selectedPlayer)}
-              <button type="button" className="glass-btn" onClick={() => setSelectedPlayerId(null)}>
-                Cerrar
-              </button>
-            </div>
-          </section>
-        )}
+              <div className="poker-actions">
+                {playerActions(selectedPlayer)}
+                <button
+                  type="button"
+                  className="glass-btn"
+                  onClick={() => setSelectedPlayerId(null)}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </section>,
+            document.body,
+          )}
         <dl className="poker-felt-metrics">
           {(!clock || winner || finishView) && (
             <div>

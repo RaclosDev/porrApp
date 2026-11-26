@@ -36,13 +36,17 @@ interface Options {
   entries?: EntryCount[];
   /** Jugadores eliminados: suena un aviso, con su nombre, por cada uno nuevo. */
   eliminations?: number[];
-  /** Solo suena en la pantalla que hace de TV, no en el móvil de cada jugador. */
+  /** Pantalla completa o TV: el sonido se enciende solo mientras dure. */
   tv?: boolean;
 }
 
 const WARNING_MS = 60_000;
 
-/** En el modo TV, sonidos de cambio de nivel, aviso previo, recompras y add-ons, y bloqueo de apagado de pantalla mientras corre el reloj. */
+/**
+ * Avisos de cambio de nivel, aviso previo, recompras, add-ons y eliminaciones: el crupier los hace en todas las
+ * pantallas y, con el sonido activado (de serie solo en pantalla completa), suenan mientras la mesa está a la vista.
+ * También bloquea el apagado de pantalla mientras corre el reloj.
+ */
 export function usePokerAlerts({
   running,
   level,
@@ -52,19 +56,18 @@ export function usePokerAlerts({
   eliminations,
   tv = false,
 }: Options) {
-  const [enabled, setEnabled] = useState(soundEnabled);
-  const enabledRef = useRef(enabled && tv);
-  const tvRef = useRef(tv);
+  const [stored, setStored] = useState(soundEnabled);
+  // En pantalla completa suena siempre; fuera, según lo que se eligió con el botón.
+  const enabled = stored || tv;
+  const enabledRef = useRef(enabled);
   useEffect(() => {
-    enabledRef.current = enabled && tv;
-    tvRef.current = tv;
-  }, [enabled, tv]);
+    enabledRef.current = enabled;
+  }, [enabled]);
   const [alerts, setAlerts] = useState<PokerAlert[]>([]);
   const nextId = useRef(0);
 
-  /** En la TV: cartel en el centro y, con el sonido activado, el aviso. */
+  /** Gesto del crupier (y cartel en la TV) y, con el sonido activado, el aviso. */
   const announce = useCallback((kind: PokerSoundKind, who?: { playerId: number; name: string }) => {
-    if (!tvRef.current) return;
     nextId.current += 1;
     const item: PokerAlert = { id: nextId.current, kind, ...who };
     setAlerts((queue) => [...queue, item]);
@@ -74,7 +77,8 @@ export function usePokerAlerts({
   // Los carteles salen de uno en uno; cada uno suena al aparecer.
   useEffect(() => {
     if (!alert) return;
-    if (enabledRef.current) playPokerSound(alert.kind);
+    // Solo con la mesa en primer plano: una pestaña de fondo no se pone a sonar.
+    if (enabledRef.current && document.visibilityState === 'visible') playPokerSound(alert.kind);
     const timer = window.setTimeout(
       () => setAlerts((queue) => queue.filter((item) => item.id !== alert.id)),
       POKER_ALERT_MS,
@@ -82,10 +86,6 @@ export function usePokerAlerts({
     return () => window.clearTimeout(timer);
   }, [alert]);
 
-  // Al cerrar la TV se descartan los carteles pendientes.
-  useEffect(() => {
-    if (!tv) setAlerts([]);
-  }, [tv]);
   const lastLevel = useRef<number | null>(null);
   const warnedLevel = useRef<number | null>(null);
 
@@ -167,8 +167,8 @@ export function usePokerAlerts({
 
   function toggle() {
     unlockAudio();
-    const next = !enabled;
-    setEnabled(next);
+    const next = !stored;
+    setStored(next);
     storeSoundEnabled(next);
     if (next) playPokerSound('warning');
   }
