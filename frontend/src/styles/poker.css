@@ -2968,6 +2968,13 @@
   grid-template-columns: minmax(0, 1fr) 6rem 5rem;
 }
 
+/* En los móviles más estrechos las cifras ceden sitio para que se lea el nombre. */
+@media (max-width: 360px) {
+  .poker-close-dialog .poker-payout-row {
+    grid-template-columns: minmax(0, 1fr) 4.25rem 3.25rem;
+  }
+}
+
 .poker-close-dialog .poker-payout-name {
   display: flex;
   gap: 0.6rem;
@@ -3010,10 +3017,29 @@
   text-transform: uppercase;
 }
 
+.poker-payout-summary > div {
+  min-width: 0;
+}
+
+.poker-payout-summary dt,
+.poker-payout-summary dd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .poker-payout-summary dd {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* En el móvil las cuatro cifras no caben en una fila: dos por fila. */
+@media (max-width: 560px) {
+  .poker-payout-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .poker-payout-summary.is-off .poker-payout-leftover dd {
