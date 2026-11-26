@@ -2,9 +2,10 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const play = vi.fn();
+let stored = false;
 vi.mock('../../components/poker/pokerSound', () => ({
   playPokerSound: (kind: string) => play(kind),
-  soundEnabled: () => true,
+  soundEnabled: () => stored,
   storeSoundEnabled: vi.fn(),
   unlockAudio: vi.fn(),
 }));
@@ -22,7 +23,10 @@ type Props = {
 };
 
 describe('usePokerAlerts', () => {
-  beforeEach(() => play.mockClear());
+  beforeEach(() => {
+    play.mockClear();
+    stored = false;
+  });
 
   const render = (initial: Props) =>
     renderHook((props: Props) => usePokerAlerts({ running: true, tv: true, ...props }), {
@@ -36,12 +40,30 @@ describe('usePokerAlerts', () => {
     expect(play).toHaveBeenCalledWith('level');
   });
 
-  it('fuera del modo TV no suena nada en el móvil', () => {
+  it('fuera de la pantalla completa el crupier avisa sin sonar, con el sonido apagado de serie', () => {
     const base = { level: 0, onBreak: false, remainingMs: 600_000, tv: false };
     const { result, rerender } = render({ ...base, entries: [ana(0, 0)] });
-    rerender({ ...base, level: 1, remainingMs: 30_000, entries: [ana(1, 1)] });
+    rerender({ ...base, entries: [ana(1, 0)] });
     expect(play).not.toHaveBeenCalled();
-    expect(result.current.alert).toBeNull();
+    expect(result.current.alert).toMatchObject({ kind: 'rebuy', name: 'Ana' });
+    expect(result.current.soundOn).toBe(false);
+  });
+
+  it('fuera de la pantalla completa suena si se activó el sonido y la mesa está a la vista', () => {
+    stored = true;
+    const base = { level: 0, onBreak: false, remainingMs: 600_000, tv: false };
+    const { rerender } = render({ ...base, entries: [ana(0, 0)] });
+    rerender({ ...base, entries: [ana(1, 0)] });
+    expect(play).toHaveBeenCalledWith('rebuy');
+  });
+
+  it('no suena con la pestaña en segundo plano', () => {
+    stored = true;
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    const { rerender } = render({ level: 0, onBreak: false, remainingMs: 600_000, tv: false });
+    rerender({ level: 1, onBreak: false, remainingMs: 600_000, tv: false });
+    expect(play).not.toHaveBeenCalled();
+    visibility.mockRestore();
   });
 
   it('usa otro sonido al empezar un descanso', () => {
@@ -58,10 +80,16 @@ describe('usePokerAlerts', () => {
   });
 
   it('el interruptor silencia los avisos', () => {
-    const { result, rerender } = render({ level: 0, onBreak: false, remainingMs: 600_000 });
+    stored = true;
+    const { result, rerender } = render({
+      level: 0,
+      onBreak: false,
+      remainingMs: 600_000,
+      tv: false,
+    });
     act(() => result.current.toggleSound());
     play.mockClear();
-    rerender({ level: 1, onBreak: false, remainingMs: 600_000 });
+    rerender({ level: 1, onBreak: false, remainingMs: 600_000, tv: false });
     expect(play).not.toHaveBeenCalled();
   });
 
