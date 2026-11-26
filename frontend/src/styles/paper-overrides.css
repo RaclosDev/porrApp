@@ -214,6 +214,23 @@
     background: var(--surface);
   }
 
+  /* La cara del crupier, en un disco de papel para que su pelo y su visera no se pierdan en el tema oscuro. */
+  .header-crupier-face {
+    display: block;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border: 2px solid #111;
+    border-radius: 50%;
+    background: #e8dcb8;
+  }
+
+  .header-crupier-face svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
   .paper-dialog-body > .album-sheet::before {
     display: none;
   }

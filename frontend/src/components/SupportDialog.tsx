@@ -15,6 +15,8 @@ import {
 import DialogBackdrop from './DialogBackdrop';
 import { type CrupierCue } from './poker/crupier/Crupier';
 import PokerFreeTable from './poker/PokerFreeTable';
+import BarScene from './support/BarScene';
+import './support/support.css';
 import { useDialogFocus } from '../hooks/useDialogFocus';
 import { SUPPORT_LINKS } from '../supportLinks';
 
@@ -22,8 +24,8 @@ const ICONS = { 'Ko-fi': Coffee, Revolut: Zap, PayPal: CreditCard } as const;
 
 const VARIANTS = {
   support: {
-    title: 'Invítanos a un café',
-    text: 'PorrApp es gratis y sin anuncios. Con tu ayuda pagamos el servidor y seguimos añadiendo cosas.',
+    title: 'Invítanos a una caña',
+    text: 'Tu caña paga:',
     cta: 'Invitar con',
   },
   tip: {
@@ -36,7 +38,7 @@ const VARIANTS = {
 /** Lo que ha hecho el «crupier» en el torneo, para que se vea qué se agradece. */
 const DEALER_JOBS = ['Ciegas', 'Bote', 'Reparto'];
 
-/** En qué se va la propina, para que se vea que no es un bote más. */
+/** En qué se va la ayuda, para que se vea que no es un bote más. */
 const TIP_PAYS = [
   { Icon: Server, text: 'Servidor de las ligas' },
   { Icon: Database, text: 'Base de datos' },
@@ -83,7 +85,7 @@ export default function SupportDialog({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className={`paper-panel paper-dialog ${tip ? 'max-w-[420px] max-h-[94dvh]' : 'max-w-[380px]'} overflow-y-auto px-5 pt-7 pb-5`}
+        className="paper-panel paper-dialog max-h-[94dvh] max-w-[420px] overflow-y-auto px-5 pt-7 pb-5"
         role="dialog"
         aria-modal="true"
         aria-labelledby="support-dialog-title"
@@ -91,7 +93,7 @@ export default function SupportDialog({
       >
         <button
           type="button"
-          className={`paper-dialog-close absolute top-2.5 right-2.5 z-10 flex items-center justify-center${tip ? ' bg-[rgb(255_246_220/0.75)] text-[#2a1d0a]' : ''}`}
+          className="paper-dialog-close absolute top-2.5 right-2.5 z-10 flex items-center justify-center bg-[rgb(255_246_220/0.75)] text-[#2a1d0a]"
           onClick={onClose}
           aria-label="Cerrar"
         >
@@ -123,21 +125,13 @@ export default function SupportDialog({
             </PokerFreeTable>
           </div>
         ) : (
-          <span
-            className="mx-auto mb-2 flex h-16 w-16 rotate-[-6deg] items-center justify-center rounded-full border-2 border-dashed border-[#e7b48f] bg-[#fde8d7] text-[#a8470b]"
-            aria-hidden="true"
-          >
-            <Coffee size={30} strokeWidth={2.2} />
-          </span>
+          <div className="-mx-5 -mt-7 mb-4">
+            <BarScene />
+          </div>
         )}
 
-        <div
-          className={`${tip ? 'mb-3 gap-1' : 'mb-4 gap-1.5'} flex flex-col items-center text-center`}
-        >
-          <h2
-            id="support-dialog-title"
-            className={`poster-title m-0 ${tip ? 'text-[1.3rem]' : 'text-[1.5rem]'} leading-tight`}
-          >
+        <div className="mb-3 flex flex-col items-center gap-1 text-center">
+          <h2 id="support-dialog-title" className="poster-title m-0 text-[1.3rem] leading-tight">
             {title}
           </h2>
           <p
@@ -146,23 +140,21 @@ export default function SupportDialog({
           >
             {text}
           </p>
-          {tip && (
-            <ul className="poker-tip-pays">
-              {TIP_PAYS.map(({ Icon, text: line }) => (
-                <li key={line}>
-                  <Icon size={18} strokeWidth={2.2} aria-hidden="true" />
-                  {line}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="support-pays">
+            {TIP_PAYS.map(({ Icon, text: line }) => (
+              <li key={line}>
+                <Icon size={18} strokeWidth={2.2} aria-hidden="true" />
+                {line}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <a
           href={featured.href}
           target="_blank"
           rel="noopener noreferrer"
-          className={`${LINK_BASE} relative gap-3 ${tip ? 'min-h-16 py-2' : 'min-h-[4.5rem] py-3'} rounded-2xl ring-2 ring-[#ffd76a] pr-4 pl-3 shadow-[0_4px_0_rgba(0,0,0,0.3)] hover:shadow-[0_6px_0_rgba(0,0,0,0.3)] active:shadow-[0_1px_0_rgba(0,0,0,0.3)]`}
+          className={`${LINK_BASE} relative gap-3 min-h-16 py-2 rounded-2xl ring-2 ring-[#ffd76a] pr-4 pl-3 shadow-[0_4px_0_rgba(0,0,0,0.3)] hover:shadow-[0_6px_0_rgba(0,0,0,0.3)] active:shadow-[0_1px_0_rgba(0,0,0,0.3)]`}
           style={{ background: featured.background, color: featured.color }}
         >
           <span className="absolute -top-2.5 right-3 rounded-full bg-[#feca57] px-2 py-px text-[0.68rem] font-bold uppercase tracking-wide text-[#191c1f] shadow-[0_2px_0_rgba(0,0,0,0.2)]">
@@ -175,9 +167,7 @@ export default function SupportDialog({
             <FeaturedIcon size={24} strokeWidth={2.2} />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
-            <span
-              className={`${tip ? 'text-[1rem]' : 'text-[1.1rem]'} leading-tight font-extrabold`}
-            >
+            <span className="text-[1rem] leading-tight font-extrabold">
               {cta} {featured.label}
             </span>
             <span className="text-[0.8rem] leading-tight opacity-85">{featured.hint}</span>
@@ -190,7 +180,7 @@ export default function SupportDialog({
         </a>
 
         <p
-          className={`${tip ? 'mt-2.5 mb-1.5' : 'mt-3.5 mb-2'} text-center text-[0.75rem] font-bold tracking-wider text-muted uppercase`}
+          className={`mt-2.5 mb-1.5 text-center text-[0.75rem] font-bold tracking-wider text-muted uppercase`}
         >
           o con
         </p>
@@ -216,7 +206,7 @@ export default function SupportDialog({
         </ul>
 
         <p
-          className={`${tip ? 'mt-3' : 'mt-4'} mb-0 flex items-center justify-center gap-1.5 text-center text-[0.78rem] text-muted [text-wrap:balance]`}
+          className={`mt-3 mb-0 flex items-center justify-center gap-1.5 text-center text-[0.78rem] text-muted [text-wrap:balance]`}
         >
           <Heart size={14} aria-hidden="true" className="shrink-0 text-[var(--miss)]" />
           Es voluntario: todo sigue gratis para todos.

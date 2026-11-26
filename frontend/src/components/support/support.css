@@ -1,0 +1,261 @@
+/* Diálogo de apoyo: la escena del bar a sangre arriba, con la pared sepia del crupier y la barra de lado a lado. */
+.bar-scene {
+  --bar-size: clamp(140px, min(50vw, 24dvh), 220px);
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  padding-top: 0.6rem;
+  border-bottom: 3px solid #f0c94c;
+  line-height: 0;
+  /* La barra del dibujo (del 75 % al 79 % de alto la tabla, debajo el frente) sigue hasta los bordes. */
+  background:
+    linear-gradient(
+      to bottom,
+      transparent calc(100% - var(--bar-size) * 0.2575),
+      #111 calc(100% - var(--bar-size) * 0.2575) calc(100% - var(--bar-size) * 0.2425),
+      #a8743f calc(100% - var(--bar-size) * 0.2425) calc(100% - var(--bar-size) * 0.2175),
+      #111 calc(100% - var(--bar-size) * 0.2175) calc(100% - var(--bar-size) * 0.2025),
+      #6b4423 calc(100% - var(--bar-size) * 0.2025) calc(100% - var(--bar-size) * 0.0625),
+      #111 calc(100% - var(--bar-size) * 0.0625) calc(100% - var(--bar-size) * 0.0565),
+      #d9b45a calc(100% - var(--bar-size) * 0.0565) calc(100% - var(--bar-size) * 0.0435),
+      #111 calc(100% - var(--bar-size) * 0.0435) calc(100% - var(--bar-size) * 0.0375),
+      #6b4423 calc(100% - var(--bar-size) * 0.0375)
+    ),
+    radial-gradient(ellipse 45% 75% at 50% 45%, rgb(255 246 220 / 0.9), rgb(255 246 220 / 0) 100%),
+    repeating-conic-gradient(from 0deg at 50% 30%, #cbbe98 0deg 7deg, transparent 7deg 22deg),
+    #d9cdaa;
+}
+
+/* Grano y viñeta, como en la escena del crupier. */
+.bar-scene::after {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 40%, transparent 55%, rgb(42 29 10 / 0.5)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.18 0 0 0 0 0.13 0 0 0 0 0.04 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E");
+  content: '';
+  pointer-events: none;
+}
+
+.bar-scene-art {
+  width: var(--bar-size);
+  height: var(--bar-size);
+}
+
+/* Tira de la caña, la sirve con su espuma, dice «¡Salud!» y vuelta a empezar. */
+.bar-scene-art * {
+  transform-box: view-box;
+}
+
+.bar-handle {
+  transform-origin: 130.5px 116px;
+  animation: bar-pull 6.5s ease-in-out infinite;
+}
+
+.bar-arm {
+  transform-origin: 137px 124px;
+  animation: bar-arm 6.5s ease-in-out infinite;
+}
+
+.bar-stream {
+  animation: bar-stream 6.5s linear infinite;
+}
+
+.bar-level {
+  animation: bar-fill 6.5s ease-out infinite;
+}
+
+.bar-foam {
+  transform-origin: 112px 123px;
+  animation: bar-foam 6.5s ease-out infinite;
+}
+
+.bar-salud {
+  transform-origin: 100px 25px;
+  animation: bar-salud 6.5s ease-out infinite;
+}
+
+.bar-head {
+  animation: bar-bob 6.5s ease-in-out infinite;
+}
+
+.bar-bubbles circle {
+  animation: bar-bubble 1.8s linear infinite;
+}
+
+.bar-bubbles circle:nth-child(2) {
+  animation-delay: -0.6s;
+}
+
+.bar-bubbles circle:nth-child(3) {
+  animation-delay: -1.2s;
+}
+
+@keyframes bar-pull {
+  0%,
+  4% {
+    transform: rotate(0);
+  }
+  10%,
+  60% {
+    transform: rotate(18deg);
+  }
+  68%,
+  100% {
+    transform: rotate(0);
+  }
+}
+
+@keyframes bar-arm {
+  0%,
+  4% {
+    transform: rotate(0);
+  }
+  10%,
+  60% {
+    transform: rotate(13deg);
+  }
+  68%,
+  100% {
+    transform: rotate(0);
+  }
+}
+
+@keyframes bar-stream {
+  0%,
+  9% {
+    opacity: 0;
+  }
+  10%,
+  61% {
+    opacity: 1;
+  }
+  63%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes bar-fill {
+  0%,
+  10% {
+    transform: translateY(30px);
+    opacity: 1;
+  }
+  62%,
+  93% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  98%,
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes bar-foam {
+  0%,
+  56% {
+    transform: scale(0);
+  }
+  64%,
+  93% {
+    transform: scale(1);
+  }
+  98%,
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes bar-salud {
+  0%,
+  66% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.15);
+  }
+  74%,
+  90% {
+    transform: scale(1);
+  }
+  94%,
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes bar-bob {
+  0%,
+  66%,
+  100% {
+    transform: translateY(0);
+  }
+  70% {
+    transform: translateY(-2px) rotate(-3deg);
+  }
+  78% {
+    transform: translateY(0) rotate(0);
+  }
+}
+
+@keyframes bar-bubble {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+
+/* Sin movimiento: la caña ya servida y el «¡Salud!» a la vista. */
+@media (prefers-reduced-motion: reduce) {
+  .bar-scene-art * {
+    animation: none !important;
+  }
+
+  .bar-stream {
+    opacity: 0;
+  }
+}
+
+/* En qué se va la ayuda, para que se vea que no es un gasto más. */
+.support-pays {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.support-pays li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.4rem 0.3rem;
+  border: 1.5px dashed color-mix(in srgb, currentcolor 28%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, currentcolor 6%, transparent);
+  color: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.support-pays svg {
+  flex: none;
+  color: #d9822b;
+}

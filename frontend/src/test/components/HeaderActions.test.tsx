@@ -2,6 +2,10 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import HeaderActions from '../../components/layout/HeaderActions';
 
+vi.mock('../../components/layout/HeaderSupportButton', () => ({
+  default: () => null,
+  BeerIcon: () => null,
+}));
 vi.mock('../../components/layout/InstallAppButton', () => ({ default: () => null }));
 vi.mock('../../components/layout/NotificationBell', () => ({
   default: ({ onOpenSettings }: { onOpenSettings: () => void }) => (
@@ -57,7 +61,7 @@ it('el botón de apoyar abre una ventana con Ko-fi, Revolut y PayPal en otra pes
   expect(screen.queryByRole('dialog')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Apoyar el proyecto' }));
 
-  const dialog = screen.getByRole('dialog', { name: 'Invítanos a un café' });
+  const dialog = screen.getByRole('dialog', { name: 'Invítanos a una caña' });
   const expected = {
     'Ko-fi': 'https://ko-fi.com/O3E42AJYOP',
     Revolut: 'https://revolut.me/raclos',
