@@ -2635,17 +2635,44 @@
   box-sizing: border-box;
 }
 
-/* Siempre a la vista al bajar por los puestos: se ve al momento cómo cambia lo que sobra. */
+/* Safari da al campo de fecha un ancho mínimo propio que lo montaba sobre la entrada. */
+.poker-edit-basics input[type='date'] {
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+}
+
+/*
+ * Siempre a la vista al bajar por los puestos: se ve al momento cómo cambia lo que sobra. Va pegado
+ * al borde de arriba y a todo lo ancho, sin hueco por el que asome la lista al desplazarse.
+ */
+.sheet-dialog-body.poker-result-editor {
+  --edit-inline: 20px;
+  padding-top: 0;
+}
+.poker-edit-basics {
+  padding-top: 12px;
+}
 .poker-edit-totals {
   position: sticky;
-  top: -1px;
+  top: 0;
   z-index: 1;
-  padding-block: 0.4rem;
-  background: var(--paper);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-  margin: 0;
+  margin: 0 calc(var(--edit-inline) * -1);
+  padding: 0.5rem var(--edit-inline);
+  background: var(--paper);
+  border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+@media (max-width: 560px) {
+  .sheet-dialog-body.poker-result-editor {
+    --edit-inline: 16px;
+  }
+  .poker-edit-basics {
+    padding-top: 8px;
+  }
 }
 
 .poker-edit-totals div {
@@ -2674,22 +2701,38 @@
   color: var(--danger, #c0392b);
 }
 
-/* Premio, puntos y extras de cada puesto: su propia línea bajo el nombre. */
+/*
+ * Premio, puntos y extras de cada puesto en una sola fila bajo el nombre: el premio algo más ancho
+ * y los demás estrechos, que nunca pasan de dos o tres cifras.
+ */
 .poker-edit-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
-  gap: 0.45rem;
+  grid-template-columns: minmax(0, 1.5fr);
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0.4rem;
   flex-basis: 100%;
 }
 
 .poker-edit-fields .poker-edit-count {
   display: grid;
   gap: 0.2rem;
-  font-size: 0.78rem;
+  min-width: 0;
+  font-size: 0.75rem;
+}
+
+.poker-edit-fields .poker-edit-count > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .poker-edit-fields .poker-edit-count input {
   width: 100%;
+  min-width: 0;
+  padding-inline: 0.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .poker-late-entry {
