@@ -37,14 +37,25 @@ export default function InfoTip({ label, children }: Props) {
   }, [open]);
 
   return (
-    <span ref={ref} className="info-tip">
+    <span
+      ref={ref}
+      className="info-tip"
+      // Con ratón se abre también al pasar por encima; en el móvil, al pulsar.
+      onPointerEnter={(event) => event.pointerType === 'mouse' && setOpen(true)}
+      onPointerLeave={(event) => event.pointerType === 'mouse' && setOpen(false)}
+    >
       <button
         type="button"
         className="info-tip-btn"
         aria-label={label}
         aria-expanded={open}
         aria-controls={open ? id : undefined}
-        onClick={() => setOpen((value) => !value)}
+        onClick={(event) =>
+          // El clic del ratón llega con la burbuja ya abierta por el hover: no la cierra.
+          setOpen((value) =>
+            (event.nativeEvent as PointerEvent).pointerType === 'mouse' ? true : !value,
+          )
+        }
       >
         <Info size={15} aria-hidden="true" />
       </button>

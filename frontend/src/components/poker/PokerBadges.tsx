@@ -53,7 +53,17 @@ export function SkullIcon() {
 }
 
 /** Compras de un jugador con sus iconos; el texto completo queda para lectores de pantalla. */
-export function Purchases({ rebuys, addOns }: { rebuys: number; addOns: number }) {
+export function Purchases({
+  rebuys,
+  addOns,
+  inline = false,
+}: {
+  rebuys: number;
+  addOns: number;
+  /** Dentro de una frase o de una celda: `span` en vez de párrafo. */
+  inline?: boolean;
+}) {
+  const Tag = inline ? 'span' : 'p';
   const label =
     [
       rebuys > 0 && `${rebuys} ${rebuys === 1 ? 'recompra' : 'recompras'}`,
@@ -62,7 +72,7 @@ export function Purchases({ rebuys, addOns }: { rebuys: number; addOns: number }
       .filter(Boolean)
       .join(' · ') || 'Sin recompras ni add-ons';
   return (
-    <p className="poker-purchases" role="img" aria-label={label} title={label}>
+    <Tag className="poker-purchases" role="img" aria-label={label} title={label}>
       {rebuys === 0 && addOns === 0 && <span className="poker-note">{label}</span>}
       {rebuys > 0 && (
         <span>
@@ -74,7 +84,7 @@ export function Purchases({ rebuys, addOns }: { rebuys: number; addOns: number }
           <BagIcon />×{addOns}
         </span>
       )}
-    </p>
+    </Tag>
   );
 }
 

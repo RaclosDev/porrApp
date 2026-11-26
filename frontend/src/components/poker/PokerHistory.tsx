@@ -1,12 +1,15 @@
+import { Coins, HandCoins, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { PokerResultsEdit, PokerSession } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
 import SheetDialog from '../SheetDialog';
+import { Purchases } from './PokerBadges';
 import PokerEmpty from './PokerEmpty';
 import { PokerAvatar } from './PokerFaces';
 import { PokerPlayerName } from './PokerPlayerCard';
 import PokerPodium from './PokerPodium';
 import PokerResultEditor from './PokerResultEditor';
+import { FullPrizesTip } from './PokerCloseDialog';
 import {
   chips,
   euros,
@@ -22,10 +25,12 @@ import {
 import { pokerRoutes } from './pokerRoutes';
 import SelectMenu from '../SelectMenu';
 
-function Net({ cents }: { cents: number }) {
+function Net({ cents, paidCents }: { cents: number; paidCents?: number }) {
   return (
     <td className={cents > 0 ? 'poker-net is-up' : cents < 0 ? 'poker-net is-down' : 'poker-net'}>
       {signedEuros(cents)}
+      {/* En el móvil no cabe la columna de lo aportado: baja bajo el neto. */}
+      {paidCents != null && <small className="poker-row-extra">aportó {euros(paidCents)}</small>}
     </td>
   );
 }
@@ -109,7 +114,6 @@ export function PokerHistory({
               ›
             </button>
           </div>
-          <p className="poster-title poker-big-date">{tournamentDate(session.date)}</p>
           <dl className="poker-history-facts">
             <div>
               <dt>Jugadores</dt>
@@ -124,47 +128,56 @@ export function PokerHistory({
               <dd>{euros(session.settings.buyInCents)}</dd>
             </div>
             <div>
-              <dt>Fichas iniciales</dt>
+              <dt>Fichas</dt>
               <dd>{chips(session.settings.startingChips)}</dd>
             </div>
-            {(session.leftoverCents ?? 0) !== 0 && (
-              <div className="poker-history-leftover">
-                <dt>{(session.leftoverCents ?? 0) > 0 ? 'Sin repartir' : 'Repartido de más'}</dt>
-                <dd>{euros(Math.abs(session.leftoverCents ?? 0))}</dd>
-              </div>
-            )}
           </dl>
+          {(session.leftoverCents ?? 0) !== 0 && (
+            <p className="poker-history-leftover">
+              {(session.leftoverCents ?? 0) > 0 ? 'Sobran' : 'Repartido de más:'}{' '}
+              <strong>{euros(Math.abs(session.leftoverCents ?? 0))}</strong>
+              {(session.leftoverCents ?? 0) > 0 && ' sin repartir'}
+              <FullPrizesTip rows={session.results} leftoverCents={session.leftoverCents ?? 0} />
+            </p>
+          )}
           {(payments.length > 0 || admin) && (
             <div className="poker-actions poker-history-actions">
               {payments.length > 0 && (
                 <button
                   type="button"
-                  className="glass-btn primary-btn"
+                  className="glass-btn poker-history-payments-btn"
                   aria-haspopup="dialog"
+                  aria-label={`Quién paga a quién · ${payments.length} ${payments.length === 1 ? 'pago' : 'pagos'}`}
                   onClick={() => setSheet('payments')}
                 >
-                  Quién paga a quién · {payments.length} {payments.length === 1 ? 'pago' : 'pagos'}
+                  <HandCoins size={20} aria-hidden="true" />
+                  <span>Quién paga a quién</span>
+                  <span className="poker-history-payments-count">{payments.length}</span>
                 </button>
               )}
               {admin && onEdit && (
                 <button
                   type="button"
-                  className="glass-btn"
+                  className="glass-btn poker-history-icon-btn"
                   aria-haspopup="dialog"
+                  aria-label="Editar"
+                  title="Editar el torneo"
                   disabled={busy}
                   onClick={() => setSheet('edit')}
                 >
-                  Editar
+                  <Pencil size={18} aria-hidden="true" />
                 </button>
               )}
               {admin && onDelete && (
                 <button
                   type="button"
-                  className="glass-btn poker-out-btn"
+                  className="glass-btn poker-out-btn poker-history-icon-btn"
+                  aria-label="Borrar"
+                  title="Borrar el torneo"
                   disabled={busy}
                   onClick={() => void remove(session)}
                 >
-                  Borrar
+                  <Trash2 size={18} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -178,13 +191,28 @@ export function PokerHistory({
               <div className="sheet-dialog-body">
                 <ul className="poker-payments" aria-label="Pagos para saldar el torneo">
                   {payments.map((payment) => (
-                    <li key={`${payment.fromId}-${payment.toId}`}>
+                    <li
+                      key={`${payment.fromId}-${payment.toId}`}
+                      className={payment.toId === null ? 'is-leftover' : undefined}
+                    >
                       <PokerAvatar playerId={payment.fromId} name={payment.from} size={32} />
-                      <span>
-                        <strong>{payment.from}</strong> paga a <strong>{payment.to}</strong>
-                      </span>
+                      {payment.toId === null ? (
+                        <span>
+                          <strong>{payment.from}</strong> paga al <strong>sobrante</strong>
+                        </span>
+                      ) : (
+                        <span>
+                          <strong>{payment.from}</strong> paga a <strong>{payment.to}</strong>
+                        </span>
+                      )}
                       <strong className="poker-payment-amount">{euros(payment.cents)}</strong>
-                      <PokerAvatar playerId={payment.toId} name={payment.to} size={32} />
+                      {payment.toId === null ? (
+                        <span className="poker-payment-pot" aria-hidden="true">
+                          <Coins size={18} />
+                        </span>
+                      ) : (
+                        <PokerAvatar playerId={payment.toId} name={payment.to} size={32} />
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -192,6 +220,10 @@ export function PokerHistory({
                   <p className="poker-payments-leftover">
                     Sobran <strong>{euros(session.leftoverCents ?? 0)}</strong> del bote sin
                     repartir: no tienen dueño, se quedan para lo que decida la mesa.
+                    <FullPrizesTip
+                      rows={session.results}
+                      leftoverCents={session.leftoverCents ?? 0}
+                    />
                   </p>
                 )}
                 <p className="poker-note">
@@ -263,21 +295,13 @@ export function PokerHistory({
                         />
                         <span>
                           <PokerPlayerName playerId={result.playerId} name={result.name} />
-                          <small className="poker-row-extra">
-                            {result.finalChips != null && `${chips(result.finalChips)} fichas · `}
-                            aportó {euros(result.paidCents)}
-                          </small>
-                          {(result.rebuys > 0 || result.addOns > 0) && (
-                            <small>
-                              {[
-                                result.rebuys > 0 &&
-                                  `${result.rebuys} ${result.rebuys === 1 ? 'recompra' : 'recompras'}`,
-                                result.addOns > 0 &&
-                                  `${result.addOns} ${result.addOns === 1 ? 'add-on' : 'add-ons'}`,
-                              ]
-                                .filter(Boolean)
-                                .join(' · ')}
+                          {result.finalChips != null && (
+                            <small className="poker-row-extra">
+                              {chips(result.finalChips)} fichas
                             </small>
+                          )}
+                          {(result.rebuys > 0 || result.addOns > 0) && (
+                            <Purchases rebuys={result.rebuys} addOns={result.addOns} inline />
                           )}
                         </span>
                       </span>
@@ -295,7 +319,10 @@ export function PokerHistory({
                       </small>
                     </td>
                     <td className="poker-col-points">{pointsText(result.points ?? 0)}</td>
-                    <Net cents={result.prizeCents - result.paidCents} />
+                    <Net
+                      cents={result.prizeCents - result.paidCents}
+                      paidCents={result.paidCents}
+                    />
                   </tr>
                 ))}
               </tbody>
@@ -364,6 +391,8 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
   const standings = pokerStandings(sessions);
   const rankOf = new Map(standings.map((row, index) => [row.playerId, index + 1]));
   const [sort, setSort] = useState<{ column: number; ascending: boolean } | null>(null);
+  // Al desplazar la tabla en horizontal, la columna fija se queda en la foto y deja ver los datos.
+  const [scrolled, setScrolled] = useState(false);
   const sorted = [...standings];
   if (sort) {
     const { value } = statisticColumns[sort.column];
@@ -408,10 +437,16 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
             }))}
           />
           <div
-            className="poker-table-scroll"
+            className={`poker-table-scroll${scrolled ? ' is-scrolled' : ''}`}
             role="region"
             aria-label="Clasificación de la liga de póker"
             tabIndex={0}
+            onScroll={(event) => {
+              // Margen distinto para plegar y desplegar: al plegarse la columna, la tabla mengua.
+              const left = event.currentTarget.scrollLeft;
+              if (!scrolled && left > 24) setScrolled(true);
+              else if (scrolled && left <= 4) setScrolled(false);
+            }}
           >
             <table className="poker-table poker-stats-table">
               <thead>
@@ -463,7 +498,11 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                       <span className="poker-player">
                         <PlaceBadge place={rankOf.get(row.playerId) ?? 0} />
                         <PokerAvatar playerId={row.playerId} name={row.name} size={28} zoomable />
-                        <PokerPlayerName playerId={row.playerId} name={row.name} />
+                        <PokerPlayerName
+                          playerId={row.playerId}
+                          name={row.name}
+                          className="poker-stats-name"
+                        />
                       </span>
                     </th>
                     <td className="poker-strong">{pointsText(row.points)}</td>

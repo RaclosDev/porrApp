@@ -1053,14 +1053,7 @@
   color: #9f1239;
 }
 
-/* Fecha de cartel y estado a rotulador, como los titulares del resto de la app. */
-.poker .poker-big-date {
-  margin: 0.5rem 0 0;
-  font-size: clamp(1.5rem, 5.5vw, 2.3rem);
-  line-height: 1.08;
-  overflow-wrap: anywhere;
-}
-
+/* Estado a rotulador, como los titulares del resto de la app. */
 .poker .poker-state {
   margin: 0.2rem 0 0;
   font-size: 1.15rem;
@@ -1600,7 +1593,7 @@
     display: block;
   }
 
-  .poker-results-table th .poker-row-extra {
+  .poker-results-table :is(th, td) .poker-row-extra {
     display: block;
   }
 
@@ -1702,6 +1695,24 @@
 
 .poker-table .poker-row-extra {
   display: none;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Recompras y add-ons con sus iconos, en pequeño bajo el nombre. */
+.poker-results-table .poker-purchases {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0.1rem 0 0;
+  font-size: 0.75rem;
+}
+
+.poker-results-table .poker-icon-bullet {
+  width: 0.38rem;
+}
+
+.poker-results-table .poker-icon-bag {
+  width: 0.8rem;
 }
 
 .poker-podium-name.is-long {
@@ -2494,7 +2505,65 @@
 
 /* Histórico: pagos y corrección del torneo en hojas, a mano bajo el resumen. */
 .poker-history-actions {
+  flex-wrap: nowrap;
   margin: 0.4rem 0 0.8rem;
+}
+
+/* Los pagos ocupan la fila; editar y borrar, al lado y en pequeño, con su icono. */
+.poker-history-payments-btn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 44px;
+  padding-inline: 0.7rem 0.55rem;
+  text-align: left;
+}
+
+.poker-history-payments-btn > span:first-of-type {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poker-history-payments-btn > svg:first-child {
+  color: var(--accent-fill);
+}
+
+.poker-history-payments-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding-inline: 0.4rem;
+  border-radius: 999px;
+  background: var(--accent-fill);
+  color: var(--accent-on);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-history-icon-btn {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.poker-history-actions .poker-out-btn {
+  border-color: color-mix(in srgb, #f87171 50%, transparent);
+  color: #f87171;
+}
+
+[data-theme='light'] .poker-history-actions .poker-out-btn {
+  border-color: color-mix(in srgb, #9f1239 45%, transparent);
+  color: #9f1239;
 }
 
 .poker-payments {
@@ -2513,6 +2582,21 @@
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--line, rgb(0 0 0 / 12%));
   border-radius: 10px;
+}
+
+/* El pago al sobrante: con el borde discontinuo del aviso del sobrante, que va justo debajo. */
+.poker-payments li.is-leftover {
+  border-style: dashed;
+}
+
+.poker-payment-pot {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px dashed color-mix(in srgb, currentColor 45%, transparent);
+  border-radius: 50%;
+  color: var(--text-muted);
 }
 
 .poker-payment-amount {
@@ -2589,16 +2673,16 @@
   width: 4.2rem;
 }
 
-/* Cifras del torneo del histórico: casillas iguales, dos por fila en el móvil. */
+/* Cifras del torneo del histórico: una sola fila de casillas, también en el móvil. */
 .poker-history-facts {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin: 0.4rem 0 0.9rem;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.4rem;
 }
 
 .poker-history-facts div {
-  padding: 0.55rem 0.4rem;
+  padding: 0.35rem 0.25rem;
   border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
   background: color-mix(in srgb, currentColor 5%, transparent);
   border-radius: 10px;
@@ -2607,7 +2691,7 @@
 }
 
 .poker-history-facts dt {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   opacity: 0.7;
@@ -2616,23 +2700,17 @@
 .poker-history-facts dd {
   margin: 0.15rem 0 0;
   font-family: 'Anton', 'Arial Narrow', sans-serif;
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.poker-history-facts .poker-history-leftover {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 0.6rem;
-}
-
-@media (max-width: 560px) {
-  .poker-history-facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.poker-history-leftover {
+  margin: 0 0 0.2rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 /* Fecha y precios en una rejilla que se apila sola en el móvil. */
@@ -2961,9 +3039,71 @@
   background: var(--surface-raised, #1d2430);
   color: var(--text-primary);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  /* Igual en todas: no hereda la letra, el tamaño ni las mayúsculas del título donde va. */
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: normal;
   line-height: 1.4;
   text-align: left;
+  text-transform: none;
+  white-space: normal;
   transform: translateX(-50%);
+}
+
+/* El total con el sobrante: la «i» va en la esquina de la caja y no la hace crecer; el dt recorta su
+   texto, pero no la burbuja, que se coloca respecto a la caja. */
+.poker-payout-summary > div {
+  position: relative;
+}
+
+.poker-payout-summary .info-tip {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.1rem;
+  left: 0.1rem;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.poker-payout-summary .info-tip-btn,
+.poker-payout-summary .info-tip-bubble {
+  pointer-events: auto;
+}
+
+.poker-payout-summary .info-tip-btn {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.poker-payout-summary .info-tip-bubble {
+  left: 0;
+  transform: none;
+}
+
+/* Dentro de una frase, la «i» no estira la línea. */
+p:has(> .info-tip) {
+  position: relative;
+}
+
+/* La burbuja se centra en la frase, no en la «i», para no salirse por el borde. */
+p > .info-tip {
+  position: static;
+  vertical-align: middle;
+  margin-block: -0.5rem;
+}
+
+/* En la hoja de pagos la frase va al final: la burbuja se abre hacia arriba para no quedar cortada. */
+.poker-payments-leftover .info-tip-bubble {
+  top: auto;
+  bottom: calc(100% + 0.25rem);
+}
+
+.poker-full-prizes {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 0.35rem;
 }
 
 .poker-finish-chop {
@@ -4149,4 +4289,26 @@
   border-color: #2a1d0a;
   background: #f0c94c;
   color: #2a1d0a;
+}
+
+/* Clasificación desplazada en horizontal: de la columna fija quedan el puesto y la foto. */
+.poker-table-scroll.is-scrolled .poker-stats-table [scope='row'] {
+  min-width: 0;
+  box-shadow: 6px 0 8px -6px rgb(0 0 0 / 0.35);
+}
+
+.poker-table-scroll.is-scrolled .poker-stats-name,
+.poker-table-scroll.is-scrolled
+  .poker-stats-table
+  thead
+  tr:last-child
+  > :first-child
+  .poker-sort
+  > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
