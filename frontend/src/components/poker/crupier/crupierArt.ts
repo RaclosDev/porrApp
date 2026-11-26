@@ -148,3 +148,15 @@ export function crupierMarkup(suffix: string, hat: CrupierHat = 'verde') {
     .replace(/url\(#([\w-]+)\)/g, `url(#$1${suffix})`)
     .replace(/href="#([\w-]+)"/g, `href="#$1${suffix}"`);
 }
+
+/** Solo la cabeza del crupier, quieta y recortada en cuadrado: el icono del botón de propina. */
+export function crupierHeadMarkup(hat: CrupierHat = 'verde') {
+  return `<svg viewBox="52 28 96 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <circle cx="68" cy="80" r="6.5" fill="#fff" stroke="#111" stroke-width="2.6"/>
+  <circle cx="132" cy="80" r="6.5" fill="#fff" stroke="#111" stroke-width="2.6"/>
+  <ellipse cx="100" cy="76" rx="32" ry="31" fill="#fff" stroke="#111" stroke-width="3"/>
+  <path d="M69 68 Q70 44 100 43 Q130 44 131 68 Q124 58 114 60 Q108 52 100 56 Q92 52 86 60 Q76 58 69 68Z" fill="#111"/>
+  ${HATS[hat]}
+  ${FACE}
+</svg>`;
+}
