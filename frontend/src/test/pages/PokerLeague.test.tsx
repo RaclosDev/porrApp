@@ -617,6 +617,22 @@ it('recorre el histórico torneo a torneo', () => {
   expect(screen.getByText(/sábado, 18 de julio/)).toBeVisible();
 });
 
+it('en los pagos recuerda lo que sobró del bote', () => {
+  const closed = {
+    ...session,
+    id: 23,
+    closedAt: 5000,
+    leftoverCents: 200,
+    results: [
+      { ...entries[0], place: 1, paidCents: 1000, prizeCents: 1800 },
+      { ...entries[2], place: 2, paidCents: 1000, prizeCents: 0 },
+    ],
+  };
+  render(<PokerHistory sessions={[closed]} />);
+  click('Quién paga a quién · 1 pago');
+  expect(screen.getByText(/del bote sin repartir/)).toHaveTextContent(`Sobran ${money(200)}`);
+});
+
 it('abre los pagos en una hoja y deja a la administración corregir o borrar', async () => {
   const closed = {
     ...session,

@@ -70,6 +70,11 @@ export function roundToStep(values: number[], step: number) {
   return floors;
 }
 
+/** Cada parte redondeada hacia abajo: lo que no llega a un paso queda en el bote como sobrante. */
+export function floorToStep(values: number[], step: number) {
+  return values.map((value) => Math.floor(value / step + 1e-9) * step);
+}
+
 /** Partes iguales redondeadas hacia abajo: nadie se lleva más que otro y el resto sobra. */
 export function equalSplit(total: number, count: number, step: number) {
   const each = Math.floor(total / count / step + 1e-9) * step;
@@ -89,7 +94,8 @@ export type MoneySplit = 'ICM' | 'EQUAL';
 /**
  * Reparto sugerido al cerrar. Los eliminados cobran su puesto redondeado; si varios siguen en la mesa
  * (pacto), se reparten los premios de sus puestos por ICM o a partes iguales. Los empates sin pacto
- * comparten lo de sus puestos. Lo que no se reparte por el redondeo queda como sobrante.
+ * comparten lo de sus puestos. El dinero siempre se redondea hacia abajo: lo que no se reparte queda
+ * como sobrante, a la vista para que la mesa decida si lo dona.
  */
 export function suggestPayouts(
   standings: PayoutStanding[],
@@ -108,7 +114,7 @@ export function suggestPayouts(
     const points = sumOf(scale, 0, pact.length);
     const cash =
       options.money === 'ICM'
-        ? roundToStep(icm(stacks, prizes.slice(0, pact.length)), options.step)
+        ? floorToStep(icm(stacks, prizes.slice(0, pact.length)), options.step)
         : equalSplit(money, pact.length, options.step);
     const pts =
       options.points === 'ICM'
