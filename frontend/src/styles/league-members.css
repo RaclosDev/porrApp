@@ -517,6 +517,11 @@
       flex-wrap: wrap;
     }
 
+    /* Con base 0 el nombre nunca bajaba los botones a otra línea y se quedaba en una letra por renglón. */
+    .league-admin-member-main {
+      flex-basis: 11rem;
+    }
+
     .league-admin-member-actions {
       margin-left: auto;
     }
