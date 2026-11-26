@@ -1743,28 +1743,44 @@
   cursor: wait;
 }
 
-/* Acciones del jugador: tarjeta fija abajo, siempre a la vista sin hacer scroll. */
-.poker-seat-actions {
+/* Acciones del jugador: tarjeta fija abajo, siempre a la vista sin hacer scroll, con el tapete y el marco
+   dorado de la mesa del crupier. */
+.poker-felt.poker-empty.poker-seat-actions {
   position: fixed;
-  z-index: 60;
+  z-index: 70;
   left: 50%;
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   display: grid;
-  gap: 0.65rem;
+  align-items: stretch;
+  gap: 0.75rem;
   width: min(30rem, calc(100vw - 1.5rem));
-  padding: 0.85rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  background: #0b2a1f;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  padding: 0.9rem 1rem 1rem;
+  text-align: left;
+  box-shadow:
+    0 14px 36px rgb(0 0 0 / 0.5),
+    inset 0 0 0 1px rgb(0 0 0 / 0.35);
   transform: translateX(-50%);
+}
+
+.poker-seat-actions > * {
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {
   /* Encima de la barra de navegación inferior. */
-  .poker-seat-actions {
+  .poker-felt.poker-empty.poker-seat-actions {
     bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
+}
+
+.poker-seat-actions .poker-player {
+  padding-bottom: 0.65rem;
+  border-bottom: 1px dashed rgb(240 201 76 / 0.45);
+}
+
+.poker-seat-actions .glass-btn:not(.primary-btn) {
+  color: var(--text-main);
 }
 
 .poker-seat-actions .poster-title {
