@@ -154,7 +154,8 @@ export function timeLabel(ms: number) {
 export interface Payment {
   fromId: number;
   from: string;
-  toId: number;
+  /** `null`: lo paga al sobrante, el dinero del bote que no se llevó nadie. */
+  toId: number | null;
   to: string;
   cents: number;
 }
@@ -187,6 +188,18 @@ export function settlements(results: PokerSession['results']): Payment[] {
     if (debtors[d].cents === 0) d += 1;
     if (creditors[c].cents === 0) c += 1;
   }
+  // Lo que aún deben, con los premios ya pagados, es el sobrante: también se entrega, para cuadrar.
+  for (const debtor of debtors.slice(d)) {
+    if (debtor.cents < 0) {
+      payments.push({
+        fromId: debtor.id,
+        from: debtor.name,
+        toId: null,
+        to: 'sobrante',
+        cents: -debtor.cents,
+      });
+    }
+  }
   return payments;
 }
 
@@ -198,7 +211,10 @@ export function settlements(results: PokerSession['results']): Payment[] {
 export function fullPrizes({
   results,
   leftoverCents,
-}: Pick<PokerSession, 'results' | 'leftoverCents'>) {
+}: {
+  results: { playerId: number; prizeCents: number }[];
+  leftoverCents?: number;
+}) {
   const handed = results.reduce((sum, result) => sum + result.prizeCents, 0);
   const leftover = leftoverCents ?? 0;
   const prizes = new Map(results.map((result) => [result.playerId, result.prizeCents]));
