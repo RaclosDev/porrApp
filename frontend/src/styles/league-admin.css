@@ -179,7 +179,7 @@
   }
 
   .league-admin-tab.is-active .league-admin-tab-count {
-    background: rgba(11, 95, 116, 0.16);
+    background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
     color: var(--accent-cyan);
   }
 
@@ -367,9 +367,9 @@
     align-items: center;
     gap: 10px;
     padding: 10px 14px;
-    border: 1px dashed rgba(11, 95, 116, 0.4);
+    border: 1px dashed color-mix(in srgb, var(--accent-cyan) 40%, transparent);
     border-radius: 10px;
-    background: rgba(11, 95, 116, 0.08);
+    background: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
     color: var(--accent-cyan);
     font-family: inherit;
     font-size: 1.02rem;
@@ -382,8 +382,8 @@
   }
 
   .league-admin-code:hover {
-    border-color: rgba(11, 95, 116, 0.6);
-    background: rgba(11, 95, 116, 0.14);
+    border-color: color-mix(in srgb, var(--accent-cyan) 60%, transparent);
+    background: color-mix(in srgb, var(--accent-cyan) 14%, transparent);
   }
 
   .league-admin-code:disabled {
@@ -437,7 +437,7 @@
   }
 
   .league-admin-btn.is-primary {
-    border-color: rgba(11, 95, 116, 0.5);
+    border-color: color-mix(in srgb, var(--accent-cyan) 50%, transparent);
     background: var(--ink);
     color: var(--paper);
   }
@@ -638,7 +638,7 @@
   }
 
   .league-admin-filter button.is-active {
-    background: rgba(11, 95, 116, 0.16);
+    background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
     color: var(--accent-cyan);
   }
 
@@ -675,7 +675,7 @@
   }
 
   .rules-tabs button.is-active {
-    background: rgba(11, 95, 116, 0.16);
+    background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
     color: var(--accent-cyan);
   }
 

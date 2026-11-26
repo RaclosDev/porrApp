@@ -107,7 +107,7 @@
     padding: 18px 20px;
     margin-bottom: 18px;
     border-radius: 16px;
-    border: 1px solid rgba(11, 95, 116, 0.25);
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 25%, transparent);
     background: var(--panel-bg);
     box-shadow: none;
   }
@@ -320,8 +320,8 @@
     flex-shrink: 0;
     padding: 8px 14px;
     border-radius: 999px;
-    border: 1px solid rgba(11, 95, 116, 0.35);
-    background: rgba(11, 95, 116, 0.08);
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+    background: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
     color: var(--accent-cyan);
     font-size: 0.85rem;
     font-weight: 700;
@@ -331,7 +331,7 @@
 
   .home-rules-btn:hover,
   .home-rules-btn:focus-visible {
-    background: rgba(11, 95, 116, 0.16);
+    background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
   }
 
   .home-link-btn {
@@ -428,7 +428,7 @@
   }
 
   .home-match-card:hover {
-    border-color: rgba(11, 95, 116, 0.45);
+    border-color: color-mix(in srgb, var(--accent-cyan) 45%, transparent);
     background: var(--panel-bg);
   }
 
