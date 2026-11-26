@@ -24,6 +24,21 @@ export interface PokerSettings {
   /** Cantidades fijas por puesto en céntimos; null o ausente si el reparto va por porcentajes. */
   prizeAmounts?: number[] | null;
   levels: BlindLevel[];
+  /** Cómo se sugieren los puntos si los que siguen en la mesa pactan; por defecto, a partes iguales. */
+  pactPoints?: PactPoints | null;
+  /** Redondeo del dinero sugerido al cerrar, en céntimos; por defecto, 1 €. */
+  roundingCents?: number | null;
+  /** Puntos de liga enteros por puesto; null o ausente usa la escala de siempre (5-3-1). */
+  prizePoints?: number[] | null;
+}
+
+export type PactPoints = 'EQUAL' | 'ICM';
+
+/** Lo que se lleva un jugador al cerrar: dinero en céntimos y puntos con hasta dos decimales. */
+export interface PokerPayout {
+  playerId: number;
+  prizeCents: number;
+  points: number;
 }
 
 interface PokerEntry {
@@ -49,6 +64,8 @@ interface PokerResult extends PokerEntry {
   place: number;
   paidCents: number;
   prizeCents: number;
+  /** Puntos de la liga en este torneo; puede tener decimales si hubo pacto. */
+  points?: number;
 }
 
 export interface PokerSession {
@@ -64,6 +81,8 @@ export interface PokerSession {
   potCents: number;
   prizes: number[];
   results: PokerResult[];
+  /** Bote menos lo repartido al cerrar; negativo si se repartió de más. */
+  leftoverCents?: number;
 }
 
 export interface PokerPlayer {
@@ -110,27 +129,35 @@ export interface PokerCommandExtra {
   finalStacks?: FinalStack[];
   prizeShares?: number[];
   prizeAmounts?: number[];
+  payouts?: PokerPayout[];
 }
 
 export const fetchPokerLeague = (id: string) => request<PokerLeagueData>(`/poker/${id}`);
 
 export const fetchPokerHistory = (id: string) => request<PokerSession[]>(`/poker/${id}/history`);
 
-export interface PokerResultEdit {
+interface PokerResultEdit {
   playerId: number;
   rebuys: number;
   addOns: number;
+  /** Con premio y puntos se fijan a mano; sin ellos se calculan por el puesto. */
+  prizeCents?: number;
+  points?: number;
 }
 
-export const editPokerResult = (
-  id: number,
-  session: PokerSession,
-  date: string,
-  standings: PokerResultEdit[],
-) =>
+/** Corrección completa de un torneo cerrado: lo que llegue sin precio se queda como estaba. */
+export interface PokerResultsEdit {
+  date: string;
+  standings: PokerResultEdit[];
+  buyInCents?: number;
+  rebuyCostCents?: number;
+  addOnCostCents?: number;
+}
+
+export const editPokerResult = (id: number, session: PokerSession, edit: PokerResultsEdit) =>
   request<PokerSession[]>(`/poker/${id}/history/${session.id}`, {
     method: 'PUT',
-    json: { date, revision: session.revision, standings },
+    json: { ...edit, revision: session.revision },
   });
 
 export const deletePokerResult = (id: number, sessionId: number) =>

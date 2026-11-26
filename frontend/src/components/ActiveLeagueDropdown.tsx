@@ -157,9 +157,12 @@ export default function ActiveLeagueDropdown({
   }
 
   const activeGroup = (userGroups || []).find((g) => String(g.id) === String(activeGroupId));
-  const currentBadge = isScoreboardLeague(activeGroup)
-    ? '🎲'
-    : getCompetitionBadge(activeCompetitionName);
+  const currentBadge =
+    activeGroup?.kind === 'POKER'
+      ? '♠️'
+      : isScoreboardLeague(activeGroup)
+        ? '🎲'
+        : getCompetitionBadge(activeCompetitionName);
   const activeImageUrl = activeGroup?.imageUrl || null;
   const displayLeagueName = activeGroupName || fallbackName;
   // Solo la competición real de la liga: sin liga (o sin dato) no se supone ninguna.
@@ -248,11 +251,14 @@ export default function ActiveLeagueDropdown({
             {sortedGroups.length > 0 ? (
               sortedGroups.map((g) => {
                 const isSelected = activeGroupId && String(activeGroupId) === String(g.id);
-                const gBadge = isScoreboardLeague(g)
-                  ? '🎲'
-                  : g.multiCompetition
-                    ? null
-                    : getCompetitionBadge(g.competitionName);
+                const gBadge =
+                  g.kind === 'POKER'
+                    ? '♠️'
+                    : isScoreboardLeague(g)
+                      ? '🎲'
+                      : g.multiCompetition
+                        ? null
+                        : getCompetitionBadge(g.competitionName);
                 return (
                   <button
                     className={`flex items-center justify-between gap-2.5 py-2 px-2.5 rounded-[8px] cursor-pointer text-left [transition:background_0.15s_ease] w-full ${isSelected ? 'border border-[var(--ink)]' : 'border border-transparent'} ${isSelected ? 'bg-[rgb(var(--ink-rgb)/0.06)] bg-none' : 'bg-transparent bg-none hover:bg-[rgb(var(--ink-rgb)/0.06)] focus-visible:bg-[rgb(var(--ink-rgb)/0.06)]'} text-main`}

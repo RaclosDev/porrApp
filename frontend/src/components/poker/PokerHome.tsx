@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { PokerLeagueData, PokerSession } from '../../services/endpoints/poker';
 import { BadgedAvatar, lastWinnerIds } from './PokerBadges';
-import PokerEmpty from './PokerEmpty';
+import PokerFreeTable from './PokerFreeTable';
 import PokerHands from './PokerHands';
 import { PokerAvatar } from './PokerFaces';
 import PokerPodium from './PokerPodium';
@@ -56,27 +56,36 @@ export default function PokerHome({
 
   return (
     <div className="home-dashboard-grid">
-      <section className="paper-panel album-sheet poker-panel poker-next-card">
-        <header className="home-list-header">
-          <h2>
-            {live
-              ? 'Torneo en juego'
-              : upcoming.length > 1
-                ? `Próximos torneos (${upcoming.length})`
-                : 'Próximo torneo'}
-          </h2>
-        </header>
-        <PokerSessionTabs
-          sessions={upcoming}
-          selectedId={current?.id}
-          myPlayerId={league.myPlayerId}
-        />
-        {current ? (
-          <>
-            <p className="poster-title poker-big-date">{upcomingTournamentDate(current.date)}</p>
+      {current ? (
+        <div className="poker-next-column">
+          <PokerFreeTable
+            className="poker-next-card"
+            heading={
+              <>
+                <span className="sr-only">{live ? 'Torneo en juego:' : 'Próximo torneo:'}</span>{' '}
+                {upcomingTournamentDate(current.date)}
+              </>
+            }
+            title={null}
+            sides={[
+              <dl key="players" className="poker-wall-metric">
+                <dt>{live ? 'En mesa' : 'Confirmados'}</dt>
+                <dd>{seated.length}</dd>
+              </dl>,
+              <dl key="money" className="poker-wall-metric">
+                <dt>{live ? 'Bote' : 'Entrada'}</dt>
+                <dd>{euros(live ? current.potCents : current.settings.buyInCents)}</dd>
+              </dl>,
+            ]}
+          >
             <p className="marker-ink poker-state">
               {live ? 'En juego' : attending ? 'Asistencia confirmada' : 'Inscripciones abiertas'}
             </p>
+            <PokerSessionTabs
+              sessions={upcoming}
+              selectedId={current.id}
+              myPlayerId={league.myPlayerId}
+            />
             {seated.length > 0 && (
               <ul className="poker-faces" aria-label={live ? 'En mesa' : 'Confirmados'}>
                 {seated.map((entry) => (
@@ -95,54 +104,60 @@ export default function PokerHome({
                 ))}
               </ul>
             )}
-            <dl className="poker-metrics">
-              <div>
-                <dt>{live ? 'Jugadores en mesa' : 'Jugadores confirmados'}</dt>
-                <dd>{seated.length}</dd>
-              </div>
-              <div>
-                <dt>{live ? 'Bote' : 'Entrada'}</dt>
-                <dd>{euros(live ? current.potCents : current.settings.buyInCents)}</dd>
-              </div>
-            </dl>
-          </>
-        ) : (
-          <PokerEmpty
-            icon="cards"
-            title="Sin torneo a la vista"
-            action={
-              league.owner ? { to: pokerRoutes.table.to, label: 'Preparar torneo' } : undefined
-            }
-          >
-            {league.owner
-              ? 'Elige fecha, entrada y ciegas; la gente se apunta desde aquí.'
-              : 'Cuando se programe el próximo, podrás apuntarte desde aquí.'}
-          </PokerEmpty>
-        )}
-        {current && !live && league.myPlayerId !== null && (
-          <button
-            type="button"
-            className={attending ? 'glass-btn' : 'glass-btn primary-btn'}
-            disabled={busy || (!attending && current.entries.length >= 20)}
-            onClick={() => onAttend(current, !attending)}
-          >
-            {attending ? 'Desapuntarme' : 'Apuntarme al torneo'}
-          </button>
-        )}
-        {current && (
-          <Link
-            className={live || league.myPlayerId === null ? 'glass-btn primary-btn' : 'glass-btn'}
-            to={pokerTableLink(current)}
-          >
-            Ir a la mesa
-          </Link>
-        )}
-        {current && league.owner && upcoming.length < MAX_OPEN_SESSIONS && (
-          <Link className="glass-btn" to={pokerNewSessionLink}>
-            Programar otro torneo
-          </Link>
-        )}
-      </section>
+            <div className="poker-next-actions">
+              {!live && league.myPlayerId !== null && (
+                <button
+                  type="button"
+                  className={attending ? 'glass-btn' : 'glass-btn primary-btn'}
+                  disabled={busy || (!attending && current.entries.length >= 20)}
+                  onClick={() => onAttend(current, !attending)}
+                >
+                  {attending ? 'Desapuntarme' : 'Apuntarme al torneo'}
+                </button>
+              )}
+              {/* Quien llega tarde entra con la mesa ya en juego: paga la entrada y recibe las fichas iniciales. */}
+              {live && league.myPlayerId !== null && !attending && (
+                <button
+                  type="button"
+                  className="glass-btn primary-btn"
+                  disabled={busy || current.entries.length >= 20}
+                  onClick={() => onAttend(current, true)}
+                >
+                  Unirme al torneo en curso
+                </button>
+              )}
+              <Link
+                className={
+                  (live && (attending || league.myPlayerId === null)) ||
+                  (!live && league.myPlayerId === null)
+                    ? 'glass-btn primary-btn'
+                    : 'glass-btn'
+                }
+                to={pokerTableLink(current)}
+              >
+                Ir a la mesa
+              </Link>
+            </div>
+          </PokerFreeTable>
+          {league.owner && upcoming.length < MAX_OPEN_SESSIONS && (
+            <Link className="glass-btn poker-schedule-another" to={pokerNewSessionLink}>
+              Programar otro torneo
+            </Link>
+          )}
+        </div>
+      ) : (
+        <PokerFreeTable heading="Próximo torneo">
+          {league.owner ? (
+            <Link to={pokerNewSessionLink} className="glass-btn primary-btn poker-empty-cta">
+              Preparar torneo
+            </Link>
+          ) : (
+            <p className="poker-empty-text">
+              Cuando se programe el próximo, podrás apuntarte aquí.
+            </p>
+          )}
+        </PokerFreeTable>
+      )}
 
       {sessions?.length === 0 ? (
         <FirstSteps
@@ -212,7 +227,7 @@ export default function PokerHome({
             </header>
             {podium.length > 0 ? (
               <PokerPodium
-                label="Podio de la liga por victorias"
+                label="Podio de la liga por puntos"
                 places={podium.map((row) => ({
                   playerId: row.playerId,
                   name: row.name,

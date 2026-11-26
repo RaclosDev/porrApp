@@ -5,6 +5,21 @@ import PokerTv from '../../components/poker/PokerTv';
 import type { BlindClock } from '../../services/endpoints/poker';
 import type { PokerAlert } from '../../components/poker/usePokerAlerts';
 
+const remove = vi.fn();
+vi.mock('../../components/poker/usePokerMusic', () => ({
+  usePokerMusic: () => ({
+    queue: { items: [{ id: 9, videoId: 'abc', title: 'Canción pedida', addedBy: 'Ana' }] },
+    remove: { mutate: remove, isPending: false },
+  }),
+}));
+vi.mock('../../components/poker/YoutubePlayer', () => ({
+  default: ({ videoId, onDone }: { videoId: string; onDone: () => void }) => (
+    <button type="button" data-video={videoId} onClick={onDone}>
+      reproductor
+    </button>
+  ),
+}));
+
 const levels = [
   { minutes: 15, small: 25, big: 50, ante: 0 },
   { minutes: 15, small: 50, big: 100, ante: 10 },
@@ -13,6 +28,7 @@ const levels = [
 function renderTv(
   clock: BlindClock = { level: 0, endsAt: Date.now() + 90_000, remainingMs: 90_000 },
   alert: PokerAlert | null = null,
+  leagueId?: number,
 ) {
   const onClose = vi.fn();
   render(
@@ -25,6 +41,7 @@ function renderTv(
       potCents={5000}
       buyTimers={[{ key: 'rebuy', label: 'Recompras', ms: 120_000 }]}
       alert={alert}
+      leagueId={leagueId}
       onClose={onClose}
     />,
   );
@@ -39,6 +56,13 @@ describe('PokerTv', () => {
     expect(banner).toHaveTextContent('ha hecho una recompra');
   });
 
+  it('el crupier de la mesa saca el revólver con la recompra', () => {
+    renderTv(undefined, { id: 3, kind: 'rebuy', playerId: 7, name: 'Ana' });
+    const crupier = document.querySelector('.poker-tv-scene .crupier')!;
+    expect(crupier).toHaveAttribute('aria-hidden', 'true');
+    expect(crupier.querySelector('.p-gun')).toBeInTheDocument();
+  });
+
   it('anuncia la subida de ciegas con las nuevas', () => {
     renderTv(undefined, { id: 2, kind: 'level' });
     expect(screen.getByRole('status')).toHaveTextContent(
@@ -50,13 +74,25 @@ describe('PokerTv', () => {
     renderTv();
     expect(screen.getByText('Nivel 1')).toBeInTheDocument();
     expect(screen.getByRole('timer')).toHaveTextContent('01:30');
-    expect(screen.getByText('25 / 50')).toBeInTheDocument();
-    expect(screen.getByText('Siguiente · 50 / 100')).toBeInTheDocument();
-    expect(screen.getByText('3/5')).toBeInTheDocument();
+    expect(screen.getByText(`${chips(25)} / ${chips(50)}`)).toBeInTheDocument();
+    expect(screen.getByText(`${chips(50)} / ${chips(100)}`)).toBeInTheDocument();
+    expect(screen.getByText('En mesa').nextElementSibling).toHaveTextContent('3 / 5');
+    expect(screen.getByText('bote').previousElementSibling).toHaveTextContent(/50,00/);
     expect(screen.getByText('Recompras')).toBeInTheDocument();
     expect(screen.getByText('media de fichas').previousElementSibling).toHaveTextContent(
       chips(12500),
     );
+  });
+
+  it('con la TV activada suena la cola, pero la cola no se enseña en la tele', () => {
+    renderTv(undefined, null, 4);
+    expect(screen.queryByText('reproductor')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /TV apagada/ }));
+    const player = screen.getByText('reproductor');
+    expect(player).toHaveAttribute('data-video', 'abc');
+    expect(screen.queryByText('Canción pedida')).not.toBeInTheDocument();
+    fireEvent.click(player);
+    expect(remove).toHaveBeenCalledWith(9);
   });
 
   it('avisa si el reloj está en pausa', () => {

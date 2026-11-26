@@ -34,6 +34,8 @@ interface Options {
   remainingMs: number | null;
   /** Recompras y add-ons de cada jugador: suena un aviso, con su nombre, cada vez que sube alguno. */
   entries?: EntryCount[];
+  /** Jugadores eliminados: suena un aviso, con su nombre, por cada uno nuevo. */
+  eliminations?: number[];
   /** Solo suena en la pantalla que hace de TV, no en el móvil de cada jugador. */
   tv?: boolean;
 }
@@ -47,6 +49,7 @@ export function usePokerAlerts({
   onBreak,
   remainingMs,
   entries = [],
+  eliminations,
   tv = false,
 }: Options) {
   const [enabled, setEnabled] = useState(soundEnabled);
@@ -147,6 +150,20 @@ export function usePokerAlerts({
       for (let i = before.addOns; i < entry.addOns; i++) announce('addOn', who);
     }
   }, [entries, announce]);
+
+  // Igual con las eliminaciones: solo las nuevas desde la última consulta.
+  const lastOut = useRef<Set<number> | null>(null);
+  useEffect(() => {
+    if (!eliminations) return;
+    const previous = lastOut.current;
+    lastOut.current = new Set(eliminations);
+    if (!previous) return;
+    for (const playerId of eliminations) {
+      if (previous.has(playerId)) continue;
+      const entry = lastCounts.current?.get(playerId);
+      if (entry) announce('out', { playerId, name: entry.name });
+    }
+  }, [eliminations, announce]);
 
   function toggle() {
     unlockAudio();

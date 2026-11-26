@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
 import { BagIcon, BulletIcon } from './PokerBadges';
+import type { CrupierAction } from './crupier/crupierEngine';
 import { chips, euros, timeLabel } from './pokerFormat';
+import PokerFreeTable from './PokerFreeTable';
 import PokerTvQueue from './PokerTvQueue';
 import { PokerAvatar } from './PokerFaces';
+import { POKER_DUCK_FADE_MS, type PokerSoundKind } from './pokerSound';
 import type { PokerAlert } from './usePokerAlerts';
 
 interface Props {
@@ -22,6 +26,18 @@ interface Props {
   onClose: () => void;
 }
 
+/** Lo que hace el crupier con cada aviso, al compás de su sonido. */
+export const CRUPIER_ACTION: Record<PokerSoundKind, CrupierAction> = {
+  level: 'campana',
+  break: 'pausa',
+  warning: 'aviso',
+  rebuy: 'revolver',
+  addOn: 'caja',
+  out: 'eliminado',
+};
+/** El sonido del aviso arranca este rato después de que aparezca (ver `playPokerSound`). */
+export const AUDIO_DELAY = (POKER_DUCK_FADE_MS + 20) / 1000;
+
 function blindsText(level: BlindLevel) {
   return level.big === 0 ? 'Descanso' : `${chips(level.small)} / ${chips(level.big)}`;
 }
@@ -32,6 +48,8 @@ function alertText(alert: PokerAlert, level: BlindLevel, next: BlindLevel | unde
       return { title: alert.name, text: 'ha hecho una recompra' };
     case 'addOn':
       return { title: alert.name, text: 'ha hecho un add-on' };
+    case 'out':
+      return { title: alert.name, text: 'queda fuera del torneo' };
     case 'level':
       return { title: 'Suben las ciegas', text: blindsText(level) };
     case 'break':
@@ -54,7 +72,7 @@ function TvAlert({
   return (
     <div className={`poker-tv-alert is-${alert.kind}`} role="status">
       {alert.playerId !== undefined && alert.name ? (
-        <PokerAvatar playerId={alert.playerId} name={alert.name} size={160} />
+        <PokerAvatar playerId={alert.playerId} name={alert.name} size={104} />
       ) : (
         <span className="poker-tv-alert-icon" aria-hidden="true">
           {alert.kind === 'break' ? '☕' : alert.kind === 'warning' ? '⏱' : '🔔'}
@@ -114,8 +132,8 @@ export default function PokerTv({
     };
   }, []);
 
-  return (
-    <div className="poker-tv" role="dialog" aria-modal="true" aria-label="Reloj del torneo">
+  return createPortal(
+    <div className="poker poker-tv" role="dialog" aria-modal="true" aria-label="Reloj del torneo">
       {leagueId !== undefined && (
         <button
           type="button"
@@ -130,42 +148,77 @@ export default function PokerTv({
       <button type="button" className="poker-tv-close" onClick={onClose}>
         Cerrar
       </button>
-      <p className="poker-tv-level">Nivel {clock.level + 1}</p>
-      <p className="poker-tv-time" role="timer" aria-label="Tiempo restante del nivel">
-        {timeLabel(clock.remainingMs)}
-      </p>
-      {paused && clock.remainingMs > 0 && <p className="poker-tv-paused">Reloj en pausa</p>}
-      <p className="poker-tv-blinds">{blindsText(level)}</p>
-      {level.big > 0 && level.ante > 0 && <p className="poker-tv-ante">Ante {chips(level.ante)}</p>}
-      {next && <p className="poker-tv-next">Siguiente · {blindsText(next)}</p>}
-      <ul className="poker-tv-facts">
-        <li>
-          <strong>
-            {playersLeft}/{playersTotal}
-          </strong>
-          <span>jugadores</span>
-        </li>
-        <li>
-          <strong>{chips(averageChips)}</strong>
-          <span>media de fichas</span>
-        </li>
-        <li>
-          <strong>{euros(potCents)}</strong>
-          <span>bote</span>
-        </li>
-        {buyTimers.map((timer) => (
-          <li key={timer.key}>
-            <strong>{timeLabel(timer.ms)}</strong>
-            <span className="poker-tv-fact-label">
-              {timer.icons?.includes('bullet') && <BulletIcon />}
-              {timer.icons?.includes('bag') && <BagIcon />}
-              {timer.label}
+      <PokerFreeTable
+        className="poker-tv-scene"
+        title={null}
+        heading={
+          <>
+            <span
+              className="poker-wall-time poker-tv-time"
+              role="timer"
+              aria-label="Tiempo restante del nivel"
+            >
+              {timeLabel(clock.remainingMs)}
             </span>
+            <span className="poker-wall-time-label">
+              {paused && clock.remainingMs > 0 ? 'Reloj en pausa' : 'Tiempo restante'}
+            </span>
+          </>
+        }
+        sides={[
+          <dl key="level" className="poker-wall-metric">
+            <dt>Nivel {clock.level + 1}</dt>
+            <dd>{blindsText(level)}</dd>
+            {next && <dd className="poker-wall-metric-next">{blindsText(next)}</dd>}
+          </dl>,
+          <dl key="seated" className="poker-wall-metric">
+            <dt>En mesa</dt>
+            <dd>
+              {playersLeft} / {playersTotal}
+            </dd>
+          </dl>,
+        ]}
+        asleep={level.big === 0}
+        cue={
+          alert
+            ? { id: alert.id, action: CRUPIER_ACTION[alert.kind], audioDelay: AUDIO_DELAY }
+            : null
+        }
+      >
+        <div className="poker-progress poker-tv-progress" aria-hidden="true">
+          <span
+            style={{
+              transform: `scaleX(${Math.min(1, clock.remainingMs / (level.minutes * 60_000))})`,
+            }}
+          />
+        </div>
+        {level.big > 0 && level.ante > 0 && (
+          <p className="poker-tv-ante">Ante {chips(level.ante)}</p>
+        )}
+        <ul className="poker-tv-facts">
+          <li>
+            <strong>{chips(averageChips)}</strong>
+            <span>media de fichas</span>
           </li>
-        ))}
-      </ul>
-      {leagueId !== undefined && <PokerTvQueue leagueId={leagueId} tv={tv} />}
+          <li>
+            <strong>{euros(potCents)}</strong>
+            <span>bote</span>
+          </li>
+          {buyTimers.map((timer) => (
+            <li key={timer.key}>
+              <strong>{timeLabel(timer.ms)}</strong>
+              <span className="poker-tv-fact-label">
+                {timer.icons?.includes('bullet') && <BulletIcon />}
+                {timer.icons?.includes('bag') && <BagIcon />}
+                {timer.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </PokerFreeTable>
+      {leagueId !== undefined && tv && <PokerTvQueue leagueId={leagueId} />}
       {alert && <TvAlert key={alert.id} alert={alert} level={level} next={next} />}
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,5 +1,5 @@
 /** Avisos del reloj de póker: archivos MP3 y, si faltan o no cargan, sonidos de Web Audio. */
-export type PokerSoundKind = 'level' | 'warning' | 'break' | 'rebuy' | 'addOn';
+export type PokerSoundKind = 'level' | 'warning' | 'break' | 'rebuy' | 'addOn' | 'out';
 
 /** Efectos grabados, servidos desde `public/sounds/poker`; el resto de avisos se sintetizan. */
 interface SoundFile {
@@ -26,13 +26,29 @@ const DUCK_MS: Record<PokerSoundKind, number> = {
   warning: 1500,
   rebuy: 2500,
   addOn: 6000,
+  out: 3500,
 };
 
 /** Volumen de la música mientras suena un aviso, sobre el que tenía: casi en silencio. */
 export const POKER_DUCK_LEVEL = 0.15;
 
-/** La música tarda esto en bajar: el aviso espera a que haya bajado para sonar. */
+/**
+ * El aviso suena siempre este rato después de aparecer: le da tiempo a la música a bajar
+ * y al crupier de la TV a prepararse para que su gesto caiga con el golpe.
+ */
 export const POKER_DUCK_FADE_MS = 1000;
+
+/** Segundos, desde que arranca el sonido, en que cae cada golpe: el crupier se mueve con ellos. */
+export const POKER_SOUND_HITS: Record<PokerSoundKind, number[]> = {
+  level: POKER_SOUND_FILES.level?.hits ?? [0],
+  rebuy: POKER_SOUND_FILES.rebuy?.hits ?? [0],
+  // El ¡ching! de la caja registradora llega un poco después del arranque del archivo.
+  addOn: [0.37],
+  break: [0, 0.45, 0.9],
+  warning: [0, 0.25],
+  // Trombón triste: wah, wah, wah, waaah.
+  out: [0, 0.45, 0.9, 1.35],
+};
 
 type DuckListener = (ms: number) => void;
 const duckListeners = new Set<DuckListener>();
@@ -170,6 +186,44 @@ function shot(ctx: AudioContext, start: number) {
   thump.stop(start + 0.2);
 }
 
+/** Nota de trombón con sordina: diente de sierra filtrado que abre y cierra; la última, con vibrato. */
+function trombone(
+  ctx: AudioContext,
+  start: number,
+  frequency: number,
+  seconds: number,
+  wobble: boolean,
+) {
+  const osc = ctx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(frequency * 1.03, start);
+  osc.frequency.exponentialRampToValueAtTime(frequency, start + 0.08);
+  if (wobble) {
+    const lfo = ctx.createOscillator();
+    const depth = ctx.createGain();
+    lfo.frequency.value = 5.5;
+    depth.gain.setValueAtTime(0, start);
+    depth.gain.linearRampToValueAtTime(frequency * 0.03, start + 0.4);
+    lfo.connect(depth).connect(osc.frequency);
+    lfo.start(start);
+    lfo.stop(start + seconds);
+  }
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.Q.value = 6;
+  filter.frequency.setValueAtTime(400, start);
+  filter.frequency.linearRampToValueAtTime(1500, start + 0.12);
+  filter.frequency.linearRampToValueAtTime(600, start + seconds);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, start);
+  env.gain.exponentialRampToValueAtTime(0.3, start + 0.04);
+  env.gain.setValueAtTime(0.3, start + seconds * 0.7);
+  env.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
+  osc.connect(filter).connect(env).connect(speakers(ctx));
+  osc.start(start);
+  osc.stop(start + seconds + 0.05);
+}
+
 /** Monedas cayendo: tintineos agudos que se aceleran, como una caja registradora. */
 function coins(ctx: AudioContext, start: number) {
   for (let i = 0; i < 9; i++) {
@@ -197,8 +251,8 @@ function loadBuffer(ctx: AudioContext, src: string) {
 export function playPokerSound(kind: PokerSoundKind) {
   const ctx = audioContext();
   if (!ctx || ctx.state !== 'running') return;
-  // Con música sonando, el aviso arranca cuando ya ha bajado el volumen.
-  const lead = duckListeners.size > 0 ? POKER_DUCK_FADE_MS : 0;
+  // El aviso arranca cuando ya ha bajado la música, y el crupier cuenta con ese margen.
+  const lead = POKER_DUCK_FADE_MS;
   const duck = (ms: number) => duckListeners.forEach((listener) => listener(lead + ms));
   const file = POKER_SOUND_FILES[kind];
   if (!file || typeof fetch === 'undefined') {
@@ -233,13 +287,20 @@ function synth(ctx: AudioContext, kind: PokerSoundKind, lead: number) {
     [0, 0.32, 0.64].forEach((offset) => shot(ctx, t + offset));
   } else if (kind === 'addOn') {
     coins(ctx, t);
+  } else if (kind === 'out') {
+    // Alguien se queda sin fichas: trombón triste que baja nota a nota y se arrastra al final.
+    POKER_SOUND_HITS.out.forEach((offset, i) =>
+      trombone(ctx, t + offset, [311, 294, 277, 262][i], i === 3 ? 1.4 : 0.4, i === 3),
+    );
   } else if (kind === 'level') {
     // Dos golpes de campana: suben las ciegas.
     bell(ctx, t, 520, 2.4, 0.35);
     bell(ctx, t + 0.9, 520, 2.8, 0.35);
   } else if (kind === 'break') {
     // Carillón descendente, más suave: descanso.
-    [784, 659, 523].forEach((frequency, i) => bell(ctx, t + i * 0.45, frequency, 1.8, 0.22));
+    POKER_SOUND_HITS.break.forEach((offset, i) =>
+      bell(ctx, t + offset, [784, 659, 523][i], 1.8, 0.22),
+    );
   } else {
     beep(ctx, t, 880);
     beep(ctx, t + 0.25, 880);
