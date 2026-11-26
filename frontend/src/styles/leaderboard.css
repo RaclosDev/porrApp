@@ -593,16 +593,6 @@
     transform: translateY(-8px);
   }
 
-  .share-image-podium .ranking-podium-place-2 {
-    rotate: none;
-    transform: rotate(-6deg);
-  }
-
-  .share-image-podium .ranking-podium-place-3 {
-    rotate: none;
-    transform: rotate(6deg);
-  }
-
   .share-image-podium.ranking-podium .sticker {
     width: 100%;
     min-height: 200px;

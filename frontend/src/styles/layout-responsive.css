@@ -585,6 +585,16 @@
       scroll-padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
     }
 
+    /*
+     * Capa propia para la barra flotante: en el iPhone (sobre todo como app instalada), mientras
+     * la página se repinta durante el scroll, una barra fija sin capa se descolocaba y se quedaba
+     * a medias hasta soltar el dedo.
+     */
+    .mobile-bottom-nav {
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+    }
+
     .mobile-bottom-nav .mobile-nav-item:active {
       transform: scale(0.92);
     }

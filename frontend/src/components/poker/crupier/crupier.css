@@ -1,0 +1,27 @@
+/* Crupier animado: el grano y la viñeta van en un SVG quieto encima del dibujo. */
+.crupier {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 16px;
+  -webkit-text-stroke: 0;
+  line-height: 0;
+}
+.crupier svg {
+  width: 100%;
+  height: 100%;
+}
+.crupier .crupier-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Sin decorado: la pared, el grano y la viñeta los pinta el contenedor, para que el dibujo no tenga bordes. */
+.crupier.crupier-bare {
+  border-radius: 0;
+}
+.crupier-bare .scene-wall,
+.crupier-bare .crupier-grain {
+  display: none;
+}

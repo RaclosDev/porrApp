@@ -6,6 +6,7 @@ import app.porrapp.model.PokerSession;
 import app.porrapp.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -154,6 +155,66 @@ class PokerTournamentTest {
     }
 
     @Test
+    void closingWithHandPickedPayoutsKeepsTheLeftoverWithoutCheckingThePot() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100)), null, null, List.of(
+                new Payout(1, 150, new BigDecimal("4")), new Payout(2, 100, new BigDecimal("4")))), 1000);
+        var view = PokerTournament.view(session, 1000);
+        assertThat(view.results()).extracting(Result::prizeCents).containsExactly(150L, 100L, 0L);
+        assertThat(view.results()).extracting(Result::points)
+                .containsExactly(new BigDecimal("4.00"), new BigDecimal("4.00"), new BigDecimal("0.00"));
+        assertThat(view.leftoverCents()).isEqualTo(53);
+
+        var overPot = activeSession();
+        PokerTournament.apply(overPot, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100)), null, null,
+                List.of(new Payout(1, 400, BigDecimal.ONE))), 1000);
+        assertThat(PokerTournament.view(overPot, 1000).leftoverCents()).isEqualTo(-97);
+
+        var stranger = activeSession();
+        assertThatThrownBy(() -> PokerTournament.apply(stranger, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100)), null, null,
+                List.of(new Payout(9, 100, BigDecimal.ONE))), 1000)).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void aPactWithoutCountingChipsSharesFirstPlace() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.CLOSE, 0L, null, null, null, null, List.of(
+                new Payout(1, 150, new BigDecimal("4.5")), new Payout(2, 150, new BigDecimal("4.5")))), 1000);
+        var view = PokerTournament.view(session, 1000);
+        assertThat(view.results()).extracting(Result::place).containsExactly(1, 1, 3);
+        assertThat(view.results()).extracting(Result::prizeCents).containsExactly(150L, 150L, 0L);
+
+        var noPact = activeSession();
+        assertThatThrownBy(() -> PokerTournament.apply(noPact, new Command(Action.CLOSE, 0L, null, null), 1000))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void pointsFollowThePlaceWhenNothingWasPickedAndTiesShareThem() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 150), new FinalStack(2, 150))), 1000);
+        var view = PokerTournament.view(session, 1000);
+        assertThat(view.results()).extracting(Result::points)
+                .containsExactly(new BigDecimal("4.50"), new BigDecimal("4.50"), new BigDecimal("0.00"));
+        assertThat(view.leftoverCents()).isZero();
+        assertThat(PokerTournament.pointsScale(1)).containsExactly(900L);
+        assertThat(PokerTournament.pointsScale(3)).containsExactly(500L, 300L, 100L);
+        assertThat(PokerTournament.pointsScale(5)).containsExactly(500L, 300L, 100L);
+    }
+
+    @Test
+    void customPointsReplaceTheScaleAndOnlyCountPaidPlaces() {
+        var custom = new Settings(100, 100, null, null, List.of(60, 40), List.of(new BlindLevel(10, 1, 2, 0)),
+                null, null, null, List.of(10, 2, 1));
+        assertThat(PokerTournament.points(custom)).containsExactly(1000L, 200L);
+        assertThat(PokerTournament.points(custom.withPrizes(List.of(100), null))).containsExactly(1000L);
+    }
+
+    @Test
     void editingAClosedTournamentKeepsStacksUnlessTheOrderChanges() {
         var session = activeSession();
         PokerTournament.apply(session, new Command(Action.CLOSE, 0L, null,
@@ -178,6 +239,43 @@ class PokerTournamentTest {
         assertThatThrownBy(() -> PokerTournament.editResults(session, new EditResults(day, 0L, List.of(
                 new ResultEdit(3, 0, 0), new ResultEdit(3, 0, 0), new ResultEdit(2, 0, 0)))))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void liveEditAddsRebuysAndKeepsWhatWasPlayedOfTheCurrentLevel() {
+        var session = activeSession();
+        // A los 4 minutos del nivel de 10 se alarga a 15: quedan 11.
+        PokerTournament.editLive(session, new Settings(200, 100, new Extra(100, 100, null, 1), null,
+                List.of(70, 30), List.of(new BlindLevel(15, 1, 2, 0))), 240001L);
+        assertThat(session.getSettings().buyInCents()).isEqualTo(200);
+        assertThat(session.getBlindClock().remainingMs()).isEqualTo(660000);
+        assertThat(session.getBlindClock().endsAt()).isEqualTo(240001L + 660000);
+        PokerTournament.apply(session, new Command(Action.REBUY, 0L, 1L), 240001L);
+        assertThat(session.getEntries().getFirst().rebuys()).isEqualTo(1);
+    }
+
+    @Test
+    void liveEditRejectsDroppingTheCurrentLevelOrRebuysAlreadyMade() {
+        var session = activeSession();
+        session.setSettings(new Settings(101, 100, new Extra(100, 100, null, 2), null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0), new BlindLevel(10, 2, 4, 0))));
+        session.setBlindClock(new BlindClock(1, 600001L, 600000));
+        PokerTournament.apply(session, new Command(Action.REBUY, 0L, 1L), 1000);
+        assertThatThrownBy(() -> PokerTournament.editLive(session, new Settings(101, 100, new Extra(100, 100, null, 1),
+                null, List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0))), 1000))
+                .isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> PokerTournament.editLive(session, new Settings(101, 100, null, null,
+                List.of(70, 30), List.of(new BlindLevel(10, 1, 2, 0), new BlindLevel(10, 2, 4, 0))), 1000))
+                .isInstanceOf(BusinessException.class);
+        assertThat(session.getSettings().rebuy()).isNotNull();
+    }
+
+    @Test
+    void removingAPlayerMidTournamentAlsoForgetsTheirElimination() {
+        var session = activeSession();
+        PokerTournament.removeEntry(session, 3L);
+        assertThat(session.getEntries()).extracting(Entry::playerId).containsExactly(1L, 2L);
+        assertThat(session.getEliminations()).isEmpty();
     }
 
     private PokerSession activeSession() {

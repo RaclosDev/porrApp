@@ -134,26 +134,15 @@
     margin-top: 8px;
   }
 
-  /* La etiqueta a la izquierda y la acción de la liga a la derecha, en la misma línea. */
-  .home-hero-pills.is-spread {
-    justify-content: space-between;
-    flex-wrap: nowrap;
-    gap: 10px;
-  }
-
-  .home-hero-pills.is-spread .home-hero-pill {
-    min-width: 0;
-  }
-
   .home-hero-pill {
     display: inline-flex;
     align-items: center;
     max-width: 100%;
     padding: 3px 9px;
     border-radius: 999px;
-    border: 1px solid rgba(11, 95, 116, 0.35);
-    background: rgba(11, 95, 116, 0.1);
-    color: var(--accent-cyan);
+    border: 1px solid rgb(var(--ink-rgb) / 0.3);
+    background: rgb(var(--ink-rgb) / 0.08);
+    color: var(--text-main);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.4px;
@@ -212,7 +201,7 @@
     padding: 0 0 0 8px;
     border: 0;
     background: transparent;
-    color: var(--accent-cyan);
+    color: var(--text-main);
     font: inherit;
     font-size: 0.8rem;
     font-weight: 700;

@@ -165,11 +165,15 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
     'Estadísticas',
     'Mis Ligas',
   ]);
-  await expect(page.getByText('Sin torneo a la vista')).toBeVisible();
+  await expect(page.getByText('La mesa está libre')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Primeros pasos' })).toBeVisible();
   // Invitar abre el panel con el código, a la altura de la etiqueta de la liga.
   await page.getByRole('button', { name: 'Invitar', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Invitar a la liga' })).toBeVisible();
+  await page
+    .getByRole('dialog', { name: 'Invitar a la liga' })
+    .getByRole('button', { name: 'Cerrar' })
+    .click();
   await nav.getByRole('link', { name: 'Mis Ligas' }).click();
   await page.getByRole('button', { name: 'Más opciones de Póker de los sábados' }).click();
   await expect(
@@ -182,19 +186,27 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
     'page',
   );
 
-  await page.getByRole('button', { name: 'Preparar torneo' }).click();
-  await page.getByLabel('Fecha').fill('2026-11-14');
+  // Desde inicio, «Preparar torneo» abre ya el formulario en la mesa.
+  const quickDates = page.getByRole('group', { name: 'Fechas rápidas' }).getByRole('button');
+  await quickDates.first().click();
   await page.getByLabel('Entrada (€)').fill('10');
+  // El formulario va en tres pasos: torneo, ciegas y premios.
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Abrir inscripciones' }).click();
-  await page.getByRole('button', { name: 'Apuntarme', exact: true }).click();
+  await page.getByRole('button', { name: 'Apuntarme al torneo' }).click();
   await expect(page.getByText('Asistencia confirmada')).toBeVisible();
-  await page.getByRole('button', { name: 'Añadir invitado sin cuenta' }).click();
+  // Los invitados se apuntan desde el panel de jugadores.
+  await page.getByRole('button', { name: 'Jugadores', exact: true }).click();
+  const roster = page.getByRole('dialog', { name: 'Jugadores de la liga' });
+  await roster.getByRole('button', { name: 'Añadir invitado sin cuenta' }).click();
   const guest = page.getByRole('textbox', { name: 'Nombre del jugador' });
   for (const name of ['Marta', 'Luis']) {
     await guest.fill(name);
     await page.getByRole('button', { name: 'Añadir', exact: true }).click();
     await expect(page.getByRole('checkbox', { name: new RegExp(name) })).toBeChecked();
   }
+  await roster.getByRole('button', { name: 'Cerrar', exact: true }).click();
   await page.getByRole('button', { name: 'Empezar torneo' }).click();
   await expect(page.getByRole('timer')).toBeVisible();
   await page.getByRole('button', { name: 'Pausar' }).click();
@@ -226,9 +238,12 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
   await nav.getByRole('link', { name: 'Mesa', exact: true }).click();
   await page.getByRole('button', { name: 'Preparar torneo' }).click();
   await expect(page.getByLabel('Entrada (€)')).toHaveValue('10');
-  await page.getByLabel('Fecha').fill('2026-11-21');
+  await quickDates.nth(1).click();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Abrir inscripciones' }).click();
-  await expect(page.getByRole('checkbox', { name: /Marta/ })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Jugadores', exact: true }).click();
+  await expect(roster.getByRole('checkbox', { name: /Marta/ })).not.toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 
@@ -268,8 +283,8 @@ test('un miembro confirma su asistencia desde la liga sin controles de organizad
     'Estadísticas',
     'Mis Ligas',
   ]);
-  await expect(page.getByRole('heading', { name: 'Próximo torneo' })).toBeVisible();
-  await expect(page.getByText('Jugadores confirmados')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Próximo torneo:/ })).toBeVisible();
+  await expect(page.getByText('Confirmados', { exact: true })).toBeVisible();
   // La asistencia se confirma desde inicio; la mesa es una navegación independiente.
   await page.getByRole('button', { name: 'Apuntarme al torneo' }).click();
   await expect(page.getByText('Asistencia confirmada')).toBeVisible();

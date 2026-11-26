@@ -1,24 +1,27 @@
 import { useState } from 'react';
+import { UserPlus, Users } from 'lucide-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import ActiveLeagueDropdown from '../components/ActiveLeagueDropdown';
 import PaperLoading from '../components/PaperLoading';
 import SupportDialog from '../components/SupportDialog';
-import TrackerInvite from '../components/tracker/TrackerInvite';
 import TrackerUnavailable from '../components/tracker/TrackerUnavailable';
 import PokerRegistration from '../components/poker/PokerRegistration';
 import PokerSettingsForm from '../components/poker/PokerSettingsForm';
 import PokerLive from '../components/poker/PokerLive';
 import PokerLateEntry from '../components/poker/PokerLateEntry';
 import PokerHome from '../components/poker/PokerHome';
-import PokerSessionTabs, { MAX_OPEN_SESSIONS } from '../components/poker/PokerSessionTabs';
+import PokerInviteDialog from '../components/poker/PokerInviteDialog';
+import PokerSessionTabs from '../components/poker/PokerSessionTabs';
 import { lastWinnerIds } from '../components/poker/PokerBadges';
 import { PokerFaces } from '../components/poker/PokerFaces';
 import { PokerProfiles } from '../components/poker/PokerPlayerCard';
 import { PokerHistory, PokerStatistics } from '../components/poker/PokerHistory';
 import { defaultSettings, today } from '../components/poker/pokerFormat';
 import { pokerRoutes, type PokerSection } from '../components/poker/pokerRoutes';
+import PokerFreeTable from '../components/poker/PokerFreeTable';
+import PokerLivePlayers from '../components/poker/PokerLivePlayers';
 import {
   deletePokerResult,
   editPokerResult,
@@ -144,27 +147,42 @@ export default function PokerLeague({
   return (
     <PokerFaces players={league.players}>
       <PokerProfiles sessions={history.data}>
-        <SupportDialog variant="tip" open={showTip} onClose={closeTip} />
+        <SupportDialog
+          variant="tip"
+          open={showTip}
+          onClose={closeTip}
+          leftoverCents={history.data?.[0]?.leftoverCents}
+        />
         <section className="poker">
           {view === 'home' ? (
             <>
-              <header className="home-hero paper-panel album-sheet">
+              <header className="home-hero flat-panel">
                 <div className="home-hero-info">
                   <ActiveLeagueDropdown variant="title" fallbackName={league.name} />
-                  <div className="home-hero-pills is-spread">
+                  <div className="home-hero-pills is-meta">
                     <span className="home-hero-pill">Póker · Texas Hold’em</span>
+                    {league.players.length > 0 && (
+                      <span
+                        className="home-hero-pill muted is-count"
+                        aria-label={`${league.players.length} ${league.players.length === 1 ? 'jugador' : 'jugadores'}`}
+                      >
+                        {league.players.length}
+                        <Users size={13} strokeWidth={2.5} aria-hidden="true" />
+                      </span>
+                    )}
                     <button
                       type="button"
-                      className="home-rules-btn home-hero-invite"
-                      aria-expanded={invite}
-                      onClick={() => setInvite(!invite)}
+                      className="home-hero-rules"
+                      aria-haspopup="dialog"
+                      onClick={() => setInvite(true)}
                     >
-                      {invite ? 'Cerrar' : 'Invitar'}
+                      <UserPlus size={15} strokeWidth={2.25} aria-hidden="true" />
+                      Invitar
                     </button>
                   </div>
                 </div>
               </header>
-              {invite && <TrackerInvite tracker={league} />}
+              {invite && <PokerInviteDialog league={league} onClose={() => setInvite(false)} />}
               <PokerHome
                 league={league}
                 current={current}
@@ -175,10 +193,7 @@ export default function PokerLeague({
                   void change(() => setPokerAttendance(league.id, session.id, attending))
                 }
                 onRetry={() => void history.refetch()}
-                onInvite={() => {
-                  setInvite(true);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onInvite={() => setInvite(true)}
               />
             </>
           ) : view !== 'table' ? (
@@ -193,17 +208,7 @@ export default function PokerLeague({
                   myPlayerId={league.myPlayerId}
                 />
               )}
-              {form === null && league.owner && current && upcoming.length < MAX_OPEN_SESSIONS && (
-                <button
-                  type="button"
-                  className="glass-btn poker-schedule-another"
-                  onClick={() => setForm('new')}
-                >
-                  Programar otro torneo
-                </button>
-              )}
-              {league.owner &&
-              (form === 'new' || (form === 'edit' && current?.startedAt === null)) ? (
+              {league.owner && (form === 'new' || (form === 'edit' && current)) ? (
                 form === 'new' && history.isPending ? (
                   <PaperLoading label="Cargando la configuración" />
                 ) : form === 'new' && history.isError ? (
@@ -221,6 +226,16 @@ export default function PokerLeague({
                   <PokerSettingsForm
                     key={form}
                     editing={form === 'edit'}
+                    live={
+                      form === 'edit' && current?.startedAt != null ? (
+                        <PokerLivePlayers
+                          league={league}
+                          session={current}
+                          busy={busy}
+                          change={change}
+                        />
+                      ) : undefined
+                    }
                     date={(form === 'edit' && current?.date) || today()}
                     settings={
                       (form === 'edit' ? current?.settings : undefined) ??
@@ -277,6 +292,7 @@ export default function PokerLeague({
                       serverNow={league.serverNow}
                       receivedAt={query.dataUpdatedAt}
                       lastWinnerIds={lastWinnerIds(history.data)}
+                      onEdit={() => setForm('edit')}
                       onCommand={async (action, playerId, extra) => {
                         const saved = await change(() =>
                           pokerCommand(league.id, current, action, playerId, extra),
@@ -285,23 +301,19 @@ export default function PokerLeague({
                           navigate(pokerRoutes.history.to, { state: { pokerTip: true } });
                         }
                       }}
-                    />
-                    <PokerLateEntry league={league} session={current} busy={busy} change={change} />
+                    >
+                      <PokerLateEntry
+                        league={league}
+                        session={current}
+                        busy={busy}
+                        change={change}
+                      />
+                    </PokerLive>
                   </>
                 )
               ) : (
-                <section className="poker-felt poker-empty" aria-labelledby="poker-empty-title">
-                  <span className="poker-empty-suits" aria-hidden="true">
-                    ♠ ♥ ♣ ♦
-                  </span>
-                  <h2 id="poker-empty-title">Próximo torneo</h2>
-                  <p className="poster-title poker-empty-title">La mesa está libre</p>
-                  <p className="poker-empty-text">
-                    {league.owner
-                      ? 'Elige la fecha y las reglas para abrir las inscripciones.'
-                      : 'El organizador abrirá las inscripciones del próximo torneo aquí.'}
-                  </p>
-                  {league.owner && (
+                <PokerFreeTable heading="Próximo torneo">
+                  {league.owner ? (
                     <button
                       type="button"
                       className="glass-btn primary-btn poker-empty-cta"
@@ -309,28 +321,12 @@ export default function PokerLeague({
                     >
                       Preparar torneo
                     </button>
+                  ) : (
+                    <p className="poker-empty-text">
+                      El organizador abrirá aquí las inscripciones.
+                    </p>
                   )}
-                  <ol className="poker-steps">
-                    <li>
-                      <strong>Inscripciones</strong>
-                      <span>
-                        {league.owner
-                          ? 'Fijas fecha, entrada y ciegas, y cada jugador confirma si viene.'
-                          : 'Verás la fecha y la entrada, y podrás confirmar si vienes.'}
-                      </span>
-                    </li>
-                    <li>
-                      <strong>Partida</strong>
-                      <span>
-                        El reloj de ciegas, las eliminaciones y el bote se siguen desde aquí.
-                      </span>
-                    </li>
-                    <li>
-                      <strong>Cierre</strong>
-                      <span>Los premios y los puestos quedan guardados en el histórico.</span>
-                    </li>
-                  </ol>
-                </section>
+                </PokerFreeTable>
               )}
             </>
           )}
@@ -349,8 +345,8 @@ export default function PokerLeague({
                 sessions={history.data ?? []}
                 admin={league.admin}
                 busy={historyMutation.isPending}
-                onEdit={(session, date, standings) =>
-                  changeHistory(() => editPokerResult(league.id, session, date, standings))
+                onEdit={(session, changes) =>
+                  changeHistory(() => editPokerResult(league.id, session, changes))
                 }
                 onDelete={(session) =>
                   changeHistory(() => deletePokerResult(league.id, session.id))

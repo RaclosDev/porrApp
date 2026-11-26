@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PokerResultEdit, PokerSession } from '../../services/endpoints/poker';
+import type { PokerResultsEdit, PokerSession } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
 import SheetDialog from '../SheetDialog';
 import PokerEmpty from './PokerEmpty';
@@ -15,6 +15,7 @@ import {
   settlements,
   shortDate,
   signedEuros,
+  pointsText,
   standingLabel,
   tournamentDate,
 } from './pokerFormat';
@@ -34,7 +35,7 @@ interface HistoryProps {
   /** Con `admin`, botones para corregir o borrar el torneo que se ve. */
   admin?: boolean;
   busy?: boolean;
-  onEdit?: (session: PokerSession, date: string, standings: PokerResultEdit[]) => Promise<boolean>;
+  onEdit?: (session: PokerSession, changes: PokerResultsEdit) => Promise<boolean>;
   onDelete?: (session: PokerSession) => Promise<boolean>;
 }
 
@@ -109,11 +110,30 @@ export function PokerHistory({
             </button>
           </div>
           <p className="poster-title poker-big-date">{tournamentDate(session.date)}</p>
-          <p className="poker-note">
-            {session.results.length} jugadores · {euros(session.potCents)} de bote ·{' '}
-            {euros(session.settings.buyInCents)} de entrada ·{' '}
-            {chips(session.settings.startingChips)} fichas iniciales
-          </p>
+          <dl className="poker-history-facts">
+            <div>
+              <dt>Jugadores</dt>
+              <dd>{session.results.length}</dd>
+            </div>
+            <div>
+              <dt>Bote</dt>
+              <dd>{euros(session.potCents)}</dd>
+            </div>
+            <div>
+              <dt>Entrada</dt>
+              <dd>{euros(session.settings.buyInCents)}</dd>
+            </div>
+            <div>
+              <dt>Fichas iniciales</dt>
+              <dd>{chips(session.settings.startingChips)}</dd>
+            </div>
+            {(session.leftoverCents ?? 0) !== 0 && (
+              <div className="poker-history-leftover">
+                <dt>{(session.leftoverCents ?? 0) > 0 ? 'Sin repartir' : 'Repartido de más'}</dt>
+                <dd>{euros(Math.abs(session.leftoverCents ?? 0))}</dd>
+              </div>
+            )}
+          </dl>
           {(payments.length > 0 || admin) && (
             <div className="poker-actions poker-history-actions">
               {payments.length > 0 && (
@@ -180,7 +200,7 @@ export function PokerHistory({
               key={session.id}
               session={session}
               busy={busy}
-              onSave={(date, standings) => onEdit(session, date, standings)}
+              onSave={(changes) => onEdit(session, changes)}
               onClose={() => setSheet(null)}
             />
           )}
@@ -215,6 +235,9 @@ export function PokerHistory({
                     Aportado
                   </th>
                   <th scope="col">Premio</th>
+                  <th scope="col" className="poker-col-points">
+                    Puntos
+                  </th>
                   <th scope="col">Neto</th>
                 </tr>
               </thead>
@@ -261,7 +284,11 @@ export function PokerHistory({
                     <td className="poker-col-paid">{euros(result.paidCents)}</td>
                     <td className={result.prizeCents > 0 ? 'poker-strong' : undefined}>
                       {euros(result.prizeCents)}
+                      <small className="poker-points-extra">
+                        {pointsText(result.points ?? 0)} pts
+                      </small>
                     </td>
+                    <td className="poker-col-points">{pointsText(result.points ?? 0)}</td>
                     <Net cents={result.prizeCents - result.paidCents} />
                   </tr>
                 ))}
@@ -282,6 +309,7 @@ const statisticColumns: {
   lowFirst?: boolean;
 }[] = [
   { label: 'Jugador', value: (row) => row.name, lowFirst: true },
+  { label: 'Puntos', value: (row) => row.points },
   { label: 'Torneos', value: (row) => row.played },
   { label: 'Recompras', value: (row) => row.rebuys },
   { label: 'Add-ons', value: (row) => row.addOns },
@@ -366,7 +394,7 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
             {standings.length} jugadores
           </p>
           <PokerPodium
-            label="Podio de la liga por victorias"
+            label="Podio de la liga por puntos"
             places={standings.slice(0, 3).map((row) => ({
               playerId: row.playerId,
               name: row.name,
@@ -432,10 +460,11 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                         <PokerPlayerName playerId={row.playerId} name={row.name} />
                       </span>
                     </th>
+                    <td className="poker-strong">{pointsText(row.points)}</td>
                     <td>{row.played}</td>
                     <td>{row.rebuys}</td>
                     <td>{row.addOns}</td>
-                    <td className="poker-strong">{row.wins}</td>
+                    <td>{row.wins}</td>
                     <td>{percent(row.wins / row.played)}</td>
                     <td>{row.podiums}</td>
                     <td>{row.applause}</td>
