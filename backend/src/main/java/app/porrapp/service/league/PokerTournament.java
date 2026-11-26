@@ -179,6 +179,7 @@ final class PokerTournament {
     /**
      * Corrige un torneo cerrado. Si el orden no cambia se conservan las fichas finales (y los empates);
      * si cambia, el orden enviado pasa a ser la clasificación y las fichas finales dejan de contar.
+     * Si se piden quitar sin cambiar el orden, los que seguían en la mesa comparten el primer puesto.
      */
     static void editResults(PokerSession session, EditResults request) {
         List<Entry> entries = session.getEntries();
@@ -200,11 +201,12 @@ final class PokerTournament {
         }
         List<Long> current = view(session, 0).results().stream().map(Result::playerId).toList();
         boolean sameOrder = current.equals(ids);
+        boolean keepChips = sameOrder && !Boolean.TRUE.equals(request.clearChips());
         session.setEntries(request.standings().stream().map(edit -> {
             Entry entry = entries.stream().filter(candidate -> candidate.playerId() == edit.playerId())
                     .findFirst().orElseThrow();
             Entry edited = entry.withExtras(edit.rebuys(), edit.addOns())
-                    .withFinalChips(sameOrder ? entry.finalChips() : null);
+                    .withFinalChips(keepChips ? entry.finalChips() : null);
             // Quien corrige a mano el premio o los puntos manda sobre el reparto calculado.
             return edit.prizeCents() == null || edit.points() == null ? edited
                     : edited.withPayout(edit.prizeCents(), edit.points().setScale(2, RoundingMode.DOWN));

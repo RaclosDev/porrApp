@@ -242,6 +242,22 @@ class PokerTournamentTest {
     }
 
     @Test
+    void clearingStacksKeepsThePayoutsAndLeavesTheSurvivorsAsADeal() {
+        var session = activeSession();
+        PokerTournament.apply(session, new Command(Action.CLOSE, 0L, null,
+                List.of(new FinalStack(1, 200), new FinalStack(2, 100))), 1000);
+        var day = java.time.LocalDate.of(2026, 11, 7);
+        PokerTournament.editResults(session, new EditResults(day, 0L, List.of(
+                new ResultEdit(1, 0, 0, 200L, new BigDecimal("5")),
+                new ResultEdit(2, 0, 0, 100L, new BigDecimal("4")),
+                new ResultEdit(3, 0, 0, 0L, BigDecimal.ZERO)), null, null, null, true));
+        var cleared = PokerTournament.view(session, 1000);
+        assertThat(cleared.results()).extracting(Result::finalChips).containsOnlyNulls();
+        assertThat(cleared.results()).extracting(Result::place).containsExactly(1, 1, 3);
+        assertThat(cleared.results()).extracting(Result::prizeCents).containsExactly(200L, 100L, 0L);
+    }
+
+    @Test
     void liveEditAddsRebuysAndKeepsWhatWasPlayedOfTheCurrentLevel() {
         var session = activeSession();
         // A los 4 minutos del nivel de 10 se alarga a 15: quedan 11.

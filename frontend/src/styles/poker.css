@@ -2616,6 +2616,14 @@
   border: 0;
 }
 
+.poker-edit-clear-chips {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
 .poker-edit-basics legend {
   padding: 0;
   margin-bottom: 0.4rem;
