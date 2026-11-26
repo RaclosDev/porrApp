@@ -959,13 +959,18 @@ it('abre las acciones desde la foto y respeta permisos y extras disponibles', ()
     onCommand: command,
   };
   const { rerender } = render(<PokerLive {...props} />);
-  click('Acciones de Ana');
-  const actions = within(screen.getByRole('region', { name: 'Acciones de Ana' }));
-  fireEvent.click(actions.getByRole('button', { name: 'Recompra de Ana' }));
+  // Cada acción cierra el panel del jugador: para la siguiente hay que volver a abrirlo.
+  const act = (player: string, action: string) => {
+    click(`Acciones de ${player}`);
+    const panel = within(screen.getByRole('region', { name: `Acciones de ${player}` }));
+    fireEvent.click(panel.getByRole('button', { name: action }));
+    expect(screen.queryByRole('region', { name: `Acciones de ${player}` })).not.toBeInTheDocument();
+  };
+  act('Ana', 'Recompra de Ana');
   expect(command).toHaveBeenLastCalledWith('REBUY', 1);
-  fireEvent.click(actions.getByRole('button', { name: 'Add-on para Ana' }));
+  act('Ana', 'Add-on para Ana');
   expect(command).toHaveBeenLastCalledWith('ADD_ON', 1);
-  fireEvent.click(actions.getByRole('button', { name: 'Eliminar a Ana' }));
+  act('Ana', 'Eliminar a Ana');
   expect(command).toHaveBeenLastCalledWith('ELIMINATE', 1);
   click('Acciones de Luis');
   const limited = within(screen.getByRole('region', { name: 'Acciones de Luis' }));
@@ -975,15 +980,14 @@ it('abre las acciones desde la foto y respeta permisos y extras disponibles', ()
   const out = within(screen.getByRole('region', { name: 'Acciones de Paz' }));
   expect(out.queryByRole('button', { name: 'Eliminar a Paz' })).not.toBeInTheDocument();
   expect(out.queryByRole('button', { name: 'Add-on para Paz' })).not.toBeInTheDocument();
-  fireEvent.click(out.getByRole('button', { name: 'Recompra de Paz' }));
+  click('Acciones de Paz');
+  act('Paz', 'Recompra de Paz');
   expect(command).toHaveBeenLastCalledWith('REBUY', 3);
-  fireEvent.click(out.getByRole('button', { name: 'Quitar la eliminación de Paz' }));
+  act('Paz', 'Quitar la eliminación de Paz');
   expect(command).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
   // Un jugador sin permisos de organizador también apunta recompras y eliminaciones.
   rerender(<PokerLive {...props} owner={false} />);
-  click('Acciones de Ana');
-  const member = within(screen.getByRole('region', { name: 'Acciones de Ana' }));
-  fireEvent.click(member.getByRole('button', { name: 'Eliminar a Ana' }));
+  act('Ana', 'Eliminar a Ana');
   expect(command).toHaveBeenLastCalledWith('ELIMINATE', 1);
   expect(screen.queryByRole('button', { name: 'Pausar' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Reanudar' })).not.toBeInTheDocument();
