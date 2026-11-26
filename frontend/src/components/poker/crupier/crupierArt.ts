@@ -118,7 +118,7 @@ function draw(hat: CrupierHat) {
       </g>
       <text class="p-ding" text-anchor="middle" font-family="Georgia, serif" font-weight="900" font-size="12" fill="#fff" stroke="#111" stroke-width="3" paint-order="stroke">¡DING!</text>
       <text class="p-bang" text-anchor="middle" font-family="Georgia, serif" font-weight="900" font-size="14" fill="#fff6a8" stroke="#111" stroke-width="3" paint-order="stroke">¡BANG!</text>
-      <g class="p-smoke" fill="#fff" fill-opacity="0.85" stroke="#111" stroke-width="1.4"><circle class="s0" r="4"/><circle class="s1" r="5"/><circle class="s2" r="6"/></g>
+      <g class="p-smoke" fill="#d4d0c8" stroke="#111" stroke-width="1.1" stroke-linejoin="round"><path class="s0" d="M-7 3 a3.2 3.2 0 0 1 0.5 -6 a4 4 0 0 1 7 -2 a3.6 3.6 0 0 1 6 3.5 a2.8 2.8 0 0 1 -1 4.5 Z"/><path class="s1" d="M-7 3 a3.2 3.2 0 0 1 0.5 -6 a4 4 0 0 1 7 -2 a3.6 3.6 0 0 1 6 3.5 a2.8 2.8 0 0 1 -1 4.5 Z"/><path class="s2" d="M-7 3 a3.2 3.2 0 0 1 0.5 -6 a4 4 0 0 1 7 -2 a3.6 3.6 0 0 1 6 3.5 a2.8 2.8 0 0 1 -1 4.5 Z"/></g>
       <g class="p-sparks"><use class="k0" href="#spark"/><use class="k1" href="#spark"/><use class="k2" href="#spark"/></g>
       <use class="p-fly" href="#card"/>
       <g class="p-steam" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"><path class="v0" d="M0 0 q-4 -5 0 -10 q4 -5 0 -10"/><path class="v1" d="M0 0 q-4 -5 0 -10 q4 -5 0 -10"/><path class="v2" d="M0 0 q-4 -5 0 -10 q4 -5 0 -10"/></g>
