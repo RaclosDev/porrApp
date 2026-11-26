@@ -161,8 +161,12 @@ public class PokerLeagueService {
         Long userId = account(email).getId();
         League league = owned(leagueId, userId);
         PokerSession session = openSession(leagueId, sessionId);
-        registration(session);
         checkRevision(session, request.revision());
+        if (session.getStartedAt() != null) {
+            // Con la mesa en juego se corrigen los ajustes sobre la marcha; la fecha ya no cambia.
+            PokerTournament.editLive(session, request.settings(), System.currentTimeMillis());
+            return changed(league, userId, session);
+        }
         PokerTournament.validate(request.settings());
         session.setScheduledOn(request.date());
         session.setSettings(request.settings());
@@ -174,8 +178,9 @@ public class PokerLeagueService {
         Long userId = account(email).getId();
         League league = visible(leagueId, userId, true);
         PokerSession session = openSession(leagueId, sessionId);
-        // Quien llega tarde puede entrar con la mesa empezada; salir solo antes de empezar.
-        if (!request.attending()) registration(session);
+        // Quien llega tarde puede entrar con la mesa empezada. Salir, solo antes de empezar; después, solo
+        // lo saca quien organiza (por si se apuntó por error).
+        if (!request.attending() && request.playerId() == null) registration(session);
         ScoreTrackerPlayer player;
         if (request.playerId() == null) {
             player = players.findByLeagueIdAndUserId(leagueId, userId)
@@ -192,6 +197,9 @@ public class PokerLeagueService {
         if (request.attending()) {
             requireSeat(session);
             entries.add(new Entry(player.getId(), player.getName(), 0, 0));
+        } else if (session.getStartedAt() != null) {
+            PokerTournament.removeEntry(session, player.getId());
+            return changed(league, userId, session);
         } else {
             entries.removeIf(entry -> entry.playerId() == player.getId());
         }

@@ -45,11 +45,30 @@ export const shortDate = (date: string) => {
   return (thisYear(day) ? shortDateFormat : shortDateWithYear).format(day);
 };
 
-// En el podio de la liga, quien aún no ha ganado se presenta por sus podios.
-export const standingLabel = ({ wins, podiums }: { wins: number; podiums: number }) =>
-  wins > 0
+/** Quita el cero de delante al escribir detrás de él («020» pasa a «20»). */
+export function noLeadingZero(input: HTMLInputElement) {
+  if (/^-?0\d/.test(input.value)) input.value = String(input.valueAsNumber);
+  return input.valueAsNumber;
+}
+
+/** Puntos de la liga con hasta dos decimales: «9», «4,5», «2,25». */
+export const pointsText = (points: number) =>
+  points.toLocaleString('es-ES', { maximumFractionDigits: 2 });
+
+// En el podio de la liga cuentan los puntos; al lado, las victorias o, si no las hay, los podios.
+export const standingLabel = ({
+  points,
+  wins,
+  podiums,
+}: {
+  points: number;
+  wins: number;
+  podiums: number;
+}) =>
+  `${pointsText(points)} ${points === 1 ? 'punto' : 'puntos'} · ` +
+  (wins > 0
     ? `${wins} ${wins === 1 ? 'victoria' : 'victorias'}`
-    : `${podiums} ${podiums === 1 ? 'podio' : 'podios'}`;
+    : `${podiums} ${podiums === 1 ? 'podio' : 'podios'}`);
 
 export const today = () => {
   const date = new Date();
@@ -177,6 +196,8 @@ export function pokerStandings(history: PokerSession[]) {
     {
       playerId: number;
       name: string;
+      /** Puntos de la liga, en centésimas para sumar sin errores de redondeo. */
+      hundredths: number;
       played: number;
       rebuys: number;
       addOns: number;
@@ -200,6 +221,7 @@ export function pokerStandings(history: PokerSession[]) {
       const row = players.get(result.playerId) ?? {
         playerId: result.playerId,
         name: result.name,
+        hundredths: 0,
         played: 0,
         rebuys: 0,
         addOns: 0,
@@ -214,6 +236,7 @@ export function pokerStandings(history: PokerSession[]) {
         bestStreak: 0,
       };
       row.played += 1;
+      row.hundredths += Math.round((result.points ?? 0) * 100);
       row.rebuys += result.rebuys;
       row.addOns += result.addOns;
       row.wins += Number(result.place === 1);
@@ -228,11 +251,14 @@ export function pokerStandings(history: PokerSession[]) {
       players.set(result.playerId, row);
     }
   }
-  return [...players.values()].sort(
-    (a, b) =>
-      b.wins - a.wins ||
-      b.podiums - a.podiums ||
-      a.places / a.played - b.places / b.played ||
-      a.name.localeCompare(b.name, 'es'),
-  );
+  return [...players.values()]
+    .map(({ hundredths, ...row }) => ({ ...row, points: hundredths / 100 }))
+    .sort(
+      (a, b) =>
+        b.points - a.points ||
+        b.wins - a.wins ||
+        b.podiums - a.podiums ||
+        a.places / a.played - b.places / b.played ||
+        a.name.localeCompare(b.name, 'es'),
+    );
 }

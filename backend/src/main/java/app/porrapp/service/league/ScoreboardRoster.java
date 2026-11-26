@@ -60,7 +60,7 @@ public class ScoreboardRoster {
             sessions.findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(leagueId).forEach(session -> session.setEntries(
                     session.getEntries().stream()
                             .map(entry -> entry.playerId() == player.getId()
-                                    ? new Entry(entry.playerId(), newName, entry.rebuys(), entry.addOns(), entry.finalChips())
+                                    ? entry.renamed(newName)
                                     : entry)
                             .toList()));
         }

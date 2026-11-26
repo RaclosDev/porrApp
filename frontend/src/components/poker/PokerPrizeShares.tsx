@@ -1,5 +1,6 @@
 import type { PokerCommandExtra, PokerSettings } from '../../services/endpoints/poker';
-import { euros } from './pokerFormat';
+import { Minus, Plus } from 'lucide-react';
+import { euros, noLeadingZero } from './pokerFormat';
 
 type PrizeMode = 'percent' | 'amount';
 
@@ -79,6 +80,9 @@ interface Props {
   pot?: number;
   /** Etiqueta de cada puesto, p. ej. «1.º Laura»; por defecto, «Puesto 1». */
   placeLabels?: string[];
+  /** Puntos de liga de cada puesto; con ellos, cada fila los deja cambiar al lado del premio. */
+  points?: number[];
+  onPointsChange?: (points: number[]) => void;
 }
 
 /** Campos del reparto de premios por puesto, con el total y los botones para añadir o quitar. */
@@ -89,11 +93,15 @@ export default function PokerPrizeShares({
   disabled,
   pot,
   placeLabels,
+  points,
+  onPointsChange,
 }: Props) {
   const { mode, values } = draft;
   const amounts = mode === 'amount';
   const total = sharesTotal(values);
   const setValues = (next: number[]) => onChange({ mode, values: next });
+  // Cuánto del 100 % (o del bote) está ya repartido, para la barra del total.
+  const filled = amounts ? (pot ? (total * 100) / pot : 0) : total;
   let summary: string;
   let off: boolean;
   if (amounts) {
@@ -131,46 +139,89 @@ export default function PokerPrizeShares({
           ))}
         </div>
       )}
-      <div className="poker-fields poker-share-fields">
+      <div className={points ? 'poker-share-fields has-points' : 'poker-share-fields'}>
+        {points && (
+          <div className="poker-share-head" aria-hidden="true">
+            <span>Puesto</span>
+            <span>Premio</span>
+            <span>Puntos</span>
+          </div>
+        )}
         {values.map((value, index) => (
-          <label key={index}>
-            {placeLabels?.[index] ?? `Puesto ${index + 1}`} ({amounts ? '€' : '%'})
-            <input
-              type="number"
-              className="glass-input"
-              required
-              inputMode={amounts ? 'decimal' : 'numeric'}
-              step={amounts ? '0.01' : '1'}
-              min={amounts ? 0.01 : 1}
-              max={amounts ? undefined : 100}
-              disabled={disabled}
-              value={Number.isNaN(value) ? '' : amounts ? value / 100 : value}
-              onChange={(event) => {
-                const number = event.currentTarget.valueAsNumber;
-                const next = Math.round(amounts ? number * 100 : number);
-                setValues(values.map((old, i) => (i === index ? next : old)));
-              }}
-            />
-          </label>
+          <div key={index} className={`poker-share-field is-place-${index + 1}`}>
+            <span className="poker-share-place" aria-hidden="true">
+              {index + 1}
+            </span>
+            <span className="poker-share-name">
+              {placeLabels?.[index] ?? `${index + 1}.º premio`}
+            </span>
+            <span className="poker-input-unit" data-unit={amounts ? '€' : '%'}>
+              <input
+                type="number"
+                className="glass-input"
+                required
+                aria-label={`${placeLabels?.[index] ?? `Puesto ${index + 1}`} (${amounts ? '€' : '%'})`}
+                inputMode={amounts ? 'decimal' : 'numeric'}
+                step={amounts ? '0.01' : '1'}
+                min={amounts ? 0.01 : 1}
+                max={amounts ? undefined : 100}
+                disabled={disabled}
+                value={Number.isNaN(value) ? '' : amounts ? value / 100 : value}
+                onChange={(event) => {
+                  const number = noLeadingZero(event.currentTarget);
+                  const next = Math.round(amounts ? number * 100 : number);
+                  setValues(values.map((old, i) => (i === index ? next : old)));
+                }}
+              />
+            </span>
+            {points && (
+              <span className="poker-input-unit" data-unit="pts">
+                <input
+                  type="number"
+                  className="glass-input"
+                  required
+                  aria-label={`Puntos de liga del ${index + 1}.º puesto`}
+                  inputMode="numeric"
+                  min={0}
+                  max={1000}
+                  disabled={disabled}
+                  value={Number.isNaN(points[index]) ? '' : points[index]}
+                  onChange={(event) => {
+                    const next = Math.round(noLeadingZero(event.currentTarget));
+                    onPointsChange?.(points.map((old, i) => (i === index ? next : old)));
+                  }}
+                />
+              </span>
+            )}
+          </div>
         ))}
       </div>
-      <div className="poker-actions">
-        <span className={off ? 'poker-total is-off' : 'poker-total'}>{summary}</span>
+      <div className="poker-share-foot">
+        <div className="poker-share-total">
+          <span className={off ? 'poker-total is-off' : 'poker-total'}>{summary}</span>
+          <span
+            className="poker-share-meter"
+            aria-hidden="true"
+            style={{ ['--share' as string]: `${Math.min(100, filled)}%` }}
+          />
+        </div>
         <button
           type="button"
           className="glass-btn"
+          aria-label="Añadir premio"
           disabled={disabled || values.length >= Math.min(20, maxPlaces)}
-          onClick={() => setValues([...values, amounts ? 100 : 1])}
+          onClick={() => setValues([...values, 0])}
         >
-          Añadir premio
+          <Plus size={18} aria-hidden="true" />
         </button>
         <button
           type="button"
           className="glass-btn"
+          aria-label="Quitar premio"
           disabled={disabled || values.length <= 1}
           onClick={() => setValues(values.slice(0, -1))}
         >
-          Quitar premio
+          <Minus size={18} aria-hidden="true" />
         </button>
       </div>
     </>

@@ -4,12 +4,14 @@ import app.porrapp.dto.PokerDTO.*;
 import app.porrapp.exception.BusinessException;
 import app.porrapp.model.PokerSession;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 final class PokerTournament {
-    static final int MAX_ENTRIES = 20;
+    static final int MAX_ENTRIES = app.porrapp.dto.PokerDTO.MAX_ENTRIES;
 
     private PokerTournament() {
     }
@@ -27,6 +29,51 @@ final class PokerTournament {
                 || settings.addOn() != null && (settings.addOn().throughLevel() > levels.size()
                 || !Integer.valueOf(1).equals(settings.addOn().limit()))) {
             throw BusinessException.badRequest("Revisa hasta qué nivel se permiten las recompras y el extra de fichas");
+        }
+    }
+
+    /**
+     * Cambia los ajustes con la mesa ya en juego. Lo apuntado tiene que seguir cabiendo: el nivel en curso,
+     * las recompras y extras hechos y las cantidades fijas del reparto. Si cambia la duración del nivel en
+     * curso, se conserva lo ya jugado de él.
+     */
+    static void editLive(PokerSession session, Settings settings, long now) {
+        validate(settings);
+        BlindClock clock = clockAt(session.getBlindClock(), session.getSettings().levels(), now);
+        var levels = settings.levels();
+        if (clock != null && clock.level() >= levels.size()) {
+            throw BusinessException.badRequest("El torneo va por el nivel " + (clock.level() + 1)
+                    + ". Deja al menos " + (clock.level() + 1) + " niveles");
+        }
+        if (session.getEntries().stream().anyMatch(entry -> !allowed(settings.rebuy(), entry.rebuys())
+                || !allowed(settings.addOn(), entry.addOns()))) {
+            throw BusinessException.badRequest("Hay recompras o extras de fichas apuntados que ya no caben. Quítalos antes");
+        }
+        Settings before = session.getSettings();
+        session.setSettings(settings);
+        checkAmountsFit(settings.prizeAmounts(), pot(session));
+        if (clock != null && clock.remainingMs() > 0) {
+            long played = duration(before.levels().get(clock.level())) - clock.remainingMs();
+            long remaining = Math.max(1000L, duration(levels.get(clock.level())) - Math.max(0L, played));
+            session.setBlindClock(new BlindClock(clock.level(), clock.endsAt() == null ? null : now + remaining,
+                    remaining));
+        } else {
+            session.setBlindClock(clock);
+        }
+    }
+
+    /** Saca de la mesa en juego a quien se apuntó por error, con lo que hubiera pagado. */
+    static void removeEntry(PokerSession session, long playerId) {
+        var entries = new ArrayList<>(session.getEntries());
+        if (!entries.removeIf(entry -> entry.playerId() == playerId)) return;
+        if (entries.isEmpty()) throw BusinessException.conflict("La mesa no puede quedarse sin jugadores");
+        session.setEntries(entries);
+        session.setEliminations(session.getEliminations().stream().filter(id -> id != playerId).toList());
+        // Si con el bote menor ya no caben las cantidades fijas, el reparto vuelve a los porcentajes.
+        Settings settings = session.getSettings();
+        List<Long> amounts = settings.prizeAmounts();
+        if (amounts != null && amounts.stream().mapToLong(Long::longValue).sum() > pot(session)) {
+            session.setSettings(settings.withPrizes(settings.prizeShares(), null));
         }
     }
 
@@ -81,12 +128,14 @@ final class PokerTournament {
                 if (command.prizeShares() != null || command.prizeAmounts() != null) {
                     setPrizes(session, command);
                 }
-                checkAmountsFit(session.getSettings().prizeAmounts(), pot(session));
+                if (command.payouts() == null) checkAmountsFit(session.getSettings().prizeAmounts(), pot(session));
                 if (command.finalStacks() != null) {
                     finishStacks(session, command.finalStacks());
-                } else if (remaining(session) != 1) {
+                } else if (remaining(session) != 1 && command.payouts() == null) {
+                    // Sin fichas solo se cierra con varios en la mesa si pactan el reparto sin contarlas.
                     throw BusinessException.conflict("Para cerrar, tiene que quedar un solo jugador");
                 }
+                if (command.payouts() != null) setPayouts(session, command.payouts());
                 session.setBlindClock(new BlindClock(clock.level(), null, clock.remainingMs()));
                 session.setClosedAt(now);
             }
@@ -107,9 +156,24 @@ final class PokerTournament {
         }
         if (amounts) checkAmountsFit(command.prizeAmounts(), pot(session));
         Settings old = session.getSettings();
-        session.setSettings(new Settings(old.buyInCents(), old.startingChips(), old.rebuy(), old.addOn(),
-                amounts ? old.prizeShares() : List.copyOf(command.prizeShares()), old.levels(),
+        session.setSettings(old.withPrizes(amounts ? old.prizeShares() : List.copyOf(command.prizeShares()),
                 amounts ? List.copyOf(command.prizeAmounts()) : null));
+    }
+
+    /**
+     * Guarda lo que se lleva cada jugador, elegido al cerrar. A propósito no se comprueba que sume el bote:
+     * se reparte en números redondos y lo que sobra se muestra aparte. Quien no aparece se lleva cero.
+     */
+    private static void setPayouts(PokerSession session, List<Payout> payouts) {
+        var ids = payouts.stream().map(Payout::playerId).toList();
+        var players = session.getEntries().stream().map(Entry::playerId).toList();
+        if (ids.stream().distinct().count() != ids.size() || !players.containsAll(ids)) {
+            throw BusinessException.badRequest("El reparto incluye jugadores que no están en el torneo");
+        }
+        session.setEntries(session.getEntries().stream().map(entry -> payouts.stream()
+                .filter(payout -> payout.playerId() == entry.playerId()).findFirst()
+                .map(payout -> entry.withPayout(payout.prizeCents(), payout.points().setScale(2, RoundingMode.DOWN)))
+                .orElseGet(() -> entry.withPayout(0, BigDecimal.ZERO.setScale(2)))).toList());
     }
 
     /**
@@ -124,6 +188,11 @@ final class PokerTournament {
             throw BusinessException.badRequest("La clasificación tiene que incluir a todos los jugadores del torneo");
         }
         Settings settings = session.getSettings();
+        if (request.buyInCents() != null || request.rebuyCostCents() != null || request.addOnCostCents() != null) {
+            settings = settings.withCosts(request.buyInCents() != null ? request.buyInCents() : settings.buyInCents(),
+                    request.rebuyCostCents(), request.addOnCostCents());
+            session.setSettings(settings);
+        }
         for (ResultEdit edit : request.standings()) {
             if (!allowed(settings.rebuy(), edit.rebuys()) || !allowed(settings.addOn(), edit.addOns())) {
                 throw BusinessException.badRequest("Hay más recompras o add-ons de los que permite el torneo");
@@ -134,8 +203,11 @@ final class PokerTournament {
         session.setEntries(request.standings().stream().map(edit -> {
             Entry entry = entries.stream().filter(candidate -> candidate.playerId() == edit.playerId())
                     .findFirst().orElseThrow();
-            return new Entry(entry.playerId(), entry.name(), edit.rebuys(), edit.addOns(),
-                    sameOrder ? entry.finalChips() : null);
+            Entry edited = entry.withExtras(edit.rebuys(), edit.addOns())
+                    .withFinalChips(sameOrder ? entry.finalChips() : null);
+            // Quien corrige a mano el premio o los puntos manda sobre el reparto calculado.
+            return edit.prizeCents() == null || edit.points() == null ? edited
+                    : edited.withPayout(edit.prizeCents(), edit.points().setScale(2, RoundingMode.DOWN));
         }).toList());
         if (!sameOrder) {
             var eliminations = new ArrayList<>(ids.subList(1, ids.size()));
@@ -143,7 +215,8 @@ final class PokerTournament {
             session.setEliminations(List.copyOf(eliminations));
         }
         session.setScheduledOn(request.date());
-        checkAmountsFit(session.getSettings().prizeAmounts(), pot(session));
+        boolean manual = request.standings().stream().allMatch(edit -> edit.prizeCents() != null && edit.points() != null);
+        if (!manual) checkAmountsFit(session.getSettings().prizeAmounts(), pot(session));
     }
 
     private static boolean allowed(Extra extra, int count) {
@@ -176,9 +249,9 @@ final class PokerTournament {
         if (stacks.stream().mapToLong(FinalStack::chips).sum() != total) {
             throw BusinessException.badRequest("La suma debe coincidir con las fichas en juego: " + total);
         }
-        session.setEntries(session.getEntries().stream().map(entry -> new Entry(entry.playerId(), entry.name(),
-                entry.rebuys(), entry.addOns(), stacks.stream().filter(stack -> stack.playerId() == entry.playerId())
-                        .map(FinalStack::chips).findFirst().orElse(0L))).toList());
+        session.setEntries(session.getEntries().stream().map(entry -> entry.withFinalChips(stacks.stream()
+                .filter(stack -> stack.playerId() == entry.playerId())
+                .map(FinalStack::chips).findFirst().orElse(0L))).toList());
     }
 
     private static void start(PokerSession session, long now) {
@@ -189,7 +262,8 @@ final class PokerTournament {
             throw BusinessException.badRequest("Hay más puestos premiados que jugadores. Ajusta el reparto");
         }
         long duration = duration(session.getSettings().levels().getFirst());
-        session.setBlindClock(new BlindClock(0, now + duration, duration));
+        // Empieza parado: la mesa se sienta con calma y el reloj arranca cuando alguien le da.
+        session.setBlindClock(new BlindClock(0, null, duration));
         session.setStartedAt(now);
     }
 
@@ -303,33 +377,62 @@ final class PokerTournament {
         return List.copyOf(prizes);
     }
 
+    /**
+     * Puntos de la liga por puesto, en centésimas: siempre se reparten 9. Con tres premios o más, 5-3-1;
+     * con dos, 5-4; con uno, los 9 para el ganador.
+     */
+    static List<Long> pointsScale(int prizePlaces) {
+        return switch (prizePlaces) {
+            case 1 -> List.of(900L);
+            case 2 -> List.of(500L, 400L);
+            default -> List.of(500L, 300L, 100L);
+        };
+    }
+
+    /** Puntos por puesto del torneo, en centésimas: los que eligió el organizador o la escala de siempre. */
+    static List<Long> points(Settings settings) {
+        if (settings.prizePoints() == null) return pointsScale(settings.prizePlaces());
+        return settings.prizePoints().stream().limit(settings.prizePlaces()).map(points -> points * 100L).toList();
+    }
+
+    /** Lo que suman los puestos desde {@code place} para {@code count} empatados, partido entre ellos. */
+    private static long share(List<Long> byPlace, int place, int count, int tiedIndex) {
+        long total = byPlace.stream().skip(place - 1L).limit(count).mapToLong(Long::longValue).sum();
+        return total / count + (tiedIndex < total % count ? 1 : 0);
+    }
+
     static Session view(PokerSession session, long now) {
         Settings settings = session.getSettings();
         List<Entry> entries = session.getEntries();
         List<Long> order = session.getEliminations();
         long pot = pot(session);
         List<Long> prizes = prizes(pot, settings);
+        List<Long> points = points(settings);
         List<Result> results = session.getClosedAt() == null ? List.of() : entries.stream()
                 .map(entry -> {
                     int index = order.indexOf(entry.playerId());
                     int place = index < 0 ? 1 : entries.size() - index;
-                    long prize;
+                    int tiedCount = 1;
+                    int tiedIndex = 0;
                     if (index < 0 && entry.finalChips() != null) {
                         var survivors = entries.stream().filter(other -> !order.contains(other.playerId())).toList();
                         place = 1 + (int) survivors.stream().filter(other -> other.finalChips() > entry.finalChips()).count();
                         var tied = survivors.stream().filter(other -> other.finalChips().equals(entry.finalChips()))
                                 .sorted(Comparator.comparingLong(Entry::playerId)).toList();
-                        long shared = prizes.stream().skip(place - 1).limit(tied.size()).mapToLong(Long::longValue).sum();
-                        prize = shared / tied.size() + (tied.indexOf(entry) < shared % tied.size() ? 1 : 0);
-                    } else {
-                        prize = place <= prizes.size() ? prizes.get(place - 1) : 0;
+                        tiedCount = tied.size();
+                        tiedIndex = tied.indexOf(entry);
                     }
+                    long prize = entry.prizeCents() != null ? entry.prizeCents()
+                            : share(prizes, place, tiedCount, tiedIndex);
+                    BigDecimal earned = entry.points() != null ? entry.points()
+                            : BigDecimal.valueOf(share(points, place, tiedCount, tiedIndex), 2);
                     return new Result(entry.playerId(), entry.name(), place, paid(entry, settings),
-                            prize, entry.rebuys(), entry.addOns(), entry.finalChips());
+                            prize, entry.rebuys(), entry.addOns(), entry.finalChips(), earned);
                 })
                 .sorted(Comparator.comparingInt(Result::place)).toList();
+        long leftover = results.isEmpty() ? 0 : pot - results.stream().mapToLong(Result::prizeCents).sum();
         return new Session(session.getId(), session.getRevision(), session.getScheduledOn(),
                 session.getStartedAt(), session.getClosedAt(), settings, entries, order,
-                clockAt(session.getBlindClock(), settings.levels(), now), pot, prizes, results);
+                clockAt(session.getBlindClock(), settings.levels(), now), pot, prizes, results, leftover);
     }
 }

@@ -143,7 +143,7 @@
   width: 1.15rem;
   height: 1.15rem;
   flex-shrink: 0;
-  accent-color: var(--accent-cyan);
+  accent-color: var(--text-main);
 }
 
 .poker-check small {
@@ -154,6 +154,59 @@
 
 .poker-guest-toggle {
   margin-block: 0.45rem;
+}
+
+/* Inscripción en la escena del crupier: datos del torneo bajo la mesa y el reparto en etiquetas. */
+.poker-felt-facts {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 0.6rem 0 0;
+  text-align: center;
+}
+
+.poker-felt-facts dt {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.poker-felt-facts dd {
+  margin: 0.1rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-split {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-block: 0.6rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.poker-split ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-split li {
+  padding: 2px 9px;
+  border: 1px solid rgb(var(--ink-rgb) / 0.3);
+  border-radius: 999px;
+  color: var(--text-main);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .poker-form {
@@ -256,7 +309,6 @@
 .poker-winner .sticker {
   width: min(100%, 16rem);
   margin-inline: auto;
-  rotate: -2deg;
 }
 
 .poker-winner .marker-ink {
@@ -491,35 +543,90 @@
   margin: 0.4rem 0;
 }
 
-/* Mesa sin torneo: el tapete vacío invita a preparar el siguiente. */
+/* Mesa sin torneo: la tarjeta entera es la escena del crupier, con la pared sepia arriba y su mesa de lado a
+   lado, y el título encima de la mesa. */
 .poker-felt.poker-empty {
+  /* Las capas de dentro (pared, cifras) no salen de la tarjeta ni tapan menús. */
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-block: clamp(1.6rem, 6vw, 3rem) clamp(1.1rem, 4vw, 1.8rem);
   text-align: center;
+  /* El tapete es igual en los dos temas: dentro, siempre la tinta clara del modo oscuro. */
+  --ink-rgb: 255 255 255;
+  --text-main: #f8fafc;
+  --text-primary: var(--text-main);
+  --text-muted: #e9dcb8;
+  --border-color: rgb(255 255 255 / 0.18);
+  --accent-fill: #f3ecdc;
+  --accent-on: #111827;
+  color: var(--text-main);
+  overflow: hidden;
+  padding: 0 1rem 1.5rem;
+  border: 3px solid #f0c94c;
+  background: #6e6e6e;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.35);
 }
 
-.poker-empty-suits {
-  color: rgba(243, 236, 220, 0.55);
-  font-size: 1.35rem;
-  letter-spacing: 0.35em;
+/* Grano y viñeta sobre toda la tarjeta, como en el dibujo. */
+.poker-felt.poker-empty::after {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 40%, transparent 55%, rgb(42 29 10 / 0.5)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.18 0 0 0 0 0.13 0 0 0 0 0.04 0 0 0 0.3 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E");
+  content: '';
+  pointer-events: none;
 }
 
+.poker-empty-stage {
+  --crupier-size: clamp(170px, 52vw, 250px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: calc(100% + 2rem);
+  margin-inline: -1rem;
+  padding-top: 1rem;
+  /* La mesa del dibujo (del 82 % al 88 % de su alto, contado desde abajo) sigue hasta los bordes; encima, el foco y
+     los rayos en la pared. */
+  background:
+    linear-gradient(
+      to bottom,
+      transparent calc(100% - var(--crupier-size) * 0.1775),
+      #111 calc(100% - var(--crupier-size) * 0.1775) calc(100% - var(--crupier-size) * 0.1625),
+      #6e6e6e calc(100% - var(--crupier-size) * 0.1625) calc(100% - var(--crupier-size) * 0.155),
+      #2a2a2a calc(100% - var(--crupier-size) * 0.155) calc(100% - var(--crupier-size) * 0.125),
+      #6e6e6e calc(100% - var(--crupier-size) * 0.125)
+    ),
+    radial-gradient(ellipse 45% 75% at 50% 45%, rgb(255 246 220 / 0.9), rgb(255 246 220 / 0) 100%),
+    repeating-conic-gradient(from 0deg at 50% 30%, #cbbe98 0deg 7deg, transparent 7deg 22deg),
+    #d9cdaa;
+}
+
+.poker .poker-empty-crupier {
+  width: var(--crupier-size);
+  margin-top: -0.4rem;
+}
+
+/* Rótulo pintado en la pared, en la tinta oscura del dibujo. */
 .poker-felt.poker-empty h2 {
-  margin-top: 0.6rem;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #2a1d0a;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.poker .poker-empty-title {
+.poker .poker-felt .poker-empty-title {
   margin: 0.15rem 0 0;
+  color: #f4ead0;
   font-size: clamp(1.9rem, 7vw, 2.8rem);
   line-height: 1.05;
-  rotate: -1.5deg;
 }
 
 .poker-felt .poker-empty-text {
@@ -533,19 +640,6 @@
   justify-content: center;
   min-width: min(100%, 15rem);
   margin-top: 1.1rem;
-}
-
-.poker-felt.poker-empty .poker-steps {
-  width: 100%;
-  max-width: 52rem;
-  margin: 1.6rem 0 0;
-  padding-top: 1.1rem;
-  text-align: left;
-}
-
-.poker-felt.poker-empty .poker-steps li::before {
-  background: var(--paper);
-  color: #0f3d2e;
 }
 
 .poker-level {
@@ -575,7 +669,10 @@
   display: block;
   height: 100%;
   background: var(--paper);
-  transition: width 0.25s linear;
+  /* Con transform y no con width: así no recalcula el diseño de la página cada 250 ms y, al
+     hacer scroll en el móvil, la barra fija de abajo no se descoloca. */
+  transform-origin: left;
+  transition: transform 0.25s linear;
 }
 
 .poker-felt-metrics {
@@ -632,8 +729,7 @@
   font-weight: 700;
 }
 
-.poker-level-name span,
-.poker-steps li::before {
+.poker-level-name span {
   display: inline-grid;
   width: 1.7rem;
   height: 1.7rem;
@@ -673,12 +769,229 @@
   line-height: 1;
 }
 
+/* La fecha y sus atajos van a lo ancho; debajo, entrada y fichas lado a lado. */
 .poker-basics {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.poker-basics > .poker-date-field,
+.poker-date-picks {
+  grid-column: 1 / -1;
+}
+
+.poker-date-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: -0.2rem;
+}
+
+.poker-date-picks button {
+  min-height: 36px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.poker-date-picks button:hover {
+  border-color: var(--accent-fill);
+}
+
+.poker-date-picks button.is-active {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  color: var(--accent-on);
+}
+
+.poker-date-picks button:focus-visible {
+  outline: 2px solid var(--accent-fill);
+  outline-offset: 2px;
+}
+
+/* La unidad (€, %) se lee dentro de la casilla, al final. */
+.poker-input-unit {
+  position: relative;
+  display: block;
+}
+
+.poker-input-unit::after {
+  position: absolute;
+  top: 50%;
+  right: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  content: attr(data-unit);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.poker-input-unit > .glass-input {
+  padding-right: 2.1rem;
+}
+
+/* Cada premio en su fila: medalla, nombre y la casilla a la derecha. */
 .poker-share-fields {
-  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.45rem;
+}
+
+.poker-share-field,
+.poker-share-head {
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1fr) 6.5rem;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.has-points > .poker-share-field,
+.has-points > .poker-share-head {
+  grid-template-columns: 1.7rem minmax(0, 1fr) 5.6rem 5.6rem;
+  gap: 0.5rem;
+}
+
+.poker-share-head {
+  padding-inline: 0.6rem 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.poker-share-head > span:first-child {
+  grid-column: 1 / 3;
+}
+
+.poker-share-field {
+  font-size: 0.85rem;
+  font-weight: 650;
+  padding: 0.35rem 0.35rem 0.35rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.6rem;
+  --place: var(--text-muted);
+}
+
+.poker-share-place {
+  display: grid;
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border: 2px solid var(--place);
+  border-radius: 50%;
+  color: var(--place);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.poker-share-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Oro, plata y bronce en los tres primeros premios. */
+.poker-share-field.is-place-1 {
+  --place: #d9a92e;
+}
+
+.poker-share-field.is-place-2 {
+  --place: #9aa4b2;
+}
+
+.poker-share-field.is-place-3 {
+  --place: #c07a48;
+}
+
+/* Total con su barra y, a la derecha, quitar y añadir premio. */
+.poker-share-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block: 0.7rem 0.9rem;
+}
+
+.poker-share-total {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.35rem;
+}
+
+.poker-share-foot .glass-btn {
+  display: grid;
+  flex: none;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.poker-share-foot .glass-btn[aria-label='Quitar premio'] {
+  order: 1;
+}
+
+.poker-share-foot .glass-btn[aria-label='Añadir premio'] {
+  order: 2;
+}
+
+.poker-share-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--accent-fill) var(--share),
+    var(--border-color) var(--share)
+  );
+}
+
+/* La estructura plegada se lee como una fila más del formulario, con su flecha. */
+.poker-form .poker-details {
+  margin-top: 0;
+  padding-inline: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+}
+
+.poker-form .poker-details > summary {
+  position: relative;
+  padding-right: 1.6rem;
+  list-style: none;
+}
+
+.poker-form .poker-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.poker-form .poker-details > summary::after {
+  position: absolute;
+  top: 50%;
+  right: 0.1rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  content: '';
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.poker-form .poker-details[open] > summary::after {
+  transform: translateY(-30%) rotate(-135deg);
+}
+
+.poker-form-actions .primary-btn {
+  flex: 1 1 auto;
+  justify-content: center;
 }
 
 .poker-total {
@@ -712,42 +1025,13 @@
 }
 
 .poker-pick-list .poker-check:has(input:checked) {
-  border-color: var(--accent-cyan);
-  background: color-mix(in srgb, var(--accent-cyan) 9%, transparent);
+  border-color: var(--text-main);
+  background: color-mix(in srgb, var(--text-main) 8%, transparent);
 }
 
 .poker-pick-list .poker-check:has(input:focus-visible) {
-  outline: 2px solid var(--accent-cyan);
+  outline: 2px solid var(--text-main);
   outline-offset: 2px;
-}
-
-.poker-steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
-  gap: 0.7rem 1rem;
-  margin: 0.9rem 0;
-  padding: 0.8rem 0 0;
-  border-top: 1px solid var(--border-color);
-  list-style: none;
-  counter-reset: poker-step;
-}
-
-.poker-steps li {
-  display: grid;
-  grid-template-columns: 1.7rem minmax(0, 1fr);
-  column-gap: 0.6rem;
-  counter-increment: poker-step;
-}
-
-.poker-steps li::before {
-  content: counter(poker-step);
-  grid-row: span 2;
-}
-
-.poker-steps span {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  line-height: 1.45;
 }
 
 .poker-table th small {
@@ -780,12 +1064,6 @@
 .poker .poker-state {
   margin: 0.2rem 0 0;
   font-size: 1.15rem;
-  rotate: -1.5deg;
-  transform-origin: left center;
-}
-
-.poker-next-card > .glass-btn {
-  justify-content: center;
 }
 
 /* La peña: una cara por jugador con el nombre debajo. */
@@ -1098,6 +1376,160 @@
   gap: 0.5rem;
 }
 
+/* En la corrección, el nombre largo se corta y los botones siguen en la misma fila. */
+.poker-active-list.poker-corrections {
+  min-width: 0;
+}
+
+.poker-active-list.poker-corrections > li {
+  flex-wrap: nowrap;
+}
+
+.poker-corrections > li > .poker-player {
+  flex: 1 1 auto;
+}
+
+.poker-corrections .poker-player strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poker-corrections .poker-actions {
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+}
+
+.poker-corrections .poker-actions .glass-btn {
+  gap: 0.15rem;
+  min-height: 40px;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+}
+
+/* Jugadores de la mesa en juego: quien sigue arriba, los eliminados debajo con su puesto. */
+.poker-roster-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.poker-roster-count {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--muted-ink, inherit);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.poker-roster-count strong {
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-roster {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-roster > li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 3.5rem;
+  padding-block: 0.4rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.poker-roster > li:last-child {
+  border-bottom: 0;
+}
+
+.poker-roster > li > :not(.poker-roster-name) {
+  flex: none;
+}
+
+/* El nombre se corta con puntos suspensivos: nunca empuja los botones a otra fila. */
+.poker-roster-name {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.poker-roster-name > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poker-roster-name .poker-purchases {
+  flex: none;
+  flex-wrap: nowrap;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.poker-roster-actions {
+  display: flex;
+  flex: none;
+  gap: 0.4rem;
+}
+
+.poker-roster-actions .poker-icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  padding-inline: 0.6rem;
+}
+
+.poker-roster-subhead {
+  margin: 0.9rem 0 0;
+  padding-top: 0.6rem;
+  border-top: 2px dashed color-mix(in srgb, var(--ink) 30%, transparent);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.poker-roster.is-out > li {
+  min-height: 3rem;
+}
+
+.poker-roster.is-out .poker-roster-name,
+.poker-roster.is-out > li > :nth-child(2) {
+  opacity: 0.6;
+}
+
+/* La cara de quien ya ha caído, en gris. */
+.poker-roster.is-out > li > :nth-child(2) {
+  filter: grayscale(1);
+}
+
+.poker-roster.is-out .poker-roster-name > strong {
+  font-weight: 650;
+}
+
+.poker-roster-place {
+  width: 2rem;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .poker-seat-bag {
   right: -0.55rem;
   bottom: -0.5rem;
@@ -1131,14 +1563,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .poker-basics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .poker-basics > label:first-child {
-    grid-column: 1 / -1;
-  }
-
   .poker-form .poker-level {
     grid-template-columns: minmax(0, 1fr) 44px;
   }
@@ -1168,8 +1592,12 @@
     font-size: 0.8rem;
   }
 
-  .poker-results-table :is(.poker-col-chips, .poker-col-paid) {
+  .poker-results-table :is(.poker-col-chips, .poker-col-paid, .poker-col-points) {
     display: none;
+  }
+
+  .poker-results-table .poker-points-extra {
+    display: block;
   }
 
   .poker-results-table th .poker-row-extra {
@@ -1189,6 +1617,52 @@
   .poker-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Los puntos de cada resultado bajan bajo el premio solo en móvil. */
+.poker-points-extra {
+  display: none;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Al finalizar, la mesa deja paso a los pasos del cierre. */
+.poker-finish-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: finish-step;
+}
+
+.poker-finish-steps li {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.6rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 0.75rem;
+  opacity: 0.6;
+  counter-increment: finish-step;
+}
+
+.poker-finish-steps li::before {
+  content: counter(finish-step);
+  font-weight: 800;
+}
+
+.poker-finish-steps li.is-current {
+  opacity: 1;
+  border-color: currentColor;
+}
+
+.poker-finish-steps li.is-done {
+  opacity: 0.85;
+}
+
+.poker-finish-steps span {
+  font-size: 0.75rem;
 }
 
 /* Fichas al finalizar: una fila por jugador con su cara, como en la lista de la mesa. */
@@ -1549,8 +2023,46 @@
   text-align: left;
 }
 
-.poker-close-dialog .poker-share-fields {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr));
+/* Lo que se lleva cada uno: nombre y, al lado, el dinero y los puntos editables. */
+.poker-payouts {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.poker-payouts legend {
+  margin-bottom: 0.35rem;
+  font-weight: 800;
+}
+
+.poker-payout-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5rem 4.5rem;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.poker-payout-row label {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.poker-payout-row input {
+  width: 100%;
+  min-width: 0;
+}
+
+.poker-payout-name {
+  overflow: hidden;
+  padding-bottom: 0.55rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Sección aún sin datos: un icono dibujado, qué saldrá aquí y el camino para llegar. */
@@ -1669,11 +2181,6 @@
 .poker-tv p {
   margin: 0;
 }
-/* Contorno negro para que las letras se lean sobre el vídeo. */
-.poker-tv {
-  -webkit-text-stroke: 0.16em #000;
-  paint-order: stroke fill;
-}
 .poker-tv-close {
   position: absolute;
   top: 1rem;
@@ -1699,58 +2206,84 @@
   cursor: pointer;
 }
 /* Cartel de aviso en el centro de la TV: quién ha hecho la recompra, el add-on o qué cambia. */
+/* Aviso del modo TV: un cartel de papel abajo del todo, para no tapar al crupier ni el reloj. */
 .poker-tv-alert {
   position: absolute;
-  top: 50%;
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
   left: 50%;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.75rem;
-  min-width: min(32rem, 90vw);
-  max-width: 90vw;
-  padding: 2rem 3rem;
-  border: 3px solid #f0c94c;
-  border-radius: 1.5rem;
-  background: rgb(11 31 22 / 98%);
-  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 60%);
-  transform: translate(-50%, -50%);
+  column-gap: clamp(0.75rem, 2vw, 1.5rem);
+  max-width: min(64rem, 94vw);
+  padding: clamp(0.6rem, 1.8vmin, 1.2rem) clamp(1.25rem, 4vmin, 2.75rem)
+    clamp(0.6rem, 1.8vmin, 1.2rem) clamp(0.6rem, 1.8vmin, 1.2rem);
+  border: 3px solid #2a1d0a;
+  border-radius: 1rem;
+  background: #f3ecdc;
+  box-shadow:
+    0 0 0 3px #f0c94c,
+    0 1rem 2.5rem rgb(0 0 0 / 45%);
+  color: #2a1d0a;
+  text-align: left;
+  transform: translateX(-50%);
   animation: poker-tv-alert 5s ease both;
 }
+.poker-tv-alert > :first-child {
+  grid-row: span 2;
+}
 .poker-tv-alert strong {
-  font-size: clamp(2rem, 7vw, 5rem);
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(1.75rem, 6.5vmin, 4.25rem);
+  font-weight: 400;
+  letter-spacing: 0.02em;
   line-height: 1.05;
+  text-transform: uppercase;
   overflow-wrap: anywhere;
 }
-.poker-tv-alert > span:last-child {
-  font-size: clamp(1.25rem, 4vw, 2.75rem);
+.poker-tv-alert > span:last-child:not(:first-child) {
+  font-size: clamp(1.1rem, 3.6vmin, 2.4rem);
+  font-weight: 650;
+  opacity: 0.8;
 }
-.poker-tv-alert.is-rebuy,
-.poker-tv-alert.is-addOn {
-  border-color: #e0573e;
+.poker-tv-alert.is-rebuy {
+  box-shadow:
+    0 0 0 3px #e0573e,
+    0 1rem 2.5rem rgb(0 0 0 / 45%);
 }
 .poker-tv-alert.is-addOn {
-  border-color: #4cc38a;
+  box-shadow:
+    0 0 0 3px #4cc38a,
+    0 1rem 2.5rem rgb(0 0 0 / 45%);
+}
+.poker-tv-alert.is-out {
+  box-shadow:
+    0 0 0 3px #2a1d0a,
+    0 1rem 2.5rem rgb(0 0 0 / 45%);
+}
+.poker-tv-alert.is-out .user-avatar,
+.poker-tv-alert.is-out img {
+  filter: grayscale(1);
 }
 .poker-tv-alert-icon {
-  font-size: clamp(3rem, 10vw, 7rem);
+  font-size: clamp(3rem, 11vmin, 6.5rem);
   line-height: 1;
   -webkit-text-stroke: 0;
 }
 @keyframes poker-tv-alert {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.85);
+    transform: translate(-50%, 1.5rem);
   }
   8%,
   90% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, 0);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1773,12 +2306,6 @@
   background: #f0c94c;
   color: #1a1a1a;
 }
-.poker-tv-level {
-  font-size: clamp(1.25rem, 4vw, 2.5rem);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
 .poker-tv-time {
   font-size: clamp(5rem, 28vmin, 22rem);
   font-weight: 700;
@@ -1788,11 +2315,6 @@
 .poker-tv-paused {
   font-size: clamp(1.25rem, 4vw, 2.25rem);
   color: #f0c94c;
-}
-.poker-tv-blinds {
-  font-size: clamp(2.5rem, 12vmin, 9rem);
-  font-weight: 700;
-  line-height: 1.1;
 }
 .poker-tv-ante,
 .poker-tv-next {
@@ -1829,52 +2351,6 @@
   margin: 0.75rem 0;
 }
 
-.poker-tool-btn {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  padding: 0;
-  border: 1px solid rgb(255 255 255 / 0.25);
-  border-radius: 50%;
-  background: rgb(255 255 255 / 0.08);
-  color: inherit;
-  cursor: pointer;
-}
-
-.poker-tool-btn[aria-pressed='false'] {
-  opacity: 0.6;
-}
-
-.poker-tool-btn svg {
-  width: 1.5rem;
-  height: 1.5rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.poker-tv-music {
-  display: flex;
-  margin-top: 1.5rem;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: min(22rem, calc(100% - 2rem));
-  text-align: left;
-}
-.poker-tv-music button {
-  padding: 0.35rem 0.8rem;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
 .poker-tv-video {
   /* Vídeo de fondo a pantalla completa y a medias de opacidad, detrás de todo el reloj. */
   position: fixed;
@@ -1895,72 +2371,6 @@
   transform: translate(-50%, -50%);
   border: 0;
   border-radius: 0;
-}
-.poker-tv:has(.poker-tv-queue) {
-  padding-bottom: 8rem;
-}
-.poker-tv-queue {
-  /* Cola de canciones en una tira pegada al borde de abajo. */
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: auto;
-  margin: 0;
-  padding: 0.75rem 1rem;
-  background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent);
-}
-.poker-tv-carousel {
-  display: flex;
-  flex: 1;
-  gap: 0.75rem;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: none;
-}
-.poker-tv-carousel li {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 0.1rem;
-  width: min(16rem, 70vw);
-  padding: 0.5rem 0.8rem;
-  border: 1px solid rgb(255 255 255 / 0.3);
-  border-radius: 12px;
-  background: rgb(0 0 0 / 0.45);
-  text-align: left;
-  scroll-snap-align: start;
-}
-.poker-tv-carousel li.is-playing {
-  border-color: #f0c94c;
-}
-.poker-tv-carousel strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.poker-tv-carousel small,
-.poker-tv-carousel span {
-  font-size: 0.8rem;
-  opacity: 0.85;
-}
-.poker-tv-skip {
-  flex: none;
-  padding: 0.4rem 0.9rem;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 0.45);
-  color: inherit;
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
 }
 
 .poker-music-search {
@@ -2143,6 +2553,145 @@
   width: 4.2rem;
 }
 
+/* Cifras del torneo del histórico: casillas iguales, dos por fila en el móvil. */
+.poker-history-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.4rem 0 0.9rem;
+}
+
+.poker-history-facts div {
+  padding: 0.55rem 0.4rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  border-radius: 10px;
+  text-align: center;
+  min-width: 0;
+}
+
+.poker-history-facts dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.poker-history-facts dd {
+  margin: 0.15rem 0 0;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-history-facts .poker-history-leftover {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+@media (max-width: 560px) {
+  .poker-history-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Fecha y precios en una rejilla que se apila sola en el móvil. */
+.poker-edit-basics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.poker-edit-basics legend {
+  padding: 0;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+}
+
+.poker-edit-basics .poker-edit-date,
+.poker-edit-basics .poker-edit-count {
+  display: grid;
+  gap: 0.25rem;
+  max-width: none;
+  align-items: stretch;
+}
+
+.poker-edit-basics .poker-edit-date,
+.poker-edit-basics .poker-edit-count {
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.poker-edit-basics input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Siempre a la vista al bajar por los puestos: se ve al momento cómo cambia lo que sobra. */
+.poker-edit-totals {
+  position: sticky;
+  top: -1px;
+  z-index: 1;
+  padding-block: 0.4rem;
+  background: var(--paper);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.poker-edit-totals div {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.poker-edit-totals dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+.poker-edit-totals dd {
+  margin: 0.1rem 0 0;
+  font-weight: 800;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.poker-edit-totals .is-over dd {
+  color: var(--danger, #c0392b);
+}
+
+/* Premio, puntos y extras de cada puesto: su propia línea bajo el nombre. */
+.poker-edit-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: 0.45rem;
+  flex-basis: 100%;
+}
+
+.poker-edit-fields .poker-edit-count {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+}
+
+.poker-edit-fields .poker-edit-count input {
+  width: 100%;
+}
+
 .poker-late-entry {
   justify-content: center;
   margin-top: 0.75rem;
@@ -2158,13 +2707,21 @@
 
 .poker-late-list li {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.75rem;
 }
 
 .poker-late-list li span {
   display: grid;
+  min-width: 0;
+}
+
+.poker-late-list .poker-late-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .poker-late-list button {
@@ -2271,6 +2828,1205 @@
   margin: 0.6rem 0 0.2rem;
 }
 
-.poker-next-card > .glass-btn + .glass-btn {
+/* Explicaciones de la primera vez: una «i» junto al título que se abre al pulsarla. */
+.poker-title-with-tip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.info-tip-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.info-tip-btn:hover,
+.info-tip-btn[aria-expanded='true'] {
+  color: var(--text-primary);
+}
+
+.info-tip-bubble {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 50%;
+  z-index: 30;
+  width: max-content;
+  max-width: min(18rem, 80vw);
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-subtle, rgb(255 255 255 / 0.15));
+  border-radius: 0.6rem;
+  background: var(--surface-raised, #1d2430);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  line-height: 1.4;
+  text-align: left;
+  transform: translateX(-50%);
+}
+
+.poker-finish-chop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-close-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.poker-close-head h3 {
+  margin: 0;
+}
+
+.poker-payout-more {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+}
+
+.poker-close-dialog .poker-payouts {
+  gap: 0.75rem;
+}
+
+.poker-close-dialog .poker-payout-row {
+  grid-template-columns: minmax(0, 1fr) 6rem 5rem;
+}
+
+.poker-close-dialog .poker-payout-name {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding-bottom: 0.4rem;
+  font-size: 1.05rem;
+}
+
+.poker-payout-player {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poker-close-dialog .poker-payout-row input {
+  min-height: 2.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.poker-payout-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+}
+
+.poker-payout-summary > div {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  border-radius: 0.6rem;
+  text-align: center;
+}
+
+.poker-payout-summary dt {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.poker-payout-summary dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.poker-payout-summary.is-off .poker-payout-leftover dd {
+  color: #e11d48;
+}
+
+/* Dinero y puntos se escriben con el teclado numérico: sin las flechas de subir y bajar. */
+.poker-payout-row input {
+  appearance: textfield;
+}
+
+.poker-payout-row input::-webkit-inner-spin-button,
+.poker-payout-row input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+/* Pasos del formulario: tres pastillas numeradas, la actual en oro. */
+.poker-form-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-form-steps button {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.poker-form-steps button > span {
+  display: inline-grid;
+  width: 1.4rem;
+  height: 1.4rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--border-color);
+  color: var(--text-main);
+  font-size: 0.75rem;
+}
+
+.poker-form-steps button.is-done {
+  color: var(--text-main);
+}
+
+.poker-form-steps button.is-done > span {
+  background: #2f7a4f;
+  color: #fff;
+}
+
+.poker-form-steps button[aria-current='step'] {
+  border-color: var(--accent-fill);
+  color: var(--text-main);
+}
+
+.poker-form-steps button[aria-current='step'] > span {
+  background: var(--accent-fill);
+  color: var(--accent-on);
+}
+
+.poker-form-steps button:focus-visible {
+  outline: 2px solid var(--accent-fill);
+  outline-offset: 2px;
+}
+
+/* Calendario propio: la fila entera abre el mes, con el dorado de la mesa. */
+.poker-date-picker {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.poker-date-label {
+  font-weight: 650;
+}
+
+.poker-date-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text-main);
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.poker-date-button > svg {
+  flex: none;
+  color: var(--accent-fill);
+}
+
+.poker-date-button[aria-expanded='true'] {
+  border-color: var(--accent-fill);
+}
+
+.poker-calendar {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--text-main) 4%, transparent);
+}
+
+.poker-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.poker-calendar-head p {
+  margin: 0;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.poker-calendar button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.poker-calendar-head button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.poker-calendar-head button:hover:not(:disabled) {
+  border-color: var(--border-color);
+}
+
+.poker-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.poker-calendar-weekday {
+  padding-bottom: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.poker-calendar-grid button {
+  aspect-ratio: 1;
+  min-height: 36px;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.poker-calendar-grid button:hover:not(:disabled) {
+  border-color: var(--accent-fill);
+}
+
+.poker-calendar-grid button.is-today {
+  border-color: var(--border-color);
+}
+
+.poker-calendar-grid button.is-selected {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  color: var(--accent-on);
+}
+
+.poker-calendar button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.poker-calendar button:focus-visible {
+  outline: 2px solid var(--accent-fill);
+  outline-offset: 2px;
+}
+
+/* Recompras y add-on: tarjeta con interruptor; activa, se enmarca en dorado. */
+.poker-extra {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+}
+
+.poker-extra.is-on {
+  border-color: color-mix(in srgb, var(--accent-fill) 55%, var(--border-color));
+}
+
+.poker-extra-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.poker-extra-head > span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.poker-extra-title {
+  font-weight: 750;
+}
+
+.poker-extra-head .poker-note {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.poker-extra-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.poker-extra-fields > .poker-extra-wide {
+  grid-column: 1 / -1;
+}
+
+.poker-switch {
+  position: relative;
+  width: 2.75rem;
+  height: 1.6rem;
+  flex: none;
+  margin: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-main) 12%, transparent);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  appearance: none;
+}
+
+.poker-switch::after {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: var(--text-main);
+  content: '';
+  transition: transform 0.2s ease;
+}
+
+.poker-switch:checked {
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+}
+
+.poker-switch:checked::after {
+  background: var(--accent-on);
+  transform: translateX(1.15rem);
+}
+
+.poker-switch:focus-visible {
+  outline: 2px solid var(--accent-fill);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poker-switch,
+  .poker-switch::after {
+    transition: none;
+  }
+}
+
+/* Los ajustes del reparto, separados de los premios por una línea. */
+.poker-share-foot + .poker-fields {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Interruptor que enseña los puntos de liga junto a cada premio. */
+.poker-points-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.poker-points-toggle > span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.poker-points-toggle .poker-note {
+  font-weight: 500;
+}
+
+.poker-share-field .glass-input {
+  width: 100%;
+  min-height: 44px;
+}
+
+/* Campo con un menú y su ayuda: el título no es un label para no robar el clic al menú. */
+.poker-fields .poker-field {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  align-content: start;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+/* Próximo torneo en inicio: la misma escena del crupier, con la fecha como rótulo y el resto debajo. */
+.poker-felt.poker-empty.poker-next-card h2 {
+  padding-inline: 0.5rem;
+  font-size: clamp(1.7rem, 6.5vw, 2.6rem);
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.poker-felt.poker-next-card .poker-state {
+  margin-top: 0.6rem;
+  color: #f0c94c;
+}
+
+.poker-felt.poker-next-card .poker-faces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.poker-felt.poker-next-card .poker-faces li {
+  width: 5.6rem;
+}
+
+/* Crupier con una cifra pintada en la pared a cada lado, a la altura de los hombros. */
+.poker-empty-stage:has(.poker-empty-row) {
+  --crupier-size: clamp(150px, 44vw, 250px);
+}
+
+.poker-empty-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  padding-inline: 0.75rem;
+}
+
+.poker-empty-side {
+  position: relative;
+  z-index: 1;
+  /* Por encima de la mesa del dibujo. */
+  padding-bottom: calc(var(--crupier-size) * 0.25);
+}
+
+.poker-wall-metric {
+  margin: 0;
+  color: #2a1d0a;
+  text-align: center;
+}
+
+.poker-wall-metric dt {
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.poker-wall-metric dd {
+  margin: 0.1rem 0 0;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(1.15rem, 5vw, 2rem);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.poker-next-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: min(100%, 24rem);
+  margin-top: 1.1rem;
+}
+
+.poker-next-actions > .glass-btn {
+  flex: 1 1 0;
+  gap: 6px;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* Lo del organizador, bajo los botones de todos y con su mismo ancho. */
+.poker-felt.poker-next-card .poker-host {
+  width: min(100%, 24rem);
+  text-align: center;
+}
+
+.poker-felt.poker-next-card .poker-host-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.poker-felt.poker-next-card .poker-host-actions .glass-btn {
+  justify-content: center;
+  margin: 0;
+}
+
+.poker-felt.poker-next-card .poker-host-actions .primary-btn {
+  grid-column: 1 / -1;
+}
+
+/* Programar otro torneo es otro apartado: va fuera de la escena, debajo. */
+.poker-next-column {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.poker-next-column > .poker-schedule-another {
+  justify-content: center;
+  margin: 0;
+}
+
+/* Invitar: el crupier sujeta el QR como un cartel y debajo van el código y los enlaces. */
+.poker-invite-sheet .sheet-dialog-body {
+  padding-top: 4px;
+}
+.poker-felt.poker-invite {
+  --crupier-size: min(250px, 66vw);
+  padding-bottom: 1.1rem;
+}
+.poker-felt.poker-invite .poker-empty-stage {
+  --crupier-size: inherit;
+}
+.poker-felt.poker-invite h2 {
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  letter-spacing: 0.02em;
+}
+/* El borde de arriba del cartel queda justo bajo los guantes (al 74 % del alto del crupier). */
+.poker-invite-sign {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  width: calc(var(--crupier-size) * 0.7);
+  margin-top: calc(var(--crupier-size) * -0.255);
+  padding: 0.45rem 0.45rem 0.4rem;
+  border: 3px solid #111;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 6px 0 rgb(0 0 0 / 0.35);
+  transform: rotate(-1.5deg);
+}
+.poker-invite-sign .tracker-qr {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.poker-invite-sign-text {
+  color: #111;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.poker-invite-code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 20rem);
+  min-height: 48px;
+  margin-top: 1.1rem;
+  padding: 8px 14px;
+  border: 1.5px dashed rgb(var(--ink-rgb) / 0.55);
+  border-radius: 10px;
+  background: rgb(var(--ink-rgb) / 0.06);
+  color: var(--text-main);
+  cursor: pointer;
+}
+.poker-invite-code:hover,
+.poker-invite-code:focus-visible {
+  background: rgb(var(--ink-rgb) / 0.12);
+}
+.poker-invite-code-label {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.poker-invite-code-value {
+  flex: 1;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+.poker-invite-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  width: min(100%, 20rem);
+  margin-top: 0.6rem;
+}
+.poker-invite-actions .glass-btn {
+  justify-content: center;
+  margin: 0;
+}
+.poker-invite-actions .primary-btn {
+  grid-column: 1 / -1;
+}
+/* Dentro de una hoja de papel los botones toman la tinta del papel; en el tapete, la clara. */
+.paper-panel .poker-felt.poker-empty .glass-btn:not(.primary-btn) {
+  color: var(--text-main);
+}
+
+/* Torneo en juego dentro de la escena del crupier. */
+.poker-felt.poker-live-card .poker-clock-tools {
+  align-items: center;
+}
+
+/* Controles del reloj: una fila de botones redondos con su nombre pequeño debajo. */
+.poker-felt.poker-live-card .poker-clock-tools {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  align-items: start;
+  gap: 0.25rem;
+  width: min(100%, 22rem);
+  margin: 0.85rem auto 0.5rem;
+}
+
+.poker-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.poker-tool-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.08);
+  transition: background 0.15s ease;
+}
+
+.poker-tool:hover:not(:disabled) .poker-tool-icon {
+  background: rgb(255 255 255 / 0.16);
+}
+
+.poker-tool:focus-visible {
+  outline: none;
+}
+
+.poker-tool:focus-visible .poker-tool-icon {
+  outline: 2px solid #f0c94c;
+  outline-offset: 2px;
+}
+
+.poker-tool.is-primary .poker-tool-icon {
+  border-color: #f0c94c;
+  background: #f0c94c;
+  color: #1a1a1a;
+}
+
+.poker-tool[aria-pressed='false'] .poker-tool-icon,
+.poker-tool:disabled {
+  opacity: 0.5;
+}
+
+.poker-tool:disabled {
+  cursor: default;
+}
+
+.poker-tool-icon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.poker-tool-label {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.poker-felt.poker-live-card .poker-felt-metrics {
+  width: min(100%, 24rem);
+  margin-inline: auto;
+  grid-template-columns: none;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  border-top-color: rgb(255 255 255 / 0.18);
+}
+
+/* Pantalla completa: la escena del crupier ocupa toda la pantalla; la pared arriba y el reloj en el tapete. */
+.poker-tv {
+  justify-content: stretch;
+  padding: 0;
+}
+
+.poker-tv > .poker-tv-scene {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0 1.5rem 1.5rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  /* El tapete deja ver un poco el vídeo de la música que suena. */
+  background: rgb(110 110 110 / 0.88);
+}
+
+.poker-tv-scene .poker-empty-stage,
+.poker-tv-scene .poker-empty-stage:has(.poker-empty-row) {
+  /* El crupier manda: tan grande como deja el alto, con el reloj encima y el tapete debajo. */
+  --crupier-size: clamp(180px, min(48vh, 62vw), 760px);
+
+  width: calc(100% + 3rem);
+  margin-inline: -1.5rem;
+  padding-top: clamp(3rem, 5vh, 4.5rem);
+}
+
+.poker-tv-scene .poker-empty-row {
+  max-width: 96rem;
+  padding-inline: clamp(1rem, 4vw, 4rem);
+}
+
+/* El reloj, pintado en la pared como en la tarjeta del torneo, pero para verlo de lejos. */
+.poker-tv-scene h2:has(.poker-wall-time) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  letter-spacing: 0;
+}
+
+.poker-tv-scene .poker-wall-time {
+  font-size: clamp(3.5rem, min(17vh, 20vw), 13rem);
+  line-height: 0.9;
+}
+
+.poker-tv-scene .poker-wall-time-label {
+  font-size: clamp(0.8rem, 2vh, 1.5rem);
+  letter-spacing: 0.16em;
+}
+
+.poker-tv-scene .poker-wall-metric dt {
+  font-size: clamp(0.85rem, 2.6vh, 1.8rem);
+}
+
+.poker-tv-scene .poker-wall-metric dd {
+  font-size: clamp(2rem, min(10vh, 9vw), 7.5rem);
+  line-height: 1;
+}
+
+/* En el tapete: la barra del nivel y las cifras, en crema y con la letra de cartel. */
+.poker-tv-scene .poker-tv-progress {
+  width: min(70%, 56rem);
+  height: clamp(6px, 1.1vh, 12px);
+  margin: clamp(0.75rem, 3vh, 2.5rem) auto 0;
+  border-radius: 999px;
+}
+
+.poker-tv-scene .poker-tv-ante {
+  margin: clamp(0.5rem, 1.5vh, 1rem) 0 0;
+  color: #f3ecdc;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(1.1rem, 3.5vh, 2.5rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.poker-tv-scene .poker-tv-facts {
+  gap: 1rem clamp(2rem, 6vw, 6rem);
+  margin: clamp(0.75rem, 3vh, 2.5rem) 0 auto;
+}
+
+.poker-tv-scene .poker-tv-facts strong {
+  color: #f3ecdc;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(2rem, min(9vh, 8vw), 6.5rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.poker-tv-scene .poker-tv-facts span {
+  color: #f3ecdc;
+  font-size: clamp(0.8rem, 2.2vh, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* Móvil en vertical: las dos cifras arriba, una a cada lado, y el crupier a todo el ancho debajo. */
+@media (orientation: portrait) {
+  .poker-tv-scene .poker-empty-stage,
+  .poker-tv-scene .poker-empty-stage:has(.poker-empty-row) {
+    --crupier-size: clamp(180px, min(40vh, 86vw), 640px);
+
+    padding-top: 3.75rem;
+  }
+
+  .poker-tv-scene .poker-empty-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .poker-tv-scene .poker-empty-row > .poker-empty-crupier {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  .poker-tv-scene .poker-empty-side {
+    padding-bottom: 0;
+  }
+
+  .poker-tv-scene .poker-wall-metric dt {
+    white-space: nowrap;
+  }
+}
+
+/* Los botones de arriba van sobre la pared sepia: en su tinta oscura. */
+.poker-tv .poker-tv-close,
+.poker-tv .poker-tv-toggle {
+  z-index: 2;
+  border-color: #2a1d0a;
+  background: rgb(255 246 220 / 0.7);
+  color: #2a1d0a;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.poker-tv .poker-tv-toggle[aria-pressed='true'] {
+  border-color: #2a1d0a;
+  background: #f0c94c;
+}
+
+.poker-tv .poker-tv-alert {
+  z-index: 3;
+}
+
+/* En el tapete la barra del nivel va en crema en los dos temas. */
+.poker-felt.poker-empty .poker-progress span {
+  background: #f3ecdc;
+}
+
+/* Torneo en juego: el reloj, pintado en la pared sobre el crupier. */
+.poker-felt.poker-live-card h2:has(.poker-wall-time) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  letter-spacing: 0;
+}
+
+.poker-wall-time {
+  font-size: clamp(3rem, 15vw, 4.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 0.95;
+}
+
+.poker-wall-time-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+}
+
+.poker-felt.poker-live-card .poker-clock {
+  width: 100%;
+}
+
+.poker-felt.poker-live-card .poker-clock .poker-progress {
+  margin-top: 0.35rem;
+}
+
+/* Antes de la primera mano: el botón de arrancar manda sobre las demás herramientas. */
+.poker-clock-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0.25rem;
+  text-align: center;
+}
+
+.poker-clock-start .primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  padding: 0.8rem 1.6rem;
+}
+
+.poker-clock-start p,
+.poker-clock-wait {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #f3ecdc;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.poker-wall-metric .poker-wall-metric-next {
+  margin-top: 0.2rem;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+  opacity: 0.75;
+}
+
+.poker-tv-scene .poker-wall-metric .poker-wall-metric-next {
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(0.9rem, 3vmin, 2rem);
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.poker-felt.poker-live-card .poker-wall-metric dt {
+  font-size: 0.85rem;
+}
+
+.poker-felt.poker-live-card .poker-wall-metric dd {
+  font-size: clamp(1.45rem, 7vw, 2.5rem);
+  /* Ciegas altas («1.000 / 2.000») no caben junto al crupier en un móvil: parten por la barra. */
+  white-space: normal;
+  text-wrap: balance;
+}
+
+.poker-felt.poker-live-card .poker-wall-metric .poker-wall-metric-next {
+  margin-top: 0.15rem;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: clamp(0.85rem, 3.4vw, 1.15rem);
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+/* Esquina de la pared: editar el torneo en juego. */
+.poker-empty-stage {
+  position: relative;
+}
+
+.poker-empty-corner {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 2;
+}
+
+.poker-corner-btn {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1.5px solid rgb(42 29 10 / 0.35);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.35);
+  color: #2a1d0a;
+  cursor: pointer;
+}
+
+.poker-corner-btn:hover {
+  background: rgb(255 255 255 / 0.6);
+}
+
+.poker-corner-btn:focus-visible {
+  outline: 2px solid #b8860b;
+  outline-offset: 2px;
+}
+
+.poker-corner-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.poker-live-players {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  border: 0;
+}
+
+.poker-live-players legend {
+  margin-bottom: 0.4rem;
+  font-weight: 750;
+}
+
+.poker-live-players .poker-late-entry {
   margin-top: 0.5rem;
+}
+
+.poker-live-remove {
+  min-width: 2.5rem;
+  padding-inline: 0.6rem;
+}
+
+/* La esquina derecha es del lápiz de editar: los plazos de compra pasan a la izquierda. */
+.poker-felt.poker-live-card .poker-buy-timers {
+  z-index: 2;
+  right: auto;
+  left: 0.8rem;
+  justify-items: start;
+}
+
+/* Propina al cerrar el torneo: la escena de la mesa a sangre arriba del diálogo, con el crupier en grande sacando
+   su «¡Gracias!» y lo que ha hecho escrito en el tapete. */
+.poker-felt.poker-empty.poker-tip-scene {
+  padding-bottom: 0.75rem;
+  border-width: 0 0 3px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.poker-tip-scene .poker-empty-stage {
+  --crupier-size: clamp(118px, min(46vw, 20dvh), 210px);
+
+  padding-top: 0.6rem;
+}
+
+.poker-tip-scene.poker-felt.poker-empty h2 {
+  font-size: 1rem;
+}
+
+.poker-tip-leftover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  color: #2a1d0a;
+}
+
+.poker-tip-leftover span {
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.poker-tip-leftover strong {
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 2.3rem;
+  font-weight: 400;
+  line-height: 1;
+  text-shadow: 0 2px 0 rgb(255 246 220 / 0.6);
+}
+
+.poker-tip-pays {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-tip-pays li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.4rem 0.3rem;
+  border: 1.5px dashed color-mix(in srgb, currentcolor 28%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, currentcolor 6%, transparent);
+  color: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.poker-tip-pays svg {
+  flex: none;
+  color: #d9822b;
+}
+
+.poker-tip-jobs {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0.3rem;
+  margin: 0.4rem 0 0;
+  padding: 0 0.5rem;
+  list-style: none;
+}
+
+.poker-tip-jobs li {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 0.2rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid rgb(243 236 220 / 0.45);
+  border-radius: 999px;
+  background: rgb(42 29 10 / 0.35);
+  color: #f3ecdc;
+  font-family: 'Anton', 'Arial Narrow', sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.poker-tip-jobs svg {
+  color: #f0c94c;
+}
+
+.poker-tip-jobs .is-fee {
+  border-color: #2a1d0a;
+  background: #f0c94c;
+  color: #2a1d0a;
 }

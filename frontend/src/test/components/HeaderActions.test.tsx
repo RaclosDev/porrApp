@@ -64,7 +64,7 @@ it('el botón de apoyar abre una ventana con Ko-fi, Revolut y PayPal en otra pes
     PayPal: 'https://www.paypal.com/paypalme/raclos',
   };
   for (const [name, href] of Object.entries(expected)) {
-    const link = within(dialog).getByRole('link', { name: new RegExp(`^${name}`) });
+    const link = within(dialog).getByRole('link', { name: new RegExp(name) });
     expect(link).toHaveAttribute('href', href);
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');

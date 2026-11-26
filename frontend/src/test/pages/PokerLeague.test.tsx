@@ -90,6 +90,9 @@ function renderLeague() {
 }
 
 it('valida el reparto y guarda la estructura, los límites y los importes en céntimos', async () => {
+  // Las fechas anteriores a hoy no se pueden elegir.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 10, 10));
   const save = vi.fn().mockResolvedValue(true);
   const cancel = vi.fn();
   render(
@@ -102,19 +105,19 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
       onSave={save}
     />,
   );
-  set('Fecha', '2026-11-21');
+  expect(screen.getByRole('button', { name: 'Torneo' })).toHaveAttribute('aria-current', 'step');
+  fireEvent.click(screen.getByRole('button', { name: /^Fecha: / }));
+  expect(screen.getByRole('button', { name: 'lunes, 9 de noviembre' })).toBeDisabled();
+  click('sábado, 21 de noviembre');
+  expect(screen.getByRole('button', { name: /^Fecha: / })).toHaveAccessibleName(
+    'Fecha: sábado, 21 de noviembre',
+  );
   set('Entrada (€)', '12.45');
   set('Fichas iniciales', '8000');
-  click('Añadir premio');
-  click('Abrir inscripciones');
-  expect(screen.getByRole('alert')).toHaveTextContent('debe sumar el 100 %');
-  click('Quitar premio');
-  set('Puesto 1 (%)', '75');
-  set('Puesto 2 (%)', '25');
+  click('Siguiente');
 
-  fireEvent.click(screen.getByText('Ciegas, recompras y add-on'));
   click('Añadir descanso');
-  click('Abrir inscripciones');
+  click('Siguiente');
   expect(screen.getByRole('alert')).toHaveTextContent('al principio y al final');
   click('Añadir nivel');
   const level = within(screen.getByRole('group', { name: 'Ciegas · nivel 4' }));
@@ -125,15 +128,26 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   set('Minutos', '20', level);
   fireEvent.click(screen.getByLabelText('Activar recompras'));
   fireEvent.click(screen.getByLabelText('Activar add-on'));
-  const rebuy = within(screen.getByRole('group', { name: 'Permitir recompras' }));
+  const rebuy = within(screen.getByRole('group', { name: 'Recompras' }));
   set('Importe (€)', '9.50', rebuy);
   set('Fichas', '6000', rebuy);
-  expect(rebuy.getByLabelText('Sin límite por jugador')).toBeChecked();
-  fireEvent.click(rebuy.getByLabelText('Sin límite por jugador'));
-  set('Máximo por jugador', '2', rebuy);
-  set('Hasta el final de', '3', rebuy);
+  expect(getSelectMenu('Recompras por jugador')).toHaveAccessibleName(
+    'Recompras por jugador: Sin límite',
+  );
+  chooseOption(getSelectMenu('Recompras por jugador'), '2');
+  chooseOption(rebuy.getByRole('button', { name: /^Hasta el final de/ }), '3');
   click('Quitar nivel 2');
+  click('Siguiente');
 
+  // Un premio nuevo empieza en 0 y no deja abrir inscripciones hasta cuadrar el 100 %.
+  click('Añadir premio');
+  expect(screen.getByLabelText('Puesto 3 (%)')).toHaveValue(0);
+  click('Quitar premio');
+  set('Puesto 1 (%)', '80');
+  click('Abrir inscripciones');
+  expect(screen.getByRole('alert')).toHaveTextContent('debe sumar el 100 %');
+  set('Puesto 1 (%)', '75');
+  set('Puesto 2 (%)', '25');
   click('Abrir inscripciones');
   await waitFor(() =>
     expect(save).toHaveBeenCalledWith('2026-11-21', {
@@ -150,6 +164,8 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
       addOn: { costCents: 1245, chips: 8000, limit: 1, throughLevel: 3 },
     }),
   );
+  click('Atrás');
+  click('Atrás');
   click('Volver');
   expect(cancel).toHaveBeenCalledOnce();
 });
@@ -222,9 +238,15 @@ it('añade un descanso tras el corte de recompras para comprar en él', async ()
       onSave={save}
     />,
   );
-  fireEvent.click(screen.getByText('Ciegas, recompras y add-on'));
+  click('Siguiente');
   fireEvent.click(screen.getByLabelText('Activar recompras'));
-  set('Hasta el final de', '1', within(screen.getByRole('group', { name: 'Permitir recompras' })));
+  chooseOption(
+    within(screen.getByRole('group', { name: 'Recompras' })).getByRole('button', {
+      name: /^Hasta el final de/,
+    }),
+    '1',
+  );
+  click('Siguiente');
   click('Abrir inscripciones');
   const pause = { small: 0, big: 0, ante: 0, minutes: 10 };
   await waitFor(() =>
@@ -386,29 +408,35 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   ]);
 
   act(() => vi.advanceTimersByTime(1_000));
-  expect(screen.getByText(/Nivel 2/)).toBeVisible();
+  expect(screen.getByText('Nivel 2')).toBeVisible();
   expect(screen.queryByRole('button', { name: 'Recompra de Ana' })).toBeNull();
   rerender(live({ ...active, clock: { level: 0, endsAt: null, remainingMs: 500 } }));
   click('Reanudar');
   expect(onCommand).toHaveBeenLastCalledWith('RESUME');
 
   rerender(live({ ...active, eliminations: [3, 2] }));
-  const names = within(screen.getByRole('heading', { name: 'Jugadores' }).parentElement!)
-    .getAllByRole('listitem')
-    .map((item) => item.querySelector('strong')?.textContent)
-    .filter(Boolean);
+  const names = Array.from(
+    document.querySelectorAll('.poker-roster .poker-roster-name strong'),
+  ).map((item) => item.textContent);
   expect(names.slice(0, 3)).toEqual(['Ana', 'Luis', 'Paz']);
   click('Quitar la eliminación de Paz');
   expect(onCommand).toHaveBeenLastCalledWith('UNDO_ELIMINATION', 3);
   click('Cerrar torneo');
   vi.useRealTimers();
   const dialog = screen.getByRole('dialog', { name: '¿Cerrar el torneo?' });
-  expect(within(dialog).getByRole('list', { name: 'Premios que se guardarán' })).toHaveTextContent(
-    `1.º Ana · ${money(2100)}2.º Luis · ${money(900)}`,
-  );
+  expect(within(dialog).getByLabelText('Dinero para 1.º Ana')).toHaveValue(21);
+  expect(within(dialog).getByLabelText('Puntos para 2.º Luis')).toHaveValue(4);
+  expect(within(dialog).getByRole('status')).toHaveTextContent('Sobran0,00 €Puntos9');
   click('Cerrar y guardar');
   await waitFor(() =>
-    expect(onCommand).toHaveBeenLastCalledWith('CLOSE', undefined, { prizeShares: [70, 30] }),
+    expect(onCommand).toHaveBeenLastCalledWith('CLOSE', undefined, {
+      prizeShares: [70, 30],
+      payouts: [
+        { playerId: 1, prizeCents: 2100, points: 5 },
+        { playerId: 2, prizeCents: 900, points: 4 },
+        { playerId: 3, prizeCents: 0, points: 0 },
+      ],
+    }),
   );
 });
 
@@ -430,7 +458,7 @@ it('con varios torneos programados los enseña en inicio y deja apuntarse al ele
       />
     </MemoryRouter>,
   );
-  expect(screen.getByRole('heading', { name: 'Próximos torneos (2)' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /^Próximo torneo: / })).toBeInTheDocument();
   const tabs = within(screen.getByRole('navigation', { name: 'Torneos programados' }));
   expect(tabs.getAllByRole('link')).toHaveLength(2);
   expect(tabs.getAllByRole('link')[1]).toHaveAttribute('aria-current', 'page');
@@ -451,15 +479,16 @@ it('con varios torneos programados los enseña en inicio y deja apuntarse al ele
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  await screen.findByRole('heading', { name: 'Inscripciones abiertas' });
-  click('Apuntarme');
+  await screen.findByRole('heading', { name: /Inscripciones abiertas/ });
+  click('Apuntarme al torneo');
   await waitFor(() =>
     expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/22/attendance', {
       method: 'PUT',
       json: { attending: true, playerId: undefined },
     }),
   );
-  expect(screen.getByRole('button', { name: 'Programar otro torneo' })).toBeInTheDocument();
+  // Programar otro torneo se hace desde Inicio, no desde la mesa.
+  expect(screen.queryByRole('button', { name: 'Programar otro torneo' })).toBeNull();
 });
 
 it('el organizador programa otro torneo desde inicio', async () => {
@@ -507,14 +536,14 @@ it('el organizador programa otro torneo desde inicio', async () => {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  expect(await screen.findByRole('button', { name: 'Abrir inscripciones' })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Preparar torneo' })).toBeInTheDocument();
 });
 
 it('guarda asistencia, edita con revisión y cancela un torneo abierto', async () => {
   api.mockResolvedValue(league);
   vi.mocked(confirmAction).mockResolvedValue(true);
   renderLeague();
-  await screen.findByRole('heading', { name: 'Inscripciones abiertas' });
+  await screen.findByRole('heading', { name: /Inscripciones abiertas/ });
   click('Desapuntarme');
   await waitFor(() =>
     expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13/attendance', {
@@ -523,6 +552,7 @@ it('guarda asistencia, edita con revisión y cancela un torneo abierto', async (
     }),
   );
 
+  fireEvent.click(screen.getByRole('button', { name: 'Jugadores' }));
   fireEvent.click(screen.getByRole('checkbox', { name: 'Paz (invitado)' }));
   await waitFor(() =>
     expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13/attendance', {
@@ -542,7 +572,7 @@ it('guarda asistencia, edita con revisión y cancela un torneo abierto', async (
 
   click('Editar torneo');
   click('Guardar cambios');
-  await screen.findByRole('heading', { name: 'Inscripciones abiertas' });
+  await screen.findByRole('heading', { name: /Inscripciones abiertas/ });
   expect(api).toHaveBeenLastCalledWith('/poker/8/sessions/13', {
     method: 'PUT',
     json: { date, settings: { ...settings, prizeAmounts: null }, revision: 2 },
@@ -612,10 +642,16 @@ it('abre los pagos en una hoja y deja a la administración corregir o borrar', a
   click('Bajar a Ana');
   click('Guardar cambios');
   await waitFor(() =>
-    expect(onEdit).toHaveBeenCalledWith(closed, closed.date, [
-      { playerId: 3, rebuys: 0, addOns: 0 },
-      { playerId: 1, rebuys: 0, addOns: 0 },
-    ]),
+    expect(onEdit).toHaveBeenCalledWith(closed, {
+      date: closed.date,
+      buyInCents: 1000,
+      rebuyCostCents: undefined,
+      addOnCostCents: undefined,
+      standings: [
+        { playerId: 3, rebuys: 0, addOns: 0, prizeCents: 2000, points: 0 },
+        { playerId: 1, rebuys: 0, addOns: 0, prizeCents: 0, points: 0 },
+      ],
+    }),
   );
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
@@ -651,10 +687,15 @@ it('reutiliza las reglas del torneo anterior', async () => {
       : { ...league, current: null },
   );
   renderLeague();
-  await screen.findByRole('heading', { name: 'Próximo torneo' });
+  const empty = await screen.findByRole('region', { name: 'Próximo torneo' });
+  // La mesa libre solo lleva al crupier, el título y el botón.
+  expect(empty.querySelector('.crupier')).toBeInTheDocument();
+  expect(empty.querySelector('ol')).not.toBeInTheDocument();
   click('Preparar torneo');
   await screen.findByLabelText('Entrada (€)');
   expect(screen.getByLabelText('Entrada (€)')).toHaveValue(10);
+  click('Siguiente');
+  click('Siguiente');
   expect(screen.getByLabelText('Puesto 1 (%)')).toHaveValue(70);
   click('Abrir inscripciones');
   await waitFor(() =>
@@ -686,6 +727,11 @@ it('finaliza con las fichas de los supervivientes y deja ajustar el reparto ante
     />,
   );
   click('Finalizar torneo');
+  // La mesa se aparta: solo quedan los pasos del cierre y el formulario de fichas.
+  expect(screen.getByRole('list', { name: 'Pasos para finalizar' })).toBeVisible();
+  expect(screen.queryByRole('list', { name: 'Jugadores en la mesa' })).toBeNull();
+  expect(screen.queryByRole('timer')).toBeNull();
+  click('Contando fichas');
   expect(screen.getByRole('button', { name: 'Revisar premios y finalizar' })).toBeDisabled();
   set('Fichas de Ana', '20000');
   expect(screen.getByLabelText('Fichas de Luis', { exact: false })).toHaveValue(10000);
@@ -695,16 +741,19 @@ it('finaliza con las fichas de los supervivientes y deja ajustar el reparto ante
   click('Revisar premios y finalizar');
 
   const dialog = screen.getByRole('dialog', { name: '¿Finalizar el torneo?' });
-  const prizes = () => within(dialog).getByRole('list', { name: 'Premios que se guardarán' });
-  expect(prizes()).toHaveTextContent(`1.º Ana · ${money(2100)}2.º Luis · ${money(900)}`);
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Cantidad (€)' }));
-  expect(within(dialog).getByLabelText('1.º Ana (€)')).toHaveValue(21);
-  set('1.º Ana (€)', '25', within(dialog));
-  expect(dialog).toHaveTextContent(`supera el bote en ${money(400)}`);
-  expect(within(dialog).getByRole('button', { name: 'Finalizar y guardar' })).toBeDisabled();
-  set('2.º Luis (€)', '4', within(dialog));
-  expect(dialog).toHaveTextContent(`sobran ${money(100)}, que se suman al 1.º puesto`);
-  expect(prizes()).toHaveTextContent(`1.º Ana · ${money(2600)}2.º Luis · ${money(400)}`);
+  const status = () => within(dialog).getByRole('status');
+  // Pacto entre Ana (20.000) y Luis (10.000): ICM sugiere más dinero a quien tiene más fichas y los
+  // puntos, por defecto, a partes iguales.
+  expect(within(dialog).getByLabelText('Dinero para 1.º Ana')).toHaveValue(17);
+  expect(within(dialog).getByLabelText('Dinero para 2.º Luis')).toHaveValue(13);
+  expect(within(dialog).getByLabelText('Puntos para 1.º Ana')).toHaveValue(4.5);
+  click('A partes iguales');
+  expect(within(dialog).getByLabelText('Dinero para 1.º Ana')).toHaveValue(15);
+  set('Dinero para 2.º Luis', '14', within(dialog));
+  expect(status()).toHaveTextContent(`Sobran${money(100)}`);
+  set('Dinero para 2.º Luis', '16', within(dialog));
+  expect(status()).toHaveTextContent(`Te pasas${money(100)}`);
+  set('Dinero para 2.º Luis', '14', within(dialog));
   click('Finalizar y guardar');
   await waitFor(() =>
     expect(command).toHaveBeenCalledWith('CLOSE', undefined, {
@@ -712,7 +761,60 @@ it('finaliza con las fichas de los supervivientes y deja ajustar el reparto ante
         { playerId: 1, chips: 20000 },
         { playerId: 2, chips: 10000 },
       ],
-      prizeAmounts: [2500, 400],
+      prizeShares: [70, 30],
+      payouts: [
+        { playerId: 1, prizeCents: 1500, points: 4.5 },
+        { playerId: 2, prizeCents: 1400, points: 4.5 },
+        { playerId: 3, prizeCents: 0, points: 0 },
+      ],
+    }),
+  );
+});
+
+it('sin contar fichas, los que siguen comparten el primer puesto a partes iguales', async () => {
+  const command = vi.fn().mockResolvedValue(undefined);
+  render(
+    <PokerLive
+      session={{
+        ...session,
+        startedAt: 1,
+        eliminations: [3],
+        clock: { level: 0, endsAt: null, remainingMs: 1000 },
+      }}
+      owner
+      busy={false}
+      serverNow={1000}
+      receivedAt={Date.now()}
+      onCommand={command}
+    />,
+  );
+  click('Finalizar torneo');
+  expect(screen.getByRole('button', { name: 'Sin contar fichas' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(screen.queryByLabelText('Fichas de Ana')).toBeNull();
+  click('Revisar premios y finalizar');
+  const dialog = screen.getByRole('dialog', { name: '¿Finalizar el torneo?' });
+  expect(within(dialog).queryByRole('button', { name: 'Según fichas (ICM)' })).toBeNull();
+  expect(within(dialog).getByLabelText('Dinero para 1.º Ana')).toHaveValue(15);
+  expect(within(dialog).getByLabelText('Dinero para 1.º Luis')).toHaveValue(15);
+  // Solo se ven los que siguen; el siguiente clasificado se añade si se acuerda darle algo.
+  expect(within(dialog).queryByLabelText('Dinero para 3.º Paz')).toBeNull();
+  click('Añadir siguiente clasificado');
+  expect(within(dialog).getByLabelText('Dinero para 3.º Paz')).toHaveValue(0);
+  expect(screen.queryByRole('button', { name: 'Añadir siguiente clasificado' })).toBeNull();
+  // Una casilla vacía cuenta como 0 y deja guardar.
+  set('Puntos para 1.º Luis', '', within(dialog));
+  click('Finalizar y guardar');
+  await waitFor(() =>
+    expect(command).toHaveBeenCalledWith('CLOSE', undefined, {
+      prizeShares: [70, 30],
+      payouts: [
+        { playerId: 1, prizeCents: 1500, points: 4.5 },
+        { playerId: 2, prizeCents: 1500, points: 0 },
+        { playerId: 3, prizeCents: 0, points: 0 },
+      ],
     }),
   );
 });
@@ -804,6 +906,7 @@ it('calcula el ultimo jugador y recalcula al corregir los otros importes', () =>
     />,
   );
   click('Finalizar torneo');
+  click('Contando fichas');
   set('Fichas de Ana', '12000');
   expect(screen.getByLabelText('Fichas de Paz')).toHaveValue(null);
   set('Fichas de Luis', '8000');
@@ -870,6 +973,33 @@ it('abre las acciones desde la foto y respeta permisos y extras disponibles', ()
   expect(screen.queryByRole('button', { name: 'Reanudar' })).not.toBeInTheDocument();
 });
 
+it('deja elegir los puntos de liga de cada puesto y los guarda con el torneo', async () => {
+  const save = vi.fn().mockResolvedValue(true);
+  render(
+    <PokerSettingsForm
+      date={date}
+      settings={settings}
+      editing
+      busy={false}
+      onCancel={vi.fn()}
+      onSave={save}
+    />,
+  );
+  click('Premios');
+  expect(screen.queryByLabelText('Puntos de liga del 1.º puesto')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('switch', { name: /^Puntos de liga/ }));
+  expect(screen.getByLabelText('Puntos de liga del 1.º puesto')).toHaveValue(5);
+  expect(screen.getByLabelText('Puntos de liga del 2.º puesto')).toHaveValue(4);
+  set('Puntos de liga del 1.º puesto', '10');
+  click('Añadir premio');
+  expect(screen.getByLabelText('Puntos de liga del 3.º puesto')).toHaveValue(0);
+  click('Quitar premio');
+  click('Guardar cambios');
+  await waitFor(() =>
+    expect(save).toHaveBeenCalledWith(date, expect.objectContaining({ prizePoints: [10, 4] })),
+  );
+});
+
 it('desactiva el ante de todos los niveles al guardar y permite recuperarlo antes de guardar', async () => {
   const save = vi.fn().mockResolvedValue(true);
   render(
@@ -882,13 +1012,15 @@ it('desactiva el ante de todos los niveles al guardar y permite recuperarlo ante
       onSave={save}
     />,
   );
-  fireEvent.click(screen.getByText('Ciegas, recompras y add-on'));
+  click('Ciegas');
   expect(screen.getByLabelText('Activar ante')).toBeChecked();
   fireEvent.click(screen.getByLabelText('Activar ante'));
-  expect(screen.queryByLabelText('Ante')).not.toBeInTheDocument();
+  expect(screen.queryByRole('spinbutton', { name: 'Ante' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByLabelText('Activar ante'));
   expect(
-    screen.getAllByLabelText('Ante').map((input) => (input as HTMLInputElement).value),
+    screen
+      .getAllByRole('spinbutton', { name: 'Ante' })
+      .map((input) => (input as HTMLInputElement).value),
   ).toEqual(['25', '25']);
   fireEvent.click(screen.getByLabelText('Activar ante'));
   click('Añadir descanso');
@@ -942,7 +1074,7 @@ it('ordena cada columna por su valor y alterna el sentido sin cambiar el podio',
       ]}
     />,
   );
-  const podium = screen.getByRole('list', { name: 'Podio de la liga por victorias' }).textContent;
+  const podium = screen.getByRole('list', { name: 'Podio de la liga por puntos' }).textContent;
   const order = () =>
     screen
       .getAllByRole('rowheader')
@@ -973,15 +1105,20 @@ it('ordena cada columna por su valor y alterna el sentido sin cambiar el podio',
   expect(order()).toEqual(['Ana', 'Luis']);
   click('Podios');
   expect(order()).toEqual(['Ana', 'Luis']);
-  expect(screen.getByRole('list', { name: 'Podio de la liga por victorias' }).textContent).toBe(
+  expect(screen.getByRole('list', { name: 'Podio de la liga por puntos' }).textContent).toBe(
     podium,
   );
 });
 
 it('al cerrar el torneo ofrece una propina para el crupier con las formas de apoyar', async () => {
   const live: PokerSession = { ...session, startedAt: 1_000, eliminations: [3, 2] };
+  let closed = false;
   api.mockImplementation((url: string, options?: { method?: string }) => {
-    if (url === '/poker/8/history') return Promise.resolve([]);
+    if (url === '/poker/8/history')
+      return Promise.resolve(
+        closed ? [{ ...live, closedAt: 2_000, results: [], leftoverCents: 1_000 }] : [],
+      );
+    if (options?.method === 'POST') closed = true;
     if (url === '/poker/8/music')
       return Promise.resolve({ organizer: true, searchAvailable: true, items: [] });
     if (options?.method === 'POST') return Promise.resolve({ ...league, current: null });
@@ -1010,8 +1147,10 @@ it('al cerrar el torneo ofrece una propina para el crupier con las formas de apo
   fireEvent.click(await screen.findByRole('button', { name: 'Cerrar torneo' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Cerrar y guardar' }));
 
-  const dialog = await screen.findByRole('dialog', { name: '¿Propina para el crupier? 😉' });
-  expect(within(dialog).getByRole('link', { name: /^Revolut/ })).toHaveAttribute(
+  const dialog = await screen.findByRole('dialog', { name: '¿Propina para el crupier?' });
+  expect(await within(dialog).findByText('Os han sobrado del bote')).toBeVisible();
+  expect(within(dialog).getByText(money(1000))).toBeVisible();
+  expect(within(dialog).getByRole('link', { name: /Revolut/ })).toHaveAttribute(
     'href',
     'https://revolut.me/raclos',
   );
@@ -1035,10 +1174,10 @@ it('sin torneos cerrados guía los primeros pasos y explica cada sección vacía
       />
     </MemoryRouter>,
   );
-  expect(screen.getByText('Sin torneo a la vista')).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Próximo torneo' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Preparar torneo' })).toHaveAttribute(
     'href',
-    '/poker/mesa',
+    '/poker/mesa?nuevo=1',
   );
   expect(screen.getByRole('heading', { name: 'Primeros pasos' })).toBeInTheDocument();
   expect(screen.queryByRole('heading', { name: 'Podio de la liga' })).not.toBeInTheDocument();
@@ -1095,6 +1234,7 @@ it('al pulsar un cromo del podio abre el perfil del jugador con sus números en 
       place: index + 1,
       paidCents: 1000,
       prizeCents: index === 0 ? 2100 : index === 1 ? 900 : 0,
+      points: index === 0 ? 5 : index === 1 ? 4 : 0,
     })),
   };
   render(
@@ -1102,7 +1242,7 @@ it('al pulsar un cromo del podio abre el perfil del jugador con sus números en 
       <PokerStatistics sessions={[closed]} />
     </PokerProfiles>,
   );
-  click('Ver el perfil de Ana: 1.º, 1 victoria');
+  click('Ver el perfil de Ana: 1.º, 5 puntos · 1 victoria');
   const card = screen.getByRole('dialog', { name: 'Perfil de Ana' });
   expect(card).toHaveTextContent('1.º de la liga · 1 victoria');
   expect(within(card).getByText('Neto').nextElementSibling).toHaveTextContent('+11');
