@@ -4,6 +4,7 @@ import {
   icm,
   placePoints,
   pointsScale,
+  floorToStep,
   roundToStep,
   suggestPayouts,
 } from '../../components/poker/pokerPayouts';
@@ -27,6 +28,7 @@ describe('pokerPayouts', () => {
   it('redondea sin pasarse del total y deja el resto de las partes iguales como sobrante', () => {
     expect(roundToStep([6333, 6333, 6334], 1000)).toEqual([6000, 6000, 7000]);
     expect(equalSplit(19000, 3, 1000)).toEqual([6000, 6000, 6000]);
+    expect(floorToStep([7666.7, 7666.7, 7666.6], 100)).toEqual([7600, 7600, 7600]);
   });
 
   it('sugiere el pacto de los supervivientes y el premio de cada eliminado', () => {
@@ -52,7 +54,8 @@ describe('pokerPayouts', () => {
       money: 'ICM',
       points: 'ICM',
     });
-    expect(byChips[0].prizeCents + byChips[1].prizeCents).toBe(16000);
+    // ICM redondea hacia abajo: los 1.000 que no llegan a un paso se quedan de sobrante.
+    expect(byChips.map((row) => row.prizeCents)).toEqual([8000, 7000, 4000, 0]);
     expect(byChips[0].points + byChips[1].points).toBe(8);
     expect(byChips[0].points).toBeGreaterThan(byChips[1].points);
   });

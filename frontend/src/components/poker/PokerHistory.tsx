@@ -188,6 +188,12 @@ export function PokerHistory({
                     </li>
                   ))}
                 </ul>
+                {(session.leftoverCents ?? 0) > 0 && (
+                  <p className="poker-payments-leftover">
+                    Sobran <strong>{euros(session.leftoverCents ?? 0)}</strong> del bote sin
+                    repartir: no tienen dueño, se quedan para lo que decida la mesa.
+                  </p>
+                )}
                 <p className="poker-note">
                   Pagos mínimos según lo aportado y el premio de cada jugador. Si ya pagasteis en la
                   mesa, no hace falta nada.
