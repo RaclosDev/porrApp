@@ -245,6 +245,11 @@ export default function PokerCloseDialog({
                 </div>
               );
             })}
+            {leftover > 0 && (
+              <p className="poker-payout-note">
+                El sobrante cuenta igual en las estadísticas y la liga.
+              </p>
+            )}
             <dl
               className={leftover < 0 ? 'poker-payout-summary is-off' : 'poker-payout-summary'}
               role="status"

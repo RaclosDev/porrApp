@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  fullPrizes,
   noLeadingZero,
   pointsText,
   pokerStandings,
@@ -50,6 +51,46 @@ describe('pokerStandings: rachas', () => {
     const longer = pokerStandings([session(4, [result(1, 'Ana', 3, 0, 0)]), ...history])[0];
     expect(longer.streak).toBe(2);
     expect(longer.bestStreak).toBe(2);
+  });
+});
+
+describe('fullPrizes: el sobrante cuenta en las estadísticas', () => {
+  it('reparte lo que sobró en proporción a lo que se llevó cada uno', () => {
+    const results = [
+      result(1, 'Ana', 1, 2000, 7600),
+      result(2, 'Luis', 1, 2000, 7600),
+      result(3, 'Eva', 1, 2000, 7600),
+    ];
+    expect([...fullPrizes({ results, leftoverCents: 200 }).values()]).toEqual([7667, 7667, 7666]);
+    const uneven = [
+      result(1, 'Ana', 1, 0, 10000),
+      result(2, 'Luis', 2, 0, 10000),
+      result(3, 'Eva', 3, 0, 2500),
+      result(4, 'Leo', 4, 0, 0),
+    ];
+    expect([...fullPrizes({ results: uneven, leftoverCents: 500 }).values()]).toEqual([
+      10222, 10222, 2556, 0,
+    ]);
+  });
+
+  it('no toca nada si no sobró o se repartió de más', () => {
+    const results = [result(1, 'Ana', 1, 0, 5000), result(2, 'Luis', 2, 0, 0)];
+    expect([...fullPrizes({ results, leftoverCents: -100 }).values()]).toEqual([5000, 0]);
+    expect([...fullPrizes({ results }).values()]).toEqual([5000, 0]);
+  });
+
+  it('las estadísticas suman el bote entero y el dinero de los pagos sigue siendo el real', () => {
+    const closed = {
+      ...session(1, [result(1, 'Ana', 1, 1000, 1400), result(2, 'Luis', 2, 1000, 0)]),
+      leftoverCents: 600,
+    } as PokerSession;
+    expect(pokerStandings([closed]).map((row) => [row.name, row.prizes])).toEqual([
+      ['Ana', 2000],
+      ['Luis', 0],
+    ]);
+    expect(settlements(closed.results)).toEqual([
+      { fromId: 2, from: 'Luis', toId: 1, to: 'Ana', cents: 400 },
+    ]);
   });
 });
 
