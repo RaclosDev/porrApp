@@ -161,7 +161,11 @@ export default function PokerLive({
         disabled={busy}
         aria-label={label}
         title={label}
-        onClick={() => void onCommand(action, entry.playerId)}
+        onClick={() => {
+          // Hecha la acción, el panel del jugador se cierra solo.
+          setSelectedPlayerId(null);
+          void onCommand(action, entry.playerId);
+        }}
       >
         {icon}
         {!compact && text}
