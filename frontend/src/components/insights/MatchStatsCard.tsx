@@ -32,10 +32,10 @@ function Team({
 }) {
   return (
     <span
-      className={`flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}
+      className={`flex min-w-0 flex-1 flex-col items-center gap-1 text-center sm:flex-row sm:gap-2 ${align === 'right' ? 'sm:flex-row-reverse sm:text-right' : 'sm:text-left'}`}
     >
       <Flag team={name} logo={logo} style={{ width: 24, height: 24 }} />
-      <span className="min-w-0 text-[0.86rem] font-semibold leading-tight text-main [overflow-wrap:anywhere] sm:text-base">
+      <span className="min-w-0 text-[0.86rem] font-semibold leading-tight text-main [overflow-wrap:break-word] sm:text-base">
         {name}
       </span>
     </span>
