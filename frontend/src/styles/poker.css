@@ -1743,15 +1743,28 @@
   cursor: wait;
 }
 
+/* Acciones del jugador: tarjeta fija abajo, siempre a la vista sin hacer scroll. */
 .poker-seat-actions {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   display: grid;
   gap: 0.65rem;
-  max-width: 30rem;
-  margin: 0.85rem auto;
+  width: min(30rem, calc(100vw - 1.5rem));
   padding: 0.85rem;
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  background: rgba(7, 32, 24, 0.45);
+  background: #0b2a1f;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  transform: translateX(-50%);
+}
+
+@media (max-width: 768px) {
+  /* Encima de la barra de navegación inferior. */
+  .poker-seat-actions {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .poker-seat-actions .poster-title {
