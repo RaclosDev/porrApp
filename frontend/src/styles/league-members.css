@@ -51,7 +51,7 @@
     font-weight: 700;
   }
 
-  .league-admin-member-name > span:first-child {
+  .league-admin-member-name > :first-child {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
