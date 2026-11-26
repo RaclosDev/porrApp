@@ -71,6 +71,8 @@ interface LeagueHomeData {
      * empezar o acabada, cuadros) sigue «Ver todo».
      */
     flipped?: Match[];
+    /** Aplazados de otra jornada que se juegan con esta, con la jornada a la que pertenecen. */
+    lateRounds?: Map<Match['id'], string>;
     /** Página a la que lleva cada partido y su verbo para lectores de pantalla. */
     to: string;
     action: string;
@@ -199,7 +201,9 @@ export function useLeagueHomeData(): LeagueHomeData {
     const miniTable = lol ? tables[tables.length - 1] : tables[0];
 
     if (format === 'matchday') {
-      const current = currentRoundMatches(ownMatches ? (leagueGames ?? []) : allGames);
+      // La lista propia ya es la jornada actual del servidor: lo de jornadas anteriores, aplazados.
+      const games = ownMatches ? (leagueGames ?? []) : allGames;
+      const current = currentRoundMatches(games, undefined, ownMatches);
       const round = current.round;
       // UFC: la velada en el orden de su cartelera, con la pelea estelar arriba, no por hora.
       const matches = ufc ? sortFightCard(current.matches) : current.matches;
@@ -220,6 +224,7 @@ export function useLeagueHomeData(): LeagueHomeData {
           items: matches,
           // La velada ya va entera en el orden de su cartelera.
           flipped: ufc ? [] : current.flipped,
+          lateRounds: current.lateRounds,
           to: '/jornadas',
           action: 'hacer tu predicción',
           allTo: ownMatches ? '/jornadas' : '/radar',

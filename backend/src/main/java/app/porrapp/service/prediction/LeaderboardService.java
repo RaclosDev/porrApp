@@ -13,7 +13,6 @@ import app.porrapp.model.Prediction;
 import app.porrapp.model.ScorerPick;
 import app.porrapp.model.Match;
 import app.porrapp.model.MatchPrediction;
-import app.porrapp.model.MatchStatusNormalized;
 import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.PredictionRepository;
 import app.porrapp.repository.ScorerPickRepository;
@@ -21,6 +20,7 @@ import app.porrapp.repository.MatchRepository;
 import app.porrapp.repository.MatchPredictionRepository;
 import app.porrapp.repository.MembershipRepository;
 import app.porrapp.model.Membership;
+import app.porrapp.util.LateMatches;
 import app.porrapp.util.MatchRound;
 import app.porrapp.scoring.CalculationContext;
 import app.porrapp.scoring.ScorerChoice;
@@ -332,14 +332,26 @@ public class LeaderboardService {
         List<MatchdayAccumulator> ordered = new ArrayList<>(matchdays.values());
         MatchRound.sortNumberedMatchdays(ordered, accumulator -> accumulator.label);
 
+        // La actual es la primera con algo por jugar en su fecha: un aplazado con fecha nueva no retiene
+        // su jornada. Si solo quedan aplazados, la de uno de ellos.
         int currentIndex = -1;
         int index = 0;
         for (MatchdayAccumulator accumulator : ordered) {
-            if (!accumulator.finished) {
+            if (LateMatches.hasOnTimeMatchToPlay(accumulator.matches)) {
                 currentIndex = index;
                 break;
             }
             index++;
+        }
+        if (currentIndex < 0) {
+            index = 0;
+            for (MatchdayAccumulator accumulator : ordered) {
+                if (!accumulator.finished) {
+                    currentIndex = index;
+                    break;
+                }
+                index++;
+            }
         }
         if (currentIndex < 0 && !matchdays.isEmpty()) {
             currentIndex = matchdays.size() - 1;
@@ -368,6 +380,7 @@ public class LeaderboardService {
     private static final class MatchdayAccumulator {
         private final String label;
         private final Map<Long, Integer> points = new HashMap<>();
+        private final List<Match> matches = new ArrayList<>();
         private Instant date;
         private int matchCount;
         private boolean finished = true;
@@ -379,25 +392,17 @@ public class LeaderboardService {
 
         private void addMatch(Match match) {
             matchCount++;
+            matches.add(match);
             if (match.getMatchDate() != null && (date == null || match.getMatchDate().isBefore(date))) {
                 date = match.getMatchDate();
             }
-            if (isPlayablePending(match)) {
+            if (LateMatches.isStillToPlay(match)) {
                 finished = false;
             }
         }
 
         private void addPoints(Long predictionId, int pointsAwarded) {
             points.merge(predictionId, pointsAwarded, Integer::sum);
-        }
-
-        private boolean isPlayablePending(Match match) {
-            if (Boolean.TRUE.equals(match.getFinished())) return false;
-            MatchStatusNormalized status = match.getStatus();
-            return status != MatchStatusNormalized.CANCELLED
-                    && status != MatchStatusNormalized.POSTPONED
-                    && status != MatchStatusNormalized.ABANDONED
-                    && status != MatchStatusNormalized.SUSPENDED;
         }
     }
 

@@ -153,4 +153,65 @@ describe('currentRoundMatches', () => {
   it('con la semana recién empezada, desde el primer partido', () => {
     expect(currentRoundMatches(week(0, 50)).matches.map((m) => m.id)[0]).toBe(1);
   });
+
+  describe('un aplazado con fecha nueva', () => {
+    const fixture = (id: number, round: string, date: string, finished: boolean) =>
+      game({
+        id,
+        home: `Local ${id}`,
+        away: `Visitante ${id}`,
+        round,
+        date,
+        finished,
+        status: finished ? 'FINISHED' : 'SCHEDULED',
+      });
+    // Jornada 8 jugada en octubre salvo el Rayo-Athletic, que pasa al 9 de diciembre.
+    const season = [
+      fixture(81, 'Jornada 8', '2026-10-18T16:00:00Z', true),
+      fixture(82, 'Jornada 8', '2026-10-19T19:00:00Z', true),
+      fixture(83, 'Jornada 8', '2026-12-09T19:00:00Z', false),
+      fixture(141, 'Jornada 14', '2026-11-28T16:00:00Z', false),
+      fixture(142, 'Jornada 14', '2026-11-30T20:00:00Z', false),
+      fixture(171, 'Jornada 17', '2026-12-12T16:00:00Z', false),
+    ];
+
+    it('no retiene la jornada: la portada enseña la que toca', () => {
+      const { round, matches, lateRounds } = currentRoundMatches(
+        season,
+        Date.parse('2026-11-26T12:00:00Z'),
+      );
+      expect(round).toBe('Jornada 14');
+      expect(ids(matches)).toEqual([141, 142]);
+      expect(lateRounds.size).toBe(0);
+    });
+
+    it('va con la jornada en la que se juega, marcado con la suya', () => {
+      const later = season.map((match) =>
+        match.round === 'Jornada 14' ? { ...match, finished: true, status: 'FINISHED' } : match,
+      );
+      const { round, matches, lateRounds } = currentRoundMatches(
+        later,
+        Date.parse('2026-12-08T12:00:00Z'),
+      );
+      expect(round).toBe('Jornada 17');
+      expect(ids(matches)).toEqual([83, 171]);
+      expect(lateRounds.get(83)).toBe('Jornada 8');
+    });
+
+    it('en la lista recortada del servidor, el de una jornada anterior va con la actual', () => {
+      const current = [season[2], season[5]];
+      const { round, lateRounds } = currentRoundMatches(
+        current,
+        Date.parse('2026-12-08T12:00:00Z'),
+        true,
+      );
+      expect(round).toBe('Jornada 17');
+      expect(lateRounds.get(83)).toBe('Jornada 8');
+    });
+
+    it('si ya no queda otra cosa por jugar, su jornada vuelve a ser la actual', () => {
+      const { round } = currentRoundMatches(season.slice(0, 3));
+      expect(round).toBe('Jornada 8');
+    });
+  });
 });

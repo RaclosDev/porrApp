@@ -402,6 +402,35 @@ class LeaderboardServiceTest {
         assertTrue(breakdown.get(2).isCurrent());
     }
 
+    @Test
+    @DisplayName("getMatchdayBreakdown: un aplazado con fecha nueva no retiene su jornada como actual")
+    void getMatchdayBreakdown_LateMatchDoesNotHoldItsMatchday() {
+        Match played = Match.builder().round("Jornada 8")
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 10, 18, 18, 0)))
+                .finished(true).status(MatchStatusNormalized.FINISHED).build();
+        Match late = Match.builder().round("Jornada 8")
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 12, 9, 20, 0)))
+                .finished(false).status(MatchStatusNormalized.SCHEDULED).build();
+        Match next = Match.builder().round("Jornada 14")
+                .matchDate(AppTime.fromLocal(LocalDateTime.of(2026, 11, 28, 18, 0)))
+                .finished(false).status(MatchStatusNormalized.SCHEDULED).build();
+
+        when(predictionRepository.findByEditionLeagueIdWithUserAndEdition(10L)).thenReturn(List.of());
+        when(editionRepository.findByLeagueIdAndStatus(10L, "ACTIVE"))
+                .thenReturn(Optional.of(Edition.builder()
+                        .competition(Competition.builder().id(4L).build())
+                        .build()));
+        when(matchRepository.findByCompetitionId(4L)).thenReturn(List.of(played, late, next));
+        when(matchPredictionRepository.findByPredictionEditionLeagueId(10L)).thenReturn(List.of());
+
+        List<MatchdayPointsDTO> breakdown = leaderboardService.getMatchdayBreakdown(10L);
+
+        assertEquals(List.of("Jornada 8", "Jornada 14"), breakdown.stream().map(MatchdayPointsDTO::getLabel).toList());
+        assertFalse(breakdown.get(0).isFinished());
+        assertFalse(breakdown.get(0).isCurrent());
+        assertTrue(breakdown.get(1).isCurrent());
+    }
+
     /** Cuadro que solo acierta el campeón, para comparar lo que da con cada reglamento. */
     private static Prediction championPrediction(long id, Edition edition) {
         if (edition.getCompetition() == null) edition.setCompetition(Competition.builder().externalId(Competition.WORLD_CUP_EXTERNAL_ID).build());
