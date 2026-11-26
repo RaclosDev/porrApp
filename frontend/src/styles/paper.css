@@ -25,7 +25,7 @@
     font-weight: 400;
     color: var(--avatar-ink);
     background-color: var(--avatar-fill);
-    --avatar-ink: #00d2d3;
+    --avatar-ink: #f3ecdc;
     --avatar-fill: #113a46;
   }
   .user-avatar-ink[data-ink='1'] {
@@ -47,7 +47,7 @@
 
   /* Sobre papel claro, las mismas tintas en versión oscura sobre un lavado claro. */
   :where(.landing-poster, [data-theme='light'], .sticker) .user-avatar-ink {
-    --avatar-ink: #0b5f74;
+    --avatar-ink: #111827;
     --avatar-fill: #d6eaec;
   }
   :where(.landing-poster, [data-theme='light'], .sticker) .user-avatar-ink[data-ink='1'] {
@@ -74,9 +74,9 @@
     --ink: #111827;
     --text-main: #111827;
     --text-muted: #4b5563;
-    --marker-ink: #0b5f74;
+    --marker-ink: #111827;
     --stamp-red: #b91c1c;
-    --stamp-ink: #0b5f74;
+    --stamp-ink: #111827;
   }
 
   .landing-poster {
@@ -357,7 +357,7 @@
   }
 
   .app-screens:focus-visible {
-    outline: 2px solid #0b5f74;
+    outline: 2px solid #111827;
     outline-offset: -4px;
     border-radius: 12px;
   }

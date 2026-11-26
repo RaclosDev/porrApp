@@ -92,10 +92,10 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
     --sheet: #fffdf7;
     --ink-soft: #3f4652;
     --rule: rgba(17, 24, 39, 0.16);
-    --marker-ink: #0b5f74;
+    --marker-ink: #111827;
     --stamp-red: #b91c1c;
-    --stamp-ink: #0b5f74;
-    --accent-cyan: #0b5f74;
+    --stamp-ink: #111827;
+    --accent-cyan: #111827;
     --text-main: #111827;
     --text-muted: #48505c;
     color: var(--ink);
@@ -161,11 +161,11 @@ html:has(.landing-page) ::-webkit-scrollbar-thumb {
   }
 
   .landing-sport-row:hover .landing-sport-name {
-    color: #0b5f74;
+    color: #111827;
   }
 
   .landing-sport-row:focus-visible {
-    outline: 2px solid #0b5f74;
+    outline: 2px solid #111827;
     outline-offset: 2px;
     border-radius: 4px;
   }

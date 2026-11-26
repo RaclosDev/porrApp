@@ -197,7 +197,7 @@
   }
 
   .admin-table tbody tr:hover td {
-    background: rgba(11, 95, 116, 0.04);
+    background: color-mix(in srgb, var(--accent-cyan) 4%, transparent);
   }
 
   .admin-table .is-num {
@@ -236,8 +236,8 @@
   }
 
   .admin-pill.is-accent {
-    border-color: rgba(11, 95, 116, 0.35);
-    background: rgba(11, 95, 116, 0.1);
+    border-color: color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+    background: color-mix(in srgb, var(--accent-cyan) 10%, transparent);
     color: var(--accent-cyan);
   }
 
@@ -378,7 +378,7 @@
   }
 
   .admin-league-option.is-checked {
-    background: rgba(11, 95, 116, 0.09);
+    background: color-mix(in srgb, var(--accent-cyan) 9%, transparent);
   }
 
   .admin-league-option.is-disabled {

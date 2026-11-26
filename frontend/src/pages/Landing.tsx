@@ -74,7 +74,7 @@ export default function Landing() {
               style={revealStyle({ '--i': index })}
               className="reveal p-6 sm:p-8 flex flex-col gap-3"
             >
-              <span className="poster-title text-5xl text-[#0b5f74]" aria-hidden="true">
+              <span className="poster-title text-5xl text-[#111827]" aria-hidden="true">
                 {index + 1}
               </span>
               <h3 className="poster-title text-3xl">{step.title}</h3>
