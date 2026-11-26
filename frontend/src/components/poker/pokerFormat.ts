@@ -190,6 +190,36 @@ export function settlements(results: PokerSession['results']): Payment[] {
   return payments;
 }
 
+/**
+ * Premio de cada jugador con el bote entero: lo que sobró al repartir (la propina que se propone al
+ * crupier) se suma en proporción a lo que se llevó cada uno. Es lo que cuentan las estadísticas; el
+ * dinero que cambió de manos sigue siendo `prizeCents`.
+ */
+export function fullPrizes({
+  results,
+  leftoverCents,
+}: Pick<PokerSession, 'results' | 'leftoverCents'>) {
+  const handed = results.reduce((sum, result) => sum + result.prizeCents, 0);
+  const leftover = leftoverCents ?? 0;
+  const prizes = new Map(results.map((result) => [result.playerId, result.prizeCents]));
+  if (leftover <= 0 || handed <= 0) return prizes;
+  // Céntimos enteros: primero la parte entera y los que faltan, a los restos más grandes.
+  const shares = results.map((result, index) => {
+    const exact = (leftover * result.prizeCents) / handed;
+    return { index, whole: Math.floor(exact), rest: exact - Math.floor(exact) };
+  });
+  let spare = leftover - shares.reduce((sum, share) => sum + share.whole, 0);
+  for (const share of [...shares].sort((a, b) => b.rest - a.rest || a.index - b.index)) {
+    if (spare <= 0) break;
+    share.whole += 1;
+    spare -= 1;
+  }
+  shares.forEach(({ index, whole }) =>
+    prizes.set(results[index].playerId, results[index].prizeCents + whole),
+  );
+  return prizes;
+}
+
 export function pokerStandings(history: PokerSession[]) {
   const players = new Map<
     number,
@@ -214,7 +244,9 @@ export function pokerStandings(history: PokerSession[]) {
     }
   >();
   // El histórico llega del más reciente al más antiguo: las rachas se cuentan en orden cronológico.
-  for (const { results } of [...history].reverse()) {
+  for (const session of [...history].reverse()) {
+    const { results } = session;
+    const prizes = fullPrizes(session);
     // Aplauso: el primer puesto que se queda sin premio.
     const applausePlace = results.filter((result) => result.prizeCents > 0).length + 1;
     for (const result of results) {
@@ -244,7 +276,7 @@ export function pokerStandings(history: PokerSession[]) {
       row.cashes += Number(result.prizeCents > 0);
       row.applause += Number(result.place === applausePlace && result.prizeCents === 0);
       row.paid += result.paidCents;
-      row.prizes += result.prizeCents;
+      row.prizes += prizes.get(result.playerId) ?? result.prizeCents;
       row.places += result.place;
       row.streak = result.place <= 3 ? row.streak + 1 : 0;
       row.bestStreak = Math.max(row.bestStreak, row.streak);
