@@ -317,8 +317,11 @@ function Leaderboard() {
                             aria-pressed={byMatchday === (view === 'matchday')}
                             onClick={() => handleRankingView(view)}
                             className={`md-filter${byMatchday === (view === 'matchday') ? ' is-active' : ''}`}
+                            title={view === 'general' ? undefined : matchdayName}
                           >
-                            {view === 'general' ? 'General' : matchdayName}
+                            <span className="truncate">
+                              {view === 'general' ? 'General' : matchdayName}
+                            </span>
                           </button>
                         ))}
                       </div>

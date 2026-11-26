@@ -94,6 +94,15 @@
     overflow: hidden;
   }
 
+  /* A 320 px «Finalizados 0» no cabía en su tercio y se cortaba el número. */
+  @media (max-width: 360px) {
+    .md-filter {
+      gap: 3px;
+      padding-inline: 3px;
+      font-size: 0.72rem;
+    }
+  }
+
   .md-filter b {
     font-weight: 800;
   }

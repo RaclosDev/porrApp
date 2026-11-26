@@ -331,7 +331,8 @@
     font-weight: 700;
     line-height: 1.2;
     text-align: center;
-    overflow-wrap: anywhere;
+    /* break-word y no anywhere: anywhere baja el ancho mínimo a una letra y las tablas dejaban el nombre en vertical. */
+    overflow-wrap: break-word;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -632,7 +633,8 @@
     color: inherit;
     font: inherit;
     text-align: inherit;
-    overflow-wrap: anywhere;
+    /* break-word y no anywhere: anywhere baja el ancho mínimo a una letra y las tablas dejaban el nombre en vertical. */
+    overflow-wrap: break-word;
     cursor: pointer;
   }
 
@@ -659,7 +661,8 @@
     font-size: 1.9rem;
     line-height: 1.05;
     text-align: center;
-    overflow-wrap: anywhere;
+    /* break-word y no anywhere: anywhere baja el ancho mínimo a una letra y las tablas dejaban el nombre en vertical. */
+    overflow-wrap: break-word;
   }
 
   .player-card-summary {
