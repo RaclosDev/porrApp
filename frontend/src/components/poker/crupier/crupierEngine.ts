@@ -488,7 +488,8 @@ const revolver: Action = {
         const k = clamp01((t - hits[0] - i * 0.12) / 1.3);
         d.show(
           `s${i}`,
-          `translate(${muzzle[0] + k * 8} ${muzzle[1] - k * 26 - i * 3}) scale(${0.4 + k})`,
+          // Nubecitas de humo que suben, crecen y se deshacen; cada una algo mayor y girada.
+          `translate(${muzzle[0] + k * 8 + i * 3} ${muzzle[1] - k * 26 - i * 3}) rotate(${(i - 1) * 25 + k * 30}) scale(${(0.5 + k) * (0.6 + i * 0.25)})`,
           1 - k,
         );
       });
