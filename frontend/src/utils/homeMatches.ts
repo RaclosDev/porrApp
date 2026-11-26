@@ -37,10 +37,6 @@ function roundLabelFor(match: Match) {
   return '';
 }
 
-/**
- * Jornada actual de una liga: la primera ronda con partidos por jugar (o la última si ya acabó todo),
- * con todos sus partidos, también los ya finalizados.
- */
 /** Partido de la jornada de una liga (`/predictions/matchday`) con la forma de los de la competición. */
 export const fixtureAsMatch = (fixture: MatchdayFixture): Match => ({
   id: fixture.matchId,
@@ -67,14 +63,40 @@ export const fixtureAsMatch = (fixture: MatchdayFixture): Match => ({
   fight: fixture.fight ?? null,
 });
 
+/** Más de una semana: así ni una semana de la NBA ni una jornada de jueves a lunes dejan rezagados. */
+const LATE_GAP_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Partido aplazado que vuelve con fecha nueva: está por jugar y cae más de una semana después del
+ * último partido ya jugado de su jornada (el Rayo-Athletic de la jornada 8 jugado en diciembre).
+ */
+const isLateIn = (match: Match, round: Match[]) => {
+  if (!isPlayableMatch(match) || !match.date) return false;
+  const played = round.filter((other) => other.finished && other.date).map(timeOf);
+  return played.length > 0 && timeOf(match) - Math.max(...played) > LATE_GAP_MS;
+};
+
+const matchdayNumber = (label: string): number | null => {
+  const match = /^(?:jornada|semana)\s+(\d+)$/i.exec(label.trim());
+  return match ? Number(match[1]) : null;
+};
+
+/**
+ * Jornada actual de una liga: la primera con partidos por jugar en su fecha (o la última si ya acabó
+ * todo), con todos sus partidos, también los ya finalizados, y los aplazados que se juegan con ella.
+ * `serverRound`: la lista ya es la jornada actual del servidor, y lo de jornadas anteriores, aplazados.
+ */
 export function currentRoundMatches(
   matches: Match[],
   now = Date.now(),
+  serverRound = false,
 ): {
   round: string | null;
   matches: Match[];
   /** Los mismos partidos con los dos bloques cambiados de sitio; vacío si solo hay un bloque. */
   flipped: Match[];
+  /** Aplazados de otra jornada que se juegan en esta, con la jornada a la que pertenecen. */
+  lateRounds: Map<Match['id'], string>;
 } {
   const rounds: string[] = [];
   const byRound = new Map<string, Match[]>();
@@ -87,11 +109,36 @@ export function currentRoundMatches(
     }
     byRound.get(label)!.push(match);
   });
-  if (rounds.length === 0) return { round: null, matches: [], flipped: [] };
+  if (rounds.length === 0) return { round: null, matches: [], flipped: [], lateRounds: new Map() };
 
-  let index = rounds.findIndex((label) => (byRound.get(label) ?? []).some(isPlayableMatch));
+  const lastNumber = Math.max(...rounds.map((label) => matchdayNumber(label) ?? -Infinity));
+  const late = new Set(
+    rounds.flatMap((label) => {
+      const round = byRound.get(label) ?? [];
+      const earlier = serverRound && (matchdayNumber(label) ?? Infinity) < lastNumber;
+      return round.filter((match) => isPlayableMatch(match) && (earlier || isLateIn(match, round)));
+    }),
+  );
+  // Un aplazado no retiene la jornada: manda la primera con algún partido por jugar en su fecha.
+  let index = rounds.findIndex((label) =>
+    (byRound.get(label) ?? []).some((match) => isPlayableMatch(match) && !late.has(match)),
+  );
+  if (index === -1)
+    index = rounds.findIndex((label) => (byRound.get(label) ?? []).some(isPlayableMatch));
   if (index === -1) index = rounds.length - 1;
-  return { round: rounds[index], ...aroundNow(byRound.get(rounds[index]) ?? [], now) };
+  const round = rounds[index];
+  const own = byRound.get(round) ?? [];
+
+  // Los aplazados que se juegan antes de que acabe esta jornada van con ella.
+  const end = Math.max(...own.map(timeOf));
+  const lateRounds = new Map<Match['id'], string>();
+  const extra = matches.filter((match) => {
+    const label = roundLabelFor(match);
+    if (label === round || !late.has(match) || timeOf(match) > end) return false;
+    lateRounds.set(match.id, label);
+    return true;
+  });
+  return { round, ...aroundNow([...own, ...extra].sort(byDate), now), lateRounds };
 }
 
 /** Partidos que enseña la portada de una jornada larga (una semana de la NBA trae unos 50). */

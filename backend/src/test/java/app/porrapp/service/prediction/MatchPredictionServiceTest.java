@@ -574,6 +574,25 @@ class MatchPredictionServiceTest {
         assertEquals(List.of(), MatchPredictionService.currentRound(null, List.of()));
     }
 
+    @Test
+    @DisplayName("Un aplazado con fecha nueva no retiene su jornada: va con la jornada en la que se juega")
+    void lateMatchGoesWithTheRoundItIsPlayedIn() {
+        Instant now = Instant.now();
+        Match played = roundMatch(81L, "Jornada 8", now.minusSeconds(40 * 86_400), true, MatchStatusNormalized.FINISHED);
+        Match late = roundMatch(83L, "Jornada 8", now.plusSeconds(13 * 86_400), false, MatchStatusNormalized.SCHEDULED);
+        Match thisWeek = roundMatch(141L, "Jornada 14", now.plusSeconds(2 * 86_400), false, MatchStatusNormalized.SCHEDULED);
+        Match lateWeek = roundMatch(171L, "Jornada 17", now.plusSeconds(16 * 86_400), false, MatchStatusNormalized.SCHEDULED);
+
+        assertEquals(List.of(thisWeek), MatchPredictionService.currentRound(null, List.of(played, late, thisWeek, lateWeek)));
+
+        Match thisWeekPlayed = roundMatch(141L, "Jornada 14", now.minusSeconds(86_400), true, MatchStatusNormalized.FINISHED);
+        assertEquals(List.of(late, lateWeek),
+                MatchPredictionService.currentRound(null, List.of(played, late, thisWeekPlayed, lateWeek)));
+
+        // Si solo quedan aplazados, su jornada vuelve a ser la actual.
+        assertEquals(List.of(played, late), MatchPredictionService.currentRound(null, List.of(played, late, thisWeekPlayed)));
+    }
+
     private static Match roundMatch(Long id, String round, Instant date, boolean finished, MatchStatusNormalized status) {
         return Match.builder().id(id).round(round).matchDate(date).finished(finished).status(status).build();
     }

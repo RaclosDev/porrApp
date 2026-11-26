@@ -6,7 +6,12 @@ import { ScrollText, Users } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
 import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
-import { finishedLabel, formatMatchDate, resultNote } from '../../utils/matchday';
+import {
+  displayRoundLabel,
+  finishedLabel,
+  formatMatchDate,
+  resultNote,
+} from '../../utils/matchday';
 import { myLeagueSummariesQuery } from '../../services/queries';
 import ActiveLeagueDropdown from '../ActiveLeagueDropdown';
 import Flag from '../Flag';
@@ -145,6 +150,7 @@ function MatchCard({
   voters,
   onShowVoters,
   twoWay = false,
+  lateRound,
 }: {
   match: Match;
   action: string;
@@ -153,6 +159,8 @@ function MatchCard({
   voters?: MatchVoters;
   onShowVoters?: (match: Match) => void;
   twoWay?: boolean;
+  /** Jornada de la que viene un aplazado que se juega con la actual. */
+  lateRound?: string;
 }) {
   const isLive = isLiveMatch(match);
   const home = match.home || 'Local';
@@ -197,6 +205,7 @@ function MatchCard({
         <span>
           {formatMatchDate(match.date)}
           {fightTag && ` · ${fightTag}`}
+          {lateRound && ` · Aplazado · ${displayRoundLabel(lateRound)}`}
         </span>
         <FightTitleTag fight={match.fight} />
         {isLive && <InkStamp size="sm">En directo</InkStamp>}
@@ -572,6 +581,7 @@ export default function LeagueHomeDashboard({ afterHero }: { afterHero?: ReactNo
                       voters={voters.get(match.id)}
                       onShowVoters={setVotersMatch}
                       twoWay={twoWayVoters}
+                      lateRound={matches.lateRounds?.get(match.id)}
                     />
                   </div>
                 ))

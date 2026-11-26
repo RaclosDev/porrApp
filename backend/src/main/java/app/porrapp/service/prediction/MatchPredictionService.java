@@ -17,6 +17,7 @@ import app.porrapp.scoring.MatchScoringCalculator;
 import app.porrapp.scoring.ScoringRuleSet;
 import app.porrapp.scoring.LolSeriesScoring;
 import app.porrapp.scoring.TennisScoring;
+import app.porrapp.util.LateMatches;
 import app.porrapp.util.MatchRound;
 import app.porrapp.sports.NflSchedule;
 import lombok.RequiredArgsConstructor;
@@ -251,29 +252,39 @@ public class MatchPredictionService {
     }
 
     /**
-     * Los partidos de la jornada en curso de una liga: la primera con algún partido por jugar o, si ya se
-     * jugó todo, la última. Es la misma regla con la que la web elige la jornada de la portada.
+     * Los partidos de la jornada en curso de una liga: la primera con algún partido por jugar en su fecha
+     * o, si ya se jugó todo, la última. Un aplazado con fecha nueva no la retiene: va con la jornada en
+     * la que se juega. Es la misma regla con la que la web elige la jornada de la portada.
      */
     static List<Match> currentRound(Edition edition, List<Match> matches) {
         Map<String, List<Match>> byRound = new LinkedHashMap<>();
         matches.stream()
-                .sorted(Comparator.comparing(m -> m.getMatchDate() == null ? Instant.EPOCH : m.getMatchDate()))
+                .sorted(BY_DATE)
                 .forEach(m -> byRound.computeIfAbsent(MatchRound.label(edition, m), label -> new ArrayList<>()).add(m));
-        List<Match> last = List.of();
-        for (List<Match> roundMatches : byRound.values()) {
-            if (roundMatches.stream().anyMatch(MatchPredictionService::isStillToPlay)) return roundMatches;
-            last = roundMatches;
+        List<Match> current = byRound.values().stream().filter(LateMatches::hasOnTimeMatchToPlay).findFirst()
+                .orElse(null);
+        if (current == null) {
+            // Solo quedan aplazados: su jornada vuelve a ser la actual.
+            return byRound.values().stream()
+                    .filter(round -> round.stream().anyMatch(LateMatches::isStillToPlay))
+                    .findFirst()
+                    .orElseGet(() -> byRound.isEmpty() ? List.of() : new ArrayList<>(byRound.values()).getLast());
         }
-        return last;
+        Instant end = current.stream().map(Match::getMatchDate).filter(Objects::nonNull)
+                .max(Comparator.naturalOrder()).orElse(Instant.EPOCH);
+        List<Match> result = new ArrayList<>(current);
+        for (List<Match> round : byRound.values()) {
+            if (round == current) continue;
+            round.stream()
+                    .filter(m -> LateMatches.isLate(m, round) && !m.getMatchDate().isAfter(end))
+                    .forEach(result::add);
+        }
+        result.sort(BY_DATE);
+        return result;
     }
 
-    /** Partido que aún se jugará: ni terminado ni cancelado, aplazado, abandonado o suspendido. */
-    private static boolean isStillToPlay(Match match) {
-        MatchStatusNormalized status = match.getStatus();
-        return !Boolean.TRUE.equals(match.getFinished())
-                && status != MatchStatusNormalized.CANCELLED && status != MatchStatusNormalized.POSTPONED
-                && status != MatchStatusNormalized.ABANDONED && status != MatchStatusNormalized.SUSPENDED;
-    }
+    private static final Comparator<Match> BY_DATE =
+            Comparator.comparing(m -> m.getMatchDate() == null ? Instant.EPOCH : m.getMatchDate());
 
     /** Situación del usuario en una liga superviviente: vivo o eliminado y equipos ya elegidos. */
     @Transactional(readOnly = true)
