@@ -6,7 +6,7 @@ import InfoTip from '../InfoTip';
 import { useDialogFocus } from '../../hooks/useDialogFocus';
 import type { PactPoints, PokerPayout } from '../../services/endpoints/poker';
 import { draftPrizes, draftValid, type PrizeDraft } from './PokerPrizeShares';
-import { euros } from './pokerFormat';
+import { euros, fullPrizes } from './pokerFormat';
 import { suggestPayouts, type MoneySplit } from './pokerPayouts';
 
 /** Puesto final de un jugador; `tied` son los ids que comparten ese puesto (él incluido). */
@@ -36,6 +36,31 @@ interface Props {
   busy: boolean;
   onCancel: () => void;
   onConfirm: (draft: PrizeDraft, payouts: PokerPayout[]) => void;
+}
+
+/** Lo que cuenta para cada uno en las estadísticas y la liga: su premio más su parte del sobrante. */
+export function FullPrizesTip({
+  rows,
+  leftoverCents,
+}: {
+  rows: { playerId: number; name: string; prizeCents: number }[];
+  leftoverCents: number;
+}) {
+  const prizes = fullPrizes({ results: rows, leftoverCents });
+  const paid = rows.filter((row) => row.prizeCents > 0);
+  if (leftoverCents <= 0 || paid.length === 0) return null;
+  return (
+    <InfoTip label="Cuánto cuenta para cada uno">
+      Con el sobrante repartido, en las estadísticas y la liga cuenta:
+      <span className="poker-full-prizes">
+        {paid.map((row) => (
+          <span key={row.playerId}>
+            {row.name} <strong>{euros(prizes.get(row.playerId) ?? row.prizeCents)}</strong>
+          </span>
+        ))}
+      </span>
+    </InfoTip>
+  );
 }
 
 const pointsLabel = (points: number) =>
@@ -103,6 +128,13 @@ export default function PokerCloseDialog({
   const handedOut = payouts.reduce((sum, row) => sum + (row.prizeCents || 0), 0);
   const leftover = pot - handedOut;
   const totalPoints = payouts.reduce((sum, row) => sum + (row.points || 0), 0);
+  const names = new Map(standings.map((row) => [row.playerId, row.name]));
+  const fullTip = (
+    <FullPrizesTip
+      rows={filled.map((row) => ({ ...row, name: names.get(row.playerId) ?? '' }))}
+      leftoverCents={leftover}
+    />
+  );
   useDialogFocus(dialogRef, { onEscape: onCancel });
 
   function changeMoney(next: MoneySplit) {
@@ -248,6 +280,7 @@ export default function PokerCloseDialog({
             {leftover > 0 && (
               <p className="poker-payout-note">
                 El sobrante cuenta igual en las estadísticas y la liga.
+                {fullTip}
               </p>
             )}
             <dl
@@ -264,7 +297,10 @@ export default function PokerCloseDialog({
                 <dd>{euros(handedOut)}</dd>
               </div>
               <div className="poker-payout-leftover">
-                <dt>{leftover < 0 ? 'Te pasas' : 'Sobran'}</dt>
+                <dt>
+                  {leftover < 0 ? 'Te pasas' : 'Sobran'}
+                  {fullTip}
+                </dt>
                 <dd>{euros(Math.abs(leftover))}</dd>
               </div>
               <div>

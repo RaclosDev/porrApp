@@ -31,6 +31,14 @@ describe('settlements', () => {
     ]);
   });
 
+  it('lo que sobra del bote también se paga, al sobrante, para que cuadre', () => {
+    const payments = settlements([result(1, 'Ana', 1, 1000, 1800), result(2, 'Luis', 2, 1000, 0)]);
+    expect(payments.map(({ from, toId, cents }) => [from, toId, cents])).toEqual([
+      ['Luis', 1, 800],
+      ['Luis', null, 200],
+    ]);
+  });
+
   it('no genera pagos si todos quedan a cero', () => {
     expect(settlements([result(1, 'Ana', 1, 0, 0), result(2, 'Luis', 2, 0, 0)])).toEqual([]);
   });
@@ -90,6 +98,7 @@ describe('fullPrizes: el sobrante cuenta en las estadísticas', () => {
     ]);
     expect(settlements(closed.results)).toEqual([
       { fromId: 2, from: 'Luis', toId: 1, to: 'Ana', cents: 400 },
+      { fromId: 2, from: 'Luis', toId: null, to: 'sobrante', cents: 600 },
     ]);
   });
 });

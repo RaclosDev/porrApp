@@ -596,6 +596,26 @@ it('calcula porcentajes y neto por participante', () => {
   expect(row.getByText(/11,00/)).toBeVisible();
 });
 
+it('al desplazar la clasificación, la columna fija se queda en la foto', () => {
+  const past = {
+    ...session,
+    closedAt: 5000,
+    results: [{ ...entries[0], place: 1, paidCents: 1000, prizeCents: 1000 }],
+  };
+  render(<PokerStatistics sessions={[past]} />);
+  const table = screen.getByRole('region', { name: 'Clasificación de la liga de póker' });
+  const scrollTo = (left: number) => {
+    table.scrollLeft = left;
+    fireEvent.scroll(table);
+  };
+  scrollTo(40);
+  expect(table).toHaveClass('is-scrolled');
+  scrollTo(10);
+  expect(table).toHaveClass('is-scrolled');
+  scrollTo(0);
+  expect(table).not.toHaveClass('is-scrolled');
+});
+
 it('recorre el histórico torneo a torneo', () => {
   const result = { ...entries[0], place: 1, paidCents: 1000, prizeCents: 1000 };
   const closed = (id: number, date: string) => ({
@@ -611,10 +631,10 @@ it('recorre el histórico torneo a torneo', () => {
   expect(screen.getByRole('button', { name: 'Torneo siguiente' })).toBeDisabled();
   click('Torneo anterior');
   expect(picker).toHaveAttribute('data-value', '21');
-  expect(screen.getByText(/sábado, 4 de julio/)).toBeVisible();
+  expect(screen.getByRole('region', { name: /sábado, 4 de julio/ })).toBeVisible();
   expect(screen.getByRole('button', { name: 'Torneo anterior' })).toBeDisabled();
   chooseOption(picker, '22');
-  expect(screen.getByText(/sábado, 18 de julio/)).toBeVisible();
+  expect(screen.getByRole('region', { name: /sábado, 18 de julio/ })).toBeVisible();
 });
 
 it('en los pagos recuerda lo que sobró del bote', () => {
@@ -629,8 +649,20 @@ it('en los pagos recuerda lo que sobró del bote', () => {
     ],
   };
   render(<PokerHistory sessions={[closed]} />);
-  click('Quién paga a quién · 1 pago');
+  click('Quién paga a quién · 2 pagos');
+  // Paz debe 10 €: 8 € a Ana y 2 € al sobrante, para que los pagos cuadren con el bote.
+  const [toAna, toLeftover, ...rest] = within(
+    screen.getByRole('list', { name: 'Pagos para saldar el torneo' }),
+  ).getAllByRole('listitem');
+  expect(rest).toEqual([]);
+  expect(toAna).toHaveTextContent(`Paz paga a Ana${money(800)}`);
+  expect(toLeftover).toHaveTextContent(`Paz paga al sobrante${money(200)}`);
   expect(screen.getByText(/del bote sin repartir/)).toHaveTextContent(`Sobran ${money(200)}`);
+  // Con el sobrante repartido, Ana cuenta los 20 € enteros en las estadísticas.
+  fireEvent.click(
+    within(screen.getByRole('dialog')).getByRole('button', { name: 'Cuánto cuenta para cada uno' }),
+  );
+  expect(screen.getByText(/Con el sobrante repartido/)).toHaveTextContent(`Ana ${money(2000)}`);
 });
 
 it('abre los pagos en una hoja y deja a la administración corregir o borrar', async () => {
@@ -689,7 +721,7 @@ it('solo muestra el año de los torneos de otros años', () => {
   );
   const options = optionLabels(getSelectMenu('Seleccionar torneo'));
   expect(options).toEqual([`Torneo 1 · 4 jul ${year - 1}`, 'Torneo 2 · 18 jul']);
-  expect(screen.getByText(/, 18 de julio$/)).toBeVisible();
+  expect(screen.getByRole('region', { name: /, 18 de julio$/ })).toBeVisible();
 });
 
 it('reutiliza las reglas del torneo anterior', async () => {
