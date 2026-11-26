@@ -51,7 +51,7 @@
     font-weight: 700;
   }
 
-  .league-admin-member-name > span:first-child {
+  .league-admin-member-name > :first-child {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -515,6 +515,11 @@
 
     .league-admin-member {
       flex-wrap: wrap;
+    }
+
+    /* Con base 0 el nombre nunca bajaba los botones a otra línea y se quedaba en una letra por renglón. */
+    .league-admin-member-main {
+      flex-basis: 11rem;
     }
 
     .league-admin-member-actions {
