@@ -37,14 +37,22 @@ public final class PokerDTO {
     /**
      * Corrección de un torneo cerrado: fecha, jugadores en el orden final (del 1.º al último) y, si vienen,
      * lo que costaron la entrada, la recompra y el add-on. Lo que llegue a null se queda como estaba.
+     * Con {@code clearChips} se quitan las fichas finales: los que seguían en la mesa quedan como en un
+     * pacto sin contarlas.
      */
     public record EditResults(@NotNull LocalDate date, @NotNull @Min(0) Long revision,
                               @NotNull @Size(min = 1, max = 100) List<@NotNull @Valid ResultEdit> standings,
                               @Min(0) @Max(1000000) Integer buyInCents,
                               @Min(0) @Max(1000000) Integer rebuyCostCents,
-                              @Min(0) @Max(1000000) Integer addOnCostCents) {
+                              @Min(0) @Max(1000000) Integer addOnCostCents,
+                              Boolean clearChips) {
         public EditResults(LocalDate date, Long revision, List<ResultEdit> standings) {
-            this(date, revision, standings, null, null, null);
+            this(date, revision, standings, null, null, null, null);
+        }
+
+        public EditResults(LocalDate date, Long revision, List<ResultEdit> standings, Integer buyInCents,
+                           Integer rebuyCostCents, Integer addOnCostCents) {
+            this(date, revision, standings, buyInCents, rebuyCostCents, addOnCostCents, null);
         }
     }
 

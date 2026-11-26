@@ -152,6 +152,8 @@ export interface PokerResultsEdit {
   buyInCents?: number;
   rebuyCostCents?: number;
   addOnCostCents?: number;
+  /** Quita las fichas finales: los que seguían en la mesa quedan como en un pacto sin contarlas. */
+  clearChips?: boolean;
 }
 
 export const editPokerResult = (id: number, session: PokerSession, edit: PokerResultsEdit) =>

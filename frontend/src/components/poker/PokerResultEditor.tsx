@@ -29,6 +29,8 @@ export default function PokerResultEditor({ session, busy, onSave, onClose }: Pr
   const [buyIn, setBuyIn] = useState(eurosInput(session.settings.buyInCents));
   const [rebuyCost, setRebuyCost] = useState(eurosInput(rebuy?.costCents ?? 0));
   const [addOnCost, setAddOnCost] = useState(eurosInput(addOn?.costCents ?? 0));
+  const hasChips = session.results.some((result) => result.finalChips != null);
+  const [clearChips, setClearChips] = useState(false);
   const [rows, setRows] = useState(() =>
     session.results.map((result) => ({
       playerId: result.playerId,
@@ -76,6 +78,7 @@ export default function PokerResultEditor({ session, busy, onSave, onClose }: Pr
       buyInCents: cents(buyIn),
       rebuyCostCents: rebuy ? cents(rebuyCost) : undefined,
       addOnCostCents: addOn ? cents(addOnCost) : undefined,
+      clearChips: clearChips || undefined,
       standings: rows.map(({ playerId, rebuys, addOns }, index) => ({
         playerId,
         rebuys,
@@ -150,6 +153,16 @@ export default function PokerResultEditor({ session, busy, onSave, onClose }: Pr
           {money('Entrada (€)', buyIn, setBuyIn)}
           {rebuy && money('Recompra (€)', rebuyCost, setRebuyCost)}
           {addOn && money('Add-on (€)', addOnCost, setAddOnCost)}
+          {hasChips && (
+            <label className="poker-edit-clear-chips">
+              <input
+                type="checkbox"
+                checked={clearChips}
+                onChange={(event) => setClearChips(event.target.checked)}
+              />
+              Las fichas no se contaron: quitarlas
+            </label>
+          )}
         </fieldset>
         <dl className="poker-edit-totals" aria-live="polite">
           <div>
