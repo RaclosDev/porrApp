@@ -23,23 +23,23 @@ Proyecto personal de **Carlos Sanz Tomero**, desarrollador full-stack. PorrApp r
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src="docs/screenshots/league-home.png" alt="Inicio de una liga de LaLiga con los partidos de la próxima jornada y sus escudos" width="240"><br><sub><b>Tu liga</b> · la jornada que viene</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/league-home.png" alt="Inicio de una liga de LaLiga con tu puesto, quién ha pronosticado ya y los partidos de la próxima jornada" width="240"><br><sub><b>Tu liga</b> · la jornada que viene</sub></td>
     <td align="center" width="33%"><img src="docs/screenshots/matchday.png" alt="Predicciones 1X2 de una jornada con las elecciones guardadas y cada partido abierto" width="240"><br><sub><b>Jornadas</b> · cada partido tiene su cierre</sub></td>
     <td align="center" width="33%"><img src="docs/screenshots/league-ranking.png" alt="Podio y clasificación general de una liga de LaLiga, con los puntos de cada participante en la última jornada" width="240"><br><sub><b>Ranking</b> · general y por jornada</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/screenshots/bracket.png" alt="Cuadro de cuartos de final del Mundial con los equipos clasificados y eliminados" width="240"><br><sub><b>Cuadro</b> · camino hasta la final</sub></td>
-    <td align="center"><img src="docs/screenshots/groups.png" alt="Clasificación de los grupos del Mundial con equipos clasificados y eliminados" width="240"><br><sub><b>Grupos</b> · clasificación y desempates</sub></td>
+    <td align="center"><img src="docs/screenshots/player-card.png" alt="Cromo de una participante con su puesto, sus puntos y sus últimas jornadas" width="240"><br><sub><b>Cromos</b> · la ficha de cada participante</sub></td>
     <td align="center"><img src="docs/screenshots/ufc.png" alt="Predicciones de una velada de UFC con el ganador, el método y el asalto de cada pelea" width="240"><br><sub><b>UFC</b> · ganador, método y asalto</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="frontend/public/landing/porras/poker-mesa-600.webp" alt="Reloj de un torneo de póker con nivel de ciegas, jugadores en mesa y bote" width="240"><br><sub><b>Póker</b> · reloj, ciegas y mesa</sub></td>
-    <td align="center"><img src="frontend/public/landing/porras/poker-historico-600.webp" alt="Histórico de un torneo de póker con podio, premios y neto de cada jugador" width="240"><br><sub><b>Histórico</b> · premios y neto por torneo</sub></td>
-    <td align="center"><img src="frontend/public/landing/porras/poker-estadisticas-600.webp" alt="Estadísticas de una liga de póker con victorias, torneos y recompras" width="240"><br><sub><b>Estadísticas</b> · victorias, ROI y rachas</sub></td>
+    <td align="center"><img src="docs/screenshots/poker-table.png" alt="Reloj de un torneo de póker en juego con el nivel de ciegas, el siguiente nivel, los jugadores en mesa y el bote" width="240"><br><sub><b>Póker</b> · reloj, ciegas y mesa</sub></td>
+    <td align="center"><img src="docs/screenshots/poker-history.png" alt="Histórico de un torneo de póker con podio, premios, recompras y neto de cada jugador" width="240"><br><sub><b>Histórico</b> · premios y neto por torneo</sub></td>
+    <td align="center"><img src="docs/screenshots/poker-stats.png" alt="Estadísticas de una liga de póker con el podio de la temporada, puntos y torneos jugados" width="240"><br><sub><b>Estadísticas</b> · puntos, victorias y recompras</sub></td>
   </tr>
 </table>
 
-Capturas de la interfaz real, renovadas en noviembre de 2026. Las dos primeras filas salen de la [demo](https://porrapp.app/demo), con ligas, participantes y predicciones ficticios; la fila de póker usa también datos inventados. [Origen de las capturas](docs/screenshots/README.md).
+Capturas de la interfaz real, renovadas en noviembre de 2026 con el tema oscuro. Las dos primeras filas salen de la [demo](https://porrapp.app/demo), con ligas, participantes y predicciones ficticios; la liga de póker la añade el script de capturas con los mismos participantes y torneos inventados. Al tocar la foto o el nombre de alguien se abre su cromo. [Origen de las capturas](docs/screenshots/README.md).
 
 ## Qué permite hacer
 

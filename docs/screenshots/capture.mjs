@@ -1,10 +1,11 @@
 // Capturas móviles del README a partir del modo demo de la propia aplicación (`/demo`).
-// La demo responde en el navegador con tres ligas ficticias, así que no hacen falta backend,
-// base de datos ni cuenta.
+// La demo responde en el navegador con tres ligas ficticias (LaLiga, Mundial y UFC); el script le
+// añade una liga de póker (poker-fixture.mjs), así que no hacen falta backend, base de datos ni cuenta.
 // Uso, con `npm --prefix frontend run dev -- --host 127.0.0.1` en otra terminal y desde la raíz:
 //      node docs/screenshots/capture.mjs [url-base]
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { POKER_ID, withPoker } from './poker-fixture.mjs';
 
 const require = createRequire(new URL('../../frontend/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
@@ -13,15 +14,22 @@ const base = new URL(process.argv[2] ?? 'http://127.0.0.1:5173').origin;
 const out = fileURLToPath(new URL('./', import.meta.url));
 const FONTS = ['Inter', 'Anton'];
 
+const openCard = (name) => (page) =>
+  page
+    .getByRole('button', { name: `Ver el cromo de ${name}`, exact: true })
+    .first()
+    .click();
+
 /**
- * Qué se captura en cada liga de la demo: ruta, nombre del archivo y, si hace falta, un paso
- * previo dentro de la pantalla.
+ * Qué se captura en cada liga: ruta, nombre del archivo y, si hace falta, un paso previo dentro
+ * de la pantalla. `poker` no es una liga de la demo: es la que añade poker-fixture.mjs.
  */
 const LEAGUES = {
   laliga: [
     ['/', 'league-home'],
     ['/jornadas', 'matchday'],
     ['/ranking', 'league-ranking'],
+    ['/ranking', 'player-card', openCard('Aitana')],
     ['/tabla', 'standings'],
   ],
   mundial: [
@@ -42,7 +50,16 @@ const LEAGUES = {
     ],
   ],
   ufc: [['/jornadas', 'ufc']],
+  poker: [
+    ['/', 'poker-home'],
+    ['/poker/mesa', 'poker-table'],
+    ['/poker/historico', 'poker-history'],
+    ['/poker/estadisticas', 'poker-stats'],
+  ],
 };
+
+/** Lo que delataría la demo en la captura: el texto visible no puede nombrarla. */
+const DEMO_WORDS = /\bdemo\b|ficticio|ejemplo/i;
 
 const browser = await chromium.launch();
 try {
@@ -61,6 +78,11 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
+    // Los datos de la demo llevan además la liga de póker, con el torneo en juego a la hora actual.
+    await page.route('**/demo-data.json', async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({ response, json: withPoker(await response.json()) });
+    });
 
     const settle = async () => {
       await page.waitForLoadState('load');
@@ -75,25 +97,18 @@ try {
       await page.evaluate(async (fonts) => {
         await Promise.all(fonts.map((font) => document.fonts.load(`16px "${font}"`)));
         await document.fonts.ready;
-        // El selector de ligas de la demo no forma parte de la app real.
-        const banner = document.getElementById('demo-mode-banner');
-        if (banner) banner.style.display = 'none';
-        // Solo las imágenes visibles: las diferidas fuera de pantalla nunca llegan a cargar.
-        const visible = [...document.images].filter((img) => {
-          const r = img.getBoundingClientRect();
-          return !img.complete && r.bottom > 0 && r.top < innerHeight;
-        });
-        const loaded = Promise.all(
-          visible.map(
-            (img) =>
-              new Promise((resolve) => {
-                img.addEventListener('load', resolve, { once: true });
-                img.addEventListener('error', resolve, { once: true });
-              }),
-          ),
-        );
-        await Promise.race([loaded, new Promise((resolve) => setTimeout(resolve, 5000))]);
       }, FONTS);
+      // Fotos, escudos y banderas visibles cargados del todo: ni huecos ni imágenes rotas.
+      await page.waitForFunction(
+        () =>
+          [...document.images].every((img) => {
+            const r = img.getBoundingClientRect();
+            const visible = r.width > 0 && r.bottom > 0 && r.top < innerHeight;
+            return !visible || (img.complete && img.naturalWidth > 0);
+          }),
+        null,
+        { timeout: 20000 },
+      );
       for (const font of FONTS) {
         expect(
           await page.evaluate((family) => document.fonts.check(`16px "${family}"`), font),
@@ -105,10 +120,40 @@ try {
       await page.waitForTimeout(800);
     };
 
-    await page.goto(`${base}/demo?liga=${league}`);
-    await page.locator('#demo-mode-banner').waitFor();
+    /** Comprobaciones de la captura ya preparada: nada que delate la demo ni fotos de reserva. */
+    const check = async (name) => {
+      const problems = await page.evaluate((pattern) => {
+        const found = [];
+        const onScreen = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.bottom > 0 && r.top < innerHeight;
+        };
+        if (new RegExp(pattern, 'i').test(document.body.innerText)) found.push('texto de demo');
+        const initials = [...document.querySelectorAll('.user-avatar-ink')].filter(onScreen);
+        if (initials.length) found.push(`${initials.length} avatares con iniciales`);
+        const toasts = [...document.querySelectorAll('[data-sonner-toast]')].filter(onScreen);
+        if (toasts.length) found.push('avisos flotantes');
+        return found;
+      }, DEMO_WORDS.source);
+      if (problems.length) throw new Error(`${name}: ${problems.join(', ')}`);
+    };
+
+    // El aviso de la demo y su selector de ligas no forman parte de la app real.
+    await page.addInitScript(() => {
+      const style = document.createElement('style');
+      style.textContent = '#demo-mode-banner { display: none !important; }';
+      document.addEventListener('DOMContentLoaded', () => document.head.append(style));
+    });
+    await page.goto(`${base}/demo?liga=${league === 'poker' ? 'laliga' : league}`);
+    await page.locator('#demo-mode-banner').waitFor({ state: 'attached' });
     const rejectCookies = page.getByRole('button', { name: 'Rechazar', exact: true });
     if (await rejectCookies.isVisible()) await rejectCookies.click();
+    if (league === 'poker') {
+      // La liga de póker no tiene enlace propio en la demo: se elige y se recarga.
+      await page.evaluate((id) => localStorage.setItem('activeGroupId', String(id)), POKER_ID);
+      await page.goto(`${base}/`);
+      await page.locator('nav a[href="/poker/mesa"]').last().waitFor();
+    }
 
     for (const [route, name, prepare] of screens) {
       // Navegación interna: una recarga completa perdería el estado de la demo en memoria.
@@ -122,8 +167,11 @@ try {
         await prepare(page);
         await settle();
       }
+      await check(name);
       await page.screenshot({ path: `${out}/${name}.png`, animations: 'disabled' });
       console.log(`✓ ${name}.png`);
+      // Un cromo abierto tapa la pantalla siguiente.
+      await page.keyboard.press('Escape');
     }
 
     if (errors.length) throw new Error(`Errores en la demo de ${league}: ${errors.join(' ; ')}`);
