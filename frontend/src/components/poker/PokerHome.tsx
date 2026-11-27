@@ -230,6 +230,7 @@ export default function PokerHome({
                 label="Podio de la liga por puntos"
                 places={podium.map((row) => ({
                   playerId: row.playerId,
+                  place: row.rank,
                   name: row.name,
                   value: standingLabel(row),
                 }))}

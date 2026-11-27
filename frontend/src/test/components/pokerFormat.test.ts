@@ -62,6 +62,31 @@ describe('pokerStandings: rachas', () => {
   });
 });
 
+describe('pokerStandings: empates', () => {
+  it('quien empata en todo comparte puesto; el nombre solo ordena la lista', () => {
+    const history = [
+      session(1, [
+        result(1, 'Zoe', 1, 0, 0),
+        result(2, 'Ana', 1, 0, 0),
+        result(3, 'Luis', 3, 0, 0),
+      ]),
+    ];
+    expect(pokerStandings(history).map(({ name, rank }) => [name, rank])).toEqual([
+      ['Ana', 1],
+      ['Zoe', 1],
+      ['Luis', 3],
+    ]);
+  });
+
+  it('con los mismos puntos desempatan las victorias', () => {
+    const history = [session(1, [result(1, 'Toto', 2, 0, 0), result(2, 'Raclos', 1, 0, 0)])];
+    expect(pokerStandings(history).map(({ name, rank }) => [name, rank])).toEqual([
+      ['Raclos', 1],
+      ['Toto', 2],
+    ]);
+  });
+});
+
 describe('fullPrizes: el sobrante cuenta en las estadísticas', () => {
   it('reparte lo que sobró en proporción a lo que se llevó cada uno', () => {
     const results = [
