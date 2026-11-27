@@ -4,6 +4,7 @@
  */
 
 import { withAvatars } from './avatars';
+import { withPoker } from './poker';
 
 interface DemoFixture {
   matchId: number;
@@ -283,7 +284,12 @@ export function demoResponse(
   }
 
   const found = data.exact[url.pathname + url.search];
-  return found === undefined ? json({ error: 'No disponible en la demo' }, 404) : json(found);
+  if (found === undefined) return json({ error: 'No disponible en la demo' }, 404);
+  // El reloj de ciegas cuenta desde la hora del servidor: en la demo, la de cada respuesta.
+  if (found && typeof found === 'object' && 'serverNow' in found) {
+    return json({ ...found, serverNow: Date.now() });
+  }
+  return json(found);
 }
 
 /** Cuánto se espera a los datos en vivo antes de tirar solo de la copia fija. */
@@ -352,6 +358,8 @@ export function installDemoBackend(): void {
         const days = Math.floor((Date.now() - Date.parse(data.recordedAt)) / DAY_MS);
         return mergeLive({ ...data, exact: shiftDates(data.exact, Math.max(0, days)) }, live);
       })
+      // Ninguna liga real de la demo es de póker: la suya se inventa al cargar, con la hora actual.
+      .then((data) => withPoker(data, Date.now()))
       // Fotos también en votantes y participantes, que van aparte de `exact`.
       .then((data) => withAvatars(data))
       .catch((error: unknown) => {

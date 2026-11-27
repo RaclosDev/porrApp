@@ -1,5 +1,13 @@
 import { createPortal } from 'react-dom';
-import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  Fragment,
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Flag, Maximize, Pause, Pencil, Play, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type {
   BlindLevel,
@@ -50,10 +58,35 @@ interface Props {
   children?: ReactNode;
 }
 
+/** Las ciegas en trozos que no se parten: el par «pequeña / grande» y, aparte, el ante. */
+function blindParts(level: BlindLevel): string[] {
+  if (level.big === 0) return ['Descanso'];
+  const pair = `${chips(level.small)} / ${chips(level.big)}`;
+  return level.ante ? [pair, `· ante ${chips(level.ante)}`] : [pair];
+}
+
 function blinds(level: BlindLevel) {
-  if (level.big === 0) return 'Descanso';
-  const ante = level.ante ? ` · ante ${chips(level.ante)}` : '';
-  return `${chips(level.small)} / ${chips(level.big)}${ante}`;
+  return blindParts(level).join(' ');
+}
+
+/** Ancho de un texto en caracteres de cifra: las letras de la letra de cartel son algo más anchas. */
+function wallChars(...texts: string[]) {
+  return Math.max(...texts.map((text) => text.length + (text.match(/\p{L}/gu)?.length ?? 0) * 0.2));
+}
+
+/** Cifra de la pared junto al crupier: encoge para caber en su columna y nunca parte las ciegas. */
+function WallBlinds({ level, className }: { level: BlindLevel; className?: string }) {
+  const parts = blindParts(level);
+  return (
+    <dd className={className} style={{ '--wall-chars': wallChars(...parts) } as CSSProperties}>
+      {parts.map((part, index) => (
+        <Fragment key={part}>
+          {index > 0 && ' '}
+          <span className="poker-wall-chunk">{part}</span>
+        </Fragment>
+      ))}
+    </dd>
+  );
 }
 
 export default function PokerLive({
@@ -395,14 +428,27 @@ export default function PokerLive({
             ? [
                 <dl key="level" className="poker-wall-metric">
                   <dt>Nivel {clock.level + 1}</dt>
-                  <dd>{blinds(levels[clock.level])}</dd>
+                  <WallBlinds level={levels[clock.level]} />
                   {levels[clock.level + 1] && (
-                    <dd className="poker-wall-metric-next">{blinds(levels[clock.level + 1])}</dd>
+                    <WallBlinds
+                      level={levels[clock.level + 1]}
+                      className="poker-wall-metric-next"
+                    />
                   )}
                 </dl>,
                 <dl key="seated" className="poker-wall-metric">
                   <dt>En mesa</dt>
-                  <dd>
+                  {/* Del mismo tamaño que las ciegas de al lado. */}
+                  <dd
+                    style={
+                      {
+                        '--wall-chars': wallChars(
+                          ...blindParts(levels[clock.level]),
+                          `${active.length} / ${session.entries.length}`,
+                        ),
+                      } as CSSProperties
+                    }
+                  >
                     {active.length} / {session.entries.length}
                   </dd>
                 </dl>,

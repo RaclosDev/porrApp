@@ -54,6 +54,10 @@ describe('ContentPage', () => {
       expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
     expect(screen.getByText('¿PorrApp mueve el dinero de la timba?')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Probar la demo' })).toHaveAttribute(
+      'href',
+      '/demo?liga=poker',
+    );
     expect(
       screen.getAllByRole('link', { name: 'Apuntar puntos de juegos de mesa' })[0],
     ).toHaveAttribute('href', '/apuntar-puntos-juegos-de-mesa');

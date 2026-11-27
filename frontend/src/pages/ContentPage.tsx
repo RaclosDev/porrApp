@@ -39,7 +39,10 @@ export default function ContentPage({ page }: ContentPageProps) {
               Probar la hoja de puntos
             </a>
           ) : (
-            <Link to="/demo" className="fam-btn fam-btn--lg">
+            <Link
+              to={page.demoLeague ? `/demo?liga=${page.demoLeague}` : '/demo'}
+              className="fam-btn fam-btn--lg"
+            >
               Probar la demo
             </Link>
           )}

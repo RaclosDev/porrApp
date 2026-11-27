@@ -8,21 +8,22 @@ export const timbasDePoker: ContentPage = {
     'Reloj de ciegas, recompras, add-ons, bote y reparto de premios en el móvil. Lleva las timbas de póker con amigos y guarda el ranking y las estadísticas.',
   h1: 'Organiza la timba de póker',
   h1Marked: 'desde el móvil.',
+  demoLeague: 'poker',
   lede: 'Todo lo que hace falta en una partida de póker en casa: el reloj de ciegas, quién ha recomprado, cuánto hay en el bote y cuánto cobra cada puesto. Al terminar queda el histórico de la timba y el ranking de la temporada.',
   screens: {
     title: 'Así se ve una timba de póker en PorrApp',
     shots: [
       appScreen(
         'poker-mesa',
-        'Torneo de póker en juego en PorrApp: reloj de ciegas con el nivel 4, jugadores en mesa, media de fichas y bote.',
+        'Torneo de póker en juego en PorrApp: reloj del nivel 3 con las ciegas y los jugadores en mesa a los lados del crupier, caras de los jugadores, media de fichas y bote.',
       ),
       appScreen(
         'poker-historico',
-        'Histórico de torneos de póker en PorrApp: podio con los tres primeros, premios y neto de cada jugador.',
+        'Histórico de torneos de póker en PorrApp: podio con los tres primeros, premios, puntos y neto de cada jugador.',
       ),
       appScreen(
         'poker-estadisticas',
-        'Estadísticas de una liga de póker en PorrApp: victorias, torneos jugados y recompras de cada jugador.',
+        'Estadísticas de una liga de póker en PorrApp: podio de la liga y puntos, victorias y torneos jugados de cada jugador.',
       ),
     ],
   },

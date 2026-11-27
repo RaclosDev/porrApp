@@ -1,11 +1,10 @@
 // Capturas móviles del README a partir del modo demo de la propia aplicación (`/demo`).
-// La demo responde en el navegador con tres ligas ficticias (LaLiga, Mundial y UFC); el script le
-// añade una liga de póker (poker-fixture.mjs), así que no hacen falta backend, base de datos ni cuenta.
+// La demo responde en el navegador con cuatro ligas ficticias (LaLiga, Mundial, UFC y póker), así que
+// no hacen falta backend, base de datos ni cuenta.
 // Uso, con `npm --prefix frontend run dev -- --host 127.0.0.1` en otra terminal y desde la raíz:
 //      node docs/screenshots/capture.mjs [url-base]
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { POKER_ID, withPoker } from './poker-fixture.mjs';
 
 const require = createRequire(new URL('../../frontend/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
@@ -22,7 +21,7 @@ const openCard = (name) => (page) =>
 
 /**
  * Qué se captura en cada liga: ruta, nombre del archivo y, si hace falta, un paso previo dentro
- * de la pantalla. `poker` no es una liga de la demo: es la que añade poker-fixture.mjs.
+ * de la pantalla.
  */
 const LEAGUES = {
   laliga: [
@@ -78,12 +77,6 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    // Los datos de la demo llevan además la liga de póker, con el torneo en juego a la hora actual.
-    await page.route('**/demo-data.json', async (route) => {
-      const response = await route.fetch();
-      await route.fulfill({ response, json: withPoker(await response.json()) });
-    });
-
     const settle = async () => {
       await page.waitForLoadState('load');
       await page.waitForFunction(
@@ -144,16 +137,10 @@ try {
       style.textContent = '#demo-mode-banner { display: none !important; }';
       document.addEventListener('DOMContentLoaded', () => document.head.append(style));
     });
-    await page.goto(`${base}/demo?liga=${league === 'poker' ? 'laliga' : league}`);
+    await page.goto(`${base}/demo?liga=${league}`);
     await page.locator('#demo-mode-banner').waitFor({ state: 'attached' });
     const rejectCookies = page.getByRole('button', { name: 'Rechazar', exact: true });
     if (await rejectCookies.isVisible()) await rejectCookies.click();
-    if (league === 'poker') {
-      // La liga de póker no tiene enlace propio en la demo: se elige y se recarga.
-      await page.evaluate((id) => localStorage.setItem('activeGroupId', String(id)), POKER_ID);
-      await page.goto(`${base}/`);
-      await page.locator('nav a[href="/poker/mesa"]').last().waitFor();
-    }
 
     for (const [route, name, prepare] of screens) {
       // Navegación interna: una recarga completa perdería el estado de la demo en memoria.
