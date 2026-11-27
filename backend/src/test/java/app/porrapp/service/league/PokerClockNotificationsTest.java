@@ -88,6 +88,8 @@ class PokerClockNotificationsTest {
         service.advanceClock(1L);
         verify(events, times(2)).publishEvent(event.capture());
         assertThat(event.getValue().message().body()).contains("Ciegas 50 / 100", "Ante 10");
+        // El descanso no gasta número: tras el nivel 1 y la pausa llega el nivel 2.
+        assertThat(event.getValue().message().title()).isEqualTo("Nivel 2 de póker");
         session.setBlindClock(new BlindClock(2, System.currentTimeMillis() - 1000, 60000));
         service.advanceClock(1L);
         service.advanceClock(1L);

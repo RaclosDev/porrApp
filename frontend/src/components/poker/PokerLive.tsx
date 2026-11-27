@@ -31,7 +31,16 @@ import PokerPrizeShares, {
   prizeCommand,
   type PrizeDraft,
 } from './PokerPrizeShares';
-import { buyUntil, chips, clockAt, euros, timeLabel } from './pokerFormat';
+import {
+  buyUntil,
+  chips,
+  clockAt,
+  cutoffText,
+  euros,
+  levelHeading,
+  playLevelNumber,
+  timeLabel,
+} from './pokerFormat';
 import PokerMusicPanel from './PokerMusicPanel';
 import PokerFreeTable from './PokerFreeTable';
 import PokerTv, { AUDIO_DELAY, CRUPIER_ACTION } from './PokerTv';
@@ -427,7 +436,7 @@ export default function PokerLive({
           clock && !winner && !finishView
             ? [
                 <dl key="level" className="poker-wall-metric">
-                  <dt>Nivel {clock.level + 1}</dt>
+                  <dt>{levelHeading(levels, clock.level)}</dt>
                   <WallBlinds level={levels[clock.level]} />
                   {levels[clock.level + 1] && (
                     <WallBlinds
@@ -531,7 +540,9 @@ export default function PokerLive({
             <>
               <div className="poker-clock">
                 <p className="sr-only" aria-live="polite">
-                  Nivel {clock.level + 1}: {blinds(levels[clock.level])}
+                  {levels[clock.level].big === 0
+                    ? `Descanso tras el nivel ${playLevelNumber(levels, clock.level)}`
+                    : `${levelHeading(levels, clock.level)}: ${blinds(levels[clock.level])}`}
                 </p>
                 <div className="poker-progress" aria-hidden="true">
                   <span
@@ -992,10 +1003,8 @@ export default function PokerLive({
                       <strong>Recompra</strong> {euros(rebuy.costCents)} → {chips(rebuy.chips)}{' '}
                       fichas
                       <small>
-                        Hasta el nivel {rebuy.throughLevel}
-                        {buyUntil(levels, rebuy.throughLevel) > rebuy.throughLevel &&
-                          ' y el descanso'}{' '}
-                        · {rebuy.limit === null ? 'sin límite' : `máx. ${rebuy.limit} por jugador`}
+                        Hasta el {cutoffText(levels, rebuy.throughLevel)} ·{' '}
+                        {rebuy.limit === null ? 'sin límite' : `máx. ${rebuy.limit} por jugador`}
                       </small>
                     </span>
                   </li>
@@ -1006,10 +1015,7 @@ export default function PokerLive({
                     <span>
                       <strong>Add-on</strong> {euros(addOn.costCents)} → {chips(addOn.chips)} fichas
                       <small>
-                        Hasta el nivel {addOn.throughLevel}
-                        {buyUntil(levels, addOn.throughLevel) > addOn.throughLevel &&
-                          ' y el descanso'}{' '}
-                        · uno por jugador
+                        Hasta el {cutoffText(levels, addOn.throughLevel)} · uno por jugador
                       </small>
                     </span>
                   </li>

@@ -8,7 +8,13 @@ import type {
   PokerSettings,
 } from '../../services/endpoints/poker';
 import PokerPrizeShares, { sharesTotal } from './PokerPrizeShares';
-import { chips, noLeadingZero, withBreakAfterCutoff } from './pokerFormat';
+import {
+  chips,
+  cutoffText,
+  noLeadingZero,
+  playLevelNumber,
+  withBreakAfterCutoff,
+} from './pokerFormat';
 import { DEFAULT_ROUNDING_CENTS, placePoints } from './pokerPayouts';
 import SelectMenu from '../SelectMenu';
 
@@ -276,15 +282,22 @@ export default function PokerSettingsForm({
               <div className="poker-level-list">
                 {draft.levels.map((level, index) => {
                   const rest = level.big === 0 && level.small === 0;
+                  // Los descansos no cuentan como nivel: tras el 2 y el descanso viene el 3.
+                  const number = playLevelNumber(draft.levels, index);
+                  const name = rest
+                    ? number > 0
+                      ? `Descanso tras el nivel ${number}`
+                      : 'Descanso'
+                    : `nivel ${number}`;
                   return (
                     <div
                       role="group"
-                      aria-label={`${rest ? 'Descanso' : 'Ciegas'} · nivel ${index + 1}`}
+                      aria-label={rest ? name : `Ciegas · ${name}`}
                       className={rest ? 'poker-level is-break' : 'poker-level'}
                       key={index}
                     >
                       <p className="poker-level-name">
-                        <span>{index + 1}</span>
+                        <span aria-hidden={rest || undefined}>{rest ? '‖' : number}</span>
                         {rest ? 'Descanso' : 'Ciegas'}
                       </p>
                       <div className="poker-fields poker-level-fields">
@@ -324,7 +337,7 @@ export default function PokerSettingsForm({
                         className="glass-btn poker-level-remove"
                         disabled={draft.levels.length <= 1}
                         onClick={() => removeLevel(index)}
-                        aria-label={`Quitar nivel ${index + 1}`}
+                        aria-label={`Quitar ${rest ? name.toLowerCase() : name}`}
                       >
                         <span aria-hidden="true">×</span>
                       </button>
@@ -519,7 +532,7 @@ function ExtraFields({
 }) {
   const name = multiple ? 'recompras' : 'add-on';
   const summary = extra
-    ? `${(extra.costCents / 100).toLocaleString('es-ES')} € → ${chips(extra.chips)} fichas · hasta el nivel ${extra.throughLevel}`
+    ? `${(extra.costCents / 100).toLocaleString('es-ES')} € → ${chips(extra.chips)} fichas · hasta el ${cutoffText(settings.levels, extra.throughLevel)}`
     : multiple
       ? 'Quien se quede sin fichas puede volver a comprar.'
       : 'Una compra extra de fichas para todos, una sola vez.';
@@ -596,11 +609,10 @@ function ExtraFields({
               onChange={(next) => onChange({ ...extra, throughLevel: Number(next) })}
               items={settings.levels.map((level, index) => ({
                 value: String(index + 1),
-                label: `${index + 1} · ${
-                  level.big === 0 && level.small === 0
-                    ? 'Descanso'
-                    : `${chips(level.small)} / ${chips(level.big)}`
-                }`,
+                label:
+                  level.big === 0
+                    ? `Descanso tras el nivel ${playLevelNumber(settings.levels, index)}`
+                    : `Nivel ${playLevelNumber(settings.levels, index)} · ${chips(level.small)} / ${chips(level.big)}`,
               }))}
             />
           </label>
