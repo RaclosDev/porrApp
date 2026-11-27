@@ -20,6 +20,7 @@ import {
 } from '../../utils/scoringRules';
 import { isMatchBasedFormat } from '../../utils/poolFormat';
 import { allowsDraw } from '../../utils/matchday';
+import { madridLocalToInstant } from '../../utils/madridTime';
 import { isGroupTournament } from '../../context/leagueKind';
 import { isNbaCompetition, isNbaRegularSeason } from '../../utils/nbaPlayoffs';
 import {
@@ -745,16 +746,17 @@ export function validateStep(
   }
   if (step === 'rules') {
     if (draft.lockMode === 'FIXED_DATE') {
-      const date = new Date(draft.lockDate);
+      // La fecha es hora de Madrid, la que usa el servidor, no la del navegador de quien crea la liga.
+      const closesAt = madridLocalToInstant(draft.lockDate);
       if (!draft.lockDate) errors.lockDate = 'Elige la fecha y la hora de cierre.';
-      else if (Number.isNaN(date.getTime()) || date <= now)
+      else if (Number.isNaN(closesAt) || closesAt <= now.getTime())
         errors.lockDate = 'La fecha de cierre tiene que ser futura.';
       else {
         // Cerrar después del primer cruce dejaría rellenar el cuadro sabiendo ya resultados.
         const firstMatch = draft.poolFormat
           ? selectedCompetition(draft, ctx)?.bracketClosesAt?.[draft.poolFormat]
           : undefined;
-        if (firstMatch && date.getTime() > Date.parse(firstMatch))
+        if (firstMatch && closesAt > Date.parse(firstMatch))
           errors.lockDate = `Tiene que ser antes del primer cruce (${FIRST_MATCH_FORMAT.format(new Date(firstMatch))}).`;
       }
     } else if (draft.lockMode) {

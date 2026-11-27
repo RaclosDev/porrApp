@@ -16,15 +16,12 @@ import {
   scoringEditable,
   selectedCompetition,
 } from './leagueDraft';
+import { toMadridLocal } from '../../utils/madridTime';
 import { FieldError, OptionCard, StepSection } from './parts';
 import type { StepProps } from './useLeagueDraft';
 
-/** `YYYY-MM-DDTHH:mm` de ahora en la hora del dispositivo, para el mínimo del selector de fecha. */
-const nowLocal = () => {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 16);
-};
+/** `YYYY-MM-DDTHH:mm` de ahora en hora de Madrid (la del cierre), para el mínimo del selector de fecha. */
+const nowLocal = () => toMadridLocal();
 
 function LockSection({ draft, update, errors, ctx }: StepProps) {
   const modes = lockModesFor(draft, ctx);

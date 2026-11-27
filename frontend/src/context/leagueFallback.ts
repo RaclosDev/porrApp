@@ -34,7 +34,10 @@ export function pickMostRecentLeague(
   return String(newest.id);
 }
 
-/** Consultas que guardan datos de una liga concreta. */
+/**
+ * Consultas que guardan datos de una liga concreta. Si se añade una consulta nueva con el id de la liga en
+ * su clave, hay que añadirla aquí para que al salir de la liga no quede nada suyo.
+ */
 const leagueScopedKeys = (groupId: string) => [
   queryKeys.group(groupId),
   queryKeys.groupMembers(groupId),
@@ -50,6 +53,12 @@ const leagueScopedKeys = (groupId: string) => [
   queryKeys.customTeams(groupId),
   queryKeys.customLockState(groupId),
   queryKeys.matchSelection(groupId),
+  // Cuelgan del id de la liga: el prefijo se lleva también su historial, su música, sus elecciones...
+  queryKeys.poker(groupId),
+  queryKeys.tracker(groupId),
+  queryKeys.grandPrixClassification(groupId),
+  queryKeys.formulaOneStandings(groupId),
+  queryKeys.scorerPick(groupId),
 ];
 
 /**

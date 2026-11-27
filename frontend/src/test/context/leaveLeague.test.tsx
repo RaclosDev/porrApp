@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueDataEffects } from '../../context/leagueData';
-import { dropFromMyGroups, pickMostRecentLeague } from '../../context/leagueFallback';
+import { dropFromMyGroups, forgetLeague, pickMostRecentLeague } from '../../context/leagueFallback';
 import { ApiError } from '../../services/apiError';
 import { queryKeys } from '../../services/queryKeys';
 import { useAppStore } from '../../store/useAppStore';
@@ -73,6 +73,48 @@ describe('dropFromMyGroups', () => {
     expect(client.getQueryData<{ id: number }[]>(queryKeys.trackers())?.map((t) => t.id)).toEqual([
       3,
     ]);
+  });
+});
+
+describe('forgetLeague', () => {
+  it('clears every cached query of the league (poker, Formula 1, scorers...) and only that league', () => {
+    const client = new QueryClient();
+    const mine = [
+      queryKeys.group('5'),
+      queryKeys.leaderboard('5'),
+      queryKeys.leaderboardLogs('5'),
+      queryKeys.poker('5'),
+      queryKeys.pokerHistory('5'),
+      queryKeys.pokerMusic('5'),
+      queryKeys.tracker('5'),
+      queryKeys.grandPrix('5'),
+      queryKeys.grandPrixPicks('5', 77),
+      queryKeys.grandPrixClassification('5', 77),
+      queryKeys.formulaOneStandings('5'),
+      queryKeys.scorerPick('5'),
+      queryKeys.scorerPicks('5'),
+      queryKeys.survivorStatus('5'),
+      queryKeys.roundParticipants('5', '1,2'),
+    ];
+    const others = [
+      queryKeys.poker('50'),
+      queryKeys.pokerHistory('6'),
+      queryKeys.grandPrixClassification('6', 77),
+      queryKeys.formulaOneStandings('6'),
+      queryKeys.scorerPicks('6'),
+      queryKeys.trackers(),
+      queryKeys.tracker('6'),
+    ];
+    [...mine, ...others].forEach((queryKey) => client.setQueryData(queryKey, { data: true }));
+
+    forgetLeague(client, 5);
+
+    mine.forEach((queryKey) =>
+      expect(client.getQueryData(queryKey), String(queryKey)).toBeUndefined(),
+    );
+    others.forEach((queryKey) =>
+      expect(client.getQueryData(queryKey), String(queryKey)).toBeDefined(),
+    );
   });
 });
 

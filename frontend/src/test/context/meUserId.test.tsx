@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppProvider } from '../../context/AppContext';
 import { useAppStore } from '../../store/useAppStore';
+import * as api from '../../services/api';
 
 vi.mock('../../services/api', () => ({
   fetchMe: vi.fn().mockResolvedValue({
@@ -78,5 +79,20 @@ describe('usuario de /api/users/me', () => {
 
     await waitFor(() => expect(useAppStore.getState().choosingLeague).toBe(false));
     expect(useAppStore.getState().activeGroupId).toBe('7');
+  });
+
+  it('al arrancar pide las ligas una sola vez: comparte la petición con React Query', async () => {
+    vi.mocked(api.fetchMyGroups).mockClear();
+    useAppStore.setState({ activeGroupId: '', choosingLeague: true });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AppProvider>
+          <div />
+        </AppProvider>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(useAppStore.getState().choosingLeague).toBe(false));
+    expect(api.fetchMyGroups).toHaveBeenCalledTimes(1);
   });
 });

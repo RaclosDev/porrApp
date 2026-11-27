@@ -1,12 +1,8 @@
 import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
-import {
-  fetchMe,
-  fetchMyGroups,
-  updateUserPreferences,
-  whenSessionRestored,
-} from '../services/api';
+import { fetchMe, updateUserPreferences, whenSessionRestored } from '../services/api';
+import { myGroupsQuery } from '../services/queries';
 import { SESSION_REVISION_KEY } from '../services/sessionHint';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAppStore, defaultBracketState, getInitialBracketState } from '../store/useAppStore';
@@ -136,7 +132,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         if (!isCancelled) useAppStore.getState().setProfileChecked(true);
 
-        const myGroups = await fetchMyGroups();
+        // Por React Query, como el resto de la app: comparte la petición y la caché con quien ya
+        // esté pidiendo las ligas (antes se pedían dos veces al arrancar).
+        const myGroups = await queryClient.fetchQuery(myGroupsQuery(true));
         if (
           isCancelled ||
           localStorage.getItem('pendingJoinCode') ||
@@ -188,7 +186,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       isCancelled = true;
     };
-  }, [userName, isUserAuthed, changeGroup, isDemoMode, setUserAvatarUrl, setUserName, setUserId]);
+  }, [
+    userName,
+    isUserAuthed,
+    changeGroup,
+    isDemoMode,
+    setUserAvatarUrl,
+    setUserName,
+    setUserId,
+    queryClient,
+  ]);
 
   return children;
 }

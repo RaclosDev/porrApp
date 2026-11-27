@@ -7,6 +7,7 @@ import {
 } from '../matchSelection/matchSelection';
 import { useSelectableCalendar } from '../matchSelection/useSelectableCalendar';
 import { describeSegments } from '../../utils/fights';
+import { madridLocalToInstant } from '../../utils/madridTime';
 import { LeagueAvatar } from '../Avatar';
 import { describeLockOffset } from '../groups/custom/lockModes';
 import {
@@ -34,8 +35,9 @@ function describeLock(draft: LeagueDraft, ctx: DraftContext) {
   const mode = lockModesFor(draft, ctx).find((item) => item.value === draft.lockMode);
   if (!mode) return 'Cada elección, al empezar su partido';
   if (mode.value === 'FIXED_DATE') {
-    const date = new Date(draft.lockDate);
-    return `${mode.label}: ${date.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}`;
+    // Fecha en hora de Madrid, la del servidor: se enseña tal cual la escribió, sea cual sea la zona del navegador.
+    const date = new Date(madridLocalToInstant(draft.lockDate));
+    return `${mode.label}: ${date.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Madrid' })}`;
   }
   const margin = describeLockOffset(lockOffsetMinutes(draft));
   return margin ? `${mode.label}, ${margin}` : mode.label;

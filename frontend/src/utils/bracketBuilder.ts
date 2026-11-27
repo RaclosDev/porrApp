@@ -70,11 +70,18 @@ export const isMatchInRound = (match: Match, roundIndex: number | string | undef
 /** Próximo partido de eliminatorias sin jugar de un torneo con grupos (el que se destaca en su cuadro). */
 export const nextKnockoutMatch = (games: Match[] | null | undefined): Match | null => {
   if (!games || games.length === 0) return null;
+  // Los cruces sin fecha (o con una fecha ilegible) van los últimos: `new Date(Infinity)` es una fecha
+  // inválida y el orden quedaba indefinido, de modo que podían colarse delante de uno con fecha.
+  const timeOf = (g: Match): number => {
+    const t = g.date ? new Date(g.date).getTime() : NaN;
+    return Number.isNaN(t) ? Infinity : t;
+  };
   const pending = games
     .filter((g) => g && isKnockoutMatch(g) && !g.finished && !g.winner && g.home_score == null)
-    .sort(
-      (a, b) => new Date(a.date || Infinity).getTime() - new Date(b.date || Infinity).getTime(),
-    );
+    .sort((a, b) => {
+      const [ta, tb] = [timeOf(a), timeOf(b)];
+      return ta === tb ? 0 : ta < tb ? -1 : 1;
+    });
   return pending[0] || null;
 };
 
