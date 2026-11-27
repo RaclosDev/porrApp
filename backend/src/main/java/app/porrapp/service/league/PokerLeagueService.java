@@ -92,6 +92,18 @@ public class PokerLeagueService {
         return history(email, leagueId);
     }
 
+    /** Abre o cierra la organización de los torneos a todos los miembros; solo la administración lo decide. */
+    @Transactional
+    public LeagueView organizing(String email, Long leagueId, Organizing request) {
+        Long userId = account(email).getId();
+        League league = visible(leagueId, userId, true);
+        if (!league.isAdmin(userId)) {
+            throw BusinessException.forbidden("Solo la administración de la liga puede cambiar quién organiza");
+        }
+        league.setPokerEveryoneOrganizes(request.everyoneOrganizes());
+        return view(league, userId);
+    }
+
     /** El histórico solo lo corrigen quien creó la liga y sus administradores. */
     private League administered(Long leagueId, Long userId) {
         League league = visible(leagueId, userId, true);
@@ -310,8 +322,13 @@ public class PokerLeagueService {
         return league;
     }
 
+    /** Quien organiza los torneos; llamar solo con la pertenencia a la liga ya comprobada. */
+    private static boolean organizes(League league, Long userId) {
+        return league.isPokerEveryoneOrganizes() || league.canOrganize(userId);
+    }
+
     private static void requireOwner(League league, Long userId) {
-        if (!league.canOrganize(userId)) {
+        if (!organizes(league, userId)) {
             throw BusinessException.forbidden("Solo el organizador puede hacer ese cambio");
         }
     }
@@ -353,8 +370,8 @@ public class PokerLeagueService {
         Map<Long, String> avatars = new HashMap<>();
         users.findAllById(rosterEntries.stream().map(ScoreTrackerPlayer::getUserId).filter(Objects::nonNull).toList())
                 .forEach(user -> avatars.put(user.getId(), user.getAvatarUrl()));
-        return new LeagueView(id, league.getName(), league.getJoinCode(), league.canOrganize(userId),
-                league.isAdmin(userId),
+        return new LeagueView(id, league.getName(), league.getJoinCode(), organizes(league, userId),
+                league.isAdmin(userId), league.isPokerEveryoneOrganizes(),
                 myPlayerId, rosterEntries.stream()
                 .map(player -> new Player(player.getId(), player.getName(), player.getUserId() == null,
                         player.getUserId(), avatars.get(player.getUserId()))).toList(),

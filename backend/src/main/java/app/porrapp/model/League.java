@@ -53,6 +53,11 @@ public class League {
     @Column(name = "entry_fee", nullable = false)
     private boolean entryFee = false;
 
+    /** Liga de póker abierta: cualquier miembro prepara, edita y dirige los torneos (el histórico sigue en la administración). */
+    @Builder.Default
+    @Column(name = "poker_everyone_organizes", nullable = false)
+    private boolean pokerEveryoneOrganizes = false;
+
     /** Clase de liga: {@link #KIND_POOL} (porra sobre una competición) o {@link #KIND_SCOREBOARD} (marcador de juegos, sin edición). */
     @Builder.Default
     @Column(nullable = false, length = 20)

@@ -104,6 +104,37 @@ class PokerLeagueIntegrationTest {
     }
 
     @Test
+    void anOpenLeagueLetsEveryMemberRunTournamentsButNotTheHistory() throws Exception {
+        var creator = user("Creador");
+        var member = user("Invitado");
+        var league = decode(send("POST", "/api/poker", creator,
+                new CreateLeague("Liga abierta", UUID.randomUUID())), 201);
+        String poker = "/api/poker/" + league.id();
+        memberships.join(league.id(), member.getGoogleEmail());
+        var settings = new Settings(1000, 10000, null, null, List.of(100), List.of(new BlindLevel(15, 25, 50, 0)));
+
+        assertThat(league.everyoneOrganizes()).isFalse();
+        assertThat(send("PUT", poker + "/organizing", member, new Organizing(true)).statusCode()).isEqualTo(403);
+        assertThat(send("POST", poker + "/sessions", member,
+                new CreateSession(LocalDate.of(2026, 12, 5), settings)).statusCode()).isEqualTo(403);
+
+        assertThat(decode(send("PUT", poker + "/organizing", creator, new Organizing(true)), 200)
+                .everyoneOrganizes()).isTrue();
+        assertThat(decode(send("GET", poker, member, null), 200).owner()).isTrue();
+        var scheduled = decode(send("POST", poker + "/sessions", member,
+                new CreateSession(LocalDate.of(2026, 12, 5), settings)), 201).current();
+        var edited = decode(send("PUT", poker + "/sessions/" + scheduled.id(), member,
+                new EditSession(LocalDate.of(2026, 12, 6), settings, scheduled.revision())), 200);
+        assertThat(edited.current().date()).isEqualTo(LocalDate.of(2026, 12, 6));
+        assertThat(send("PUT", poker + "/organizing", member, new Organizing(false)).statusCode()).isEqualTo(403);
+
+        decode(send("PUT", poker + "/organizing", creator, new Organizing(false)), 200);
+        assertThat(decode(send("GET", poker, member, null), 200).owner()).isFalse();
+        assertThat(send("POST", poker + "/sessions/" + scheduled.id() + "/commands", member,
+                new Command(Action.CANCEL, edited.current().revision(), null)).statusCode()).isEqualTo(403);
+    }
+
+    @Test
     void severalScheduledTournamentsCanBeJoinedSeparately() throws Exception {
         var organizer = user("Ana");
         var member = user("Luis");

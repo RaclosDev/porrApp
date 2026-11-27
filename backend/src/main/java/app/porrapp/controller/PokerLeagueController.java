@@ -53,6 +53,11 @@ public class PokerLeagueController {
         return service.edit(principal.getName(), id, sessionId, request);
     }
 
+    @PutMapping("/{id}/organizing")
+    public LeagueView organizing(Principal principal, @PathVariable Long id, @Valid @RequestBody Organizing request) {
+        return service.organizing(principal.getName(), id, request);
+    }
+
     @PutMapping("/{id}/sessions/{sessionId}/attendance")
     public LeagueView attendance(Principal principal, @PathVariable Long id, @PathVariable Long sessionId,
                                  @Valid @RequestBody Attendance request) {
