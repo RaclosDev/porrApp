@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Flag, Maximize, Pause, Pencil, Play, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type {
   BlindLevel,
@@ -13,7 +13,7 @@ import type {
 type Entry = PokerSession['entries'][number];
 import InfoTip from '../InfoTip';
 import { BagIcon, BulletIcon, Purchases, SeatBadges, SkullIcon } from './PokerBadges';
-import { PokerAvatar } from './PokerFaces';
+import { PokerAvatar, usePokerProfile } from './PokerFaces';
 import PokerCloseDialog, { type Standing } from './PokerCloseDialog';
 import { DEFAULT_ROUNDING_CENTS } from './pokerPayouts';
 import PokerPrizeShares, {
@@ -88,6 +88,7 @@ export default function PokerLive({
   const active = session.entries.filter((entry) => !eliminated.has(entry.playerId));
   const selectedPlayer = session.entries.find((entry) => entry.playerId === selectedPlayerId);
   const winner = active.length === 1 ? active[0] : null;
+  const openProfile = usePokerProfile();
   /** Los eliminados, del último en caer al primero, con el puesto en que acabaron. */
   const fallen = session.eliminations
     .map((id, index) => ({
@@ -432,7 +433,21 @@ export default function PokerLive({
         )}
         {winner ? (
           <div className="poker-winner">
-            <div className="sticker sticker-featured">
+            <div
+              className={`sticker sticker-featured${openProfile ? ' sticker-zoomable' : ''}`}
+              {...(openProfile && {
+                role: 'button',
+                tabIndex: 0,
+                'aria-label': `Ver el perfil de ${winner.name}, ganador del torneo`,
+                onClick: () => openProfile({ playerId: winner.playerId, name: winner.name }),
+                onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+                  if (event.target !== event.currentTarget) return;
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  openProfile({ playerId: winner.playerId, name: winner.name });
+                },
+              })}
+            >
               <span className="sticker-rank">1.º</span>
               <PokerAvatar playerId={winner.playerId} name={winner.name} size={96} />
               <strong className="poster-title">{winner.name}</strong>
