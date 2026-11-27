@@ -30,6 +30,7 @@ import {
   pokerCommand,
   savePokerSession,
   setPokerAttendance,
+  setPokerOrganizing,
   type PokerLeagueData,
   type PokerSession,
 } from '../services/endpoints/poker';
@@ -182,7 +183,16 @@ export default function PokerLeague({
                   </div>
                 </div>
               </header>
-              {invite && <PokerInviteDialog league={league} onClose={() => setInvite(false)} />}
+              {invite && (
+                <PokerInviteDialog
+                  league={league}
+                  busy={busy}
+                  onEveryoneOrganizes={(everyone) =>
+                    void change(() => setPokerOrganizing(league.id, everyone))
+                  }
+                  onClose={() => setInvite(false)}
+                />
+              )}
               <PokerHome
                 league={league}
                 current={current}

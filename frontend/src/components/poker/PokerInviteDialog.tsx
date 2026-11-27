@@ -5,12 +5,15 @@ import PokerFreeTable from './PokerFreeTable';
 import { copyWithToast, joinLink } from '../../utils/leagueInvite';
 
 interface Props {
-  league: { name: string; joinCode: string };
+  league: { name: string; joinCode: string; admin?: boolean; everyoneOrganizes?: boolean };
+  /** Solo para la administración: abre o cierra la organización de torneos a todos los miembros. */
+  onEveryoneOrganizes?: (everyone: boolean) => void;
+  busy?: boolean;
   onClose: () => void;
 }
 
 /** Invitar a la liga: el crupier enseña el QR en un cartel y debajo van el código y los enlaces. */
-export default function PokerInviteDialog({ league, onClose }: Props) {
+export default function PokerInviteDialog({ league, onEveryoneOrganizes, busy, onClose }: Props) {
   const link = joinLink(league.joinCode);
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
@@ -76,6 +79,25 @@ export default function PokerInviteDialog({ league, onClose }: Props) {
               WhatsApp
             </button>
           </div>
+          {league.admin && onEveryoneOrganizes && (
+            <label className="poker-invite-organizing">
+              <span>
+                <strong>Todos organizan</strong>
+                <small>
+                  {league.everyoneOrganizes
+                    ? 'Cualquier miembro prepara, edita y dirige los torneos.'
+                    : 'Solo la administración y quien organiza preparan los torneos.'}
+                </small>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={Boolean(league.everyoneOrganizes)}
+                disabled={busy}
+                onChange={(event) => onEveryoneOrganizes(event.target.checked)}
+              />
+            </label>
+          )}
         </PokerFreeTable>
       </div>
     </SheetDialog>

@@ -100,6 +100,8 @@ export interface PokerLeagueData {
   owner: boolean;
   /** Creador o administrador: puede corregir y borrar torneos del histórico. */
   admin: boolean;
+  /** Todos los miembros preparan, editan y dirigen los torneos (el histórico sigue en la administración). */
+  everyoneOrganizes?: boolean;
   myPlayerId: number | null;
   players: PokerPlayer[];
   /** El que está en juego o el más próximo; el mismo que encabeza `upcoming`. */
@@ -167,6 +169,12 @@ export const deletePokerResult = (id: number, sessionId: number) =>
 
 export const createPokerLeague = (name: string, creationKey: string) =>
   request<PokerLeagueData>('/poker', { method: 'POST', json: { name, creationKey } });
+
+export const setPokerOrganizing = (id: number, everyoneOrganizes: boolean) =>
+  request<PokerLeagueData>(`/poker/${id}/organizing`, {
+    method: 'PUT',
+    json: { everyoneOrganizes },
+  });
 
 export const addPokerGuest = (id: number, sessionId: number, name: string) =>
   request<PokerLeagueData>(`/poker/${id}/sessions/${sessionId}/guests`, {

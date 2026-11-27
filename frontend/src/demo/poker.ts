@@ -214,6 +214,7 @@ function pokerLeague(now: number): PokerLeagueData {
     joinCode: JOIN_CODE,
     owner: true,
     admin: true,
+    everyoneOrganizes: false,
     myPlayerId: playerId('Marta'),
     players: PLAYERS,
     current,
