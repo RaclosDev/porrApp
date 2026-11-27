@@ -10,7 +10,7 @@ import app.porrapp.service.league.LeagueMembershipService;
 import app.porrapp.service.league.PokerLeagueService;
 import app.porrapp.service.sync.SyncService;
 import app.porrapp.service.tournament.TopScorerService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -50,7 +50,7 @@ class PokerLeagueIntegrationTest {
     @Autowired PokerLeagueService service;
     @Autowired JwtUtil jwt;
     @LocalServerPort int port;
-    private final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper json = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
 
     @Test
@@ -75,7 +75,7 @@ class PokerLeagueIntegrationTest {
         assertThat(send("PUT", group + "/members/" + organizer.getId() + "/role", creator,
                 java.util.Map.of("role", "ORGANIZER")).statusCode()).isEqualTo(200);
         var members = json.readTree(send("GET", group + "/members", creator, null).body());
-        assertThat(members.findValuesAsText("role")).contains("ADMIN", "ORGANIZER");
+        assertThat(members.findValuesAsString("role")).contains("ADMIN", "ORGANIZER");
         assertThat(decode(send("GET", poker, creator, null), 200).owner()).isTrue();
         assertThat(decode(send("GET", poker, admin, null), 200).owner()).isTrue();
         assertThat(decode(send("GET", poker, organizer, null), 200).owner()).isTrue();

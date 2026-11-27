@@ -10,7 +10,7 @@ import app.porrapp.repository.*;
 import app.porrapp.service.sync.SyncService;
 import app.porrapp.service.tournament.OrganizedTournamentService;
 import app.porrapp.service.tournament.TopScorerService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,7 +46,7 @@ class OrganizedTournamentIntegrationTest {
     @Autowired JwtUtil jwt;
     @LocalServerPort int port;
     private final HttpClient http = HttpClient.newHttpClient();
-    private final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper json = new ObjectMapper();
 
     @Test
     void creatorCanFindAndOpenTheTournamentWithoutAMembershipRow() throws Exception {
@@ -57,11 +57,11 @@ class OrganizedTournamentIntegrationTest {
 
         HttpResponse<String> mine = send("GET", "/api/groups/mine", owner, null);
         assertThat(mine.statusCode()).isEqualTo(200);
-        assertThat(json.readTree(mine.body()).findValuesAsText("id")).contains(tournament.id().toString());
+        assertThat(json.readTree(mine.body()).findValuesAsString("id")).contains(tournament.id().toString());
         assertThat(send("GET", "/api/tournaments/" + tournament.id(), owner, null).statusCode()).isEqualTo(200);
         HttpResponse<String> outsiderGroups = send("GET", "/api/groups/mine", outsider, null);
         assertThat(outsiderGroups.statusCode()).isEqualTo(200);
-        assertThat(json.readTree(outsiderGroups.body()).findValuesAsText("id")).doesNotContain(tournament.id().toString());
+        assertThat(json.readTree(outsiderGroups.body()).findValuesAsString("id")).doesNotContain(tournament.id().toString());
     }
 
     @Test
@@ -124,7 +124,7 @@ class OrganizedTournamentIntegrationTest {
         assertThat(view.statusCode()).isEqualTo(200);
         assertThat(json.readTree(view.body()).path("canEdit").asBoolean()).isFalse();
         assertThat(json.readTree(view.body()).path("publicId").isNull()).isTrue();
-        assertThat(json.readTree(send("GET", "/api/groups/mine", guest, null).body()).findValuesAsText("id"))
+        assertThat(json.readTree(send("GET", "/api/groups/mine", guest, null).body()).findValuesAsString("id"))
                 .contains(id.toString());
         assertThat(send("GET", publicPath, null, null).statusCode()).isEqualTo(404);
         assertThat(send("POST", detail + "/participants", guest, new ParticipantInput(0, "Intruso")).statusCode())
