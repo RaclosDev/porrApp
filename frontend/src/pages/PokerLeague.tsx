@@ -285,6 +285,8 @@ export default function PokerLeague({
                 ) : (
                   <>
                     <PokerLive
+                      // Un torneo nuevo empieza con el estado limpio: sin borradores ni diálogos del anterior.
+                      key={current.id}
                       leagueId={league.id}
                       session={current}
                       owner={league.owner}
@@ -300,6 +302,7 @@ export default function PokerLeague({
                         if (saved && action === 'CLOSE') {
                           navigate(pokerRoutes.history.to, { state: { pokerTip: true } });
                         }
+                        return saved;
                       }}
                     >
                       <PokerLateEntry

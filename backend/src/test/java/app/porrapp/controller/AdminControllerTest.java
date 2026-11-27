@@ -3,10 +3,12 @@ package app.porrapp.controller;
 import app.porrapp.config.JwtUtil;
 import app.porrapp.dto.AdminAnnouncementRequest;
 import app.porrapp.dto.AdminAnnouncementResult;
+import app.porrapp.dto.AdminIncidentDTO;
 import app.porrapp.dto.AdminOverviewDTO;
 import app.porrapp.service.admin.AdminAnnouncementService;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.admin.AdminAccess;
+import app.porrapp.service.admin.AdminIncidentService;
 import app.porrapp.service.admin.AdminService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -46,6 +48,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private AdminAnnouncementService announcements;
+
+    @MockitoBean
+    private AdminIncidentService incidents;
 
     @MockitoBean
     private UserAccountRepository userAccountRepository;
@@ -92,6 +97,39 @@ class AdminControllerTest {
         Mockito.verify(access).requireAdmin("boss@example.com");
         Mockito.verify(announcements).send("boss@example.com",
                 new AdminAnnouncementRequest(List.of(1L, 2L), "Hola", "Novedades"));
+    }
+
+    private static AdminIncidentDTO incident(String status) {
+        return new AdminIncidentDTO(5L, "SCORE_CHANGE", status, 10L, "España - Uruguay", "Mundial", Instant.now(),
+                new AdminIncidentDTO.Side("Finalizado", 2, 1, null), new AdminIncidentDTO.Side("Finalizado", 2, 2, null),
+                Instant.now(), Instant.now(), 1, null, null, null);
+    }
+
+    @Test
+    void adminListsAndResolvesTheHeldResults() throws Exception {
+        Mockito.when(incidents.list()).thenReturn(List.of(incident("PENDING")));
+        Mockito.when(incidents.apply(5L)).thenReturn(incident("APPLIED"));
+        Mockito.when(incidents.dismiss(5L)).thenReturn(incident("DISMISSED"));
+
+        mockMvc.perform(get("/api/admin/incidents").principal(BOSS))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$[0].received.awayScore").value(2));
+        mockMvc.perform(post("/api/admin/incidents/5/apply").principal(BOSS))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPLIED"));
+        mockMvc.perform(post("/api/admin/incidents/5/dismiss").principal(BOSS))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DISMISSED"));
+        Mockito.verify(access, Mockito.times(3)).requireAdmin("boss@example.com");
+    }
+
+    @Test
+    void nonAdminCannotSeeOrResolveIncidents() throws Exception {
+        Mockito.doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND)).when(access).requireAdmin("boss@example.com");
+
+        mockMvc.perform(get("/api/admin/incidents").principal(BOSS)).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/admin/incidents/5/apply").principal(BOSS)).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/admin/incidents/5/dismiss").principal(BOSS)).andExpect(status().isNotFound());
+        Mockito.verifyNoInteractions(incidents);
     }
 
     @Test

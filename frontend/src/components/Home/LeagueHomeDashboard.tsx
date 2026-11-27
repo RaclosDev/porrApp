@@ -24,7 +24,8 @@ import MatchVotersModal from '../voters/MatchVotersModal';
 import RoundParticipants from '../voters/RoundParticipants';
 import { useMatchVoters } from '../../hooks/useMatchVoters';
 import { useRoundParticipants } from '../../hooks/useRoundParticipants';
-import type { Match, MatchVoter, MatchVoters } from '../../types/api';
+import type { Match, MatchVoter, MatchVoters, ParticipantScore } from '../../types/api';
+import { rankByTotal, rankedCount } from '../../utils/leaderboardRank';
 import { MATCH_KINDS } from '../../context/leagueKind';
 import { boutBilling, fightOutcomes, fightResultText, weightClassLabel } from '../../utils/fights';
 import { FightBadge, FightResultLine, FightTitleTag } from '../fight/FightResult';
@@ -104,7 +105,9 @@ export function MiniRow({
   value,
   highlighted = false,
   player,
-}: Pick<MiniStandingRow, 'rank' | 'name' | 'detail' | 'value'> & {
+}: Pick<MiniStandingRow, 'name' | 'detail' | 'value'> & {
+  /** Puesto, o «-» para quien no tiene puesto (cuota pendiente). */
+  rank: number | string;
   crest?: ReactNode;
   highlighted?: boolean;
   /** Jugador de la fila: su foto y su nombre abren su cromo. */
@@ -317,7 +320,6 @@ export default function LeagueHomeDashboard({ afterHero }: { afterHero?: ReactNo
     activeCompetitionName,
     activeGroupRules,
     leaderboardData,
-    userName,
     userId,
     isAuthenticated,
     activeGroupPoolFormat,
@@ -386,19 +388,15 @@ export default function LeagueHomeDashboard({ afterHero }: { afterHero?: ReactNo
       : desktop
         ? DESKTOP_ROWS
         : standings.previewLimit;
-  // Puesto de cada uno; los empatados lo comparten, como en la clasificación completa.
-  const allTotals = [...new Set((leaderboardData ?? []).map((p) => p.total || 0))].sort(
-    (a, b) => b - a,
-  );
-  // Tu situación en la liga, arriba del todo: puesto (empatados comparten) y puntos.
-  const me = (leaderboardData ?? []).find(
-    (p) => p.userId?.toString() === userId?.toString() || p.name === userName,
-  );
-  const myRank = me
-    ? new Set(
-        (leaderboardData ?? []).map((p) => p.total || 0).filter((total) => total > (me.total || 0)),
-      ).size + 1
-    : 0;
+  // Puesto de cada uno con el criterio de la clasificación completa: los empatados lo comparten y
+  // quien tiene la cuota pendiente no tiene puesto ni cuenta.
+  const ranks = rankByTotal(leaderboardData ?? []);
+  const rankedTotal = rankedCount(leaderboardData ?? []);
+  // Tu fila se busca por cuenta, no por nombre: dos participantes pueden llamarse igual.
+  const isMine = (p: ParticipantScore) =>
+    userId != null && p.userId?.toString() === userId.toString();
+  const me = (leaderboardData ?? []).find(isMine);
+  const myRank = me ? ranks.get(me) : null;
   // Si quedas fuera de los primeros, tu fila ocupa la última: siempre te ves en el ranking.
   const firstParticipants = (leaderboardData ?? []).slice(0, rankingLimit);
   const topParticipants =
@@ -492,7 +490,13 @@ export default function LeagueHomeDashboard({ afterHero }: { afterHero?: ReactNo
                 >
                   <span className="home-status-label">Tu puesto</span>
                   <span className="home-status-value">
-                    <strong>{myRank}.º</strong> de {participantCount} · {me.total || 0} pts
+                    {myRank ? (
+                      <>
+                        <strong>{myRank}.º</strong> de {rankedTotal} · {me.total || 0} pts
+                      </>
+                    ) : (
+                      <>Sin puesto hasta pagar la cuota · {me.total || 0} pts</>
+                    )}
                   </span>
                 </button>
               )}
@@ -608,12 +612,11 @@ export default function LeagueHomeDashboard({ afterHero }: { afterHero?: ReactNo
                     aria-label="Top del ranking"
                   >
                     {topParticipants.map((p, index) => {
-                      const isMe =
-                        p.userId?.toString() === userId?.toString() || p.name === userName;
+                      const isMe = isMine(p);
                       return (
                         <MiniRow
                           key={p.id ?? `member-${p.userId ?? index}`}
-                          rank={allTotals.indexOf(p.total || 0) + 1}
+                          rank={ranks.get(p) ?? '-'}
                           name={`${p.name}${isMe ? ' (Tú)' : ''}`}
                           value={`${p.total || 0} pts`}
                           highlighted={isMe}

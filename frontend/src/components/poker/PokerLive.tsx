@@ -37,7 +37,12 @@ interface Props {
   busy: boolean;
   serverNow: number;
   receivedAt: number;
-  onCommand: (action: PokerAction, playerId?: number, extra?: PokerCommandExtra) => Promise<void>;
+  /** Manda la orden; resuelve true si se ha guardado. */
+  onCommand: (
+    action: PokerAction,
+    playerId?: number,
+    extra?: PokerCommandExtra,
+  ) => Promise<boolean>;
   lastWinnerIds?: number[];
   /** Abre la edición del torneo en juego (ajustes y jugadores); solo para quien organiza. */
   onEdit?: () => void;
@@ -268,18 +273,19 @@ export default function PokerLive({
 
   async function savePrizes() {
     if (!prizeDraft || !draftValid(prizeDraft, session.potCents)) return;
-    await onCommand('SET_PRIZES', undefined, prizeCommand(prizeDraft));
-    setPrizeDraft(null);
+    // Si no se guarda, el editor sigue abierto con lo escrito para reintentarlo.
+    if (await onCommand('SET_PRIZES', undefined, prizeCommand(prizeDraft))) setPrizeDraft(null);
   }
 
   async function confirmClose(draft: PrizeDraft, payouts: PokerPayout[]) {
     const stacksClose = closing === 'stacks';
-    setClosing(null);
-    await onCommand('CLOSE', undefined, {
+    // El diálogo se cierra solo si el torneo se ha cerrado: si falla, el reparto sigue ahí.
+    const saved = await onCommand('CLOSE', undefined, {
       ...(stacksClose && { finalStacks }),
       ...prizeCommand(draft),
       payouts,
     });
+    if (saved) setClosing(null);
   }
 
   const closeDialog =

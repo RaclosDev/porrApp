@@ -2,23 +2,27 @@ package app.porrapp.controller;
 
 import app.porrapp.dto.AdminAnnouncementRequest;
 import app.porrapp.dto.AdminAnnouncementResult;
+import app.porrapp.dto.AdminIncidentDTO;
 import app.porrapp.dto.AdminOverviewDTO;
 import app.porrapp.service.admin.AdminAnnouncementService;
 import app.porrapp.service.admin.AdminAccess;
+import app.porrapp.service.admin.AdminIncidentService;
 import app.porrapp.service.admin.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.List;
 
 /**
- * Panel de administración: cifras de solo lectura y avisos push a ligas. Nada de la app lo enlaza ni lo documenta; quien no es
+ * Panel de administración: cifras de solo lectura, avisos push a ligas e incidencias de resultados. Nada de la app lo enlaza ni lo documenta; quien no es
  * administrador (ver {@link AdminAccess}) recibe un 404.
  */
 @RestController
@@ -29,6 +33,7 @@ public class AdminController {
     private final AdminAccess access;
     private final AdminService service;
     private final AdminAnnouncementService announcements;
+    private final AdminIncidentService incidents;
 
     @GetMapping("/overview")
     public ResponseEntity<AdminOverviewDTO> overview(Principal principal) {
@@ -43,5 +48,25 @@ public class AdminController {
         String email = CurrentUser.email(principal);
         access.requireAdmin(email);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(announcements.send(email, request));
+    }
+    /** Resultados que la sincronización ha retenido: las abiertas y las últimas resueltas. */
+    @GetMapping("/incidents")
+    public ResponseEntity<List<AdminIncidentDTO>> incidents(Principal principal) {
+        access.requireAdmin(CurrentUser.email(principal));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(incidents.list());
+    }
+
+    /** Aplica lo que mandó el proveedor. */
+    @PostMapping("/incidents/{id}/apply")
+    public ResponseEntity<AdminIncidentDTO> applyIncident(Principal principal, @PathVariable Long id) {
+        access.requireAdmin(CurrentUser.email(principal));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(incidents.apply(id));
+    }
+
+    /** Mantiene el resultado guardado. */
+    @PostMapping("/incidents/{id}/dismiss")
+    public ResponseEntity<AdminIncidentDTO> dismissIncident(Principal principal, @PathVariable Long id) {
+        access.requireAdmin(CurrentUser.email(principal));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(incidents.dismiss(id));
     }
 }

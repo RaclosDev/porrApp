@@ -982,6 +982,36 @@ export interface AdminOverview {
   }[];
 }
 
+/** Un lado de una incidencia: lo que había guardado o lo que ha mandado el proveedor. */
+export interface AdminIncidentSide {
+  /** Estado ya en texto («terminado», «en directo»…). */
+  status: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  winner: string | null;
+}
+
+/** Un resultado que la sincronización ha retenido para que lo revise el administrador. */
+export interface AdminIncident {
+  id: number;
+  kind: 'REGRESSION' | 'SCORE_CHANGE' | 'FIGHT_MISSING';
+  /** BLOCKED y PENDING están abiertas; APPLIED y DISMISSED, resueltas. */
+  status: 'BLOCKED' | 'PENDING' | 'APPLIED' | 'DISMISSED';
+  matchId: number;
+  match: string;
+  competition: string | null;
+  matchDate: string | null;
+  previous: AdminIncidentSide;
+  received: AdminIncidentSide;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  seenCount: number;
+  /** Cuándo se aplica sola si el proveedor lo sigue confirmando; null si no se aplica sola. */
+  autoApplyAt: string | null;
+  resolvedAt: string | null;
+  resolvedBy: 'auto' | 'admin' | null;
+}
+
 /** Resultado de un aviso del panel de gestión. */
 export interface AdminAnnouncementResult {
   leagues: number;

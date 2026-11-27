@@ -47,11 +47,14 @@ public class LeaderboardController {
     public ResponseEntity<Map<Long, List<ParticipantScoreDTO.LogEntry>>> getLeaderboardLogs(
             @RequestParam Long groupId, Principal principal) {
         leagueService.assertCanView(groupId, CurrentUser.email(principal));
+        // La clasificación guardada solo trae los totales; el detalle se calcula aparte y se guarda en caché
+        // mientras no cambien esos totales.
+        List<ParticipantScoreDTO> rows = leaderboardService.getLeaderboard(groupId);
         Map<Long, List<ParticipantScoreDTO.LogEntry>> logs = new LinkedHashMap<>();
-        for (ParticipantScoreDTO row : leaderboardService.getLeaderboard(groupId)) {
-            if (row.getId() != null) {
-                logs.put(row.getId(), row.getLog() != null ? row.getLog() : List.of());
-            }
+        Map<Long, List<ParticipantScoreDTO.LogEntry>> computed =
+                leaderboardService.getLeaderboardLogs(groupId, LeaderboardService.fingerprint(rows));
+        for (ParticipantScoreDTO row : rows) {
+            if (row.getId() != null) logs.put(row.getId(), computed.getOrDefault(row.getId(), List.of()));
         }
         return revalidated(logs);
     }

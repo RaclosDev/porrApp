@@ -54,6 +54,7 @@ public class MatchEventProcessor {
     private final MatchPredictionService matchPredictionService;
     private final WebSocketService webSocketService;
     private final FightCardService fightCardService;
+    private final MatchResultGuard resultGuard;
 
     /** Se sustituye entero al refrescar: quien ya tiene el mapa anterior no lo ve vaciarse a medias. */
     private volatile Map<String, Team> teamCache = new ConcurrentHashMap<>();
@@ -614,13 +615,22 @@ public class MatchEventProcessor {
         }
     }
 
-    private void upsertMatch(String eventId, Team home, Team away, Scores scores, int[] fairPlay,
-                             Instant date, MatchStatus status, MatchMetadata meta, Integer bestOf, JsonNode fight,
+    private void upsertMatch(String eventId, Team home, Team away, Scores receivedScores, int[] fairPlay,
+                             Instant date, MatchStatus receivedStatus, MatchMetadata meta, Integer bestOf, JsonNode fight,
                              Batch batch) {
         Match match = matchRepository.findByExternalId(eventId)
                 .orElseGet(() -> Match.builder().externalId(eventId).build());
         Team previousHome = match.getId() == null ? null : match.getHomeTeam();
         Team previousAway = match.getId() == null ? null : match.getAwayTeam();
+        // Resultado cerrado que el proveedor contradice: se queda como estaba hasta que se confirme o lo
+        // aplique el administrador.
+        boolean held = match.getId() != null && resultGuard.holdsResult(match, receivedScores.home(),
+                receivedScores.away(), receivedScores.winner(), receivedStatus.normalized());
+        Scores scores = held ? new Scores(match.getHomeScore(), match.getAwayScore(), match.getWinnerTeam())
+                : match.getId() != null ? keepKnownResult(match, receivedScores) : receivedScores;
+        MatchStatus status = held
+                ? new MatchStatus(match.getStatus(), Boolean.TRUE.equals(match.getFinished()), match.getDisplayClock())
+                : receivedStatus;
 
         boolean updated = match.getId() == null;
         boolean scoreChanged = !Objects.equals(match.getHomeScore(), scores.home())
@@ -659,6 +669,7 @@ public class MatchEventProcessor {
                 | setIfChanged(match.getAwayFairPlay(), fairPlay[1], match::setAwayFairPlay);
         updated |= fairPlayChanged;
 
+        MatchStatusNormalized previousStatus = match.getStatus();
         MatchStatusNormalized normalized = status.normalized();
         boolean statusChanged = setIfChanged(match.getStatus(), normalized, match::setStatus);
         updated |= statusChanged;
@@ -680,6 +691,13 @@ public class MatchEventProcessor {
         } else if (clockChanged) {
             matchRepository.save(match);
             batch.clockUpdated++;
+        }
+
+        // Suspendido, aplazado, cancelado o abandonado: los puntos provisionales dejan de contar hasta que
+        // se reanude o se acabe.
+        if (statusChanged && previousStatus != null && voidsPoints(normalized)) {
+            matchPredictionService.clearMatchPoints(match);
+            batch.markResultsChanged();
         }
 
         // Datos de pelea (método, asalto) y cambios de cartelera de la UFC, antes de puntuar.
@@ -709,6 +727,30 @@ public class MatchEventProcessor {
             log.warn("Falló la evaluación de pronósticos del partido", e);
         }
 
+    }
+
+    /** Estados en los que un partido ya empezado deja de puntuar. */
+    private static boolean voidsPoints(MatchStatusNormalized status) {
+        return status == MatchStatusNormalized.SUSPENDED || status == MatchStatusNormalized.ABANDONED
+                || status == MatchStatusNormalized.CANCELLED || status == MatchStatusNormalized.POSTPONED;
+    }
+
+    /**
+     * Un marcador vacío nunca borra uno que ya existe, y en un partido terminado un ganador que no llega
+     * no borra el que había con el mismo marcador.
+     */
+    private static Scores keepKnownResult(Match match, Scores scores) {
+        boolean storedComplete = match.getHomeScore() != null && match.getAwayScore() != null;
+        if (storedComplete && (scores.home() == null || scores.away() == null)) {
+            return new Scores(match.getHomeScore(), match.getAwayScore(),
+                    scores.winner() != null ? scores.winner() : match.getWinnerTeam());
+        }
+        if (scores.winner() == null && match.getWinnerTeam() != null && Boolean.TRUE.equals(match.getFinished())
+                && Objects.equals(match.getHomeScore(), scores.home())
+                && Objects.equals(match.getAwayScore(), scores.away())) {
+            return new Scores(scores.home(), scores.away(), match.getWinnerTeam());
+        }
+        return scores;
     }
 
     private static String teamName(Team team) {

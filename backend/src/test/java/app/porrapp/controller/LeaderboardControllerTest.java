@@ -15,6 +15,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -66,7 +68,9 @@ class LeaderboardControllerTest {
     @Test
     @DisplayName("El registro de puntos de la liga se pide aparte, por id de pronóstico")
     void logsByPrediction() throws Exception {
-        when(leaderboardService.getLeaderboard(1L)).thenReturn(List.of(score()));
+        ParticipantScoreDTO row = score();
+        when(leaderboardService.getLeaderboard(1L)).thenReturn(List.of(row));
+        when(leaderboardService.getLeaderboardLogs(eq(1L), any())).thenReturn(Map.of(7L, row.getLog()));
 
         mockMvc.perform(get("/api/leaderboard/logs").param("groupId", "1"))
                 .andExpect(status().isOk())
