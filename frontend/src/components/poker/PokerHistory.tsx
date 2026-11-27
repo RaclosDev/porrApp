@@ -389,7 +389,7 @@ const roi = (row: Standing) => (row.paid > 0 ? (row.prizes - row.paid) / row.pai
 
 export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
   const standings = pokerStandings(sessions);
-  const rankOf = new Map(standings.map((row, index) => [row.playerId, index + 1]));
+  const rankOf = new Map(standings.map((row) => [row.playerId, row.rank]));
   const [sort, setSort] = useState<{ column: number; ascending: boolean } | null>(null);
   // Al desplazar la tabla en horizontal, la columna fija se queda en la foto y deja ver los datos.
   const [scrolled, setScrolled] = useState(false);

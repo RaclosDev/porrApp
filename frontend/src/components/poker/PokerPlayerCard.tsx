@@ -83,7 +83,7 @@ function PokerPlayerCard({
     });
     return {
       row: index >= 0 ? standings[index] : null,
-      rank: index >= 0 ? index + 1 : null,
+      rank: index >= 0 ? standings[index].rank : null,
       recent: played.slice(0, RECENT),
     };
   }, [sessions, playerId]);

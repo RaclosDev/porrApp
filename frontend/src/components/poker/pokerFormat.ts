@@ -299,14 +299,21 @@ export function pokerStandings(history: PokerSession[]) {
       players.set(result.playerId, row);
     }
   }
-  return [...players.values()]
-    .map(({ hundredths, ...row }) => ({ ...row, points: hundredths / 100 }))
-    .sort(
-      (a, b) =>
-        b.points - a.points ||
-        b.wins - a.wins ||
-        b.podiums - a.podiums ||
-        a.places / a.played - b.places / b.played ||
-        a.name.localeCompare(b.name, 'es'),
-    );
+  const rows = [...players.values()].map(({ hundredths, ...row }) => ({
+    ...row,
+    points: hundredths / 100,
+  }));
+  type Row = (typeof rows)[number];
+  const byMerit = (a: Row, b: Row) =>
+    b.points - a.points ||
+    b.wins - a.wins ||
+    b.podiums - a.podiums ||
+    a.places / a.played - b.places / b.played;
+  // El nombre solo ordena la lista: quien empata en todo lo demás comparte puesto (1, 1, 3…).
+  const sorted = rows.sort((a, b) => byMerit(a, b) || a.name.localeCompare(b.name, 'es'));
+  let rank = 0;
+  return sorted.map((row, index) => {
+    if (index === 0 || byMerit(sorted[index - 1], row) !== 0) rank = index + 1;
+    return { ...row, rank };
+  });
 }
