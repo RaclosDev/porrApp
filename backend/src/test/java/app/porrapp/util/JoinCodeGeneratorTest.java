@@ -1,11 +1,15 @@
 package app.porrapp.util;
 
+import app.porrapp.exception.BusinessException;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JoinCodeGeneratorTest {
@@ -23,5 +27,21 @@ class JoinCodeGeneratorTest {
             codes.add(code);
         }
         assertEquals(2000, codes.size(), "50 bits: no debería repetirse ninguno en 2000");
+    }
+
+    @Test
+    void uniqueRetriesWhenACodeIsAlreadyTaken() {
+        AtomicInteger calls = new AtomicInteger();
+        String code = JoinCodeGenerator.unique(candidate -> calls.incrementAndGet() <= 2);
+
+        assertEquals(3, calls.get());
+        assertEquals(JoinCodeGenerator.LENGTH, code.length());
+    }
+
+    @Test
+    void uniqueGivesARetryableConflictInsteadOfAServerErrorWhenEveryCodeIsTaken() {
+        BusinessException error = assertThrows(BusinessException.class, () -> JoinCodeGenerator.unique(candidate -> true));
+
+        assertEquals(HttpStatus.CONFLICT, error.getStatus());
     }
 }

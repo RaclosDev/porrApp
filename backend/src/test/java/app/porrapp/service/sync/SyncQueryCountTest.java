@@ -118,7 +118,7 @@ class SyncQueryCountTest {
         statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         SportsDataProvider provider = org.mockito.Mockito.mock(SportsDataProvider.class);
         when(provider.getProviderName()).thenReturn("fake");
-        when(provider.isAvailable()).thenReturn(true);
+        when(provider.isAvailable(org.mockito.ArgumentMatchers.<String>any())).thenReturn(true);
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenAnswer(inv -> {
             String slug = inv.getArgument(0);
             String range = inv.getArgument(1);

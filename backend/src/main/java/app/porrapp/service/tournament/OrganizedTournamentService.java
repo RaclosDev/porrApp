@@ -37,7 +37,7 @@ public class OrganizedTournamentService {
             throw BusinessException.badRequest("Puedes administrar hasta 30 torneos.");
         }
         League league = leagues.save(League.builder().name(request.name().strip()).adminUser(user)
-                .kind(League.KIND_TOURNAMENT).joinCode(JoinCodeGenerator.next()).creationKey(request.creationKey().toString()).build());
+                .kind(League.KIND_TOURNAMENT).joinCode(JoinCodeGenerator.unique(code -> leagues.findByJoinCode(code).isPresent())).creationKey(request.creationKey().toString()).build());
         memberships.save(Membership.builder().id(new Membership.MembershipId(user.getId(), league.getId()))
                 .user(user).league(league).role("ADMIN").build());
         OrganizedTournament tournament = new OrganizedTournament();

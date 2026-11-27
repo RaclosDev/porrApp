@@ -263,6 +263,36 @@ class EspnSportsDataProviderTest {
     }
 
     @Test
+    @DisplayName("Si falla ESPN en fútbol, la NFL, la NBA y la F1 siguen disponibles, y al revés")
+    void eachSportHasItsOwnCircuitBreaker() throws Exception {
+        EspnSportsDataProvider sensitive = providerWithSensitiveBreaker();
+        when(httpResponse.statusCode()).thenReturn(503);
+        when(httpClient.<byte[]>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261025"));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("esp.1", "20261026"));
+
+        assertFalse(sensitive.isAvailable());
+        assertFalse(sensitive.isAvailable("esp.1"));
+        assertTrue(sensitive.isAvailable("nfl"));
+        assertTrue(sensitive.isAvailable("nba"));
+        assertTrue(sensitive.isAvailable("f1"));
+
+        // La NBA y la F1 (fetchEspnJson) y la NFL (proveedor) fallan sobre su propio breaker.
+        String nba = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchEspnJson(nba));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchEspnJson(nba));
+        assertFalse(sensitive.isAvailable("nba"));
+        assertTrue(sensitive.isAvailable("nfl"));
+        assertTrue(sensitive.isAvailable("f1"));
+
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("nfl", null));
+        assertThrows(java.io.IOException.class, () -> sensitive.fetchScoreboardEvents("nfl", null));
+        assertFalse(sensitive.isAvailable("nfl"));
+        assertTrue(sensitive.isAvailable("f1"));
+    }
+
+    @Test
     @DisplayName("Un 404 de ESPN no cuenta como caída del proveedor")
     void clientErrorsDoNotOpenTheCircuitBreaker() throws Exception {
         EspnSportsDataProvider sensitive = providerWithSensitiveBreaker();

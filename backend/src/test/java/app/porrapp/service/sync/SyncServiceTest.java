@@ -98,7 +98,7 @@ class SyncServiceTest {
         when(competitionRepository.findById(5L)).thenReturn(Optional.of(laLiga));
         when(sportsDataProviderRegistry.findProviderForCompetition(anyString())).thenReturn(java.util.Optional.of(provider));
         when(provider.getProviderName()).thenReturn("ESPN");
-        when(provider.isAvailable()).thenReturn(true);
+        when(provider.isAvailable(org.mockito.ArgumentMatchers.<String>any())).thenReturn(true);
         when(matchEventProcessor.teamCache()).thenReturn(new HashMap<>());
     }
 
@@ -462,6 +462,20 @@ class SyncServiceTest {
     }
 
     @Test
+    @DisplayName("Si falla la actualización de goleadores, la sincronización sigue y avisa a los clientes")
+    void aTopScorerFailureDoesNotCutTheSync() throws Exception {
+        List<Match> worldCupMatches = givenAWorldCupResultChange();
+        when(knockoutBracketService.propagateKnockoutWinners(worldCup, worldCupMatches)).thenReturn(2);
+        org.mockito.Mockito.doThrow(new IllegalStateException("goleadores caídos")).when(topScorerService).refresh(worldCup);
+
+        syncService.syncAll();
+
+        verify(topScorerService).refresh(worldCup);
+        verify(webSocketService, times(1)).notifyResultsChanged();
+        assertEquals("success", syncService.getLastSyncStatus());
+    }
+
+    @Test
     @DisplayName("Sin resultados nuevos del Mundial no se recalculan su clasificación ni su cuadro")
     void leavesTheWorldCupAloneWhenOnlyALeagueChanges() throws Exception {
         when(competitionRepository.findAll()).thenReturn(List.of(worldCup, laLiga));
@@ -573,7 +587,7 @@ class SyncServiceTest {
     @Test
     @DisplayName("Con el circuit breaker abierto no se sincroniza nada y la salud lo refleja")
     void skipsCompetitionsWhileTheCircuitBreakerIsOpen() throws Exception {
-        when(provider.isAvailable()).thenReturn(false);
+        when(provider.isAvailable(org.mockito.ArgumentMatchers.<String>any())).thenReturn(false);
 
         syncService.syncAll();
 

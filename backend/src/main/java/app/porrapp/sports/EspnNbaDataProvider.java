@@ -124,7 +124,7 @@ public class EspnNbaDataProvider implements SportsDataProvider {
 
     @Override
     public boolean isAvailable() {
-        return espn.isAvailable();
+        return espn.isAvailable(Competition.NBA_EXTERNAL_ID);
     }
 
     /**

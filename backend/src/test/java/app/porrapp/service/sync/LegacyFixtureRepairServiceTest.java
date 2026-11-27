@@ -57,7 +57,7 @@ class LegacyFixtureRepairServiceTest {
         }
         when(matches.findLegacyPlaceholderFixtures(eq(0L), any())).thenReturn(candidates(1));
         when(providers.findProviderForCompetition("esp.1")).thenReturn(java.util.Optional.of(provider));
-        when(provider.isAvailable()).thenReturn(true);
+        when(provider.isAvailable(org.mockito.ArgumentMatchers.<String>any())).thenReturn(true);
         when(provider.fetchEvent("esp.1", "1")).thenReturn(event);
 
         assertEquals(new LegacyFixtureRepairService.RepairResult(1, 0, 1), repair.repairBatch());
@@ -70,7 +70,7 @@ class LegacyFixtureRepairServiceTest {
         var fixtures = candidates(20);
         when(matches.findLegacyPlaceholderFixtures(eq(0L), any())).thenReturn(fixtures);
         when(providers.findProviderForCompetition("esp.1")).thenReturn(java.util.Optional.of(provider));
-        when(provider.isAvailable()).thenReturn(true);
+        when(provider.isAvailable(org.mockito.ArgumentMatchers.<String>any())).thenReturn(true);
         when(provider.fetchEvent(anyString(), anyString())).thenThrow(new java.io.IOException("503"));
         Instant now = Instant.parse("2026-10-31T12:00:00Z");
 
@@ -86,7 +86,7 @@ class LegacyFixtureRepairServiceTest {
     void interruptionStopsTheBatchAndPreservesTheInterruptFlag() throws Exception {
         when(matches.findLegacyPlaceholderFixtures(eq(0L), any())).thenReturn(candidates(2));
         when(providers.findProviderForCompetition("esp.1")).thenReturn(java.util.Optional.of(provider));
-        when(provider.isAvailable()).thenReturn(true);
+        when(provider.isAvailable(org.mockito.ArgumentMatchers.<String>any())).thenReturn(true);
         when(provider.fetchEvent(anyString(), anyString())).thenThrow(new InterruptedException("closing"));
         try {
             assertEquals(1, repair.repairBatch().attempted());

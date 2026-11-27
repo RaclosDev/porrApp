@@ -29,6 +29,11 @@ public interface SportsDataProvider {
         return true;
     }
 
+    /** Lo mismo para una competición concreta, si el proveedor tiene un circuit breaker por deporte. */
+    default boolean isAvailable(String competitionCode) {
+        return isAvailable();
+    }
+
     /**
      * Recupera el listado de eventos de una competición: siempre se dice cuál, ninguna va por defecto.
      *

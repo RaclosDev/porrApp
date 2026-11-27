@@ -88,6 +88,8 @@ public class PushRetryWorker {
         } else if (result == WebPushSender.Result.GONE) {
             retries.delete(pending);
             subscriptions.deleteByEndpointAndUserId(device.getEndpoint(), pending.getUserId());
+        } else if (result == WebPushSender.Result.REJECTED) {
+            finish(pending, now);
         } else {
             schedule(pending, now);
         }

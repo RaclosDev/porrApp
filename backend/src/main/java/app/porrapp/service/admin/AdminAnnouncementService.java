@@ -131,7 +131,7 @@ public class AdminAnnouncementService {
                     failed++;
                     subscriptionRepository.deleteByEndpoint(device.getEndpoint());
                 }
-                case FAILED -> failed++;
+                case FAILED, REJECTED -> failed++;
             }
         }
         reached.forEach(userId -> notificationLog.record(userId, message, now));

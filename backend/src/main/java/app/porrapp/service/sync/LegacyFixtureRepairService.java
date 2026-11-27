@@ -70,7 +70,7 @@ public class LegacyFixtureRepairService {
                 var provider = providers.findProviderForCompetition(candidate.getCompetition().getExternalId())
                         .orElse(null);
                 if (provider == null) continue;
-                if (!provider.isAvailable()) return new RepairResult(attempted, repaired, failed);
+                if (!provider.isAvailable(candidate.getCompetition().getExternalId())) return new RepairResult(attempted, repaired, failed);
                 attempted++;
                 try {
                     JsonNode event = provider.fetchEvent(candidate.getCompetition().getExternalId(), candidate.getExternalId());

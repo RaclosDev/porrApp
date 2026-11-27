@@ -48,8 +48,12 @@ import java.util.Date;
 @Component
 public class WebPushSender {
 
-    /** SENT significa aceptado por el proveedor, no confirma que el móvil lo haya mostrado. */
-    public enum Result { SENT, QUEUED, GONE, FAILED }
+    /**
+     * SENT significa aceptado por el proveedor, no confirma que el móvil lo haya mostrado. REJECTED: el
+     * proveedor ha rechazado el aviso de forma permanente (400, 403, 413); reintentarlo daría lo mismo,
+     * así que no se encola, y la suscripción se conserva.
+     */
+    public enum Result { SENT, QUEUED, GONE, FAILED, REJECTED }
 
     private static final int RECORD_SIZE = 4096;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -141,6 +145,10 @@ public class WebPushSender {
             int status = http.send(request, HttpResponse.BodyHandlers.discarding()).statusCode();
             if (status >= 200 && status < 300) return Result.SENT;
             if (status == 404 || status == 410) return Result.GONE;
+            if (status == 400 || status == 403 || status == 413) {
+                log.warn("El servicio push rechazó el aviso con {} para {}: no se reintenta", status, uri.getHost());
+                return Result.REJECTED;
+            }
             log.warn("El servicio push respondió {} para {}", status, uri.getHost());
             return Result.FAILED;
         } catch (InterruptedException e) {

@@ -56,7 +56,7 @@ public class PushRetryQueue {
     public void sent(Long id, WebPushSender.Result result) {
         var pending = retries.findById(id).orElse(null);
         if (pending == null) return;
-        if (result == WebPushSender.Result.GONE) {
+        if (result == WebPushSender.Result.GONE || result == WebPushSender.Result.REJECTED) {
             retries.delete(pending);
         } else if (result == WebPushSender.Result.SENT) {
             accepted(pending, Instant.now());
