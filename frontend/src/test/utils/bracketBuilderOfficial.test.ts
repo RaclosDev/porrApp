@@ -117,6 +117,18 @@ describe('nextKnockoutMatch', () => {
     expect(nextKnockoutMatch(games)?.id).toBe(2);
   });
 
+  it('puts a tie without a date after the ones that have one, wherever it comes in the list', () => {
+    const undated = game({ id: 1, round: 'sf' });
+    const dated = game({ id: 2, round: 'qf', date: '2026-07-10T18:00:00Z' });
+    expect(nextKnockoutMatch([undated, dated])?.id).toBe(2);
+    expect(nextKnockoutMatch([dated, undated])?.id).toBe(2);
+    expect(
+      nextKnockoutMatch([game({ id: 3, round: 'sf', date: 'no es una fecha' }), dated])?.id,
+    ).toBe(2);
+    // Si ninguno tiene fecha, sigue habiendo uno que destacar.
+    expect(nextKnockoutMatch([undated])?.id).toBe(1);
+  });
+
   it('skips group matches and knockout matches already started or decided', () => {
     const games = [
       game({ id: 1, round: 'group', groupName: 'A', date: '2026-06-11T18:00:00Z' }),

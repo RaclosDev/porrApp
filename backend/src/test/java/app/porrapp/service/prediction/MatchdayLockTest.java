@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MatchdayLockTest {
     private final Instant saturday = AppTime.fromLocal(LocalDateTime.of(2026, 11, 7, 14, 0));
@@ -82,5 +84,42 @@ class MatchdayLockTest {
                 MatchdayLock.reason(nfl, nextRound, saturday.plus(1, ChronoUnit.HOURS)));
         assertEquals("Las predicciones de esta jornada ya están cerradas",
                 MatchdayLock.reason(edition(PredictionLockMode.PER_ROUND, 0), nextRound, saturday.plus(1, ChronoUnit.HOURS)));
+    }
+
+    private static Edition active() {
+        return Edition.builder().poolFormat(PoolFormat.MATCH_DAY).status("ACTIVE").build();
+    }
+
+    @Test
+    void anOpenMatchWithFutureDeadlineIsOpen() {
+        Instant now = saturday.minus(1, ChronoUnit.HOURS);
+        assertEquals(MatchdayLock.Closure.OPEN, MatchdayLock.closure(active(), first, saturday, now));
+        assertEquals(MatchdayLock.Closure.OPEN, MatchdayLock.closure(active(), first, null, now));
+        assertFalse(MatchdayLock.closure(null, first, saturday, now).isClosed());
+    }
+
+    @Test
+    void theSameClosureRuleAppliesToListSaveSurvivorAndReveal() {
+        Instant now = saturday;
+        assertEquals(MatchdayLock.Closure.DEADLINE, MatchdayLock.closure(active(), first, saturday, now));
+        assertTrue(MatchdayLock.closure(active(), first, saturday, now).isClosed());
+
+        first.setFinished(true);
+        assertEquals(MatchdayLock.Closure.FINISHED, MatchdayLock.closure(active(), first, null, now.minus(1, ChronoUnit.DAYS)));
+
+        Match cancelled = match(9, "Jornada 12", saturday);
+        cancelled.setStatus(app.porrapp.model.MatchStatusNormalized.CANCELLED);
+        assertEquals(MatchdayLock.Closure.STATUS, MatchdayLock.closure(active(), cancelled, null, now.minus(1, ChronoUnit.DAYS)));
+
+        Match postponed = match(10, "Jornada 12", saturday);
+        postponed.setStatus(app.porrapp.model.MatchStatusNormalized.POSTPONED);
+        assertEquals(MatchdayLock.Closure.OPEN, MatchdayLock.closure(active(), postponed, saturday, now.minus(1, ChronoUnit.DAYS)));
+    }
+
+    @Test
+    void aClosedEditionClosesEveryMatchEvenWithoutDeadline() {
+        Edition closed = Edition.builder().poolFormat(PoolFormat.MATCH_DAY).status("CLOSED").build();
+        assertEquals(MatchdayLock.Closure.EDITION_LOCKED,
+                MatchdayLock.closure(closed, nextRound, null, saturday.minus(30, ChronoUnit.DAYS)));
     }
 }

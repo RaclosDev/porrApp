@@ -231,7 +231,12 @@ public class SyncService {
             CompetitionSync refresh = refreshTournament(tournament);
             results.add(refresh);
             tournamentChanged |= refresh.matchesUpdated() > 0;
-            topScorerService.refresh(tournament);
+            try {
+                topScorerService.refresh(tournament);
+            } catch (Exception e) {
+                // Los goleadores son un extra: si fallan no se cortan los avisos ni los demás torneos.
+                log.error("Falló la actualización de goleadores de {}: {}", tournament.getName(), e.getMessage(), e);
+            }
         }
         if (tournamentChanged) {
             // La clasificación de grupos y el cuadro oficial están en cachés sin clave por competición.
@@ -258,7 +263,7 @@ public class SyncService {
             return CompetitionSync.failed(competition.getName(), STATUS_ERROR, "sin proveedor de datos");
         }
         String slug = competition.getExternalId();
-        if (!provider.isAvailable()) {
+        if (!provider.isAvailable(competition.getExternalId())) {
             log.warn("Sincronización de {} omitida: el circuit breaker de {} está abierto",
                     competition.getName(), provider.getProviderName());
             return CompetitionSync.failed(competition.getName(), STATUS_CIRCUIT_OPEN, "circuit breaker abierto");
@@ -300,7 +305,7 @@ public class SyncService {
                     System.currentTimeMillis() - start);
 
             // Si el breaker se ha abierto durante la pasada, las respuestas vacías no eran datos reales.
-            boolean available = provider.isAvailable();
+            boolean available = provider.isAvailable(competition.getExternalId());
             return new CompetitionSync(competition.getName(), batch.hasErrors() ? STATUS_ERROR : available ? STATUS_SUCCESS : STATUS_CIRCUIT_OPEN,
                     batch.matchesUpdated(), batch.teamsUpdated(), batch.hasErrors() ? batch.errorMessage() : available ? null : "circuit breaker abierto",
                     tournament && batch.resultsChanged(), batch.clockUpdated());
@@ -341,7 +346,7 @@ public class SyncService {
         if (last != null && now.isBefore(last.plus(UPCOMING_REFRESH))) return;
         boolean complete = true;
         for (int offset = 2; offset <= UPCOMING_DAYS; offset++) {
-            if (Thread.currentThread().isInterrupted() || !provider.isAvailable()) {
+            if (Thread.currentThread().isInterrupted() || !provider.isAvailable(competition.getExternalId())) {
                 complete = false;
                 break;
             }

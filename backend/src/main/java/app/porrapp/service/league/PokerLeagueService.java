@@ -52,7 +52,7 @@ public class PokerLeagueService {
             throw BusinessException.badRequest("Has llegado al máximo de ligas de póker");
         }
         League league = leagues.save(League.builder().name(request.name().strip()).adminUser(owner)
-                .kind(League.KIND_POKER).joinCode(JoinCodeGenerator.next()).creationKey(key).build());
+                .kind(League.KIND_POKER).joinCode(JoinCodeGenerator.unique(code -> leagues.findByJoinCode(code).isPresent())).creationKey(key).build());
         memberships.save(Membership.builder().id(new Membership.MembershipId(owner.getId(), league.getId()))
                 .user(owner).league(league).role("ADMIN").build());
         roster.memberJoined(league, owner);

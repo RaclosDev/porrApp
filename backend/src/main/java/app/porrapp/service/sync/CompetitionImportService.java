@@ -172,7 +172,7 @@ public class CompetitionImportService {
         List<JsonNode> selected = new ArrayList<>();
         long deadline = System.nanoTime() + Duration.ofMinutes(2).toNanos();
         try {
-            if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
+            if (!provider.isAvailable(slug)) throw new IllegalStateException("Circuit breaker abierto");
             TournamentFormat format = competition.tournamentFormat();
             // Un torneo con grupos es el de la temporada de su formato, la dé o no el proveedor por vigente.
             boolean ownSeason = format != null && format.season() != null && !format.season().isBlank();
@@ -189,7 +189,7 @@ public class CompetitionImportService {
                 for (int year = AppTime.day(window.start()).getYear(); year <= AppTime.day(window.end()).getYear(); year++) {
                     checkImportCancellation();
                     if (System.nanoTime() >= deadline) throw new IllegalStateException("Tiempo de descarga agotado");
-                    if (!provider.isAvailable()) throw new IllegalStateException("Circuit breaker abierto");
+                    if (!provider.isAvailable(slug)) throw new IllegalStateException("Circuit breaker abierto");
                     select(provider.fetchScoreboardEvents(slug, String.valueOf(year)), window, seenEventIds, selected, deadline);
                 }
             }

@@ -92,7 +92,7 @@ class FreshInstallTournamentImportTest {
     void theProviderAnswersWhatEspnPublishes() throws Exception {
         provider = mock(SportsDataProvider.class);
         when(provider.getProviderName()).thenReturn("ESPN grabado");
-        when(provider.isAvailable()).thenReturn(true);
+        when(provider.isAvailable(org.mockito.ArgumentMatchers.<String>any())).thenReturn(true);
         when(provider.fetchTeams(anyString())).thenAnswer(call -> recorded(call.getArgument(0) + "-teams"));
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(JSON.createArrayNode());
         when(provider.fetchScoreboardEvents(Competition.WORLD_CUP_EXTERNAL_ID, "2026"))

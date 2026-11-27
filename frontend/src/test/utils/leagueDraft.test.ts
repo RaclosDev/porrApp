@@ -367,6 +367,20 @@ describe('borrador de liga', () => {
     expect(firstIncompleteStep({ ...matchday, name: 'Amigos' }, ctx)).toBe(5);
   });
 
+  it('compara la fecha de cierre con la hora de Madrid, no con la del navegador', () => {
+    const fixed = draftWith({
+      competitionId: 2,
+      poolFormat: 'FULL_BRACKET',
+      lockMode: 'FIXED_DATE',
+    });
+    // Son las 20:30 en Madrid (19:30 UTC): las 20:00 de Madrid ya han pasado, vaya como vaya el navegador.
+    const now = new Date('2026-12-01T19:30:00Z');
+    expect(
+      validateStep('rules', { ...fixed, lockDate: '2026-12-01T20:00' }, ctx, now),
+    ).toHaveProperty('lockDate');
+    expect(validateStep('rules', { ...fixed, lockDate: '2026-12-01T21:00' }, ctx, now)).toEqual({});
+  });
+
   it('envía solo los ajustes que cambian algo', () => {
     const plain = draftWith({ competitionId: 1, poolFormat: 'MATCH_DAY', name: '  Amigos  ' });
     expect(buildCreateRequest(plain, ctx)).toEqual({

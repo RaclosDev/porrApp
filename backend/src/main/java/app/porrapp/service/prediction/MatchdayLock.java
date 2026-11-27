@@ -88,6 +88,29 @@ public final class MatchdayLock {
         return "Se abre cuando se conozcan " + who;
     }
 
+    /** Por qué un partido no admite predicciones (o {@link #OPEN} si las admite). */
+    public enum Closure {
+        OPEN, EDITION_LOCKED, FINISHED, STATUS, DEADLINE;
+
+        public boolean isClosed() {
+            return this != OPEN;
+        }
+    }
+
+    /**
+     * Regla única de cierre de un partido: la inscripción de la liga cerrada, el partido terminado, un estado que
+     * no admite predicciones (cancelado, aplazado...) o un plazo ya vencido ({@code lockAt}, que puede ser null si
+     * no hay plazo). El orden fija el motivo que se muestra cuando se cumplen varias a la vez. Que aún falte un
+     * rival ({@link #awaitingTeams}) es aparte: no es un cierre definitivo, el partido se abre solo.
+     */
+    public static Closure closure(Edition edition, Match match, Instant lockAt, Instant now) {
+        if (edition != null && edition.isLocked()) return Closure.EDITION_LOCKED;
+        if (Boolean.TRUE.equals(match.getFinished())) return Closure.FINISHED;
+        if (match.getStatus() != null && !match.getStatus().isOpenForPrediction()) return Closure.STATUS;
+        if (lockAt != null && !lockAt.isAfter(now)) return Closure.DEADLINE;
+        return Closure.OPEN;
+    }
+
     /** Motivo del cierre de un partido cuyo plazo ya ha pasado. */
     public static String reason(Edition edition, Match match, Instant now) {
         if (match.getMatchDate() != null && !match.getMatchDate().isAfter(now)) return "El partido ya ha comenzado";

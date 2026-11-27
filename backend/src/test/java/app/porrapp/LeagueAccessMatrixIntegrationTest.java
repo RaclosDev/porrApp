@@ -61,6 +61,7 @@ class LeagueAccessMatrixIntegrationTest {
     @Autowired private LeagueMembershipService membershipService;
     @Autowired private UserAccountRepository users;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     @LocalServerPort private int port;
 
@@ -170,7 +171,7 @@ class LeagueAccessMatrixIntegrationTest {
         membershipService.join(league.getId(), delegate.getGoogleEmail());
         String token = jwtUtil.generateAccessToken(delegate.getId(), delegate.getGoogleEmail());
         String base = "/api/groups/" + league.getId();
-        // Carga la caché antes de cambiar permisos para comprobar también su invalidación.
+        // Lee la liga antes de cambiar permisos para comprobar que después ve los nuevos.
         assertThat(send(request(base).GET(), token).statusCode()).isEqualTo(200);
         membershipService.setRole(league.getId(), delegate.getId(), creator.getGoogleEmail(), "ADMIN");
         var rename = request(base).PUT(HttpRequest.BodyPublishers.ofString("{\"name\":\"Nueva liga\"}"))
@@ -181,6 +182,19 @@ class LeagueAccessMatrixIntegrationTest {
         assertThat(leagueService.getLeagueById(league.getId()).orElseThrow().getAdminUserId()).isEqualTo(creator.getId());
         membershipService.setRole(league.getId(), delegate.getId(), creator.getGoogleEmail(), "MEMBER");
         assertThat(send(rename, token).statusCode()).isEqualTo(403);
+    }
+
+    @Test
+    void getLeagueByIdAlwaysReadsTheCurrentLeague() {
+        UserAccount owner = user("owner-fresh@test.invalid", "Dueño");
+        League league = leagueService.createLeague(NewLeague.custom("Liga original", owner.getGoogleEmail(),
+                "Torneo de prueba", PoolFormat.MATCH_DAY).withPichichi(false));
+        assertThat(leagueService.getLeagueById(league.getId()).orElseThrow().getName()).isEqualTo("Liga original");
+
+        // Un cambio que no pasa por el servicio (y por tanto no invalida cachés) tiene que verse igualmente.
+        jdbc.update("UPDATE leagues SET name = ? WHERE id = ?", "Liga renombrada", league.getId());
+
+        assertThat(leagueService.getLeagueById(league.getId()).orElseThrow().getName()).isEqualTo("Liga renombrada");
     }
 
     private UserAccount user(String email, String name) {

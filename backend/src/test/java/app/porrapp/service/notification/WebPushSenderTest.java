@@ -71,8 +71,8 @@ class WebPushSenderTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {201, 404, 410, 429, 500, 503})
-    void handlesProviderResponsesWithoutDeletingTemporaryFailures(int status) throws Exception {
+    @ValueSource(ints = {201, 400, 403, 404, 410, 413, 429, 500, 503})
+    void handlesProviderResponsesWithoutDeletingOrRetryingPermanentRejections(int status) throws Exception {
         HttpClient http = mock(HttpClient.class);
         HttpResponse<Void> response = response(status);
         when(http.send(any(HttpRequest.class), org.mockito.ArgumentMatchers.<HttpResponse.BodyHandler<Void>>any()))
@@ -85,7 +85,9 @@ class WebPushSenderTest {
         String browserKey = b64(WebPushSender.encodePublicKey((ECPublicKey) newKey().getPublic()));
         var result = sender.send("https://web.push.apple.com/test", browserKey, b64(new byte[16]), "{}", 300, 7L);
         assertThat(result).isEqualTo(status == 201 ? WebPushSender.Result.SENT
-                : status == 404 || status == 410 ? WebPushSender.Result.GONE : WebPushSender.Result.QUEUED);
+                : status == 404 || status == 410 ? WebPushSender.Result.GONE
+                : status == 400 || status == 403 || status == 413 ? WebPushSender.Result.REJECTED
+                : WebPushSender.Result.QUEUED);
         if (status < 429) verify(queue, never()).enqueue(anyString(), anyLong(), anyString(), any(), anyInt());
         else verify(queue).enqueue(eq("https://web.push.apple.com/test"), eq(7L), eq("{}"), any(), eq(300));
     }

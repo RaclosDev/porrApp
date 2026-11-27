@@ -31,8 +31,12 @@ import java.util.zip.GZIPInputStream;
 @Slf4j
 public class EspnSportsDataProvider implements SportsDataProvider {
 
-    /** Circuit breaker de las llamadas a ESPN, configurado en application.properties. */
+    /** Circuit breaker de las llamadas a ESPN de fútbol, configurado en application.properties. */
     public static final String CIRCUIT_BREAKER = "sportsApi";
+    /** Uno por deporte: que ESPN falle en uno no corta a los demás. */
+    public static final String NFL_CIRCUIT_BREAKER = "nflApi";
+    public static final String NBA_CIRCUIT_BREAKER = "nbaApi";
+    public static final String FORMULA_ONE_CIRCUIT_BREAKER = "f1Api";
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -226,7 +230,7 @@ public class EspnSportsDataProvider implements SportsDataProvider {
 
     /** Un fallo no equivale a una jornada vacía; el sincronizador registra el error. */
     private JsonNode executeGet(String url) throws Exception {
-        CircuitBreaker breaker = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER);
+        CircuitBreaker breaker = circuitBreakerRegistry.circuitBreaker(breakerForUrl(url));
         try {
             JsonNode result = breaker.executeCallable(() -> request(url));
             if (result == null) throw new IOException("ESPN no devolvió datos válidos");
@@ -237,10 +241,39 @@ public class EspnSportsDataProvider implements SportsDataProvider {
         }
     }
 
+    /** Disponibilidad de las llamadas de fútbol; para otro deporte, {@link #isAvailable(String)}. */
     @Override
     public boolean isAvailable() {
-        CircuitBreaker.State state = circuitBreakerRegistry.circuitBreaker(CIRCUIT_BREAKER).getState();
+        return isOpenFree(CIRCUIT_BREAKER);
+    }
+
+    /** Disponibilidad del deporte de esa competición («nfl», «nba», «f1»; el resto, fútbol). */
+    @Override
+    public boolean isAvailable(String competitionCode) {
+        return isOpenFree(breakerForCompetition(competitionCode));
+    }
+
+    private boolean isOpenFree(String breakerName) {
+        CircuitBreaker.State state = circuitBreakerRegistry.circuitBreaker(breakerName).getState();
         return state != CircuitBreaker.State.OPEN && state != CircuitBreaker.State.FORCED_OPEN;
+    }
+
+    static String breakerForCompetition(String competitionCode) {
+        String code = competitionCode == null ? "" : competitionCode.toLowerCase(java.util.Locale.ROOT).trim();
+        return switch (code) {
+            case NflSchedule.EXTERNAL_ID -> NFL_CIRCUIT_BREAKER;
+            case "nba" -> NBA_CIRCUIT_BREAKER;
+            case "f1" -> FORMULA_ONE_CIRCUIT_BREAKER;
+            default -> CIRCUIT_BREAKER;
+        };
+    }
+
+    /** El deporte va en la ruta de la URL de ESPN: «/football/nfl/», «/basketball/nba/», «/racing/f1/». */
+    static String breakerForUrl(String url) {
+        if (url.contains("/football/")) return NFL_CIRCUIT_BREAKER;
+        if (url.contains("/basketball/")) return NBA_CIRCUIT_BREAKER;
+        if (url.contains("/racing/")) return FORMULA_ONE_CIRCUIT_BREAKER;
+        return CIRCUIT_BREAKER;
     }
 
     private JsonNode request(String url) throws Exception {

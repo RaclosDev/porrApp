@@ -425,8 +425,12 @@ public class LeagueService {
                 league, editionRepository.findByLeagueIdAndStatus(league.getId(), "ACTIVE").orElse(null)));
     }
 
+    /**
+     * Sin caché: la única lectura de producción es {@link #findLeagueResponse}, que lo llama desde esta misma
+     * clase (sin pasar por el proxy, así que {@code @Cacheable} nunca se aplicaba), y una liga cacheada y
+     * leída sin sesión podría dar permisos o datos desfasados.
+     */
     @Transactional(readOnly = true)
-    @org.springframework.cache.annotation.Cacheable(value = "groupById", key = "#id")
     public Optional<League> getLeagueById(Long id) {
         return leagueRepository.findWithPermissionsById(id).map(LeagueService::withAdminLoaded);
     }

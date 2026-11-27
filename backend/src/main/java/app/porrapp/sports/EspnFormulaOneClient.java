@@ -39,7 +39,7 @@ public class EspnFormulaOneClient {
     }
 
     public boolean isAvailable() {
-        return espn.isAvailable();
+        return espn.isAvailable(app.porrapp.model.Competition.FORMULA_ONE_EXTERNAL_ID);
     }
 
     /** Grandes Premios de una temporada; vacío si ESPN aún no la ha publicado. */

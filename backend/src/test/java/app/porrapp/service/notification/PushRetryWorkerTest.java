@@ -69,6 +69,16 @@ class PushRetryWorkerTest {
     }
 
     @Test
+    void doesNotRetryPermanentRejectionsAndKeepsTheDevice() {
+        when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt())).thenReturn(WebPushSender.Result.REJECTED);
+        worker.retry(1L, now);
+        verify(retries).delete(pending);
+        verify(retries, never()).save(pending);
+        verify(subscriptions, never()).deleteByEndpointAndUserId(anyString(), anyLong());
+        verifyNoInteractions(notificationLog);
+    }
+
+    @Test
     void removesGoneDevicesWithoutRetryingForever() {
         when(sender.send(anyString(), anyString(), anyString(), anyString(), anyInt())).thenReturn(WebPushSender.Result.GONE);
         worker.retry(1L, now);
