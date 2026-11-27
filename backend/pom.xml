@@ -60,6 +60,12 @@
             <artifactId>webauthn-server-core</artifactId>
             <version>2.10.1</version>
         </dependency>
+        <!-- La API de webauthn-server-core lanza JsonProcessingException (Jackson 2), pero la
+             librería declara Jackson 2 solo en runtime; desde Boot 4.2 nada lo trae en compile. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
 
         <!-- Validation -->
         <dependency>
