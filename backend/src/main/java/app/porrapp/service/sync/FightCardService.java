@@ -29,8 +29,9 @@ import java.util.function.Consumer;
 /**
  * Datos de pelea de los partidos de la UFC y cambios de cartelera.
  * <p>
- * Una pelea que desaparece de la cartelera de ESPN antes de acabar se da por cancelada: no puntúa a nadie y
- * sus predicciones se anulan. Si cambia uno de los luchadores (mismo combate con otro rival), la predicción
+ * Una pelea que desaparece de la cartelera de ESPN antes de acabar se da por cancelada cuando sigue faltando
+ * un rato después (ver {@link MatchResultGuard}): no puntúa a nadie y sus predicciones se anulan. Una
+ * cartelera con menos de la mitad de las peleas conocidas se toma por incompleta y no cancela nada. Si cambia uno de los luchadores (mismo combate con otro rival), la predicción
  * también se anula, porque se hizo sobre otra pelea. En ambos casos se avisa a quien había predicho.
  */
 @Service
@@ -42,6 +43,7 @@ public class FightCardService {
     private final MatchRepository matchRepository;
     private final EditionMatchChoiceRepository choiceRepository;
     private final ApplicationEventPublisher events;
+    private final MatchResultGuard resultGuard;
 
     /**
      * Guarda los datos de pelea de un partido recién guardado y revisa su cartelera.
@@ -125,7 +127,8 @@ public class FightCardService {
     }
 
     /**
-     * Da por canceladas las peleas de la velada que ya no están en su cartelera.
+     * Da por canceladas las peleas de la velada que ya no están en su cartelera, una vez confirmado que siguen
+     * faltando.
      *
      * @return peleas canceladas
      */
@@ -140,39 +143,66 @@ public class FightCardService {
             opponentOf.put(bout.path("away").asText(), bout.path("homeName").asText());
         }
         List<Long> ids = fightRepository.findByEventExternalId(eventId).stream().map(Fight::getMatchId).toList();
-        int cancelled = 0;
+        List<Match> pending = new ArrayList<>();
+        List<Long> present = new ArrayList<>();
         for (Match match : matchRepository.findAllById(ids)) {
-            if (onCard.contains(match.getExternalId()) || Boolean.TRUE.equals(match.getFinished())
-                    || match.getStatus() == MatchStatusNormalized.CANCELLED) {
+            if (Boolean.TRUE.equals(match.getFinished()) || match.getStatus() == MatchStatusNormalized.CANCELLED) {
                 continue;
             }
-            match.setStatus(MatchStatusNormalized.CANCELLED);
-            match.setDisplayClock(null);
-            matchRepository.save(match);
+            if (onCard.contains(match.getExternalId())) present.add(match.getId());
+            else pending.add(match);
+        }
+        resultGuard.fightsBackOnCard(present);
+        // Una cartelera que trae menos de la mitad de las peleas abiertas es una respuesta a medias.
+        if (pending.isEmpty() || present.size() * 2 < present.size() + pending.size()) return 0;
+        int cancelled = 0;
+        for (Match match : pending) {
+            if (!resultGuard.confirmsFightMissing(match)) continue;
+            cancelFight(match, opponentOf, notices);
             cancelled++;
-            String home = name(match.getHomeTeam());
-            String away = name(match.getAwayTeam());
-            String event = match.getRound();
-            String newOpponent = null;
-            Team stays = null;
-            for (Team fighter : new Team[]{match.getHomeTeam(), match.getAwayTeam()}) {
-                String opponent = fighter == null ? null : opponentOf.get(fighter.getExternalId());
-                if (opponent != null) {
-                    newOpponent = opponent;
-                    stays = fighter;
-                    break;
-                }
-            }
-            String title = stays != null ? name(stays) + " tiene nuevo rival" : "Pelea cancelada";
-            String body = stays != null
-                    ? name(stays) + " pelea ahora contra " + newOpponent + (event != null ? " en " + event : "")
-                            + ". Tu predicción de " + home + " vs. " + away + " se ha anulado: vuelve a predecir."
-                    : home + " vs. " + away + (event != null ? " (" + event + ")" : "")
-                            + " se ha caído de la cartelera. Tu predicción no cuenta.";
-            voidPredictions(match, title, body, notices);
-            log.info("Pelea cancelada en {}: {} vs {}", event, home, away);
         }
         return cancelled;
+    }
+
+    /**
+     * Cancela una pelea: no puntúa a nadie, sus predicciones se anulan y se avisa a quien la había predicho.
+     *
+     * @param opponentOf rival actual de cada luchador en la cartelera, para avisar del cambio de rival
+     */
+    @Transactional
+    public void cancelFight(Match match, Map<String, String> opponentOf, List<FightCardChangedEvent.Notice> notices) {
+        match.setStatus(MatchStatusNormalized.CANCELLED);
+        match.setDisplayClock(null);
+        matchRepository.save(match);
+        String home = name(match.getHomeTeam());
+        String away = name(match.getAwayTeam());
+        String event = match.getRound();
+        String newOpponent = null;
+        Team stays = null;
+        for (Team fighter : new Team[]{match.getHomeTeam(), match.getAwayTeam()}) {
+            String opponent = fighter == null ? null : opponentOf.get(fighter.getExternalId());
+            if (opponent != null) {
+                newOpponent = opponent;
+                stays = fighter;
+                break;
+            }
+        }
+        String title = stays != null ? name(stays) + " tiene nuevo rival" : "Pelea cancelada";
+        String body = stays != null
+                ? name(stays) + " pelea ahora contra " + newOpponent + (event != null ? " en " + event : "")
+                        + ". Tu predicción de " + home + " vs. " + away + " se ha anulado: vuelve a predecir."
+                : home + " vs. " + away + (event != null ? " (" + event + ")" : "")
+                        + " se ha caído de la cartelera. Tu predicción no cuenta.";
+        voidPredictions(match, title, body, notices);
+        log.info("Pelea cancelada en {}: {} vs {}", event, home, away);
+    }
+
+    /** Cancelación que ha confirmado el administrador desde el panel de incidencias. */
+    @Transactional
+    public void cancelFightByAdmin(Match match) {
+        List<FightCardChangedEvent.Notice> notices = new ArrayList<>();
+        cancelFight(match, Map.of(), notices);
+        if (!notices.isEmpty()) events.publishEvent(new FightCardChangedEvent(List.copyOf(notices)));
     }
 
     private void voidPredictions(Match match, String title, String body, List<FightCardChangedEvent.Notice> notices) {

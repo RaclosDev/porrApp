@@ -560,6 +560,49 @@
     background: rgba(146, 64, 14, 0.05);
   }
 
+  /* Incidencias de resultados: una ficha por partido, lo guardado frente a lo del proveedor. */
+  .admin-incidents {
+    display: grid;
+    gap: 18px;
+  }
+
+  .admin-incident-list {
+    display: grid;
+    gap: 10px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .admin-incident {
+    display: grid;
+    gap: 8px;
+  }
+
+  .admin-incident.is-open {
+    border-color: color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+  }
+
+  .admin-incident-sides {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+    margin: 0;
+  }
+
+  .admin-incident-sides dt {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .admin-incident-sides dd {
+    margin: 0;
+    font-size: 0.86rem;
+    font-weight: 700;
+  }
+
   .admin-result-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

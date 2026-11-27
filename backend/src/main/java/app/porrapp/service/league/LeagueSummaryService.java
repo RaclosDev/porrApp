@@ -71,13 +71,19 @@ public class LeagueSummaryService {
         ParticipantScoreDTO mine = prediction == null ? null : ranking.stream()
                 .filter(row -> Objects.equals(row.getId(), prediction.getId()))
                 .findFirst().orElse(null);
+        // Igual que la clasificación: quien tiene la cuota pendiente no tiene puesto ni cuenta, y los empates
+        // comparten puesto sin saltarse números.
+        List<ParticipantScoreDTO> paid = ranking.stream().filter(row -> !row.isPending()).toList();
         Integer rank = null;
         Integer points = null;
         if (mine != null) {
             points = mine.getTotal();
-            rank = 1 + (int) ranking.stream().filter(row -> row.getTotal() > mine.getTotal()).count();
+            if (!mine.isPending()) {
+                rank = 1 + (int) paid.stream().mapToInt(ParticipantScoreDTO::getTotal)
+                        .filter(total -> total > mine.getTotal()).distinct().count();
+            }
         }
-        return new LeagueSummaryDTO(groupId, rank, points, ranking.size(),
+        return new LeagueSummaryDTO(groupId, rank, points, paid.size(),
                 pendingPredictions(edition, prediction, now), leagueClosure.isFinished(edition, now));
     }
 

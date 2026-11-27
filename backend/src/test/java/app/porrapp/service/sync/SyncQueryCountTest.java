@@ -169,7 +169,9 @@ class SyncQueryCountTest {
         Measure leagueResult = measure(syncService::syncAll);
 
         List<ObjectNode> worldCup = events.get(Competition.WORLD_CUP_EXTERNAL_ID);
-        worldCup.set(0, withScore(worldCup.get(0), 4, 4));
+        // Termina el partido inaugural, que estaba sin jugar: un marcador final que cambia se retiene para el
+        // administrador y no tocaría la clasificación.
+        worldCup.set(0, finished(withScore(worldCup.get(0), 4, 4)));
         Measure worldCupResult = measure(syncService::syncAll);
 
         String email = "jornadas@test.com";
@@ -219,8 +221,9 @@ class SyncQueryCountTest {
             for (int[] pair : pairs) {
                 Team home = teams.get(g * 4 + pair[0]);
                 Team away = teams.get(g * 4 + pair[1]);
-                list.add(event("wc-" + (++id), day.plus(id, ChronoUnit.HOURS), "group-stage", "Group " + group,
-                        home, away, id % 3, id % 2, true));
+                boolean played = ++id > 1;
+                list.add(event("wc-" + id, day.plus(id, ChronoUnit.HOURS), "group-stage", "Group " + group,
+                        home, away, played ? id % 3 : null, played ? id % 2 : null, played));
             }
         }
         list.add(event("wc-sf1", day.plus(30, ChronoUnit.DAYS), "semifinals", "", teams.get(0), teams.get(4), 2, 1, true));
@@ -258,6 +261,13 @@ class SyncQueryCountTest {
         node.putObject("team").put("displayName", team.getName())
                 .put("id", team.getExternalId() != null ? team.getExternalId() : "team-" + team.getId());
         if (score != null) node.put("score", String.valueOf(score));
+    }
+
+    private static ObjectNode finished(ObjectNode event) {
+        ObjectNode type = (ObjectNode) event.path("competitions").get(0).path("status").path("type");
+        type.put("state", "post");
+        type.put("completed", true);
+        return event;
     }
 
     private static ObjectNode withScore(ObjectNode event, int home, int away) {

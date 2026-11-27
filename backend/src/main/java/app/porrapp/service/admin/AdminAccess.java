@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,6 +49,20 @@ public class AdminAccess {
         return users.findByGoogleEmail(email)
                 .map(a -> a.getGoogleSub() != null || a.getAppleSub() != null)
                 .orElse(false);
+    }
+
+    /**
+     * Cuentas de administrador de porrApp (no los administradores de cada liga), para avisarles de lo que tienen
+     * que revisar. Mismas condiciones que {@link #isAdmin}.
+     */
+    public List<Long> adminUserIds() {
+        return adminEmails.stream()
+                .map(users::findFirstByGoogleEmailIgnoreCase)
+                .flatMap(Optional::stream)
+                .filter(a -> a.getGoogleSub() != null || a.getAppleSub() != null)
+                .map(UserAccount::getId)
+                .distinct()
+                .toList();
     }
 
     private static ResponseStatusException notFound() {

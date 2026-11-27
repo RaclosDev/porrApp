@@ -30,7 +30,7 @@ import static org.mockito.Mockito.*;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({LegacyFixtureRepairService.class, MatchEventProcessor.class, FightCardService.class})
+@Import({LegacyFixtureRepairService.class, MatchEventProcessor.class, FightCardService.class, MatchResultGuard.class})
 class LegacyFixtureRepairPersistenceTest {
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = app.porrapp.SharedPostgres.committing();

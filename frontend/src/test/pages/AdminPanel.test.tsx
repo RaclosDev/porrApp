@@ -3,13 +3,22 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import AdminPanel from '../../pages/AdminPanel';
-import { fetchAdminOverview, sendAdminAnnouncement } from '../../services/endpoints/admin';
-import type { AdminOverview } from '../../types/api';
+import {
+  applyAdminIncident,
+  dismissAdminIncident,
+  fetchAdminIncidents,
+  fetchAdminOverview,
+  sendAdminAnnouncement,
+} from '../../services/endpoints/admin';
+import type { AdminIncident, AdminOverview } from '../../types/api';
 import { confirmAction } from '../../utils/confirmAction';
 
 vi.mock('../../services/endpoints/admin', () => ({
   fetchAdminOverview: vi.fn(),
   sendAdminAnnouncement: vi.fn(),
+  fetchAdminIncidents: vi.fn(),
+  applyAdminIncident: vi.fn(),
+  dismissAdminIncident: vi.fn(),
 }));
 vi.mock('../../utils/confirmAction', () => ({ confirmAction: vi.fn() }));
 
@@ -62,7 +71,81 @@ const renderPanel = (url = '/gestion-7k2q') =>
     </MemoryRouter>,
   );
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(fetchAdminIncidents).mockResolvedValue([]);
+});
+
+const incident: AdminIncident = {
+  id: 9,
+  kind: 'REGRESSION',
+  status: 'BLOCKED',
+  matchId: 31,
+  match: 'Betis - Sevilla',
+  competition: 'LaLiga',
+  matchDate: '2026-11-12T20:00:00Z',
+  previous: { status: 'terminado', homeScore: 2, awayScore: 1, winner: null },
+  received: { status: 'sin empezar', homeScore: null, awayScore: null, winner: null },
+  firstSeenAt: '2026-11-13T09:00:00Z',
+  lastSeenAt: '2026-11-13T09:05:00Z',
+  seenCount: 2,
+  autoApplyAt: null,
+  resolvedAt: null,
+  resolvedBy: null,
+};
+
+it('lists the held results and applies or dismisses them', async () => {
+  vi.mocked(fetchAdminOverview).mockResolvedValue(overview);
+  vi.mocked(fetchAdminIncidents).mockResolvedValue([
+    incident,
+    { ...incident, id: 10, kind: 'SCORE_CHANGE', status: 'PENDING', match: 'Cádiz - Elche' },
+    {
+      ...incident,
+      id: 8,
+      status: 'APPLIED',
+      match: 'Getafe - Celta',
+      resolvedAt: '2026-11-12T22:00:00Z',
+      resolvedBy: 'auto',
+    },
+  ]);
+  vi.mocked(applyAdminIncident).mockResolvedValue({ ...incident, status: 'APPLIED' });
+  vi.mocked(dismissAdminIncident).mockResolvedValue({ ...incident, status: 'DISMISSED' });
+  vi.mocked(confirmAction).mockResolvedValue(true);
+  renderPanel('/gestion-7k2q?seccion=incidencias');
+
+  const tab = await screen.findByRole('tab', { name: /Incidencias/ });
+  expect(await within(tab).findByText('2')).toBeInTheDocument();
+  const held = screen.getByText('Betis - Sevilla').closest('li') as HTMLElement;
+  expect(
+    within(held).getByText('Un partido terminado vuelve atrás · LaLiga', { exact: false }),
+  ).toBeInTheDocument();
+  expect(within(held).getByText(/2-1 · terminado/)).toBeInTheDocument();
+  expect(within(held).getByText(/sin marcador · sin empezar/)).toBeInTheDocument();
+
+  const resolved = screen.getByText('Getafe - Celta').closest('li') as HTMLElement;
+  expect(within(resolved).getByText(/Resuelta sola/)).toBeInTheDocument();
+  expect(within(resolved).queryByRole('button', { name: /Aplicar/ })).not.toBeInTheDocument();
+
+  fireEvent.click(within(held).getByRole('button', { name: /Aplicar/ }));
+  await vi.waitFor(() => expect(applyAdminIncident).toHaveBeenCalledTimes(1));
+  expect(vi.mocked(applyAdminIncident).mock.calls[0][0]).toBe(9);
+
+  const pending = screen.getByText('Cádiz - Elche').closest('li') as HTMLElement;
+  fireEvent.click(within(pending).getByRole('button', { name: /Descartar/ }));
+  await vi.waitFor(() => expect(dismissAdminIncident).toHaveBeenCalledTimes(1));
+  expect(vi.mocked(dismissAdminIncident).mock.calls[0][0]).toBe(10);
+});
+
+it('does not apply a held result when the confirmation is cancelled', async () => {
+  vi.mocked(fetchAdminOverview).mockResolvedValue(overview);
+  vi.mocked(fetchAdminIncidents).mockResolvedValue([incident]);
+  vi.mocked(confirmAction).mockResolvedValue(false);
+  renderPanel('/gestion-7k2q?seccion=incidencias');
+
+  fireEvent.click(await screen.findByRole('button', { name: /Aplicar/ }));
+  await vi.waitFor(() => expect(confirmAction).toHaveBeenCalledTimes(1));
+  expect(applyAdminIncident).not.toHaveBeenCalled();
+});
 
 it('shows the figures, the latest accounts and the leagues in their tabs', async () => {
   vi.mocked(fetchAdminOverview).mockResolvedValue(overview);

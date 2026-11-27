@@ -34,6 +34,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +48,7 @@ class MatchEventProcessorTest {
     @Mock private MatchPredictionService matchPredictionService;
     @Mock private TopScorerService topScorerService;
     @Mock private WebSocketService webSocketService;
+    @Mock private MatchResultGuard resultGuard;
 
     @InjectMocks
     private MatchEventProcessor processor;
@@ -341,6 +343,35 @@ class MatchEventProcessorTest {
         verify(matchPredictionService).evaluatePredictionsForMatch(stored);
         verify(topScorerService, never()).refresh(org.mockito.ArgumentMatchers.any());
         assertTrue(batch.resultsChanged());
+    }
+
+    @Test
+    @DisplayName("Un resultado retenido por la guarda mantiene el marcador guardado y no repuntúa")
+    void keepsTheStoredResultWhileTheGuardHoldsIt() throws Exception {
+        Match stored = storedFinishedMatch("2", "1");
+        when(resultGuard.holdsResult(eq(stored), eq(3), eq(1), any(), eq(MatchStatusNormalized.FINISHED)))
+                .thenReturn(true);
+        MatchEventProcessor.Batch batch = new MatchEventProcessor.Batch(worldCup);
+
+        processor.process(event("post", true, "Group H", "3", "1", "Spain", "164", "Uruguay", "212", "[]"), cache, batch);
+
+        assertEquals(2, stored.getHomeScore());
+        assertEquals(1, stored.getAwayScore());
+        assertTrue(stored.getFinished());
+        verify(matchPredictionService, never()).evaluatePredictionsForMatch(any());
+        assertFalse(batch.resultsChanged());
+    }
+
+    @Test
+    @DisplayName("Un marcador vacío del proveedor no borra el que ya estaba guardado")
+    void anEmptyScoreDoesNotEraseTheStoredOne() throws Exception {
+        Match stored = storedFinishedMatch("2", "1");
+
+        processor.process(event("post", true, "Group H", "", "", "Spain", "164", "Uruguay", "212", "[]"),
+                cache, new MatchEventProcessor.Batch(worldCup));
+
+        assertEquals(2, stored.getHomeScore());
+        assertEquals(1, stored.getAwayScore());
     }
 
     @Test

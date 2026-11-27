@@ -351,9 +351,20 @@ export async function request<T>(
       body?.error || body?.message || options.fallbackError || defaultErrorMessage(res.status),
     );
   }
-  const body = await res.json();
+  const body = await readBody(res);
   ensureCurrentSession();
-  return body;
+  return body as T;
+}
+
+/**
+ * Cuerpo de una respuesta correcta. Un 204 o un 200 sin cuerpo (las acciones que no devuelven nada)
+ * dan undefined en vez de fallar al leer un JSON vacío.
+ */
+async function readBody(res: Response): Promise<unknown> {
+  if (res.status === 204) return undefined;
+  if (typeof res.text !== 'function') return res.json();
+  const text = await res.text();
+  return text.trim() === '' ? undefined : JSON.parse(text);
 }
 
 export const query = (params: Record<string, string | number | null | undefined>): string => {

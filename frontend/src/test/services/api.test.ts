@@ -53,6 +53,17 @@ describe('api.ts service', () => {
     expect(standings).toEqual([{ group: 'A', teams: [] }]);
   });
 
+  it('una respuesta sin cuerpo (204 o 200 vacío) no falla al leerla', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+    await expect(submitMatchdayPredictions(5, [])).resolves.toBeUndefined();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 200 })));
+    await expect(submitMatchdayPredictions(5, [])).resolves.toBeUndefined();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{"saved":2}', { status: 200 })));
+    await expect(submitMatchdayPredictions(5, [])).resolves.toEqual({ saved: 2 });
+  });
+
   it('avisa en window al guardar predicciones, y solo si se guardan', async () => {
     const saved = vi.fn();
     window.addEventListener(PREDICTION_SAVED_EVENT, saved);

@@ -58,7 +58,8 @@ public class ScoreInvalidationService {
         if (cleared > 0) {
             log.debug("Puntuaciones de {} porras de la edición {} pendientes de recalcular", cleared, editionId);
         }
-        evictLeaderboardAfterCommit();
+        // Solo cambia la clasificación de la liga de esa edición.
+        editionRepository.findLeagueIdByEditionId(editionId).ifPresent(this::evictLeaderboardAfterCommit);
         return cleared;
     }
 

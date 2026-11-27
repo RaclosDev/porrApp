@@ -57,12 +57,15 @@ class ScoreInvalidationServiceTest {
     }
 
     @Test
-    @DisplayName("Invalida las porras de una edición y vacía la caché de clasificaciones")
+    @DisplayName("Invalida las porras de una edición y vacía solo la clasificación de su liga")
     void invalidatesOneEditionAndEvictsTheLeaderboard() {
         when(predictionRepository.clearCalculatedScoresByEditionId(100L)).thenReturn(3);
+        when(editionRepository.findLeagueIdByEditionId(100L)).thenReturn(java.util.Optional.of(7L));
 
         assertEquals(3, service.invalidateEdition(100L));
         assertNull(cacheManager.getCache(ScoreInvalidationService.LEADERBOARD_CACHE).get(7L));
+        org.junit.jupiter.api.Assertions.assertNotNull(
+                cacheManager.getCache(ScoreInvalidationService.LEADERBOARD_CACHE).get(8L), "otra liga no se toca");
         assertEquals(0, service.invalidateEdition(null));
     }
 }

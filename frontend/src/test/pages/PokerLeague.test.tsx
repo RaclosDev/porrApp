@@ -366,7 +366,7 @@ it('corona en inicio al último ganador y marca compras en los cromos del histó
 
 it('actualiza el reloj, limita las compras y permite corregir movimientos antes del cierre', async () => {
   vi.useFakeTimers({ now: 1_000 });
-  const onCommand = vi.fn().mockResolvedValue(undefined);
+  const onCommand = vi.fn().mockResolvedValue(true);
   vi.mocked(confirmAction).mockResolvedValue(true);
   const extra = { costCents: 500, chips: 5000, limit: 1, throughLevel: 1 };
   const active: PokerSession = {
@@ -758,7 +758,7 @@ it('reutiliza las reglas del torneo anterior', async () => {
 });
 
 it('finaliza con las fichas de los supervivientes y deja ajustar el reparto antes de guardar', async () => {
-  const command = vi.fn().mockResolvedValue(undefined);
+  const command = vi.fn().mockResolvedValue(true);
   render(
     <PokerLive
       session={{
@@ -820,7 +820,7 @@ it('finaliza con las fichas de los supervivientes y deja ajustar el reparto ante
 });
 
 it('sin contar fichas, los que siguen comparten el primer puesto a partes iguales', async () => {
-  const command = vi.fn().mockResolvedValue(undefined);
+  const command = vi.fn().mockResolvedValue(true);
   render(
     <PokerLive
       session={{
@@ -868,7 +868,7 @@ it('sin contar fichas, los que siguen comparten el primer puesto a partes iguale
 });
 
 it('reparte en cantidades fijas durante el juego y avisa del resto', async () => {
-  const command = vi.fn().mockResolvedValue(undefined);
+  const command = vi.fn().mockResolvedValue(true);
   render(
     <PokerLive
       session={{ ...session, startedAt: 1, clock: { level: 0, endsAt: null, remainingMs: 1000 } }}
@@ -900,7 +900,7 @@ it('reparte en cantidades fijas durante el juego y avisa del resto', async () =>
 });
 
 it('cambia el reparto de premios en juego y muestra cómo quedaría', async () => {
-  const command = vi.fn().mockResolvedValue(undefined);
+  const command = vi.fn().mockResolvedValue(true);
   render(
     <PokerLive
       session={{ ...session, startedAt: 1, clock: { level: 0, endsAt: null, remainingMs: 1000 } }}
@@ -926,6 +926,27 @@ it('cambia el reparto de premios en juego y muestra cómo quedaría', async () =
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Cambiar reparto' })).toBeVisible(),
   );
+});
+
+it('si el reparto no se guarda, el editor sigue abierto con lo escrito', async () => {
+  const command = vi.fn().mockResolvedValue(false);
+  render(
+    <PokerLive
+      session={{ ...session, startedAt: 1, clock: { level: 0, endsAt: null, remainingMs: 1000 } }}
+      owner
+      busy={false}
+      serverNow={1000}
+      receivedAt={Date.now()}
+      onCommand={command}
+    />,
+  );
+  click('Cambiar reparto');
+  set('Puesto 1 (%)', '70');
+  set('Puesto 2 (%)', '30');
+  click('Guardar reparto');
+  await waitFor(() => expect(command).toHaveBeenCalledTimes(1));
+  expect(screen.getByRole('button', { name: 'Guardar reparto' })).toBeVisible();
+  expect(screen.getByLabelText('Puesto 2 (%)')).toHaveValue(30);
 });
 
 it('no deja cambiar el reparto a quien no organiza', () => {
@@ -970,7 +991,7 @@ it('calcula el ultimo jugador y recalcula al corregir los otros importes', () =>
 });
 
 it('abre las acciones desde la foto y respeta permisos y extras disponibles', () => {
-  const command = vi.fn().mockResolvedValue(undefined);
+  const command = vi.fn().mockResolvedValue(true);
   const live = {
     ...session,
     startedAt: 1,

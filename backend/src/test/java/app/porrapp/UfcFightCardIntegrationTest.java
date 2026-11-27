@@ -25,6 +25,8 @@ import app.porrapp.repository.EditionRepository;
 import app.porrapp.repository.FightRepository;
 import app.porrapp.repository.MatchPredictionRepository;
 import app.porrapp.repository.MatchRepository;
+import app.porrapp.repository.MatchSyncIncidentRepository;
+import app.porrapp.model.MatchSyncIncident;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.league.LeagueSetup;
 import app.porrapp.service.league.LeagueSetupService;
@@ -92,6 +94,7 @@ class UfcFightCardIntegrationTest {
     @Autowired private EditionRepository editions;
     @Autowired private MatchPredictionRepository matchPredictions;
     @Autowired private UserAccountRepository users;
+    @Autowired private MatchSyncIncidentRepository incidents;
     @Autowired private ApplicationEvents events;
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -164,7 +167,18 @@ class UfcFightCardIntegrationTest {
         Match earlyMatch = matches.findByExternalId("ufc-p2").orElseThrow();
         assertThat(prelimMatch.getAwayTeam().getName()).isEqualTo("Sustituto Nuevo");
         assertThat(matchPredictions.findByMatchId(prelimMatch.getId())).isEmpty();
-        assertThat(earlyMatch.getStatus()).isEqualTo(MatchStatusNormalized.CANCELLED);
+        // Una sola sincronización sin la pelea no basta para cancelarla: queda pendiente de confirmar.
+        assertThat(earlyMatch.getStatus()).isNotEqualTo(MatchStatusNormalized.CANCELLED);
+        MatchSyncIncident missing = incidents
+                .findFirstByMatchIdAndKindOrderByIdDesc(earlyMatch.getId(), MatchSyncIncident.Kind.FIGHT_MISSING)
+                .orElseThrow();
+        assertThat(missing.getStatus()).isEqualTo(MatchSyncIncident.Status.PENDING);
+        missing.setFirstSeenAt(Instant.now().minus(31, ChronoUnit.MINUTES));
+        incidents.save(missing);
+
+        sync("e1", night, saturday, List.of(main, newOpponent), Map.of());
+        assertThat(matches.findByExternalId("ufc-p2").orElseThrow().getStatus())
+                .isEqualTo(MatchStatusNormalized.CANCELLED);
         assertThat(matchPredictions.findByMatchId(earlyMatch.getId())).isEmpty();
         assertThat(matchPredictions.findByMatchId(mainMatch.getId())).hasSize(1);
         List<FightCardChangedEvent.Notice> notices = events.stream(FightCardChangedEvent.class)

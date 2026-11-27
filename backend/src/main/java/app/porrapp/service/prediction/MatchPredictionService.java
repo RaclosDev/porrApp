@@ -535,11 +535,56 @@ public class MatchPredictionService {
             }
         }
 
-        scoreInvalidationService.evictLeaderboardAfterCommit();
+        evictLeaderboardsOf(affectedPredictions);
         for (Prediction pred : affectedPredictions) {
             pred.setScoreCalculatedAt(null);
             predictionRepository.save(pred);
         }
+    }
+
+    /**
+     * Quita los puntos de un partido que deja de tener resultado (suspendido, aplazado, cancelado o devuelto a
+     * sin jugar): sus pronósticos vuelven a estar sin puntuar y las porras se recalculan sin ellos.
+     */
+    @Transactional
+    public void clearMatchPoints(Match match) {
+        if (match == null || match.getId() == null) return;
+        if (match.getCompetition() != null && !org.hibernate.Hibernate.isInitialized(match.getCompetition())) {
+            match = matchRepository.findById(match.getId()).orElse(match);
+        }
+        invalidateSurvivorEditions(match);
+        Set<Prediction> affectedPredictions = new HashSet<>();
+        List<MatchPrediction> cleared = new ArrayList<>();
+        for (MatchPrediction mp : matchPredictionRepository.findByMatchId(match.getId())) {
+            if (mp.getPointsAwarded() == null && mp.getIsExactScore() == null && mp.getIsCorrectSign() == null
+                    && mp.getScoringDetails() == null) continue;
+            mp.setPointsAwarded(null);
+            mp.setIsExactScore(null);
+            mp.setIsCorrectSign(null);
+            mp.setScoringDetails(null);
+            cleared.add(mp);
+            if (mp.getPrediction() != null) affectedPredictions.add(mp.getPrediction());
+        }
+        if (cleared.isEmpty()) return;
+        matchPredictionRepository.saveAll(cleared);
+        evictLeaderboardsOf(affectedPredictions);
+        for (Prediction pred : affectedPredictions) {
+            pred.setScoreCalculatedAt(null);
+            predictionRepository.save(pred);
+        }
+    }
+
+    /** Solo las clasificaciones de las ligas con pronósticos en el partido; las demás no cambian. */
+    private void evictLeaderboardsOf(Set<Prediction> predictions) {
+        predictions.stream()
+                .map(Prediction::getEdition)
+                .filter(Objects::nonNull)
+                .map(Edition::getLeague)
+                .filter(Objects::nonNull)
+                .map(app.porrapp.model.League::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(scoreInvalidationService::evictLeaderboardAfterCommit);
     }
 
     /**

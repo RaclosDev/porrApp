@@ -8,12 +8,12 @@ import app.porrapp.service.tournament.StandingsService;
 import java.util.List;
 
 /** Los torneos con fase de grupos tienen clasificación de grupos y cuadro oficiales, que se recalculan aquí. */
-final class GroupTournamentTables {
+public final class GroupTournamentTables {
 
     private GroupTournamentTables() {
     }
 
-    static boolean applies(Competition competition) {
+    public static boolean applies(Competition competition) {
         return competition.isGroupTournament();
     }
 
@@ -23,7 +23,7 @@ final class GroupTournamentTables {
      *
      * @return número de partidos de eliminatorias actualizados
      */
-    static int refresh(Competition competition, KnockoutBracketService knockout, StandingsService standings) {
+    public static int refresh(Competition competition, KnockoutBracketService knockout, StandingsService standings) {
         List<Match> matches = knockout.matchesOf(competition);
         int placed = knockout.propagateKnockoutWinners(competition, matches);
         standings.recalculate(competition, matches);

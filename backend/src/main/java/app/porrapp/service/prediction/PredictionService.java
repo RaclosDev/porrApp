@@ -156,6 +156,8 @@ public class PredictionService {
             return java.util.Collections.emptyList();
         }
         Map<Long, CustomLockService.LockState> lockStates = new java.util.HashMap<>();
+        // Pagos de los miembros por liga, leídos una vez por liga.
+        Map<Long, Map<Long, String>> memberPayments = new java.util.HashMap<>();
         return predictions.stream().map(pred -> {
             boolean isOwner = requesterEmail != null && pred.getUser() != null && requesterEmail.equalsIgnoreCase(pred.getUser().getGoogleEmail());
             CustomLockService.LockState partial = !isOwner && progressiveCustom(pred.getEdition())
@@ -184,7 +186,7 @@ public class PredictionService {
             return PredictionResponseDTO.builder()
                     .key(pred.getId() != null ? pred.getId().toString() : "")
                     .hash(pred.getId() != null ? pred.getId().toString() : "")
-                    .paid(pred.getPaid())
+                    .paid(!paymentPending(pred, memberPayments))
                     .participantName(app.porrapp.util.TextSanitizer.fixParticipantName(pred.getParticipantName()))
                     .userId(pred.getUser() != null ? pred.getUser().getId() : null)
                     .predictionName(pred.getPredictionName())
@@ -192,6 +194,23 @@ public class PredictionService {
                     .data(dataDto)
                     .build();
         }).collect(Collectors.toList());
+    }
+
+    /** Mismo criterio que la clasificación ({@link app.porrapp.service.league.PaymentRule}). */
+    private boolean paymentPending(Prediction pred, Map<Long, Map<Long, String>> memberPayments) {
+        app.porrapp.model.League league = pred.getEdition() != null ? pred.getEdition().getLeague() : null;
+        if (!app.porrapp.service.league.PaymentRule.charges(league)) return false;
+        Map<Long, String> statuses = memberPayments.computeIfAbsent(league.getId(), id -> {
+            Map<Long, String> byUser = new java.util.HashMap<>();
+            for (app.porrapp.model.Membership m : membershipRepository.findByLeagueId(id)) {
+                if (m.getUser() != null && m.getUser().getId() != null) {
+                    byUser.put(m.getUser().getId(), m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING");
+                }
+            }
+            return byUser;
+        });
+        String status = pred.getUser() == null ? null : statuses.get(pred.getUser().getId());
+        return app.porrapp.service.league.PaymentRule.pending(league, status, pred.getPaid());
     }
 
     @Transactional(readOnly = true)

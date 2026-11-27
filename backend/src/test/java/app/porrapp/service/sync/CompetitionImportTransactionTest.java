@@ -49,7 +49,8 @@ import static org.mockito.Mockito.*;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Import({CompetitionImportService.class, SyncLock.class, MatchEventProcessor.class, MatchPredictionService.class,
         MatchScoringCalculator.class, StandingsService.class, ScoreInvalidationService.class, CustomLockService.class,
-        FightCardService.class, CompetitionSeasonService.class, CompetitionImportTransactionTest.Caches.class})
+        FightCardService.class, MatchResultGuard.class, CompetitionSeasonService.class,
+        CompetitionImportTransactionTest.Caches.class})
 class CompetitionImportTransactionTest {
     @TestConfiguration @EnableCaching
     static class Caches {
@@ -175,7 +176,8 @@ class CompetitionImportTransactionTest {
         Team away = teams.save(Team.builder().name("Import Away").externalId("991002").build());
         Competition competition = competitions.findById(competitionId).orElseThrow();
         Match original = matches.save(Match.builder().externalId("990001").competition(competition)
-                .homeTeam(home).awayTeam(away).homeScore(0).awayScore(0).finished(true)
+                // Sin jugar: si ya estuviera terminado, MatchResultGuard retendría el marcador distinto.
+                .homeTeam(home).awayTeam(away).finished(false)
                 .matchDate(java.time.Instant.now()).build());
         UserAccount user = users.save(UserAccount.builder().googleEmail("import-score@test.invalid")
                 .googleName("Import Score").participantName("Import Score").build());
@@ -194,7 +196,7 @@ class CompetitionImportTransactionTest {
         assertThatThrownBy(() -> sync.importCompetitionData(competitionId)).isInstanceOf(IllegalStateException.class);
 
         assertThat(matchPredictions.findById(selection.getId()).orElseThrow().getPointsAwarded()).isZero();
-        assertThat(matches.findById(original.getId()).orElseThrow().getHomeScore()).isZero();
+        assertThat(matches.findById(original.getId()).orElseThrow().getHomeScore()).isNull();
         assertThat(predictions.findById(prediction.getId()).orElseThrow().getScoreCalculatedAt()).isNotNull();
         assertThat(caches.getCache("leaderboard").get("before-import").get()).isEqualTo("existing ranking");
         verifyNoInteractions(updates);
@@ -265,6 +267,13 @@ class CompetitionImportTransactionTest {
 
     @Test
     void processingFailureRollsBackDataCacheAndNotificationsAndCanBeRetried() throws Exception {
+        // Solo se vacía la clasificación de las ligas que usan la competición importada.
+        Competition competition = competitions.findById(competitionId).orElseThrow();
+        UserAccount user = users.save(UserAccount.builder().googleEmail("import-retry@test.invalid")
+                .googleName("Import Retry").participantName("Import Retry").build());
+        League league = leagues.save(League.builder().name("Import Retry").joinCode("IMPRETRY").adminUser(user).build());
+        editions.save(Edition.builder().league(league).competition(competition).poolFormat(PoolFormat.MATCH_DAY).build());
+        caches.getCache("leaderboard").put(league.getId(), "league ranking");
         when(provider.fetchScoreboardEvents(anyString(), anyString())).thenReturn(events());
         Map<String, app.porrapp.model.Team> before = processor.teamCache();
         doThrow(new IllegalStateException("second event failed")).when(processor)
@@ -276,6 +285,7 @@ class CompetitionImportTransactionTest {
         assertThat(matches.findByExternalId("990001")).isEmpty();
         assertThat(before).doesNotContainKey("soccer-991001");
         assertThat(caches.getCache("leaderboard").get("before-import").get()).isEqualTo("existing ranking");
+        assertThat(caches.getCache("leaderboard").get(league.getId()).get()).isEqualTo("league ranking");
         verifyNoInteractions(updates);
 
         when(provider.fetchScoreboardEvents(anyString(), anyString()))
@@ -284,7 +294,8 @@ class CompetitionImportTransactionTest {
 
         assertThat(teams.findByExternalId("soccer-991001")).isPresent();
         assertThat(matches.findByExternalId("990001")).isPresent();
-        assertThat(caches.getCache("leaderboard").get("before-import")).isNull();
+        assertThat(caches.getCache("leaderboard").get(league.getId())).isNull();
+        assertThat(caches.getCache("leaderboard").get("before-import").get()).isEqualTo("existing ranking");
         verify(updates).broadcastMatchScore(any(), eq("Import Home"), eq("Import Away"), eq(2), eq(1), eq("FINISHED"));
     }
 }

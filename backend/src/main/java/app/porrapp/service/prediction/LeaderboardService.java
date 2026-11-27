@@ -70,7 +70,7 @@ public class LeaderboardService {
                 ? predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId)
                 : predictionRepository.findAllWithUserAndEdition();
 
-        Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId);
+        Map<Long, String> membershipPayment = getMembershipPaymentStatus(groupId, groupPredictions);
         // Los puntos guardados siguen valiendo hasta que algo los invalida (score_calculated_at a null):
         // solo se recalculan esas porras, para que guardar una predicción no obligue a puntuar toda la liga.
         List<ParticipantScoreDTO> leaderboard = new ArrayList<>(groupPredictions.size());
@@ -191,12 +191,21 @@ public class LeaderboardService {
                 .collect(Collectors.groupingBy(mp -> mp.getPrediction().getId()));
     }
 
-    /** Estado de pago por usuario, o null si la liga no cobra cuota (nadie queda pendiente). */
-    private Map<Long, String> getMembershipPaymentStatus(Long groupId) {
-        if (groupId == null) return Collections.emptyMap();
+    /**
+     * Estado de pago por usuario, o null si la liga no cobra cuota (nadie queda pendiente). Ver
+     * {@link app.porrapp.service.league.PaymentRule}.
+     */
+    private Map<Long, String> getMembershipPaymentStatus(Long groupId, List<Prediction> predictions) {
+        if (groupId == null) return null;
+        List<Membership> memberships = membershipRepository.findByLeagueId(groupId);
+        // La liga sale de sus miembros o, si no tiene, de sus predicciones.
+        app.porrapp.model.League league = memberships.stream().map(Membership::getLeague).filter(Objects::nonNull)
+                .findFirst()
+                .orElseGet(() -> predictions.stream().map(Prediction::getEdition).filter(Objects::nonNull)
+                        .map(Edition::getLeague).filter(Objects::nonNull).findFirst().orElse(null));
+        if (!app.porrapp.service.league.PaymentRule.charges(league)) return null;
         Map<Long, String> statuses = new HashMap<>();
-        for (Membership membership : membershipRepository.findByLeagueId(groupId)) {
-            if (membership.getLeague() != null && !membership.getLeague().isEntryFee()) return null;
+        for (Membership membership : memberships) {
             if (membership.getUser() == null || membership.getUser().getId() == null) continue;
             statuses.put(membership.getUser().getId(),
                     membership.getPaymentStatus() != null ? membership.getPaymentStatus() : "PENDING");
@@ -207,10 +216,9 @@ public class LeaderboardService {
     private boolean isPaymentPending(Prediction pred, Map<Long, String> membershipPayment) {
         if (membershipPayment == null) return false;
         Long userId = pred.getUser() != null ? pred.getUser().getId() : null;
-        if (userId != null) {
-            String status = membershipPayment.get(userId);
-            if (status != null) return !"PAID".equalsIgnoreCase(status);
-        }
+        String status = userId == null ? null : membershipPayment.get(userId);
+        // La liga ya cobra (si no, el mapa sería null): decide el miembro y, si no lo es, la predicción.
+        if (status != null) return !app.porrapp.service.league.PaymentRule.PAID.equalsIgnoreCase(status);
         return !Boolean.TRUE.equals(pred.getPaid());
     }
 
@@ -241,8 +249,8 @@ public class LeaderboardService {
                     .avatarUrl(user.getAvatarUrl())
                     .predictionName("")
                     // Mismo criterio que en Administrar: con cuota, quien no ha pagado sale pendiente.
-                    .pending(membershipPayment != null
-                            && !"PAID".equalsIgnoreCase(membership.getPaymentStatus()))
+                    .pending(membershipPayment != null && !app.porrapp.service.league.PaymentRule.PAID
+                            .equalsIgnoreCase(membership.getPaymentStatus()))
                     .r1(0).r32(0).r16(0).qf(0).sf(0).finals(0).scorer(0).matchPoints(0).total(0)
                     .eliminated(survivorEdition != null
                             && survivors.standing(survivorEdition, user.getId(), null, List.of()).eliminated())
@@ -406,6 +414,44 @@ public class LeaderboardService {
         }
     }
 
+    /**
+     * Registro de puntos de cada porra de la liga (id de la porra -> entradas), calculado entero: la
+     * clasificación guardada solo tiene los totales, no el detalle. La clave incluye los totales de la
+     * clasificación ({@code fingerprint}), así que en cuanto cambia un punto se vuelve a calcular.
+     */
+    @Cacheable(value = "leaderboardLogs", key = "#groupId + ':' + #fingerprint", sync = true)
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Map<Long, List<ParticipantScoreDTO.LogEntry>> getLeaderboardLogs(Long groupId, String fingerprint) {
+        if (groupId == null) return Map.of();
+        List<Prediction> predictions = predictionRepository.findByEditionLeagueIdWithUserAndEdition(groupId);
+        Map<Long, List<MatchPrediction>> matchPredsByPrediction = matchPredictionsByPrediction(predictions);
+        TournamentResults tournaments = new TournamentResults();
+        SurvivorContext survivors = new SurvivorContext();
+        Map<String, ScoringStrategy> strategiesByRules = new HashMap<>();
+        Map<Long, List<ParticipantScoreDTO.LogEntry>> logs = new java.util.LinkedHashMap<>();
+        for (Prediction pred : predictions) {
+            if (pred.getId() == null) continue;
+            ScoringRuleSet rules = ScoringRuleSet.effectiveForEdition(pred.getEdition());
+            ScoringStrategy strategy = strategiesByRules.computeIfAbsent(rules.toJson(),
+                    json -> scoringStrategy.withRules(rules));
+            ParticipantScoreDTO score = scorePrediction(pred,
+                    matchPredsByPrediction.getOrDefault(pred.getId(), List.of()), tournaments, strategy, survivors);
+            logs.put(pred.getId(), score.getLog() != null ? List.copyOf(score.getLog()) : List.of());
+        }
+        return logs;
+    }
+
+    /** Huella de los puntos de una clasificación: cambia en cuanto cambia el total de alguna porra. */
+    public static String fingerprint(List<ParticipantScoreDTO> rows) {
+        StringBuilder key = new StringBuilder();
+        for (ParticipantScoreDTO row : rows) {
+            if (row.getId() == null) continue;
+            key.append(row.getId()).append('=').append(row.getTotal()).append('/').append(row.getMatchPoints())
+                    .append(row.isEliminated() ? 'x' : '-').append(',');
+        }
+        return rows.size() + "-" + Integer.toHexString(key.toString().hashCode()) + "-" + key.length();
+    }
+
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ParticipantScoreDTO calculateScoreForPrediction(Long predictionId) {
         if (predictionId == null) return null;
@@ -415,9 +461,11 @@ public class LeaderboardService {
         ParticipantScoreDTO score = scorePrediction(pred, matchPredictionRepository.findWithMatchByPredictionIdIn(List.of(pred.getId())),
                 new TournamentResults(),
                 scoringStrategy.withRules(ScoringRuleSet.effectiveForEdition(pred.getEdition())), new SurvivorContext());
-        boolean entryFee = pred.getEdition() != null && pred.getEdition().getLeague() != null
-                && pred.getEdition().getLeague().isEntryFee();
-        score.setPending(entryFee && !Boolean.TRUE.equals(pred.getPaid()));
+        app.porrapp.model.League league = pred.getEdition() != null ? pred.getEdition().getLeague() : null;
+        String membershipStatus = league == null || pred.getUser() == null ? null
+                : membershipRepository.findById(new Membership.MembershipId(pred.getUser().getId(), league.getId()))
+                        .map(m -> m.getPaymentStatus() != null ? m.getPaymentStatus() : "PENDING").orElse(null);
+        score.setPending(app.porrapp.service.league.PaymentRule.pending(league, membershipStatus, pred.getPaid()));
         return score;
     }
 

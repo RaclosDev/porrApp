@@ -1,15 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, BellRing, Building2, RefreshCw, ShieldCheck, Users } from 'lucide-react';
+import {
+  BarChart3,
+  BellRing,
+  Building2,
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { useEffect, type KeyboardEvent, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import AdminIncidents, {
+  ADMIN_INCIDENTS_KEY,
+  isOpenIncident,
+} from '../components/admin/AdminIncidents';
 import AdminNotices from '../components/admin/AdminNotices';
 import AdminSummary from '../components/admin/AdminSummary';
 import { AdminAccounts, AdminLeagues } from '../components/admin/AdminTables';
 import { timeOnly } from '../components/admin/adminFormat';
-import { fetchAdminOverview } from '../services/endpoints/admin';
+import { fetchAdminIncidents, fetchAdminOverview } from '../services/endpoints/admin';
 
-type Section = 'resumen' | 'cuentas' | 'ligas' | 'avisos';
-const SECTIONS: Section[] = ['resumen', 'cuentas', 'ligas', 'avisos'];
+type Section = 'resumen' | 'cuentas' | 'ligas' | 'avisos' | 'incidencias';
+const SECTIONS: Section[] = ['resumen', 'cuentas', 'ligas', 'avisos', 'incidencias'];
 
 const isSection = (value: string | null): value is Section =>
   value !== null && (SECTIONS as string[]).includes(value);
@@ -43,6 +55,15 @@ export default function AdminPanel() {
     refetchInterval: 60_000,
     retry: false,
   });
+  // Solo se piden cuando el panel ya ha confirmado que la cuenta es de administrador.
+  const incidents = useQuery({
+    queryKey: ADMIN_INCIDENTS_KEY,
+    queryFn: fetchAdminIncidents,
+    refetchInterval: 60_000,
+    retry: false,
+    enabled: Boolean(data),
+  });
+  const openIncidents = incidents.data?.filter(isOpenIncident).length;
 
   if (isPending) {
     return (
@@ -74,6 +95,12 @@ export default function AdminPanel() {
       count: data.leagues.length,
     },
     { id: 'avisos', label: 'Avisos', icon: <BellRing size={15} aria-hidden="true" /> },
+    {
+      id: 'incidencias',
+      label: 'Incidencias',
+      icon: <ShieldAlert size={15} aria-hidden="true" />,
+      count: openIncidents,
+    },
   ];
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -110,7 +137,10 @@ export default function AdminPanel() {
           <button
             type="button"
             className="league-admin-btn is-ghost"
-            onClick={() => void refetch()}
+            onClick={() => {
+              void refetch();
+              void incidents.refetch();
+            }}
             disabled={isFetching}
           >
             <RefreshCw
@@ -155,6 +185,9 @@ export default function AdminPanel() {
           {section === 'cuentas' && <AdminAccounts users={data.recentUsers} />}
           {section === 'ligas' && <AdminLeagues leagues={data.leagues} />}
           {section === 'avisos' && <AdminNotices leagues={data.leagues} />}
+          {section === 'incidencias' && (
+            <AdminIncidents incidents={incidents.data} isError={incidents.isError} />
+          )}
         </div>
       </div>
     </div>

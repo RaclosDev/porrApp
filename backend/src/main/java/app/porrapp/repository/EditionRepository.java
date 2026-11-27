@@ -42,6 +42,9 @@ public interface EditionRepository extends JpaRepository<Edition, Long> {
     List<Long> findCompetitionIdsInUse();
 
     /** Ligas que toman partidos de alguna de esas competiciones, sea la principal o una de las añadidas. */
+    @Query("SELECT e.league.id FROM Edition e WHERE e.id = :editionId")
+    java.util.Optional<Long> findLeagueIdByEditionId(@Param("editionId") Long editionId);
+
     @Query("SELECT DISTINCT e.league.id FROM Edition e WHERE e.competition.id IN :competitionIds"
             + " OR e.id IN (SELECT ec.id.editionId FROM EditionCompetition ec"
             + " WHERE ec.id.competitionId IN :competitionIds)")
