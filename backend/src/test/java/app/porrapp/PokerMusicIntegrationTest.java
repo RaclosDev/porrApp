@@ -9,8 +9,8 @@ import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.league.LeagueMembershipService;
 import app.porrapp.service.sync.SyncService;
 import app.porrapp.service.tournament.TopScorerService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -47,7 +47,7 @@ class PokerMusicIntegrationTest {
     @Autowired LeagueMembershipService memberships;
     @Autowired JwtUtil jwt;
     @LocalServerPort int port;
-    private final ObjectMapper json = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper json = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
 
     @Test

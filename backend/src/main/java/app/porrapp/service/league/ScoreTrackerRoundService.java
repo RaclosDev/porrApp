@@ -20,8 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -184,11 +183,7 @@ public class ScoreTrackerRoundService {
         state.put("sessionId", round.getSessionId());
         state.put("note", round.getNote());
         state.put("scores", new TreeMap<>(points));
-        try {
-            return JSON.writeValueAsString(state);
-        } catch (JsonProcessingException failure) {
-            throw new IllegalStateException(failure);
-        }
+        return JSON.writeValueAsString(state);
     }
 
     private void recordRoundChange(Long leagueId, Long roundId, Long actorId, String action,
