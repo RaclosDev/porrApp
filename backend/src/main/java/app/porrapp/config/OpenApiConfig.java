@@ -15,9 +15,9 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("PorrApp API")
                         .version("1.0.0")
-                        .description("API REST de PorrApp. Desarrollado con Spring Boot 3.")
+                        .description("API REST de PorrApp, con Spring Boot 4.")
                         .contact(new Contact()
                                 .name("RaclosDev")
-                                .url("https://loopdeck.raclos.es")));
+                                .url("https://porrapp.app")));
     }
 }
