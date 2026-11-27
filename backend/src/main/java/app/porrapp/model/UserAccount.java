@@ -37,7 +37,7 @@ public class UserAccount {
     private String appleSub;
 
     /**
-     * Email de la cuenta (Ej: raclo@gmail.com): el verificado de Google, que se actualiza si cambia
+     * Email de la cuenta (p. ej. ana@example.com): el verificado de Google, que se actualiza si cambia
      * en Google, o el que dio al registrarse con contraseña. El nombre es histórico.
      */
     @Column(nullable = false, unique = true)
