@@ -40,6 +40,7 @@ const LEAGUE_IMAGES: Record<number, string> = {
   1: '/demo-ligas/mundial.svg',
   6: '/demo-ligas/laliga.svg',
   39: '/demo-ligas/ufc.svg',
+  77: '/demo-ligas/poker.svg',
 };
 
 /** Rellena las fotos que faltan: personas (`userId` + `avatarUrl`) y ligas (`adminUserId` + `imageUrl`). */

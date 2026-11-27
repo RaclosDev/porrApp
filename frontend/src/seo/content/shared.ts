@@ -47,6 +47,8 @@ export interface ContentPage extends PageMeta {
   download?: { href: string; label: string };
   /** Hoja de juegos de mesa de prueba, para tocarla sin registrarse. */
   scoreboardDemo?: boolean;
+  /** Liga de la demo con la que abre «Probar la demo» (`/demo?liga=…`); sin ella, la de siempre. */
+  demoLeague?: string;
 }
 
 export const HOW_IT_WORKS_FAQ: FaqEntry[] = [

@@ -4093,17 +4093,26 @@ p > .info-tip {
   font-size: 0.85rem;
 }
 
+/* Las cifras junto al crupier no parten las ciegas («75 / 150»): encogen hasta caber en su columna.
+   --wall-chars es el largo del trozo más largo, y cada carácter de Anton ocupa unos 0,42 em. */
+.poker-felt.poker-live-card .poker-empty-side {
+  container-type: inline-size;
+}
+
 .poker-felt.poker-live-card .poker-wall-metric dd {
-  font-size: clamp(1.45rem, 7vw, 2.5rem);
-  /* Ciegas altas («1.000 / 2.000») no caben junto al crupier en un móvil: parten por la barra. */
+  font-size: min(clamp(1.45rem, 7vw, 2.5rem), calc(100cqi / (var(--wall-chars, 5) * 0.42)));
+  /* Solo puede bajar de línea el ante, entero. */
   white-space: normal;
-  text-wrap: balance;
+}
+
+.poker-felt.poker-live-card .poker-wall-chunk {
+  white-space: nowrap;
 }
 
 .poker-felt.poker-live-card .poker-wall-metric .poker-wall-metric-next {
   margin-top: 0.15rem;
   font-family: 'Anton', 'Arial Narrow', sans-serif;
-  font-size: clamp(0.85rem, 3.4vw, 1.15rem);
+  font-size: min(clamp(0.85rem, 3.4vw, 1.15rem), calc(100cqi / (var(--wall-chars, 5) * 0.42)));
   font-weight: 400;
   opacity: 0.6;
 }

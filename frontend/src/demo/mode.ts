@@ -12,9 +12,10 @@ export const DEMO_LEAGUES = [
   { slug: 'laliga', id: '6', label: 'LaLiga' },
   { slug: 'mundial', id: '1', label: 'Mundial' },
   { slug: 'ufc', id: '39', label: 'UFC' },
+  { slug: 'poker', id: '77', label: 'Póker' },
 ] as const;
 
-/** Quien visita la demo entra como este participante ficticio de las tres ligas. */
+/** Quien visita la demo entra como este participante ficticio de las cuatro ligas. */
 export const DEMO_USER = { id: '105', name: 'Marta' } as const;
 
 /** Nombre de la ventana del visor móvil de la portada: sobrevive a una recarga dentro del iframe. */

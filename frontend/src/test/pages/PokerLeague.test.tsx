@@ -1329,3 +1329,35 @@ it('al pulsar un cromo del podio abre el perfil del jugador con sus números en 
   fireEvent.click(screen.getAllByRole('button', { name: 'Ver el perfil de Paz' })[0]);
   expect(screen.getByRole('dialog', { name: 'Perfil de Paz' })).toHaveTextContent('3.º de la liga');
 });
+
+it('no parte las ciegas junto al crupier: solo baja de línea el ante, entero', () => {
+  const levels = [
+    { small: 75, big: 150, ante: 0, minutes: 15 },
+    { small: 1000, big: 2000, ante: 300, minutes: 15 },
+  ];
+  render(
+    <PokerLive
+      session={{
+        ...session,
+        settings: { ...settings, levels },
+        clock: { level: 0, endsAt: null, remainingMs: 60_000 },
+      }}
+      owner
+      busy={false}
+      serverNow={1_000}
+      receivedAt={1_000}
+      onCommand={vi.fn()}
+    />,
+  );
+  const [current, next, seated] = document.querySelectorAll<HTMLElement>('.poker-wall-metric dd');
+  const chunks = (dd: HTMLElement) =>
+    Array.from(dd.querySelectorAll('.poker-wall-chunk')).map((item) => item.textContent);
+  expect(chunks(current)).toEqual(['75 / 150']);
+  expect(chunks(next)).toEqual(['1.000 / 2.000', '· ante 300']);
+  expect(next).toHaveTextContent('1.000 / 2.000 · ante 300');
+  // El tamaño sale del trozo más largo, y las dos cifras de la pared van a la par.
+  expect(next.style.getPropertyValue('--wall-chars')).toBe('13');
+  expect(seated.style.getPropertyValue('--wall-chars')).toBe(
+    current.style.getPropertyValue('--wall-chars'),
+  );
+});
