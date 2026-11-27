@@ -106,6 +106,26 @@ export function buyUntil(levels: BlindLevel[], throughLevel: number) {
   return end;
 }
 
+/** Número del nivel de juego: los descansos no cuentan, así que tras «Nivel 2» y el descanso llega «Nivel 3». */
+export function playLevelNumber(levels: BlindLevel[], index: number) {
+  let count = 0;
+  for (let i = 0; i <= index && i < levels.length; i++) if (levels[i].big !== 0) count++;
+  return count;
+}
+
+/** Cabecera del reloj: «Nivel 3» o, en un descanso, «Tras el nivel 2». */
+export function levelHeading(levels: BlindLevel[], index: number) {
+  const number = playLevelNumber(levels, index);
+  return levels[index]?.big === 0 ? `Tras el nivel ${number}` : `Nivel ${number}`;
+}
+
+/** Corte de una compra extra, que se guarda por posición en la lista: «nivel 4 y el descanso». */
+export function cutoffText(levels: BlindLevel[], throughLevel: number) {
+  const withBreak =
+    levels[throughLevel - 1]?.big === 0 || buyUntil(levels, throughLevel) > throughLevel;
+  return `nivel ${playLevelNumber(levels, throughLevel - 1)}${withBreak ? ' y el descanso' : ''}`;
+}
+
 /** Con el extra activo, deja un descanso justo después de su último nivel para comprar sin prisas. */
 export function withBreakAfterCutoff(
   settings: PokerSettings,

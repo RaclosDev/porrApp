@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import type { BlindClock, BlindLevel } from '../../services/endpoints/poker';
 import { BagIcon, BulletIcon } from './PokerBadges';
 import type { CrupierAction } from './crupier/crupierEngine';
-import { chips, euros, timeLabel } from './pokerFormat';
+import { chips, euros, levelHeading, timeLabel } from './pokerFormat';
 import PokerFreeTable from './PokerFreeTable';
 import PokerTvQueue from './PokerTvQueue';
 import { PokerAvatar } from './PokerFaces';
@@ -167,7 +167,7 @@ export default function PokerTv({
         }
         sides={[
           <dl key="level" className="poker-wall-metric">
-            <dt>Nivel {clock.level + 1}</dt>
+            <dt>{levelHeading(levels, clock.level)}</dt>
             <dd>{blindsText(level)}</dd>
             {next && <dd className="poker-wall-metric-next">{blindsText(next)}</dd>}
           </dl>,

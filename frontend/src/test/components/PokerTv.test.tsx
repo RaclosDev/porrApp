@@ -29,12 +29,13 @@ function renderTv(
   clock: BlindClock = { level: 0, endsAt: Date.now() + 90_000, remainingMs: 90_000 },
   alert: PokerAlert | null = null,
   leagueId?: number,
+  tvLevels = levels,
 ) {
   const onClose = vi.fn();
   render(
     <PokerTv
       clock={clock}
-      levels={levels}
+      levels={tvLevels}
       playersLeft={3}
       playersTotal={5}
       averageChips={12500}
@@ -82,6 +83,16 @@ describe('PokerTv', () => {
     expect(screen.getByText('media de fichas').previousElementSibling).toHaveTextContent(
       chips(12500),
     );
+  });
+
+  it('el descanso no gasta número: tras el nivel 1 viene el nivel 2', () => {
+    const pause = { minutes: 10, small: 0, big: 0, ante: 0 };
+    renderTv({ level: 1, endsAt: Date.now() + 90_000, remainingMs: 90_000 }, null, undefined, [
+      levels[0],
+      pause,
+      levels[1],
+    ]);
+    expect(screen.getByText('Tras el nivel 1')).toBeInTheDocument();
   });
 
   it('con la TV activada suena la cola, pero la cola no se enseña en la tele', () => {

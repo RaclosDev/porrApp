@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cutoffText,
   fullPrizes,
+  levelHeading,
   noLeadingZero,
+  playLevelNumber,
   pointsText,
   pokerStandings,
   settlements,
   standingLabel,
 } from '../../components/poker/pokerFormat';
-import type { PokerSession } from '../../services/endpoints/poker';
+import type { BlindLevel, PokerSession } from '../../services/endpoints/poker';
 
 type Result = PokerSession['results'][number];
 
@@ -155,5 +158,31 @@ describe('pokerStandings: puntos', () => {
     input.value = '0.5';
     expect(noLeadingZero(input)).toBe(0.5);
     expect(input.value).toBe('0.5');
+  });
+});
+
+describe('numeración de niveles: los descansos no cuentan', () => {
+  const blinds = (big: number): BlindLevel => ({ small: big / 2, big, ante: 0, minutes: 20 });
+  const pause: BlindLevel = { small: 0, big: 0, ante: 0, minutes: 10 };
+  const levels = [blinds(100), blinds(200), pause, blinds(400), pause, blinds(800)];
+
+  it('tras el nivel 2 y el descanso viene el nivel 3', () => {
+    expect(levels.map((_, index) => levelHeading(levels, index))).toEqual([
+      'Nivel 1',
+      'Nivel 2',
+      'Tras el nivel 2',
+      'Nivel 3',
+      'Tras el nivel 3',
+      'Nivel 4',
+    ]);
+    expect(playLevelNumber(levels, 5)).toBe(4);
+  });
+
+  it('el corte de una compra extra se cuenta igual', () => {
+    expect(cutoffText(levels, 1)).toBe('nivel 1');
+    expect(cutoffText(levels, 2)).toBe('nivel 2 y el descanso');
+    expect(cutoffText(levels, 3)).toBe('nivel 2 y el descanso');
+    expect(cutoffText(levels, 4)).toBe('nivel 3 y el descanso');
+    expect(cutoffText(levels, 6)).toBe('nivel 4');
   });
 });

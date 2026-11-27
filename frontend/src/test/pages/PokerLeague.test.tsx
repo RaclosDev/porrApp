@@ -120,7 +120,7 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   click('Siguiente');
   expect(screen.getByRole('alert')).toHaveTextContent('al principio y al final');
   click('Añadir nivel');
-  const level = within(screen.getByRole('group', { name: 'Ciegas · nivel 4' }));
+  const level = within(screen.getByRole('group', { name: 'Ciegas · nivel 3' }));
   set('Pequeña', '75', level);
   set('Grande', '150', level);
   fireEvent.click(screen.getByLabelText('Activar ante'));

@@ -267,7 +267,10 @@ public class PokerLeagueService {
             title = "Descanso de póker";
             body = "Empieza un descanso de " + level.minutes() + " minutos.";
         } else {
-            title = "Nivel " + (current.level() + 1) + " de póker";
+            // Los descansos no cuentan: tras el nivel 2 y el descanso, avisa del nivel 3.
+            long number = session.getSettings().levels().stream().limit(current.level() + 1L)
+                    .filter(blinds -> blinds.big() != 0).count();
+            title = "Nivel " + number + " de póker";
             body = "Ciegas " + level.small() + " / " + level.big() + " · Ante " + level.ante()
                     + " · " + level.minutes() + " minutos.";
         }
