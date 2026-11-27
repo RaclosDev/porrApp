@@ -151,7 +151,7 @@ export default function Landing() {
                 })}
                 className="reveal lg:-ml-6 lg:first:ml-0"
               >
-                <StickerCard leader={row} />
+                <StickerCard leader={row} zoomable />
               </li>
             ))}
           </Reveal>
