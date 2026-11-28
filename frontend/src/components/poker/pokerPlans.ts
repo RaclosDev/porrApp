@@ -32,7 +32,8 @@ export const POKER_PLANS: PokerPlanInfo[] = [
     entries: 'Hasta 10 jugadores por torneo',
     features: [
       { text: 'Miembros sin límite' },
-      { text: 'Crupier, reloj de ciegas y modo TV' },
+      { text: 'Recompras, add-ons, reloj de ciegas y descansos, todo personalizable' },
+      { text: 'Modo TV para seguir el torneo en la pantalla grande' },
       { text: 'Histórico y estadísticas' },
     ],
   },
