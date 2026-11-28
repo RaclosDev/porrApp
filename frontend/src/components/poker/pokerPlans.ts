@@ -61,7 +61,7 @@ export const POKER_PLANS: PokerPlanInfo[] = [
     note: 'o 249 €/año (20,75 €/mes)',
     perk: 'Pruébalo gratis: 2 semanas o 2 torneos',
     cta: 'Probar el Club gratis',
-    entries: 'Hasta 100 jugadores por torneo',
+    entries: 'Hasta 50 jugadores por torneo',
     features: [
       { text: 'Todo lo del plan Liga' },
       { text: 'Escudo de la liga en el tapete y en la TV' },

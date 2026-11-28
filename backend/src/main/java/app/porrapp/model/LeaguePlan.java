@@ -4,7 +4,7 @@ package app.porrapp.model;
 public enum LeaguePlan {
     FREE("Gratis", 10),
     LIGA("Liga", 20),
-    CLUB("Club", 100),
+    CLUB("Club", 50),
     CUSTOM("A medida", 100);
 
     private final String label;
