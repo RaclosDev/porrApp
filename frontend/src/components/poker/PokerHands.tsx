@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 /** Jugadas del Texas Hold'em de mejor a peor, con un ejemplo de cinco cartas. */
 const HANDS: { name: string; text: string; cards: string[] }[] = [
   {
@@ -36,11 +38,15 @@ const red = (card: string) => card.endsWith('♥') || card.endsWith('♦');
 /** El selector de texto (U+FE0E) evita que iOS pinte el palo como un emoji de color. */
 const TEXT = '︎';
 
-/** Chuleta de jugadas para consultar fuera de la mesa, plegada para no ocupar la portada. */
+/** En una pantalla ancha cabe a dos columnas junto a la liga: la chuleta empieza abierta. */
+const DESKTOP = '(min-width: 1180px)';
+
+/** Chuleta de jugadas para consultar fuera de la mesa; en el móvil, plegada para no ocupar la portada. */
 export default function PokerHands() {
+  const [open] = useState(() => window.matchMedia?.(DESKTOP)?.matches === true);
   return (
     <section className="paper-panel album-sheet poker-panel poker-hands">
-      <details>
+      <details open={open}>
         <summary>
           <h2>Jugadas del póker</h2>
           <span className="poker-note">De la mejor a la peor</span>
