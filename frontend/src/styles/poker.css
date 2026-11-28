@@ -3465,6 +3465,19 @@ p > .info-tip {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* «Por jugador»: el número máximo y, debajo, la casilla para dejarlo sin límite. */
+.poker-limit-field {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+}
+
+.poker-fields .poker-limit-field .poker-check {
+  min-height: 36px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
 .poker-switch {
   position: relative;
   width: 2.75rem;

@@ -131,15 +131,15 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   const rebuy = within(screen.getByRole('group', { name: 'Recompras' }));
   set('Importe (€)', '9.50', rebuy);
   set('Fichas', '6000', rebuy);
-  expect(getSelectMenu('Recompras por jugador')).toHaveAccessibleName(
-    'Recompras por jugador: Sin límite',
-  );
-  chooseOption(getSelectMenu('Recompras por jugador'), '2');
+  expect(screen.getByLabelText('Recompras sin límite')).toBeChecked();
+  expect(screen.getByLabelText('Recompras por jugador')).toBeDisabled();
+  fireEvent.click(screen.getByLabelText('Recompras sin límite'));
+  expect(screen.getByLabelText('Recompras por jugador')).toHaveValue(1);
+  set('Recompras por jugador', '2');
   chooseOption(rebuy.getByRole('button', { name: /^Hasta el final de/ }), '3');
-  expect(getSelectMenu('Add-ons por jugador')).toHaveAccessibleName(
-    'Add-ons por jugador: 1 como máximo',
-  );
-  chooseOption(getSelectMenu('Add-ons por jugador'), '2');
+  expect(screen.getByLabelText('Add-ons sin límite')).not.toBeChecked();
+  expect(screen.getByLabelText('Add-ons por jugador')).toHaveValue(1);
+  set('Add-ons por jugador', '2');
   click('Quitar nivel 2');
   click('Siguiente');
 
