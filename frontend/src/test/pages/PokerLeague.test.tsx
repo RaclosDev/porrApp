@@ -1453,6 +1453,6 @@ it('la portada enseña el plan de la liga y abre sus límites', async () => {
   fireEvent.click(
     await screen.findByRole('button', { name: 'Plan Gratis: ver los límites y los planes' }),
   );
-  const dialog = screen.getByRole('dialog', { name: 'Plan Gratis' });
-  expect(within(dialog).getByText(/^Hasta 10 jugadores por torneo\./)).toBeVisible();
+  const dialog = screen.getByRole('dialog', { name: 'Planes del póker' });
+  expect(within(dialog).getByText('Hasta 10 jugadores por torneo')).toBeVisible();
 });

@@ -1,13 +1,25 @@
 import type { PokerPlanCode } from '../../services/endpoints/poker';
 
+interface PokerPlanFeature {
+  text: string;
+}
+
 export interface PokerPlanInfo {
   code: PokerPlanCode;
   label: string;
+  /** Una línea que resume para quién es el plan. */
+  tagline: string;
   price: string;
   /** Precio anual o condición, en una línea bajo el precio. */
   note?: string;
   entries: string;
-  features: string[];
+  features: PokerPlanFeature[];
+  /** El plan que recomendamos a la mayoría de las ligas. */
+  highlight?: boolean;
+  /** Ventaja que se enseña junto al precio (ahorro anual, prueba gratis). */
+  perk?: string;
+  /** Texto del botón para pedirlo. */
+  cta?: string;
 }
 
 /** Planes del póker. Las porras y los juegos de mesa son gratis y sin límites. */
@@ -15,48 +27,64 @@ export const POKER_PLANS: PokerPlanInfo[] = [
   {
     code: 'FREE',
     label: 'Gratis',
+    tagline: 'Para empezar con los amigos',
     price: '0 €',
     entries: 'Hasta 10 jugadores por torneo',
     features: [
-      'Miembros sin límite',
-      'Crupier, reloj de ciegas y modo TV',
-      'Histórico y estadísticas',
+      { text: 'Miembros sin límite' },
+      { text: 'Crupier, reloj de ciegas y modo TV' },
+      { text: 'Histórico y estadísticas' },
     ],
   },
   {
     code: 'LIGA',
     label: 'Liga',
+    tagline: 'Para la timba de cada semana',
     price: '4,99 €/mes',
-    note: 'o 49 €/año',
+    note: 'o 49 €/año (4,08 €/mes)',
+    perk: 'Ahorra 2 meses pagando el año',
+    cta: 'Quiero el plan Liga',
     entries: 'Hasta 20 jugadores por torneo',
+    highlight: true,
     features: [
-      'Todo lo del plan Gratis',
-      'Más sombreros para el crupier (próximamente)',
-      'Color del tapete (próximamente)',
+      { text: 'Todo lo del plan Gratis' },
+      { text: 'Estilos personalizados para el crupier' },
+      { text: 'Tapetes personalizados' },
     ],
   },
   {
     code: 'CLUB',
     label: 'Club',
-    price: 'Bajo consulta',
+    tagline: 'Para clubes y torneos con público',
+    price: '24,99 €/mes',
+    note: 'o 249 €/año (20,75 €/mes)',
+    perk: 'Pruébalo gratis: 2 semanas o 2 torneos',
+    cta: 'Probar el Club gratis',
     entries: 'Hasta 100 jugadores por torneo',
     features: [
-      'Todo lo del plan Liga',
-      'Escudo de la liga en el tapete y la TV (próximamente)',
-      'Inscripción con código QR (próximamente)',
-      'Ayuda por mensaje',
+      { text: 'Todo lo del plan Liga' },
+      { text: 'Escudo de la liga en el tapete y en la TV' },
+      { text: 'Personalización con vuestra marca' },
+      { text: 'Inscripción al torneo con código QR' },
+      { text: 'Pedidnos funciones para vuestra liga y las desarrollamos' },
+      { text: 'Atención personalizada al momento' },
     ],
   },
   {
     code: 'CUSTOM',
     label: 'A medida',
-    price: 'Bajo consulta',
+    tagline: 'Para locales y circuitos',
+    price: 'Desde 59 €/mes',
+    note: 'más la puesta en marcha',
+    cta: 'Cuéntanos tu proyecto',
     entries: 'Sin límite práctico de jugadores',
     features: [
-      'Crupier y diseño propios de la liga',
-      'Logos del local y de patrocinadores',
-      'Varios locales e importación del histórico',
-      'Ayuda directa',
+      { text: 'Todo lo del plan Club' },
+      { text: 'Diseño y crupier propios de la liga' },
+      { text: 'Logos del local y de patrocinadores' },
+      { text: 'Varios locales e importación del histórico' },
+      { text: 'Torneos con varias mesas o lo que necesitéis: lo construimos para vosotros' },
+      { text: 'Atención directa y prioritaria' },
     ],
   },
 ];
