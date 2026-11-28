@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -40,7 +40,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const renderAt = (path = '/crear-liga') =>
+const renderAt = (path = '/crear-liga?paso=1') =>
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -53,13 +53,25 @@ const renderAt = (path = '/crear-liga') =>
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
-it('ofrece el marcador de juegos de mesa junto a los deportes, sin ser un deporte más', async () => {
-  renderAt();
+it('empieza eligiendo el tipo de liga y solo la porra sigue a los deportes', async () => {
+  renderAt('/crear-liga');
 
-  await screen.findByRole('radio', { name: 'Fútbol' });
-  const marcador = screen.getByRole('link', { name: /Juego de mesa o de cartas/ });
-  expect(marcador).toHaveAttribute('href', '/marcador/nuevo');
-  expect(screen.queryByRole('radio', { name: /Juego de mesa/ })).not.toBeInTheDocument();
+  const kinds = screen.getByRole('list', { name: 'Tipo de liga' });
+  expect(within(kinds).getByRole('link', { name: /Póker/ })).toHaveAttribute(
+    'href',
+    '/poker/nueva',
+  );
+  expect(within(kinds).getByRole('link', { name: /Juegos de mesa/ })).toHaveAttribute(
+    'href',
+    '/marcador/nuevo',
+  );
+  expect(screen.queryByRole('radio', { name: 'Fútbol' })).not.toBeInTheDocument();
+
+  fireEvent.click(within(kinds).getByRole('button', { name: /Porra/ }));
+  expect(await screen.findByRole('radio', { name: 'Fútbol' })).toBeInTheDocument();
+  expect(screen.queryByRole('list', { name: 'Tipo de liga' })).not.toBeInTheDocument();
+  // Desde el primer paso se vuelve a elegir el tipo.
+  expect(screen.getByRole('link', { name: 'Atrás' })).toHaveAttribute('href', '/crear-liga');
 });
 
 it('crea una liga por jornadas paso a paso y deja el código para invitar', async () => {

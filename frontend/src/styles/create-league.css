@@ -14,6 +14,97 @@
     margin-bottom: 10px;
   }
 
+  /* Primer paso: el tipo de liga. La porra sigue aquí; el póker y los juegos de mesa, en sus páginas. */
+  .create-league-kinds {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .create-league-kind {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 76px;
+    padding: 14px 16px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg);
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .create-league-kind > svg:last-child {
+    margin-left: auto;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  .create-league-kind > svg:first-child {
+    flex-shrink: 0;
+  }
+
+  .create-league-kind-body strong {
+    display: block;
+    font-size: 1.1rem;
+    line-height: 1.2;
+  }
+
+  .create-league-kind-body small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.35;
+  }
+
+  .create-league-kind:hover {
+    border-color: var(--ink);
+    transform: translateY(-1px);
+  }
+
+  .create-league-kind:focus-visible {
+    outline: 2px solid var(--marker-ink);
+    outline-offset: 2px;
+  }
+
+  /* El póker, destacado en dorado: es lo que más se mueve. */
+  .create-league-kind.is-poker {
+    border-color: rgb(240 201 76 / 0.7);
+    background: linear-gradient(160deg, rgb(240 201 76 / 0.16), transparent 70%), var(--panel-bg);
+  }
+
+  .create-league-kind.is-poker > svg:first-child {
+    color: #f0c94c;
+  }
+
+  [data-theme='light'] .create-league-kind.is-poker {
+    border-color: #b8860b;
+  }
+
+  [data-theme='light'] .create-league-kind.is-poker > svg:first-child {
+    color: #8a5a00;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .create-league-kind {
+      transition: none;
+    }
+
+    .create-league-kind:hover {
+      transform: none;
+    }
+  }
+
   .create-league-progress {
     margin: 2px 0 0;
     color: var(--text-muted);
@@ -244,17 +335,6 @@
 
   .create-league-option.is-compact {
     align-items: center;
-  }
-
-  /* Opción que lleva a otra página (el marcador) en vez de elegir algo del formulario. */
-  .create-league-option.is-link {
-    text-decoration: none;
-    border-style: dashed;
-  }
-
-  .create-league-option.is-link:focus-visible {
-    outline: 2px solid var(--marker-ink);
-    outline-offset: 2px;
   }
 
   .create-league-option.is-compact input {

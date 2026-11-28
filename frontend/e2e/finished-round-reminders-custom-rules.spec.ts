@@ -220,7 +220,7 @@ test('el asistente enseña a una competición propia de LoL sus reglas, no las s
       removedPredictions: 0,
     },
   });
-  await page.goto('/crear-liga');
+  await page.goto('/crear-liga?paso=1');
   const next = () => page.getByRole('button', { name: 'Siguiente' }).click();
 
   await page.getByRole('radio', { name: 'League of Legends' }).check();
