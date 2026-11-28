@@ -13,6 +13,7 @@ import PokerLive from '../components/poker/PokerLive';
 import PokerLateEntry from '../components/poker/PokerLateEntry';
 import PokerHome from '../components/poker/PokerHome';
 import PokerInviteDialog from '../components/poker/PokerInviteDialog';
+import PokerPlayersDialog from '../components/poker/PokerPlayersDialog';
 import PokerSessionTabs from '../components/poker/PokerSessionTabs';
 import { lastWinnerIds } from '../components/poker/PokerBadges';
 import { PokerFaces } from '../components/poker/PokerFaces';
@@ -52,6 +53,7 @@ export default function PokerLeague({
   const client = useQueryClient();
   const navigate = useNavigate();
   const [invite, setInvite] = useState(false);
+  const [showPlayers, setShowPlayers] = useState(false);
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const requestedSession = searchParams.get('torneo');
@@ -168,13 +170,18 @@ export default function PokerLeague({
                   <div className="home-hero-pills is-meta">
                     <span className="home-hero-pill">Póker · Texas Hold’em</span>
                     {league.players.length > 0 && (
-                      <span
-                        className="home-hero-pill muted is-count"
-                        aria-label={`${league.players.length} ${league.players.length === 1 ? 'jugador' : 'jugadores'}`}
+                      <button
+                        type="button"
+                        className="home-hero-pill-btn"
+                        onClick={() => setShowPlayers(true)}
+                        aria-haspopup="dialog"
+                        aria-label={`${league.players.length} ${league.players.length === 1 ? 'jugador' : 'jugadores'}: ver la lista`}
                       >
-                        {league.players.length}
-                        <Users size={13} strokeWidth={2.5} aria-hidden="true" />
-                      </span>
+                        <span className="home-hero-pill muted is-count">
+                          {league.players.length}
+                          <Users size={13} strokeWidth={2.5} aria-hidden="true" />
+                        </span>
+                      </button>
                     )}
                     <button
                       type="button"
@@ -188,6 +195,13 @@ export default function PokerLeague({
                   </div>
                 </div>
               </header>
+              {showPlayers && (
+                <PokerPlayersDialog
+                  players={league.players}
+                  leagueName={league.name}
+                  onClose={() => setShowPlayers(false)}
+                />
+              )}
               {invite && (
                 <PokerInviteDialog
                   league={league}

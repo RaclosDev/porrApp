@@ -182,6 +182,10 @@ export const addPokerGuest = (id: number, sessionId: number, name: string) =>
     json: { name },
   });
 
+/** Quita a un invitado sin cuenta; el histórico conserva su nombre. */
+export const removePokerGuest = (id: number, playerId: number) =>
+  request<PokerLeagueData>(`/poker/${id}/players/${playerId}`, { method: 'DELETE' });
+
 export const savePokerSession = (
   id: number,
   date: string,
