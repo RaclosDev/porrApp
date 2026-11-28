@@ -256,7 +256,8 @@ export default function PokerHome({
       )}
       <PokerHands />
       <p className="poker-note poker-legal-note">
-        PorrApp solo lleva las cuentas: no organiza el juego ni cobra, guarda o paga dinero.{' '}
+        PorrApp solo lleva las cuentas: no organiza el juego ni cobra, guarda o paga el dinero de
+        las partidas.{' '}
         <Link to="/aviso-legal" className="underline">
           Aviso legal
         </Link>

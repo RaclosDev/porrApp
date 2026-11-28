@@ -97,7 +97,11 @@ function PrivacyContent() {
           Enviarte avisos push: tu consentimiento (art. 6.1.a RGPD), que puedes retirar en cualquier
           momento desde los ajustes de avisos o del navegador.
         </li>
+        <li>
+          Mandarte los emails necesarios de tu cuenta: ejecución del servicio (art. 6.1.b RGPD).
+        </li>
         <li>Proteger el servicio frente a abusos: interés legítimo (art. 6.1.f RGPD).</li>
+        <li>Corregir errores técnicos de la app: interés legítimo (art. 6.1.f RGPD).</li>
         <li>
           Medir cuánta gente usa PorrApp y qué mejorar con Google Analytics: tu consentimiento (art.
           6.1.a RGPD), que puedes retirar cuando quieras desde el botón de esta página.
@@ -160,10 +164,11 @@ function PrivacyContent() {
       <h2>Tus derechos</h2>
       <p>
         Puedes descargar una copia de tus datos en <strong>Perfil → Descargar mis datos</strong> y
-        borrar tu cuenta y todos tus datos desde <strong>Perfil → Borrar mi cuenta</strong>. Para
-        rectificar tus datos, oponerte a algún tratamiento o cualquier otra solicitud, escribe a{' '}
-        <ContactLink />. Si crees que no hemos atendido bien tu solicitud, puedes reclamar ante la
-        Agencia Española de Protección de Datos (
+        borrar tu cuenta y todos tus datos desde <strong>Perfil → Borrar mi cuenta</strong>. Tienes
+        derecho de acceso, rectificación, supresión, oposición, limitación y portabilidad: para
+        ejercerlos o para cualquier otra solicitud, escribe a <ContactLink />. No tomamos decisiones
+        automatizadas sobre ti. Si crees que no hemos atendido bien tu solicitud, puedes reclamar
+        ante la Agencia Española de Protección de Datos (
         <a href="https://www.aepd.es" className="underline" target="_blank" rel="noreferrer">
           aepd.es
         </a>
@@ -186,18 +191,21 @@ function LegalNoticeContent() {
 
       <h2>Objeto</h2>
       <p>
-        PorrApp permite crear ligas privadas entre amigos y hacer predicciones sobre resultados
-        deportivos. Es un juego: no es una casa de apuestas, no admite dinero y no reparte premios.
-        Si una liga acuerda un bote entre sus miembros, lo gestionan ellos fuera de PorrApp.
+        PorrApp sirve para crear ligas privadas entre amigos: predicciones sobre resultados
+        deportivos y ligas de póker y juegos de mesa. Las predicciones son un pasatiempo sin dinero:
+        no hay apuestas ni premios. Si una liga acuerda un bote entre sus miembros, lo gestionan
+        ellos fuera de PorrApp. En el póker y los juegos de mesa, PorrApp solo anota las cantidades
+        que escribís vosotros: no mueve, guarda ni reparte dinero real. PorrApp no tiene relación
+        con casas de apuestas ni operadores de juego y no anuncia sus servicios.
       </p>
 
       <h2>Póker, juegos de mesa y cuentas</h2>
       <p>
         Las ligas de póker y de juegos de mesa son solo una herramienta para llevar las cuentas: el
         reloj, las entradas, las recompras, el reparto y la clasificación. PorrApp no organiza
-        torneos ni partidas, no participa en ellos, no cobra, guarda ni paga dinero y no recibe
-        comisión alguna sobre entradas, botes o premios. Las cantidades que aparecen las anotan los
-        propios usuarios y son meros registros.
+        torneos ni partidas, no participa en ellos, no cobra, guarda ni paga el dinero de las
+        partidas y no recibe comisión alguna sobre entradas, botes o premios. Las cantidades que
+        aparecen las anotan los propios usuarios y son meros registros.
       </p>
       <p>
         Quien organiza un torneo o una partida es el único responsable de ella: de que cumpla la
@@ -205,6 +213,13 @@ function LegalNoticeContent() {
         participantes), de los pagos entre jugadores y de revisar las cuentas antes de saldarlas.
         Contratar un plan o servicio de PorrApp, si lo hubiera, da derecho a usar el software y
         nunca supone intervenir en el juego, en su organización ni en el dinero que se mueva en él.
+      </p>
+      <p>
+        No puedes usar PorrApp para llevar las cuentas de juegos que necesiten autorización y no la
+        tengan. Si vemos indicios de ese uso, podemos suspender o cerrar la cuenta y la liga sin
+        aviso previo. Si contratas un plan para torneos abiertos al público o con ánimo de lucro,
+        confirmas que tienes las autorizaciones necesarias y podemos pedirte que lo acredites. Las
+        ligas de póker en las que se anoten cantidades en euros son solo para mayores de 18 años.
       </p>
 
       <h2>Uso</h2>
@@ -223,10 +238,14 @@ function LegalNoticeContent() {
 
       <h2>Resultados y responsabilidad</h2>
       <p>
-        Los resultados, horarios y estadísticas se obtienen de fuentes públicas y pueden tener
-        errores o retrasos. PorrApp se ofrece tal cual, sin garantía de disponibilidad continua, y
-        en la medida en que lo permita la ley no responde de los daños o pérdidas que se deriven de
-        su uso, de los errores de cálculo o de las decisiones que se tomen con sus datos.
+        Los resultados, horarios y estadísticas vienen de fuentes públicas y pueden tener errores o
+        retrasos. PorrApp no garantiza estar siempre disponible. Las cuentas que calcula PorrApp son
+        una ayuda: antes de pagar o repartir nada, revisadlas quien organiza y los jugadores; si se
+        paga con una cuenta mal anotada o sin revisar, PorrApp no responde de esa pérdida. Si usas
+        PorrApp gratis, solo respondemos si hay dolo o culpa grave. Si tienes un plan de pago para
+        tu negocio o actividad profesional, nuestra responsabilidad se limita a lo que hayas pagado
+        en los últimos 12 meses, salvo dolo o culpa grave. Si eres consumidor, conservas todos los
+        derechos que te da la ley.
       </p>
 
       <h2>Propiedad intelectual</h2>
