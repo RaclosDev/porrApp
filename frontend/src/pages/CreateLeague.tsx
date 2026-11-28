@@ -24,6 +24,7 @@ import {
 import { useLeagueDraft } from '../components/createLeague/useLeagueDraft';
 import WizardSteps from '../components/createLeague/WizardSteps';
 import SportStep from '../components/createLeague/SportStep';
+import LeagueKindPicker from '../components/createLeague/LeagueKindPicker';
 import CompetitionStep from '../components/createLeague/CompetitionStep';
 import FormatStep from '../components/createLeague/FormatStep';
 import RulesStep from '../components/createLeague/RulesStep';
@@ -194,6 +195,18 @@ export default function CreateLeague() {
     );
   }
 
+  // Sin paso en la URL, lo primero es elegir el tipo de liga: porra, póker o juegos de mesa.
+  if (!params.has('paso')) {
+    return (
+      <section className="view-section active create-league">
+        <header className="create-league-header">
+          <h1 className="m-0 poster-title text-[1.8rem] text-[var(--text-main)]">Crear liga</h1>
+        </header>
+        <LeagueKindPicker onPorra={() => goTo(0)} />
+      </section>
+    );
+  }
+
   const stepProps = { draft, update, errors, ctx: ctx ?? { competitions: [] } };
 
   return (
@@ -262,8 +275,9 @@ export default function CreateLeague() {
 
         <div className="create-league-nav">
           {current === 0 ? (
-            <Link to="/mis-ligas" className="glass-btn create-league-nav-btn">
-              Cancelar
+            // Vuelve a elegir el tipo de liga (porra, póker o juegos de mesa).
+            <Link to="/crear-liga" className="glass-btn create-league-nav-btn">
+              Atrás
             </Link>
           ) : (
             <button

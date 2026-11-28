@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { FIELD_IDS, SPORT_LABELS, errorId, sportChoices } from './leagueDraft';
 import { FieldError, OptionCard } from './parts';
 import type { StepProps } from './useLeagueDraft';
@@ -26,23 +25,6 @@ export default function SportStep({ draft, update, errors, ctx }: StepProps) {
             description={sport === 'OTHER' ? 'Tú pones los partidos y los resultados.' : undefined}
           />
         ))}
-        {/* No es un deporte ni lleva predicciones: abre el marcador en vez de elegir una opción. */}
-        <Link to="/marcador/nuevo" className="create-league-option is-link">
-          <span className="create-league-option-body">
-            <span className="create-league-option-title">Juego de mesa o de cartas</span>
-            <span className="create-league-option-text">
-              Sin predicciones: un marcador para llevar la cuenta de las partidas con tus amigos.
-            </span>
-          </span>
-        </Link>
-        <Link to="/poker/nueva" className="create-league-option is-link">
-          <span className="create-league-option-body">
-            <span className="create-league-option-title">Liga de póker</span>
-            <span className="create-league-option-text">
-              Torneos de Texas Hold’em con asistencia, reloj de ciegas, premios e histórico.
-            </span>
-          </span>
-        </Link>
       </div>
       <FieldError fieldId={FIELD_IDS.sport} message={errors.sport} />
     </fieldset>

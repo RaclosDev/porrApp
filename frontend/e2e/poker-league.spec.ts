@@ -153,7 +153,10 @@ test('prepara la mesa, apunta invitados y conserva los resultados para el siguie
   await page.setViewportSize({ width: 390, height: 844 });
   await mockLeague(page, true, false);
   await page.goto('/crear-liga');
-  await page.getByRole('link', { name: /Liga de póker/ }).click();
+  await page
+    .getByRole('list', { name: 'Tipo de liga' })
+    .getByRole('link', { name: /Póker/ })
+    .click();
   await page.getByLabel('Nombre de la liga').fill('Póker de los sábados');
   await page.getByRole('button', { name: 'Crear liga', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Póker de los sábados' })).toBeVisible();
