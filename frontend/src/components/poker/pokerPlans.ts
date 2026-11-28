@@ -84,7 +84,9 @@ export const POKER_PLANS: PokerPlanInfo[] = [
       { text: 'Diseño y crupier propios de la liga' },
       { text: 'Logos del local y de patrocinadores' },
       { text: 'Varios locales e importación del histórico' },
-      { text: 'Torneos con varias mesas o lo que necesitéis: lo construimos para vosotros' },
+      {
+        text: 'Pedidnos funciones para vuestra liga y las desarrollamos: torneos con varias mesas o lo que necesitéis',
+      },
       { text: 'Atención directa y prioritaria' },
     ],
   },
