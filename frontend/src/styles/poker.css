@@ -4378,91 +4378,355 @@ p > .info-tip {
   text-align: center;
 }
 
-/* Hoja del plan de la liga: un bloque por plan, el actual resaltado. */
+/* Hoja del plan de la liga: una tarjeta por plan, la recomendada en dorado y la actual marcada. */
+.poker-plans {
+  --plan-gold: #f0c94c;
+  --plan-gold-ink: #2a1d0a;
+}
+
 .poker-plan-list {
   display: grid;
-  gap: 0.6rem;
-  margin: 0.75rem 0 0;
+  gap: 0.75rem;
+  margin: 0.85rem 0 0;
   padding: 0;
   list-style: none;
 }
 
 .poker-plan {
-  padding: 0.7rem 0.85rem;
+  --plan-tone: var(--text-muted);
+  position: relative;
+  padding: 0.85rem 0.95rem 0.95rem;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--paper);
+}
+
+.poker-plan.is-liga,
+.poker-plan.is-club {
+  --plan-tone: var(--plan-gold);
+}
+
+.poker-plan.is-custom {
+  --plan-tone: #c4b5fd;
+}
+
+/* En claro, el dorado y el lila se oscurecen para que los iconos y las marcas se lean sobre el crema. */
+[data-theme='light'] .poker-plan.is-liga,
+[data-theme='light'] .poker-plan.is-club {
+  --plan-tone: #8a5a00;
+}
+
+[data-theme='light'] .poker-plan.is-custom {
+  --plan-tone: #6d28d9;
+}
+
+.poker-plan.is-highlight {
+  border: 2px solid var(--plan-gold);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--plan-gold) 14%, transparent), transparent 55%),
+    var(--paper);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--plan-gold) 22%, transparent);
 }
 
 .poker-plan.is-current {
   border: 2px solid var(--ink);
 }
 
-.poker-plan-head {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+.poker-plan-ribbon {
+  position: absolute;
+  top: -0.7rem;
+  right: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--plan-gold);
+  color: var(--plan-gold-ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-.poker-plan-head strong {
-  font-size: 1rem;
+.poker-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.poker-plan-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.45rem;
+  min-width: 0;
+}
+
+.poker-plan-name strong {
+  font-size: 1.1rem;
+}
+
+.poker-plan-name small {
+  flex-basis: 100%;
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 .poker-plan-badge {
   padding: 1px 8px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
-  color: var(--text-main);
-  font-size: 0.72rem;
-  font-weight: 700;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
 .poker-plan-price {
-  margin-left: auto;
-  font-weight: 800;
-  font-size: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.45rem;
+  margin-top: 0.6rem;
+}
+
+.poker-plan-price strong {
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
 }
 
 .poker-plan-price small {
   color: var(--text-muted);
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
+.poker-plan-perk {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #22c55e 18%, transparent);
+  color: var(--text-main);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .poker-plan-entries {
-  margin: 0.3rem 0 0;
-  font-weight: 700;
-  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--plan-tone) 12%, transparent);
+  font-weight: 800;
+  font-size: 0.88rem;
 }
 
 .poker-plan-features {
   display: grid;
-  gap: 0.2rem;
-  margin: 0.4rem 0 0;
+  gap: 0.3rem;
+  margin: 0.6rem 0 0;
   padding: 0;
   list-style: none;
-  color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: 0.86rem;
 }
 
 .poker-plan-features li {
   display: flex;
   align-items: flex-start;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .poker-plan-features svg {
   flex-shrink: 0;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
+  color: var(--plan-tone);
+}
+
+.poker-plan.is-free .poker-plan-features svg {
+  color: var(--text-main);
+}
+
+.poker-plan-cta {
+  display: block;
+  margin-top: 0.8rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
+.poker-plan.is-highlight .poker-plan-cta {
+  border-color: var(--plan-gold);
+  background: var(--plan-gold);
+  color: var(--plan-gold-ink);
+}
+
+.poker-plan-cta:hover {
+  filter: brightness(1.06);
+}
+
+.poker-plan-cta:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .poker-plan-contact {
-  margin: 0.85rem 0 0.25rem;
+  margin: 1rem 0 0.25rem;
+  color: var(--text-muted);
   font-size: 0.85rem;
+  text-align: center;
 }
 
 .poker-plan-contact a {
   color: var(--text-main);
   font-weight: 700;
   text-decoration: underline;
+}
+
+/* La carta del plan: 2, J, Q y K según el nivel. */
+.poker-plan-card {
+  flex-shrink: 0;
+  width: 2.1rem;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  border-radius: 6%;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.poker-plan-head .poker-plan-card {
+  width: 3rem;
+}
+
+/* Planes del póker: pantalla completa en el móvil, con la barra de planes fija arriba. */
+.poker-plans-sheet .sheet-dialog-body {
+  padding-top: 0.25rem;
+  scroll-padding-top: 0.75rem;
+}
+
+.poker-plan-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  flex-shrink: 0;
+  padding: 0 1rem 0.65rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.poker-plan-tabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.4rem 0.2rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.poker-plan-tabs button .poker-plan-card {
+  width: 1.9rem;
+  opacity: 0.75;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.poker-plan-tabs button.is-active {
+  border-color: color-mix(in srgb, var(--plan-gold, #f0c94c) 55%, transparent);
+  background: color-mix(in srgb, #f0c94c 12%, transparent);
+  color: var(--text-main);
+}
+
+.poker-plan-tabs button.is-active .poker-plan-card {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.poker-plan-tabs button:focus-visible {
+  outline: 2px solid #f0c94c;
+  outline-offset: 1px;
+}
+
+@media (max-width: 560px) {
+  .paper-dialog.sheet-dialog.poker-plans-sheet {
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    animation: poker-plans-in 0.2s ease-out;
+  }
+
+  .poker-plans-sheet .sheet-dialog-handle {
+    display: none;
+  }
+
+  .poker-plans-sheet .sheet-dialog-head {
+    padding-top: calc(12px + env(safe-area-inset-top));
+  }
+}
+
+@keyframes poker-plans-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* En pantallas anchas los cuatro planes van en columnas y la barra sobra. */
+@media (min-width: 960px) {
+  .paper-dialog.sheet-dialog.poker-plans-sheet {
+    width: min(1120px, 100%);
+    max-width: 1120px;
+    max-height: min(92dvh, 860px);
+  }
+
+  .poker-plans-sheet .poker-plan-tabs {
+    display: none;
+  }
+
+  .poker-plans-sheet .poker-plan-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+    margin-top: 1rem;
+  }
+
+  .poker-plans-sheet .poker-plan {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .poker-plans-sheet .poker-plan-cta {
+    margin-top: auto;
+  }
+
+  .poker-plans-sheet .poker-plan-features {
+    margin-bottom: 0.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paper-dialog.sheet-dialog.poker-plans-sheet {
+    animation: none;
+  }
+}
+
+[data-theme='light'] .poker-plan-tabs button.is-active {
+  border-color: color-mix(in srgb, #8a5a00 45%, transparent);
+  background: color-mix(in srgb, #f0c94c 18%, transparent);
 }
