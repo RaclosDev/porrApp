@@ -73,6 +73,27 @@ class PokerTournamentTest {
     }
 
     @Test
+    void addOnsFollowTheirOwnLimitPerPlayer() {
+        var limited = activeSession();
+        var levels = List.of(new BlindLevel(10, 1, 2, 0));
+        limited.setSettings(new Settings(101, 100, null, new Extra(100, 100, 2, 1), List.of(70, 30), levels));
+        PokerTournament.validate(limited.getSettings());
+        PokerTournament.apply(limited, new Command(Action.ADD_ON, 0L, 1L), 1000);
+        PokerTournament.apply(limited, new Command(Action.ADD_ON, 0L, 1L), 1000);
+        assertThatThrownBy(() -> PokerTournament.apply(limited, new Command(Action.ADD_ON, 0L, 1L), 1000))
+                .isInstanceOf(BusinessException.class);
+        assertThat(limited.getEntries().getFirst().addOns()).isEqualTo(2);
+
+        var unlimited = activeSession();
+        unlimited.setSettings(new Settings(101, 100, null, new Extra(100, 100, null, 1), List.of(70, 30), levels));
+        PokerTournament.validate(unlimited.getSettings());
+        for (int i = 0; i < 5; i++) {
+            PokerTournament.apply(unlimited, new Command(Action.ADD_ON, 0L, 1L), 1000);
+        }
+        assertThat(unlimited.getEntries().getFirst().addOns()).isEqualTo(5);
+    }
+
+    @Test
     void theBreakRightAfterTheCutoffStillAllowsBuying() {
         var session = activeSession();
         var pause = new BlindLevel(10, 0, 0, 0);

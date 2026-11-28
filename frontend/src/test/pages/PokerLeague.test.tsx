@@ -136,6 +136,10 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
   );
   chooseOption(getSelectMenu('Recompras por jugador'), '2');
   chooseOption(rebuy.getByRole('button', { name: /^Hasta el final de/ }), '3');
+  expect(getSelectMenu('Add-ons por jugador')).toHaveAccessibleName(
+    'Add-ons por jugador: 1 como máximo',
+  );
+  chooseOption(getSelectMenu('Add-ons por jugador'), '2');
   click('Quitar nivel 2');
   click('Siguiente');
 
@@ -161,7 +165,7 @@ it('valida el reparto y guarda la estructura, los límites y los importes en cé
         { small: 75, big: 150, ante: 10, minutes: 20 },
       ],
       rebuy: { costCents: 950, chips: 6000, limit: 2, throughLevel: 2 },
-      addOn: { costCents: 1245, chips: 8000, limit: 1, throughLevel: 3 },
+      addOn: { costCents: 1245, chips: 8000, limit: 2, throughLevel: 3 },
     }),
   );
   click('Atrás');
