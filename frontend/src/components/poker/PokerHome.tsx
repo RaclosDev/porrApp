@@ -8,6 +8,7 @@ import PokerPodium from './PokerPodium';
 import { PokerPlayerName } from './PokerPlayerCard';
 import {
   euros,
+  POKER_MAX_ENTRIES,
   pokerStandings,
   standingLabel,
   tournamentDate,
@@ -109,7 +110,7 @@ export default function PokerHome({
                 <button
                   type="button"
                   className={attending ? 'glass-btn' : 'glass-btn primary-btn'}
-                  disabled={busy || (!attending && current.entries.length >= 20)}
+                  disabled={busy || (!attending && current.entries.length >= POKER_MAX_ENTRIES)}
                   onClick={() => onAttend(current, !attending)}
                 >
                   {attending ? 'Desapuntarme' : 'Apuntarme al torneo'}
@@ -120,7 +121,7 @@ export default function PokerHome({
                 <button
                   type="button"
                   className="glass-btn primary-btn"
-                  disabled={busy || current.entries.length >= 20}
+                  disabled={busy || current.entries.length >= POKER_MAX_ENTRIES}
                   onClick={() => onAttend(current, true)}
                 >
                   Unirme al torneo en curso
@@ -254,6 +255,12 @@ export default function PokerHome({
         </section>
       )}
       <PokerHands />
+      <p className="poker-note poker-legal-note">
+        PorrApp solo lleva las cuentas: no organiza el juego ni cobra, guarda o paga dinero.{' '}
+        <Link to="/aviso-legal" className="underline">
+          Aviso legal
+        </Link>
+      </p>
     </div>
   );
 }
