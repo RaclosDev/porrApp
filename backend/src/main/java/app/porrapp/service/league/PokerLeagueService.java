@@ -3,6 +3,7 @@ package app.porrapp.service.league;
 import app.porrapp.dto.PokerDTO.*;
 import app.porrapp.exception.BusinessException;
 import app.porrapp.model.League;
+import app.porrapp.model.LeaguePlan;
 import app.porrapp.model.Membership;
 import app.porrapp.model.PokerSession;
 import app.porrapp.model.ScoreTrackerPlayer;
@@ -126,7 +127,7 @@ public class PokerLeagueService {
         League league = owned(leagueId, userId);
         // Con la mesa empezada también se puede sumar a quien llega tarde.
         PokerSession session = openSession(leagueId, sessionId);
-        requireSeat(session);
+        requireSeat(league, session);
         List<ScoreTrackerPlayer> existing = players.findByLeagueIdOrderByPositionAsc(leagueId);
         if (existing.size() >= ScoreboardRoster.MAX_POKER_ROSTER) {
             throw BusinessException.badRequest("La liga ha alcanzado el máximo de jugadores");
@@ -234,7 +235,7 @@ public class PokerLeagueService {
         boolean attending = entries.stream().anyMatch(entry -> entry.playerId() == player.getId());
         if (request.attending() == attending) return view(league, userId);
         if (request.attending()) {
-            requireSeat(session);
+            requireSeat(league, session);
             entries.add(new Entry(player.getId(), player.getName(), 0, 0));
         } else if (session.getStartedAt() != null) {
             PokerTournament.removeEntry(session, player.getId());
@@ -371,9 +372,12 @@ public class PokerLeagueService {
         if (session.getStartedAt() != null) throw BusinessException.conflict("El torneo ya ha empezado");
     }
 
-    private static void requireSeat(PokerSession session) {
-        if (session.getEntries().size() >= PokerTournament.MAX_ENTRIES) {
-            throw BusinessException.conflict("Se ha alcanzado el máximo de " + PokerTournament.MAX_ENTRIES + " jugadores por torneo");
+    private static void requireSeat(League league, PokerSession session) {
+        LeaguePlan plan = league.getPlan();
+        int max = Math.min(plan.maxPokerEntries(), PokerTournament.MAX_ENTRIES);
+        if (session.getEntries().size() >= max) {
+            throw BusinessException.conflict("El plan " + plan.label() + " admite hasta " + max
+                    + " jugadores por torneo");
         }
     }
 
@@ -399,6 +403,7 @@ public class PokerLeagueService {
                 .forEach(user -> avatars.put(user.getId(), user.getAvatarUrl()));
         return new LeagueView(id, league.getName(), league.getJoinCode(), organizes(league, userId),
                 league.isAdmin(userId), league.isPokerEveryoneOrganizes(),
+                league.getPlan().name(), league.getPlan().maxPokerEntries(), league.isPokerMusic(),
                 myPlayerId, rosterEntries.stream()
                 .map(player -> new Player(player.getId(), player.getName(), player.getUserId() == null,
                         player.getUserId(), avatars.get(player.getUserId()))).toList(),

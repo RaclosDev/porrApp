@@ -9,6 +9,8 @@ import app.porrapp.service.admin.AdminAnnouncementService;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.admin.AdminAccess;
 import app.porrapp.service.admin.AdminIncidentService;
+import app.porrapp.service.admin.AdminLeaguePlanService;
+import app.porrapp.model.LeaguePlan;
 import app.porrapp.service.admin.AdminService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -29,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -51,6 +54,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private AdminIncidentService incidents;
+
+    @MockitoBean
+    private AdminLeaguePlanService plans;
 
     @MockitoBean
     private UserAccountRepository userAccountRepository;
@@ -130,6 +136,27 @@ class AdminControllerTest {
         mockMvc.perform(post("/api/admin/incidents/5/apply").principal(BOSS)).andExpect(status().isNotFound());
         mockMvc.perform(post("/api/admin/incidents/5/dismiss").principal(BOSS)).andExpect(status().isNotFound());
         Mockito.verifyNoInteractions(incidents);
+    }
+
+    @Test
+    void adminChangesTheLeaguePlanAndMusic() throws Exception {
+        mockMvc.perform(put("/api/admin/leagues/32/plan").principal(BOSS)
+                        .contentType("application/json")
+                        .content("{\"plan\":\"CLUB\",\"pokerMusic\":true}"))
+                .andExpect(status().isNoContent());
+        Mockito.verify(access).requireAdmin("boss@example.com");
+        Mockito.verify(plans).set(32L, LeaguePlan.CLUB, true);
+    }
+
+    @Test
+    void nonAdminCannotChangeALeaguePlan() throws Exception {
+        Mockito.doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND)).when(access).requireAdmin("boss@example.com");
+
+        mockMvc.perform(put("/api/admin/leagues/32/plan").principal(BOSS)
+                        .contentType("application/json")
+                        .content("{\"plan\":\"CLUB\",\"pokerMusic\":true}"))
+                .andExpect(status().isNotFound());
+        Mockito.verifyNoInteractions(plans);
     }
 
     @Test

@@ -58,6 +58,8 @@ const overview: AdminOverview = {
       owner: 'Marta',
       members: 8,
       createdAt: '2026-11-12T08:00:00Z',
+      plan: 'FREE',
+      pokerMusic: false,
     },
   ],
 };

@@ -48,6 +48,9 @@ public record AdminOverviewDTO(
             boolean isPublic,
             String owner,
             long members,
-            Instant createdAt) {
+            Instant createdAt,
+            /** Plan de la liga (FREE, LIGA, CLUB, CUSTOM) y si tiene la música de la TV de póker. */
+            String plan,
+            boolean pokerMusic) {
     }
 }

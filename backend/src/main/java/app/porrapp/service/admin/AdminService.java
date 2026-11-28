@@ -128,7 +128,8 @@ public class AdminService {
         return leagues.stream()
                 .map(l -> new LeagueRow(l.getId(), l.getName(), l.getKind(), l.isPublicLeague(),
                         l.getAdminUser() != null ? l.getAdminUser().getParticipantName() : null,
-                        members.getOrDefault(l.getId(), 0L), l.getCreatedAt()))
+                        members.getOrDefault(l.getId(), 0L), l.getCreatedAt(), l.getPlan().name(),
+                        l.isPokerMusic()))
                 .toList();
     }
 

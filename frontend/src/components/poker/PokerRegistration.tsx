@@ -12,7 +12,7 @@ import {
 } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
 import { PokerAvatar } from './PokerFaces';
-import { chips, euros, POKER_MAX_ENTRIES, upcomingTournamentDate } from './pokerFormat';
+import { chips, euros, maxEntries, upcomingTournamentDate } from './pokerFormat';
 
 interface Props {
   league: PokerLeagueData;
@@ -28,7 +28,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
   const confirmed = new Set(session.entries.map((entry) => entry.playerId));
   const playing = league.myPlayerId !== null && confirmed.has(league.myPlayerId);
   const count = confirmed.size;
-  const full = count >= POKER_MAX_ENTRIES;
+  const full = count >= maxEntries(league);
   const prizesFit = session.settings.prizeShares.length <= count;
   const canStart = count >= 2 && prizesFit;
 
@@ -63,7 +63,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
           <dl key="players" className="poker-wall-metric">
             <dt>Confirmados</dt>
             <dd>
-              {count} / {POKER_MAX_ENTRIES}
+              {count} / {maxEntries(league)}
             </dd>
           </dl>,
           <dl key="money" className="poker-wall-metric">
@@ -167,7 +167,7 @@ export default function PokerRegistration({ league, session, busy, change, onEdi
       {league.owner && managing && (
         <SheetDialog
           title="Jugadores de la liga"
-          subtitle={`Marca quién juega este torneo (${count} / ${POKER_MAX_ENTRIES}).`}
+          subtitle={`Marca quién juega este torneo (${count} / ${maxEntries(league)}).`}
           onClose={() => {
             setManaging(false);
             setAddingGuest(false);

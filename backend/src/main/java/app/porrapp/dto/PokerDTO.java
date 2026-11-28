@@ -248,7 +248,11 @@ public final class PokerDTO {
 
     public record LeagueView(long id, String name, String joinCode, boolean owner, boolean admin,
                              /** Todos los miembros organizan los torneos, no solo la administración. */
-                             boolean everyoneOrganizes, Long myPlayerId,
+                             boolean everyoneOrganizes,
+                             /** Plan de la liga (FREE, LIGA, CLUB, CUSTOM) y su tope de jugadores por torneo. */
+                             String plan, int maxEntries,
+                             /** Música en la TV: solo en las ligas que la tienen activada. */
+                             boolean music, Long myPlayerId,
                              List<Player> players, Session current, List<Session> upcoming, long serverNow) {
     }
 

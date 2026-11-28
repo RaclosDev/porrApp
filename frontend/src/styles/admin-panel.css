@@ -673,4 +673,18 @@
       padding-left: 28px;
     }
   }
+
+  /* Plan y música de una liga de póker en la tabla de ligas. */
+  .admin-plan {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .admin-plan label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
 }

@@ -5,6 +5,7 @@ import app.porrapp.config.JwtUtil;
 import app.porrapp.dto.PokerDTO.AddTrack;
 import app.porrapp.dto.PokerDTO.CreateLeague;
 import app.porrapp.model.UserAccount;
+import app.porrapp.repository.LeagueRepository;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.league.LeagueMembershipService;
 import app.porrapp.service.sync.SyncService;
@@ -44,6 +45,7 @@ class PokerMusicIntegrationTest {
     @MockitoBean SyncService syncService;
     @MockitoBean TopScorerService topScorerService;
     @Autowired UserAccountRepository users;
+    @Autowired LeagueRepository leagues;
     @Autowired LeagueMembershipService memberships;
     @Autowired JwtUtil jwt;
     @LocalServerPort int port;
@@ -62,6 +64,15 @@ class PokerMusicIntegrationTest {
 
         assertThat(send("GET", music, outsider, null).statusCode()).isEqualTo(404);
         assertThat(send("GET", music + "/search?q=queen", outsider, null).statusCode()).isEqualTo(404);
+        // Una liga nueva no tiene música: ni búsqueda ni canciones hasta que la administración la activa.
+        assertThat(json.readTree(send("GET", music, guest, null).body()).get("searchAvailable").asBoolean()).isFalse();
+        assertThat(send("GET", music + "/search?q=queen", guest, null).statusCode()).isEqualTo(403);
+        assertThat(send("POST", music, guest, new AddTrack("dQw4w9WgXcQ", "Canción", "")).statusCode())
+                .isEqualTo(403);
+        var league = leagues.findById(id).orElseThrow();
+        league.setPokerMusic(true);
+        leagues.save(league);
+
         assertThat(send("GET", music + "/search?q=a", guest, null).statusCode()).isEqualTo(400);
         JsonNode found = json.readTree(send("GET", music + "/search?q=queen", guest, null).body());
         assertThat(found.get("available").asBoolean()).isTrue();

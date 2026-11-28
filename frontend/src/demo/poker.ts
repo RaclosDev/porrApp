@@ -215,6 +215,10 @@ function pokerLeague(now: number): PokerLeagueData {
     owner: true,
     admin: true,
     everyoneOrganizes: false,
+    plan: 'LIGA',
+    maxEntries: 20,
+    // La música de la TV no se enseña en público: solo la tienen algunas ligas.
+    music: false,
     myPlayerId: playerId('Marta'),
     players: PLAYERS,
     current,

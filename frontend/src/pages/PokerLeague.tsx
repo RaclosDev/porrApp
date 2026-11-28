@@ -15,6 +15,8 @@ import PokerHome from '../components/poker/PokerHome';
 import PokerInviteDialog from '../components/poker/PokerInviteDialog';
 import ParticipantsPill from '../components/league/ParticipantsPill';
 import PokerPlayersDialog from '../components/poker/PokerPlayersDialog';
+import PokerPlanDialog from '../components/poker/PokerPlanDialog';
+import { pokerPlan } from '../components/poker/pokerPlans';
 import PokerSessionTabs from '../components/poker/PokerSessionTabs';
 import { lastWinnerIds } from '../components/poker/PokerBadges';
 import { PokerFaces } from '../components/poker/PokerFaces';
@@ -55,6 +57,7 @@ export default function PokerLeague({
   const navigate = useNavigate();
   const [invite, setInvite] = useState(false);
   const [showPlayers, setShowPlayers] = useState(false);
+  const [showPlan, setShowPlan] = useState(false);
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const requestedSession = searchParams.get('torneo');
@@ -169,7 +172,15 @@ export default function PokerLeague({
                 <div className="home-hero-info">
                   <ActiveLeagueDropdown variant="title" fallbackName={league.name} />
                   <div className="home-hero-pills is-meta">
-                    <span className="home-hero-pill">Póker · Texas Hold’em</span>
+                    <button
+                      type="button"
+                      className="home-hero-pill-btn"
+                      aria-haspopup="dialog"
+                      aria-label={`Plan ${pokerPlan(league.plan).label}: ver los límites y los planes`}
+                      onClick={() => setShowPlan(true)}
+                    >
+                      <span className="home-hero-pill">Plan {pokerPlan(league.plan).label}</span>
+                    </button>
                     {league.players.length > 0 && (
                       <ParticipantsPill
                         count={league.players.length}
@@ -189,6 +200,13 @@ export default function PokerLeague({
                   </div>
                 </div>
               </header>
+              {showPlan && (
+                <PokerPlanDialog
+                  plan={league.plan}
+                  leagueName={league.name}
+                  onClose={() => setShowPlan(false)}
+                />
+              )}
               {showPlayers && (
                 <PokerPlayersDialog
                   players={league.players}
@@ -308,7 +326,7 @@ export default function PokerLeague({
                     <PokerLive
                       // Un torneo nuevo empieza con el estado limpio: sin borradores ni diálogos del anterior.
                       key={current.id}
-                      leagueId={league.id}
+                      leagueId={league.music ? league.id : undefined}
                       session={current}
                       owner={league.owner}
                       busy={busy}

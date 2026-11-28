@@ -93,6 +93,8 @@ export interface PokerPlayer {
   avatarUrl?: string | null;
 }
 
+export type PokerPlanCode = 'FREE' | 'LIGA' | 'CLUB' | 'CUSTOM';
+
 export interface PokerLeagueData {
   id: number;
   name: string;
@@ -102,6 +104,11 @@ export interface PokerLeagueData {
   admin: boolean;
   /** Todos los miembros preparan, editan y dirigen los torneos (el histórico sigue en la administración). */
   everyoneOrganizes?: boolean;
+  /** Plan de la liga; marca el tope de jugadores por torneo. */
+  plan?: PokerPlanCode;
+  maxEntries?: number;
+  /** Cola de canciones en la TV: solo en las ligas que la tienen activada. */
+  music?: boolean;
   myPlayerId: number | null;
   players: PokerPlayer[];
   /** El que está en juego o el más próximo; el mismo que encabeza `upcoming`. */

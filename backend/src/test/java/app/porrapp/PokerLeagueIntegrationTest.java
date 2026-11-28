@@ -4,7 +4,9 @@ package app.porrapp;
 import app.porrapp.config.DataInitializer;
 import app.porrapp.config.JwtUtil;
 import app.porrapp.dto.PokerDTO.*;
+import app.porrapp.model.LeaguePlan;
 import app.porrapp.model.UserAccount;
+import app.porrapp.repository.LeagueRepository;
 import app.porrapp.repository.UserAccountRepository;
 import app.porrapp.service.league.LeagueMembershipService;
 import app.porrapp.service.league.PokerLeagueService;
@@ -46,6 +48,7 @@ class PokerLeagueIntegrationTest {
     @MockitoBean SyncService syncService;
     @MockitoBean TopScorerService topScorerService;
     @Autowired UserAccountRepository users;
+    @Autowired LeagueRepository leagues;
     @Autowired LeagueMembershipService memberships;
     @Autowired PokerLeagueService service;
     @Autowired JwtUtil jwt;
@@ -201,6 +204,34 @@ class PokerLeagueIntegrationTest {
         assertThat(send("POST", tournament + "/guests", member, new Guest("Bea")).statusCode()).isEqualTo(403);
         assertThat(send("PUT", tournament + "/attendance", member, new Attendance(null, false))
                 .statusCode()).isEqualTo(409);
+    }
+
+    @Test
+    void theFreePlanSeatsTenPlayersPerTournamentAndTheLigaPlanTwenty() throws Exception {
+        var organizer = user("Ana");
+        var league = decode(send("POST", "/api/poker", organizer,
+                new CreateLeague("Póker gratis", UUID.randomUUID())), 201);
+        assertThat(league.plan()).isEqualTo("FREE");
+        assertThat(league.maxEntries()).isEqualTo(10);
+        assertThat(league.music()).isFalse();
+        String path = "/api/poker/" + league.id();
+        var settings = new Settings(1000, 10000, null, null, List.of(100), List.of(new BlindLevel(15, 25, 50, 0)));
+        var current = decode(send("POST", path + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2026, 12, 5), settings)), 201).current();
+        String tournament = path + "/sessions/" + current.id();
+        for (int seat = 1; seat <= 10; seat++) {
+            decode(send("POST", tournament + "/guests", organizer, new Guest("Jugador " + seat)), 201);
+        }
+        var full = send("POST", tournament + "/guests", organizer, new Guest("Jugador 11"));
+        assertThat(full.statusCode()).isEqualTo(409);
+        assertThat(full.body()).contains("El plan Gratis admite hasta 10 jugadores por torneo");
+
+        var saved = leagues.findById(league.id()).orElseThrow();
+        saved.setPlan(LeaguePlan.LIGA);
+        leagues.save(saved);
+        var upgraded = decode(send("POST", tournament + "/guests", organizer, new Guest("Jugador 11")), 201);
+        assertThat(upgraded.maxEntries()).isEqualTo(20);
+        assertThat(upgraded.current().entries()).hasSize(11);
     }
 
     @Test
