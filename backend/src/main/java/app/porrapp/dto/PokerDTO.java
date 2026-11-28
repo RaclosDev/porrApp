@@ -19,7 +19,7 @@ public final class PokerDTO {
     /** Tope de un premio fijo: 10 millones de euros. */
     public static final long MAX_PRIZE_CENTS = 1_000_000_000L;
     /** Jugadores por torneo. */
-    public static final int MAX_ENTRIES = 20;
+    public static final int MAX_ENTRIES = 100;
 
     private PokerDTO() {
     }
@@ -72,7 +72,7 @@ public final class PokerDTO {
     }
 
     public record Command(@NotNull Action action, @NotNull @Min(0) Long revision, @Min(1) Long playerId,
-                          @Size(max = 20) List<@NotNull @Valid FinalStack> finalStacks,
+                          @Size(max = MAX_ENTRIES) List<@NotNull @Valid FinalStack> finalStacks,
                           @Size(min = 1, max = 20) List<@NotNull @Min(1) @Max(100) Integer> prizeShares,
                           /** Reparto en cantidades fijas (céntimos por puesto); excluye a {@code prizeShares}. */
                           @Size(min = 1, max = 20) List<@NotNull @Min(1) @Max(MAX_PRIZE_CENTS) Long> prizeAmounts,

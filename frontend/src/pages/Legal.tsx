@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { resetAnalyticsConsent } from '../services/analytics';
 
 const CONTACT_EMAIL = 'raclosdev@gmail.com';
-const UPDATED_AT = '8 de noviembre de 2026';
+const UPDATED_AT = '28 de noviembre de 2026';
 
 interface LegalProps {
   kind: 'privacy' | 'legal';
@@ -191,6 +191,22 @@ function LegalNoticeContent() {
         Si una liga acuerda un bote entre sus miembros, lo gestionan ellos fuera de PorrApp.
       </p>
 
+      <h2>Póker, juegos de mesa y cuentas</h2>
+      <p>
+        Las ligas de póker y de juegos de mesa son solo una herramienta para llevar las cuentas: el
+        reloj, las entradas, las recompras, el reparto y la clasificación. PorrApp no organiza
+        torneos ni partidas, no participa en ellos, no cobra, guarda ni paga dinero y no recibe
+        comisión alguna sobre entradas, botes o premios. Las cantidades que aparecen las anotan los
+        propios usuarios y son meros registros.
+      </p>
+      <p>
+        Quien organiza un torneo o una partida es el único responsable de ella: de que cumpla la
+        normativa de juego que le sea aplicable (autorizaciones, impuestos, edad mínima de los
+        participantes), de los pagos entre jugadores y de revisar las cuentas antes de saldarlas.
+        Contratar un plan o servicio de PorrApp, si lo hubiera, da derecho a usar el software y
+        nunca supone intervenir en el juego, en su organización ni en el dinero que se mueva en él.
+      </p>
+
       <h2>Uso</h2>
       <p>
         Al usar PorrApp te comprometes a no suplantar a otras personas, a no subir contenido ilícito
@@ -208,7 +224,9 @@ function LegalNoticeContent() {
       <h2>Resultados y responsabilidad</h2>
       <p>
         Los resultados, horarios y estadísticas se obtienen de fuentes públicas y pueden tener
-        errores o retrasos. PorrApp se ofrece tal cual, sin garantía de disponibilidad continua.
+        errores o retrasos. PorrApp se ofrece tal cual, sin garantía de disponibilidad continua, y
+        en la medida en que lo permita la ley no responde de los daños o pérdidas que se deriven de
+        su uso, de los errores de cálculo o de las decisiones que se tomen con sus datos.
       </p>
 
       <h2>Propiedad intelectual</h2>

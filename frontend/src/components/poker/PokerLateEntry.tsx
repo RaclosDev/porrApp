@@ -8,7 +8,7 @@ import {
   type PokerSession,
 } from '../../services/endpoints/poker';
 import { PokerAvatar } from './PokerFaces';
-import { euros } from './pokerFormat';
+import { euros, POKER_MAX_ENTRIES } from './pokerFormat';
 
 interface Props {
   league: PokerLeagueData;
@@ -21,7 +21,7 @@ interface Props {
 export default function PokerLateEntry({ league, session, busy, change }: Props) {
   const [open, setOpen] = useState(false);
   const seated = new Set(session.entries.map((entry) => entry.playerId));
-  const full = seated.size >= 20;
+  const full = seated.size >= POKER_MAX_ENTRIES;
   const meOut = league.myPlayerId !== null && !seated.has(league.myPlayerId);
   const waiting = league.players.filter((player) => !seated.has(player.id));
   if (full || (!league.owner && !meOut)) return null;

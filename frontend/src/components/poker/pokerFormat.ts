@@ -337,3 +337,6 @@ export function pokerStandings(history: PokerSession[]) {
     return { ...row, rank };
   });
 }
+
+/** Jugadores por torneo: el mismo tope que el servidor. */
+export const POKER_MAX_ENTRIES = 100;

@@ -4358,3 +4358,11 @@ p > .info-tip {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Recordatorio legal al pie del inicio del póker: discreto, pero a la vista. */
+.poker-legal-note {
+  margin: 0.25rem auto 0;
+  max-width: 34rem;
+  font-size: 0.75rem;
+  text-align: center;
+}

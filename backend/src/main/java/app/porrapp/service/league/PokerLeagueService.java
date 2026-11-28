@@ -346,7 +346,7 @@ public class PokerLeagueService {
 
     private static void requireSeat(PokerSession session) {
         if (session.getEntries().size() >= PokerTournament.MAX_ENTRIES) {
-            throw BusinessException.conflict("Se ha alcanzado el máximo de 20 jugadores por torneo");
+            throw BusinessException.conflict("Se ha alcanzado el máximo de " + PokerTournament.MAX_ENTRIES + " jugadores por torneo");
         }
     }
 
