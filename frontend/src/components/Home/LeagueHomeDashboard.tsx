@@ -2,7 +2,7 @@ import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ScrollText, Users } from 'lucide-react';
+import { ScrollText } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useLeagueHomeData, type MiniStandingRow } from '../../hooks/useLeagueHomeData';
 import { hasShownScore, isLiveMatch } from '../../utils/homeMatches';
@@ -18,6 +18,7 @@ import Flag from '../Flag';
 import { Skeleton } from '../SkeletonBlock';
 import LeagueRulesModal from '../LeagueRulesModal';
 import LeagueParticipantsDialog from '../league/LeagueParticipantsDialog';
+import ParticipantsPill from '../league/ParticipantsPill';
 import InkStamp from '../InkStamp';
 import { VoterStack } from '../voters/SignVoters';
 import MatchVotersModal from '../voters/MatchVotersModal';
@@ -452,18 +453,11 @@ export default function LeagueHomeDashboard({ afterHero }: { afterHero?: ReactNo
           <div className="home-hero-pills is-meta">
             {showCompetition && <span className="home-hero-pill">{activeCompetitionName}</span>}
             {participantCount > 0 && activeGroupId ? (
-              <button
-                type="button"
-                className="home-hero-pill-btn"
-                onClick={() => setShowParticipants(true)}
-                aria-haspopup="dialog"
-                aria-label={`${participantCount} ${participantCount === 1 ? 'participante' : 'participantes'}: ver la lista`}
-              >
-                <span className="home-hero-pill muted is-count">
-                  {participantCount}
-                  <Users size={13} strokeWidth={2.5} aria-hidden="true" />
-                </span>
-              </button>
+              <ParticipantsPill
+                count={participantCount}
+                noun={['participante', 'participantes']}
+                onOpen={() => setShowParticipants(true)}
+              />
             ) : (
               <span className="home-hero-pill muted">{subtitle}</span>
             )}
