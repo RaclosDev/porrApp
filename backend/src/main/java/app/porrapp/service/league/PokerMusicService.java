@@ -38,7 +38,7 @@ public class PokerMusicService {
 
     public MusicSearch search(String email, Long leagueId, String query) {
         Long userId = account(email);
-        member(leagueId, userId, false);
+        requireMusic(member(leagueId, userId, false));
         String clean = query == null ? "" : query.strip().replaceAll("\\s+", " ");
         if (clean.length() < 2 || clean.length() > 200) {
             throw BusinessException.badRequest("Escribe entre 2 y 200 caracteres");
@@ -100,7 +100,7 @@ public class PokerMusicService {
     @Transactional
     public MusicQueue add(String email, Long leagueId, AddTrack request) {
         Long userId = account(email);
-        League league = member(leagueId, userId, true);
+        League league = requireMusic(member(leagueId, userId, true));
         if (!VIDEO_ID.matcher(request.videoId()).matches()) {
             throw BusinessException.badRequest("Canción no válida");
         }
@@ -147,10 +147,16 @@ public class PokerMusicService {
 
     private MusicQueue view(League league, Long userId) {
         boolean organizer = league.canOrganize(userId);
-        return new MusicQueue(organizer, youtube.isEnabled(), queue.findByLeagueIdOrderByIdAsc(league.getId()).stream()
+        return new MusicQueue(organizer, league.isPokerMusic() && youtube.isEnabled(), queue.findByLeagueIdOrderByIdAsc(league.getId()).stream()
                 .map(item -> new QueuedTrack(item.getId(), item.getVideoId(), item.getTitle(), item.getChannel(),
                         item.getAddedByName(), organizer || item.getAddedBy().equals(userId)))
                 .toList());
+    }
+
+    /** La música en la TV solo está activada en algunas ligas: la búsqueda de YouTube tiene un cupo diario. */
+    private static League requireMusic(League league) {
+        if (!league.isPokerMusic()) throw BusinessException.forbidden("La música no está disponible en esta liga");
+        return league;
     }
 
     private Long account(String email) {

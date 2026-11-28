@@ -19,6 +19,18 @@ export const sendAdminAnnouncement = (input: AdminAnnouncementInput) =>
     fallbackError: 'No se pudo enviar el aviso',
   });
 
+/** Plan de una liga y si tiene la música de la TV de póker; los pagos aún se gestionan a mano. */
+export const setAdminLeaguePlan = (
+  id: number,
+  plan: AdminOverview['leagues'][number]['plan'],
+  pokerMusic: boolean,
+) =>
+  request<void>(`/admin/leagues/${id}/plan`, {
+    method: 'PUT',
+    json: { plan, pokerMusic },
+    fallbackError: 'No se pudo cambiar el plan',
+  });
+
 /** Resultados retenidos por la sincronización: los abiertos y los últimos resueltos. */
 export const fetchAdminIncidents = () => request<AdminIncident[]>('/admin/incidents');
 

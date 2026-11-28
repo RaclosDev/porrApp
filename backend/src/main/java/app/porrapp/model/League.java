@@ -58,6 +58,17 @@ public class League {
     @Column(name = "poker_everyone_organizes", nullable = false)
     private boolean pokerEveryoneOrganizes = false;
 
+    /** Plan de la liga: limita los jugadores por torneo de póker. */
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private LeaguePlan plan = LeaguePlan.FREE;
+
+    /** Música en la TV del póker (búsqueda en YouTube): solo para las ligas elegidas a mano. */
+    @Builder.Default
+    @Column(name = "poker_music", nullable = false)
+    private boolean pokerMusic = false;
+
     /** Clase de liga: {@link #KIND_POOL} (porra sobre una competición) o {@link #KIND_SCOREBOARD} (marcador de juegos, sin edición). */
     @Builder.Default
     @Column(nullable = false, length = 20)

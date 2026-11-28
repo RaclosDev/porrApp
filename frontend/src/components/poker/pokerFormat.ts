@@ -339,4 +339,9 @@ export function pokerStandings(history: PokerSession[]) {
 }
 
 /** Jugadores por torneo: el mismo tope que el servidor. */
-export const POKER_MAX_ENTRIES = 100;
+const POKER_MAX_ENTRIES = 100;
+
+/** Tope de jugadores por torneo del plan de la liga. */
+export function maxEntries(league: { maxEntries?: number }): number {
+  return Math.min(league.maxEntries ?? POKER_MAX_ENTRIES, POKER_MAX_ENTRIES);
+}

@@ -979,6 +979,9 @@ export interface AdminOverview {
     owner: string | null;
     members: number;
     createdAt: string;
+    /** Plan de la liga (FREE, LIGA, CLUB, CUSTOM) y si tiene la música de la TV de póker. */
+    plan: 'FREE' | 'LIGA' | 'CLUB' | 'CUSTOM';
+    pokerMusic: boolean;
   }[];
 }
 

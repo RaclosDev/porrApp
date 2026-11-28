@@ -1429,3 +1429,30 @@ it('no parte las ciegas junto al crupier: solo baja de línea el ante, entero', 
     current.style.getPropertyValue('--wall-chars'),
   );
 });
+
+it('la portada enseña el plan de la liga y abre sus límites', async () => {
+  api.mockImplementation((url: string) => {
+    if (url.endsWith('/history')) return Promise.resolve([]);
+    return Promise.resolve({
+      ...league,
+      current: null,
+      plan: 'FREE',
+      maxEntries: 10,
+      music: false,
+    });
+  });
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter>
+        <PokerLeague leagueId="8" view="home" />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Plan Gratis: ver los límites y los planes' }),
+  );
+  const dialog = screen.getByRole('dialog', { name: 'Plan Gratis' });
+  expect(within(dialog).getByText(/^Hasta 10 jugadores por torneo\./)).toBeVisible();
+});

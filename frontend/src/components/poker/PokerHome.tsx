@@ -8,7 +8,7 @@ import PokerPodium from './PokerPodium';
 import { PokerPlayerName } from './PokerPlayerCard';
 import {
   euros,
-  POKER_MAX_ENTRIES,
+  maxEntries,
   pokerStandings,
   standingLabel,
   tournamentDate,
@@ -110,7 +110,7 @@ export default function PokerHome({
                 <button
                   type="button"
                   className={attending ? 'glass-btn' : 'glass-btn primary-btn'}
-                  disabled={busy || (!attending && current.entries.length >= POKER_MAX_ENTRIES)}
+                  disabled={busy || (!attending && current.entries.length >= maxEntries(league))}
                   onClick={() => onAttend(current, !attending)}
                 >
                   {attending ? 'Desapuntarme' : 'Apuntarme al torneo'}
@@ -121,7 +121,7 @@ export default function PokerHome({
                 <button
                   type="button"
                   className="glass-btn primary-btn"
-                  disabled={busy || current.entries.length >= POKER_MAX_ENTRIES}
+                  disabled={busy || current.entries.length >= maxEntries(league)}
                   onClick={() => onAttend(current, true)}
                 >
                   Unirme al torneo en curso

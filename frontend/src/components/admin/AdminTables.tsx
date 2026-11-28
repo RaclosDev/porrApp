@@ -1,6 +1,10 @@
 import { ArrowDown, ArrowUp, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import type { AdminOverview } from '../../types/api';
+import { setAdminLeaguePlan } from '../../services/endpoints/admin';
+import { errorMessage } from '../../utils/errors';
 import { KIND_LABELS, METHOD_LABELS, dateTime, kindLabel, normalize } from './adminFormat';
 
 function SearchBox({
@@ -185,6 +189,61 @@ export function AdminAccounts({ users }: { users: AdminOverview['recentUsers'] }
 }
 
 /** Pestaña «Ligas»: ligas más recientes, con filtro por clase. */
+type AdminLeague = AdminOverview['leagues'][number];
+
+const PLAN_OPTIONS: { value: AdminLeague['plan']; label: string }[] = [
+  { value: 'FREE', label: 'Gratis' },
+  { value: 'LIGA', label: 'Liga' },
+  { value: 'CLUB', label: 'Club' },
+  { value: 'CUSTOM', label: 'A medida' },
+];
+
+/** Plan y música de una liga de póker; se cambian a mano mientras no haya pagos en la app. */
+function AdminLeaguePlan({ league }: { league: AdminLeague }) {
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  if (league.kind !== 'POKER') return <span className="is-muted">—</span>;
+  async function save(plan: AdminLeague['plan'], pokerMusic: boolean) {
+    setBusy(true);
+    try {
+      await setAdminLeaguePlan(league.id, plan, pokerMusic);
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'overview'] });
+      toast.success('Plan guardado');
+    } catch (error) {
+      toast.error(errorMessage(error, 'No se pudo cambiar el plan'));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <span className="admin-plan">
+      <select
+        aria-label={`Plan de ${league.name}`}
+        value={league.plan}
+        disabled={busy}
+        onChange={(event) =>
+          void save(event.target.value as AdminLeague['plan'], league.pokerMusic)
+        }
+      >
+        {PLAN_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <label>
+        <input
+          type="checkbox"
+          checked={league.pokerMusic}
+          disabled={busy}
+          onChange={(event) => void save(league.plan, event.target.checked)}
+        />
+        Música
+      </label>
+    </span>
+  );
+}
+
 export function AdminLeagues({ leagues }: { leagues: AdminOverview['leagues'] }) {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState<string>('ALL');
@@ -243,6 +302,7 @@ export function AdminLeagues({ leagues }: { leagues: AdminOverview['leagues'] })
                 Miembros
               </th>
               <th scope="col">Creada</th>
+              <th scope="col">Plan</th>
             </tr>
           </thead>
           <tbody>
@@ -262,6 +322,9 @@ export function AdminLeagues({ leagues }: { leagues: AdminOverview['leagues'] })
                   {l.members}
                 </td>
                 <td data-label="Creada">{dateTime.format(new Date(l.createdAt))}</td>
+                <td data-label="Plan">
+                  <AdminLeaguePlan league={l} />
+                </td>
               </tr>
             ))}
           </tbody>

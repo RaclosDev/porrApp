@@ -4377,3 +4377,92 @@ p > .info-tip {
   font-size: 0.75rem;
   text-align: center;
 }
+
+/* Hoja del plan de la liga: un bloque por plan, el actual resaltado. */
+.poker-plan-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poker-plan {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.poker-plan.is-current {
+  border: 2px solid var(--ink);
+}
+
+.poker-plan-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.poker-plan-head strong {
+  font-size: 1rem;
+}
+
+.poker-plan-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
+  color: var(--text-main);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.poker-plan-price {
+  margin-left: auto;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.poker-plan-price small {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.poker-plan-entries {
+  margin: 0.3rem 0 0;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.poker-plan-features {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.poker-plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.poker-plan-features svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.poker-plan-contact {
+  margin: 0.85rem 0 0.25rem;
+  font-size: 0.85rem;
+}
+
+.poker-plan-contact a {
+  color: var(--text-main);
+  font-weight: 700;
+  text-decoration: underline;
+}
