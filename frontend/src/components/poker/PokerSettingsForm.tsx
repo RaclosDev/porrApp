@@ -5,14 +5,17 @@ import type {
   BlindLevel,
   PactPoints,
   PokerExtra,
+  PokerSession,
   PokerSettings,
 } from '../../services/endpoints/poker';
 import PokerPrizeShares, { sharesTotal } from './PokerPrizeShares';
 import {
   chips,
   cutoffText,
+  euros,
   noLeadingZero,
   playLevelNumber,
+  shortDate,
   withBreakAfterCutoff,
 } from './pokerFormat';
 import { DEFAULT_ROUNDING_CENTS, placePoints } from './pokerPayouts';
@@ -25,6 +28,8 @@ interface Props {
   date: string;
   settings: PokerSettings;
   editing: boolean;
+  /** Torneos cerrados de los que copiar el formato, del más reciente al más antiguo. */
+  templates?: PokerSession[];
   /** Con el torneo en juego: sin fecha, y en el primer paso van los jugadores de la mesa. */
   live?: ReactNode;
   busy: boolean;
@@ -36,21 +41,32 @@ export default function PokerSettingsForm({
   date,
   settings,
   editing,
+  templates = [],
   live,
   busy,
   onCancel,
   onSave,
 }: Props) {
   const [day, setDay] = useState(date);
-  const [draft, setDraft] = useState(() =>
-    withBreakAfterCutoff(withBreakAfterCutoff(settings, 'rebuy'), 'addOn'),
+  const [draft, setDraft] = useState(() => draftFrom(settings));
+  const [anteEnabled, setAnteEnabled] = useState(() => hasAnte(settings));
+  /** El torneo del que salen los ajustes con los que se abre el formulario. */
+  const [templateId, setTemplateId] = useState(
+    () => templates.find((session) => session.settings === settings)?.id,
   );
-  const [anteEnabled, setAnteEnabled] = useState(settings.levels.some((level) => level.ante > 0));
   const [error, setError] = useState('');
   const [step, setStep] = useState(0);
   const [showPoints, setShowPoints] = useState(Boolean(settings.prizePoints));
   const [levelsOpen, setLevelsOpen] = useState(false);
   const stepRef = useRef<HTMLDivElement>(null);
+  /** Sustituye todos los ajustes por los de un torneo jugado; la fecha elegida se queda. */
+  function copyFormat(source: PokerSession) {
+    setTemplateId(source.id);
+    setDraft(draftFrom(source.settings));
+    setAnteEnabled(hasAnte(source.settings));
+    setShowPoints(Boolean(source.settings.prizePoints));
+    setError('');
+  }
   const patch = (changes: Partial<PokerSettings>) =>
     setDraft((previous) => ({ ...previous, ...changes }));
   /** Al activar un extra o mover su corte se añade un descanso detrás para comprar en él. */
@@ -186,6 +202,24 @@ export default function PokerSettingsForm({
         {step === 0 && (
           <div className="poker-fields poker-basics">
             {live}
+            {templates.length > 1 && (
+              <div className="poker-field poker-template">
+                <span>Copiar formato de…</span>
+                <SelectMenu
+                  className="glass-input"
+                  label="Copiar formato de"
+                  value={String(templateId ?? '')}
+                  onChange={(next) => {
+                    const source = templates.find((session) => String(session.id) === next);
+                    if (source) copyFormat(source);
+                  }}
+                  items={templates.map((session) => ({
+                    value: String(session.id),
+                    label: templateLabel(session),
+                  }))}
+                />
+              </div>
+            )}
             {!live && <PokerDatePicker label="Fecha" value={day} onChange={setDay} />}
             <div
               className="poker-date-picks"
@@ -461,6 +495,18 @@ export default function PokerSettingsForm({
       </div>
     </form>
   );
+}
+
+/** Ajustes de partida del formulario, con el descanso tras cada corte de compra. */
+const draftFrom = (settings: PokerSettings) =>
+  withBreakAfterCutoff(withBreakAfterCutoff(settings, 'rebuy'), 'addOn');
+
+const hasAnte = (settings: PokerSettings) => settings.levels.some((level) => level.ante > 0);
+
+/** Lo justo para reconocer un torneo: «18 jul · 10,00 € · 6 jugadores». */
+function templateLabel({ date, settings, results }: PokerSession) {
+  const players = `${results.length} ${results.length === 1 ? 'jugador' : 'jugadores'}`;
+  return `${shortDate(date)} · ${euros(settings.buyInCents)} · ${players}`;
 }
 
 const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
