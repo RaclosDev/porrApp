@@ -56,7 +56,7 @@ export default function PokerHome({
   const crowned = lastWinnerIds(sessions);
 
   return (
-    <div className="home-dashboard-grid">
+    <div className="home-dashboard-grid poker-home-grid">
       {current ? (
         <div className="poker-next-column">
           <PokerFreeTable
