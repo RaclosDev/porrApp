@@ -4370,13 +4370,65 @@ p > .info-tip {
   white-space: nowrap;
 }
 
-/* Inicio del póker en escritorio: la mesa a la izquierda y el resto apilado a su lado. */
+/* Inicio del póker en escritorio: la mesa a la izquierda y, a su lado, la liga arriba y las jugadas debajo. */
 @media (min-width: 900px) {
   .poker-home-grid {
-    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-items: start;
   }
   .poker-home-grid > :first-child {
     grid-row: span 2;
+  }
+
+  /* La escena se mide por el ancho de la tarjeta y no por el de la ventana: así la fecha y la entrada caben. */
+  .poker-felt.poker-next-card {
+    container-type: inline-size;
+  }
+  .poker-felt.poker-empty.poker-next-card h2 {
+    font-size: clamp(1.5rem, 8.5cqi, 2.4rem);
+  }
+  .poker-next-card .poker-empty-stage:has(.poker-empty-row) {
+    --crupier-size: clamp(150px, 52cqi, 230px);
+  }
+  .poker-next-card .poker-wall-metric dd {
+    font-size: clamp(1.15rem, 7cqi, 1.9rem);
+  }
+
+  /* Cada tarjeta con su alto: sin estirar Último torneo hasta el del podio. */
+  .poker-home-grid > .home-dashboard-sidebar {
+    grid-auto-rows: auto;
+    align-items: start;
+  }
+
+  .poker-hands-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+/* Con sitio, Último torneo y el podio uno al lado del otro. */
+@media (min-width: 1180px) {
+  .poker-home-grid > .home-dashboard-sidebar {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: stretch;
+  }
+  .poker-hands-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+  }
+}
+
+/* Con las jugadas abiertas la columna de la liga es más larga: la mesa acompaña al bajar, bajo la barra superior,
+   si cabe entera en la ventana. */
+@media (min-width: 1180px) and (min-height: 720px) {
+  .poker-home-grid > .poker-next-column {
+    position: sticky;
+    top: 96px;
+  }
+  /* `hidden` haría de contenedor de scroll y la mesa no se pegaría a la ventana. */
+  .app-container:has(.poker-home-grid) {
+    overflow: clip;
   }
 }
 
