@@ -204,6 +204,33 @@ class PokerLeagueIntegrationTest {
     }
 
     @Test
+    void theAdministrationRemovesGuestsThatAreNotSignedUpForAnOpenTournament() throws Exception {
+        var organizer = user("Ana");
+        var member = user("Luis");
+        var league = decode(send("POST", "/api/poker", organizer,
+                new CreateLeague("Póker de los martes", UUID.randomUUID())), 201);
+        String path = "/api/poker/" + league.id();
+        memberships.join(league.id(), member.getGoogleEmail());
+        var settings = new Settings(1000, 10000, null, null, List.of(100), List.of(new BlindLevel(15, 25, 50, 0)));
+        var current = decode(send("POST", path + "/sessions", organizer,
+                new CreateSession(LocalDate.of(2026, 12, 1), settings)), 201).current();
+        String tournament = path + "/sessions/" + current.id();
+        var withGuest = decode(send("POST", tournament + "/guests", organizer, new Guest("Marta")), 201);
+        long guestId = withGuest.players().stream().filter(Player::guest).findFirst().orElseThrow().id();
+        long memberId = withGuest.players().stream().filter(player -> member.getId().equals(player.userId()))
+                .findFirst().orElseThrow().id();
+
+        assertThat(send("DELETE", path + "/players/" + guestId, member, null).statusCode()).isEqualTo(403);
+        assertThat(send("DELETE", path + "/players/" + guestId, organizer, null).statusCode()).isEqualTo(409);
+        assertThat(send("DELETE", path + "/players/" + memberId, organizer, null).statusCode()).isEqualTo(409);
+
+        command(tournament, organizer, withGuest.current(), Action.CANCEL, null);
+        var after = decode(send("DELETE", path + "/players/" + guestId, organizer, null), 200);
+        assertThat(after.players()).extracting(Player::id).doesNotContain(guestId).contains(memberId);
+        assertThat(send("DELETE", path + "/players/" + guestId, organizer, null).statusCode()).isEqualTo(404);
+    }
+
+    @Test
     void membersAndGuestsCanPlayAgainWithOneHistoryAndCorrectPayouts() throws Exception {
         var organizer = user("Ana");
         var member = user("Luis");

@@ -33,6 +33,8 @@ const HANDS: { name: string; text: string; cards: string[] }[] = [
 ];
 
 const red = (card: string) => card.endsWith('♥') || card.endsWith('♦');
+/** El selector de texto (U+FE0E) evita que iOS pinte el palo como un emoji de color. */
+const TEXT = '︎';
 
 /** Chuleta de jugadas para consultar fuera de la mesa, plegada para no ocupar la portada. */
 export default function PokerHands() {
@@ -57,7 +59,11 @@ export default function PokerHands() {
                     className={red(card) ? 'poker-card is-red' : 'poker-card'}
                     aria-hidden="true"
                   >
-                    {card}
+                    <span className="poker-card-rank">{card.slice(0, -1)}</span>
+                    <span className="poker-card-suit">
+                      {card.slice(-1)}
+                      {TEXT}
+                    </span>
                   </span>
                 ))}
               </span>

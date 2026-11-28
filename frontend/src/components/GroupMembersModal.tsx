@@ -21,6 +21,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { updateGroupEntryFee } from '../services/api';
 import LeagueMembersTab from './league/LeagueMembersTab';
+import PokerGuestsSection from './league/PokerGuestsSection';
 import LeagueSettingsTab, { type LeagueSettingsSection } from './league/LeagueSettingsTab';
 import ScorerPicksReview from './league/ScorerPicksReview';
 import LeaveConfirmDialog from './league/LeaveConfirmDialog';
@@ -372,6 +373,9 @@ export default function GroupMembersModal({
               entryFeeSaving={entryFeeMutation.isPending}
               onToggleEntryFee={(value) => entryFeeMutation.mutate(value)}
             />
+          )}
+          {currentTab === 'members' && leagueKind === 'POKER' && (
+            <PokerGuestsSection leagueId={groupId} isAdmin={isAdmin} />
           )}
 
           {currentTab !== 'members' && (

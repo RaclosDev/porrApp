@@ -143,6 +143,33 @@ public class PokerLeagueService {
         return changed(league, userId, session);
     }
 
+    /**
+     * Quita a un invitado sin cuenta. Lo hace la administración de la liga y solo si no está apuntado a
+     * un torneo abierto; en los cerrados queda su nombre, que va guardado en cada resultado.
+     */
+    @Transactional
+    public LeagueView removeGuest(String email, Long leagueId, Long playerId) {
+        Long userId = account(email).getId();
+        League league = visible(leagueId, userId, true);
+        if (!league.isAdmin(userId)) {
+            throw BusinessException.forbidden("Solo la administración de la liga puede quitar invitados");
+        }
+        ScoreTrackerPlayer guest = players.findById(playerId)
+                .filter(player -> player.getLeagueId().equals(leagueId))
+                .orElseThrow(() -> BusinessException.notFound("Jugador no encontrado"));
+        if (guest.getUserId() != null) {
+            throw BusinessException.conflict("Ese jugador tiene cuenta: quítalo desde los miembros de la liga");
+        }
+        boolean signedUp = sessions.findByLeagueIdAndClosedAtIsNullOrderByScheduledOnAscIdAsc(leagueId).stream()
+                .anyMatch(session -> session.getEntries().stream().anyMatch(entry -> entry.playerId() == playerId));
+        if (signedUp) {
+            throw BusinessException.conflict("Está apuntado a un torneo abierto: quítalo antes de ese torneo");
+        }
+        players.delete(guest);
+        players.flush();
+        return view(league, userId);
+    }
+
     @Transactional
     public LeagueView schedule(String email, Long leagueId, CreateSession request) {
         Long userId = account(email).getId();

@@ -75,6 +75,12 @@ public class PokerLeagueController {
         return service.deleteResult(principal.getName(), id, sessionId);
     }
 
+    /** Quita de la liga a un invitado sin cuenta; el histórico conserva su nombre. */
+    @DeleteMapping("/{id}/players/{playerId}")
+    public LeagueView removeGuest(Principal principal, @PathVariable Long id, @PathVariable Long playerId) {
+        return service.removeGuest(principal.getName(), id, playerId);
+    }
+
     @PostMapping("/{id}/sessions/{sessionId}/commands")
     public LeagueView command(Principal principal, @PathVariable Long id, @PathVariable Long sessionId,
                               @Valid @RequestBody Command command) {
