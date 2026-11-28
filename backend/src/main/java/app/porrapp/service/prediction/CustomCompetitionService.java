@@ -40,6 +40,7 @@ public class CustomCompetitionService {
     private final CompetitionTeamRepository competitionTeamRepository;
     private final MatchRepository matchRepository;
     private final ScoreInvalidationService scoreInvalidationService;
+    private final MatchPredictionService matchPredictionService;
     private final MembershipRepository membershipRepository;
     private final UserAccountRepository userAccountRepository;
     private final PredictionRepository predictionRepository;
@@ -405,6 +406,8 @@ public class CustomCompetitionService {
         match.setFinished(true);
         match.setStatus(MatchStatusNormalized.FINISHED);
         match.setWinnerTeam(winner);
+        // Sin sincronización que los puntúe: las predicciones del partido se puntúan al poner el resultado.
+        matchPredictionService.evaluatePredictionsForMatch(match);
         scoreInvalidationService.invalidateCompetition(competition.getId());
         return MatchResponseDTO.fromEntity(match);
     }
