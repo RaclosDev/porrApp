@@ -581,7 +581,7 @@ function ExtraFields({
     ? `${(extra.costCents / 100).toLocaleString('es-ES')} € → ${chips(extra.chips)} fichas · hasta el ${cutoffText(settings.levels, extra.throughLevel)}`
     : multiple
       ? 'Quien se quede sin fichas puede volver a comprar.'
-      : 'Una compra extra de fichas para todos, una sola vez.';
+      : 'Una compra extra de fichas para todos; tú decides cuántas por jugador.';
   return (
     <section
       role="group"
@@ -628,25 +628,23 @@ function ExtraFields({
             value={extra.chips}
             onChange={(value) => onChange({ ...extra, chips: value })}
           />
-          {multiple && (
-            <label>
-              Por jugador
-              <SelectMenu
-                className="glass-input"
-                label="Recompras por jugador"
-                value={String(extra.limit ?? 0)}
-                onChange={(next) => onChange({ ...extra, limit: Number(next) || null })}
-                items={[
-                  { value: '0', label: 'Sin límite' },
-                  ...Array.from({ length: 20 }, (_, index) => ({
-                    value: String(index + 1),
-                    label: index === 0 ? '1 como máximo' : `${index + 1} como máximo`,
-                  })),
-                ]}
-              />
-            </label>
-          )}
-          <label className={multiple ? undefined : 'poker-extra-wide'}>
+          <label>
+            Por jugador
+            <SelectMenu
+              className="glass-input"
+              label={multiple ? 'Recompras por jugador' : 'Add-ons por jugador'}
+              value={String(extra.limit ?? 0)}
+              onChange={(next) => onChange({ ...extra, limit: Number(next) || null })}
+              items={[
+                { value: '0', label: 'Sin límite' },
+                ...Array.from({ length: 20 }, (_, index) => ({
+                  value: String(index + 1),
+                  label: index === 0 ? '1 como máximo' : `${index + 1} como máximo`,
+                })),
+              ]}
+            />
+          </label>
+          <label>
             Hasta el final de
             <SelectMenu
               className="glass-input"

@@ -26,8 +26,7 @@ final class PokerTournament {
             throw BusinessException.badRequest("Revisa las ciegas. Un descanso debe tener ciegas y ante a cero");
         }
         if (settings.rebuy() != null && settings.rebuy().throughLevel() > levels.size()
-                || settings.addOn() != null && (settings.addOn().throughLevel() > levels.size()
-                || !Integer.valueOf(1).equals(settings.addOn().limit()))) {
+                || settings.addOn() != null && settings.addOn().throughLevel() > levels.size()) {
             throw BusinessException.badRequest("Revisa hasta qué nivel se permiten las recompras y el extra de fichas");
         }
     }
