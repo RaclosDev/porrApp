@@ -130,6 +130,11 @@ export default function PokerLeague({
   if (query.isPending) return <PaperLoading label="Cargando la liga de póker" />;
   if (!query.data) return <TrackerUnavailable error={query.error} />;
 
+  /** El último torneo creado entre los cerrados: de él parte el formato de uno nuevo. */
+  const lastPlayed = history.data?.reduce<PokerSession | undefined>(
+    (latest, session) => (!latest || session.id > latest.id ? session : latest),
+    undefined,
+  );
   const league = query.data;
   const upcoming = openSessions(league);
   const current = pick(league);
@@ -247,12 +252,10 @@ export default function PokerLeague({
                       ) : undefined
                     }
                     date={(form === 'edit' && current?.date) || today()}
+                    templates={form === 'new' ? history.data : undefined}
                     settings={
                       (form === 'edit' ? current?.settings : undefined) ??
-                      history.data?.reduce<PokerSession | undefined>(
-                        (latest, session) => (!latest || session.id > latest.id ? session : latest),
-                        undefined,
-                      )?.settings ??
+                      lastPlayed?.settings ??
                       defaultSettings
                     }
                     busy={busy}

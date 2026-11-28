@@ -757,6 +757,69 @@ it('reutiliza las reglas del torneo anterior', async () => {
   );
 });
 
+it('copia el formato de cualquier torneo jugado sin tocar la fecha ni heredar importes fijos', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 10, 20));
+  const result = { ...entries[0], place: 1, paidCents: 2500, prizeCents: 2500 };
+  const older: PokerSettings = {
+    ...settings,
+    buyInCents: 2500,
+    startingChips: 20000,
+    rebuy: { costCents: 2000, chips: 15000, limit: 2, throughLevel: 2 },
+    prizeShares: [100],
+    prizeAmounts: [5000],
+    prizePoints: [7],
+    levels: [
+      { small: 100, big: 200, ante: 25, minutes: 20 },
+      { small: 0, big: 0, ante: 0, minutes: 10 },
+      { small: 200, big: 400, ante: 50, minutes: 20 },
+    ],
+  };
+  api.mockImplementation(async (path) =>
+    path.endsWith('/history')
+      ? [
+          { ...session, id: 13, date: '2026-11-14', closedAt: 5000, results: [result] },
+          {
+            ...session,
+            id: 12,
+            date: '2026-11-07',
+            closedAt: 4000,
+            settings: older,
+            results: [result, { ...result, playerId: 2, place: 2 }],
+          },
+        ]
+      : { ...league, current: null },
+  );
+  renderLeague();
+  await screen.findByRole('region', { name: 'Próximo torneo' });
+  click('Preparar torneo');
+  await screen.findByLabelText('Entrada (€)');
+
+  // De partida va el último torneo creado, y cada opción se reconoce por fecha, entrada y mesa.
+  const picker = getSelectMenu('Copiar formato de');
+  expect(picker).toHaveAttribute('data-value', '13');
+  expect(optionLabels(picker).map((label) => label.replace(/\s/g, ' '))).toEqual([
+    `14 nov · ${money(1000)} · 1 jugador`,
+    `7 nov · ${money(2500)} · 2 jugadores`,
+  ]);
+  click('sáb 21');
+  chooseOption(picker, '12');
+  expect(screen.getByLabelText('Entrada (€)')).toHaveValue(25);
+  expect(screen.getByLabelText('Fichas iniciales')).toHaveValue(20000);
+  click('Siguiente');
+  expect(screen.getByLabelText('Activar ante')).toBeChecked();
+  expect(screen.getByLabelText('Activar recompras')).toBeChecked();
+  click('Siguiente');
+  expect(screen.getByRole('switch', { name: /Puntos de liga/ })).toBeChecked();
+  click('Abrir inscripciones');
+  await waitFor(() =>
+    expect(api).toHaveBeenCalledWith('/poker/8/sessions', {
+      method: 'POST',
+      json: { date: '2026-11-21', settings: { ...older, prizeAmounts: null } },
+    }),
+  );
+});
+
 it('finaliza con las fichas de los supervivientes y deja ajustar el reparto antes de guardar', async () => {
   const command = vi.fn().mockResolvedValue(true);
   render(

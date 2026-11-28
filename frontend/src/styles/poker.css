@@ -775,6 +775,7 @@
 }
 
 .poker-basics > .poker-date-field,
+.poker-basics > .poker-template,
 .poker-date-picks {
   grid-column: 1 / -1;
 }
