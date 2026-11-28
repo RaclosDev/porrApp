@@ -40,6 +40,7 @@ class CustomCompetitionServiceTest {
     @Mock app.porrapp.repository.CompetitionTeamRepository competitionTeams;
     @Mock MatchRepository matches;
     @Mock ScoreInvalidationService scores;
+    @Mock MatchPredictionService matchPredictionService;
     @Mock PredictionRepository predictions;
     @Mock UserAccountRepository users;
     @Mock MembershipRepository memberships;
@@ -381,6 +382,7 @@ class CustomCompetitionServiceTest {
         assertEquals(home, match.getWinnerTeam());
         assertEquals(2, match.getHomeScore());
         verify(scores).invalidateCompetition(competition.getId());
+        verify(matchPredictionService).evaluatePredictionsForMatch(match);
     }
 
     @Test
