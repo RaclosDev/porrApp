@@ -2,6 +2,7 @@ name: CodeQL
 
 # Análisis estático de seguridad del backend (Java) y del frontend (TypeScript). Las alertas
 # aparecen en la pestaña Security del repositorio. No necesita compilar: build-mode none.
+# En los PR solo se analiza el lenguaje cuya parte cambia; en main, el lunes y a mano, los dos.
 on:
   push:
     branches: [ "main" ]
@@ -19,7 +20,46 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Elegir lenguajes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      languages: ${{ steps.pick.outputs.languages }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Detect changed areas
+        id: diff
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: bash .github/scripts/detect-changes.sh | tee -a "$GITHUB_OUTPUT"
+      - name: Pick languages
+        id: pick
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BACKEND: ${{ steps.diff.outputs.backend }}
+          FRONTEND: ${{ steps.diff.outputs.frontend }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          # Si cambia este workflow, se analizan los dos para probarlo.
+          if [ "$EVENT_NAME" = "pull_request" ] && git diff --name-only "$BASE_SHA...$HEAD_SHA" | grep -qx '.github/workflows/codeql.yml'; then
+            BACKEND=true; FRONTEND=true
+          fi
+          langs=()
+          if [ "$EVENT_NAME" != "pull_request" ] || [ "$BACKEND" = "true" ]; then langs+=('"java-kotlin"'); fi
+          if [ "$EVENT_NAME" != "pull_request" ] || [ "$FRONTEND" = "true" ]; then langs+=('"javascript-typescript"'); fi
+          echo "languages=[$(IFS=,; echo "${langs[*]}")]" | tee -a "$GITHUB_OUTPUT"
+
   analyze:
+    needs: changes
+    if: needs.changes.outputs.languages != '[]'
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -29,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ java-kotlin, javascript-typescript ]
+        language: ${{ fromJSON(needs.changes.outputs.languages) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Initialize CodeQL
