@@ -1,12 +1,12 @@
-import SheetDialog from '../SheetDialog';
+import PeopleListDialog from '../PeopleListDialog';
 import { PokerAvatar } from './PokerFaces';
 import { PokerPlayerName } from './PokerPlayerCard';
 import type { PokerPlayer } from '../../services/endpoints/poker';
 
-const byName = (a: PokerPlayer, b: PokerPlayer) =>
-  a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
-
-/** Los jugadores de la liga de póker, con o sin cuenta; al pulsar uno se abre su ficha. */
+/**
+ * Los jugadores de la liga de póker en la misma hoja que los participantes de las porras, con los
+ * invitados sin cuenta marcados; al pulsar uno se abre su ficha de póker.
+ */
 export default function PokerPlayersDialog({
   players,
   leagueName,
@@ -18,28 +18,26 @@ export default function PokerPlayersDialog({
 }) {
   const guests = players.filter((player) => player.guest).length;
   const members = players.length - guests;
-  const sorted = [...players].sort(byName);
+  const people = [...players]
+    .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+    .map((player) => ({
+      key: player.id,
+      userId: player.userId,
+      name: player.name,
+      avatarUrl: player.avatarUrl ?? null,
+      badge: player.guest ? 'Invitado' : undefined,
+      avatar: <PokerAvatar playerId={player.id} name={player.name} size={36} zoomable />,
+      label: (
+        <PokerPlayerName className="sheet-person-name" playerId={player.id} name={player.name} />
+      ),
+    }));
   return (
-    <SheetDialog title="Jugadores" subtitle={leagueName} onClose={onClose}>
-      <div className="sheet-dialog-body">
-        <p className="sheet-dialog-intro">
-          {players.length} {players.length === 1 ? 'jugador' : 'jugadores'}: {members} con cuenta y{' '}
-          {guests} {guests === 1 ? 'invitado' : 'invitados'}
-        </p>
-        <ul className="sheet-people">
-          {sorted.map((player) => (
-            <li key={player.id} className="sheet-person">
-              <PokerAvatar playerId={player.id} name={player.name} size={36} zoomable />
-              <PokerPlayerName
-                className="sheet-person-name"
-                playerId={player.id}
-                name={player.name}
-              />
-              {player.guest && <span className="sheet-person-badge">Invitado</span>}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </SheetDialog>
+    <PeopleListDialog
+      title="Jugadores"
+      subtitle={leagueName}
+      intro={`${players.length} ${players.length === 1 ? 'jugador' : 'jugadores'}: ${members} con cuenta y ${guests} ${guests === 1 ? 'invitado' : 'invitados'}`}
+      people={people}
+      onClose={onClose}
+    />
   );
 }

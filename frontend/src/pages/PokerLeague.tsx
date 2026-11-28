@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, Users } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ import PokerLive from '../components/poker/PokerLive';
 import PokerLateEntry from '../components/poker/PokerLateEntry';
 import PokerHome from '../components/poker/PokerHome';
 import PokerInviteDialog from '../components/poker/PokerInviteDialog';
+import ParticipantsPill from '../components/league/ParticipantsPill';
 import PokerPlayersDialog from '../components/poker/PokerPlayersDialog';
 import PokerSessionTabs from '../components/poker/PokerSessionTabs';
 import { lastWinnerIds } from '../components/poker/PokerBadges';
@@ -170,18 +171,11 @@ export default function PokerLeague({
                   <div className="home-hero-pills is-meta">
                     <span className="home-hero-pill">Póker · Texas Hold’em</span>
                     {league.players.length > 0 && (
-                      <button
-                        type="button"
-                        className="home-hero-pill-btn"
-                        onClick={() => setShowPlayers(true)}
-                        aria-haspopup="dialog"
-                        aria-label={`${league.players.length} ${league.players.length === 1 ? 'jugador' : 'jugadores'}: ver la lista`}
-                      >
-                        <span className="home-hero-pill muted is-count">
-                          {league.players.length}
-                          <Users size={13} strokeWidth={2.5} aria-hidden="true" />
-                        </span>
-                      </button>
+                      <ParticipantsPill
+                        count={league.players.length}
+                        noun={['jugador', 'jugadores']}
+                        onOpen={() => setShowPlayers(true)}
+                      />
                     )}
                     <button
                       type="button"

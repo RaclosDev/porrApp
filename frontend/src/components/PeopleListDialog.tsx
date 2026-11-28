@@ -3,31 +3,44 @@ import SheetDialog from './SheetDialog';
 import { PlayerAvatar, PlayerName } from './PlayerCard';
 
 export interface PersonItem {
-  userId: number;
+  /** Clave de la fila; si falta, la cuenta (`userId`). */
+  key?: string | number;
+  /** Cuenta de la persona; los invitados sin cuenta no tienen. */
+  userId?: number | null;
   name: string;
   avatarUrl: string | null;
-  /** Etiqueta corta junto al nombre, como «Admin». */
+  /** Etiqueta corta junto al nombre, como «Admin» o «Invitado». */
   badge?: string;
+  /** Foto y nombre propios de una liga que abre otra ficha en lugar del cromo (el póker, p. ej.). */
+  avatar?: ReactNode;
+  label?: ReactNode;
 }
 
-/** Lista de personas (foto y nombre) en filas, para las hojas de miembros. Al pulsar la foto o el nombre se abre su cromo. */
+/**
+ * Lista de personas (foto y nombre) en filas, para las hojas de miembros. Al pulsar la foto o el
+ * nombre se abre su cromo, salvo que la liga ponga los suyos.
+ */
 export function PeopleList({ people }: { people: PersonItem[] }) {
   return (
     <ul className="sheet-people">
       {people.map((person) => (
-        <li key={person.userId} className="sheet-person">
-          <PlayerAvatar
-            url={person.avatarUrl}
-            userId={person.userId}
-            name={person.name}
-            size={36}
-          />
-          <PlayerName
-            className="sheet-person-name"
-            name={person.name}
-            userId={person.userId}
-            avatarUrl={person.avatarUrl}
-          />
+        <li key={person.key ?? person.userId ?? person.name} className="sheet-person">
+          {person.avatar ?? (
+            <PlayerAvatar
+              url={person.avatarUrl}
+              userId={person.userId}
+              name={person.name}
+              size={36}
+            />
+          )}
+          {person.label ?? (
+            <PlayerName
+              className="sheet-person-name"
+              name={person.name}
+              userId={person.userId}
+              avatarUrl={person.avatarUrl}
+            />
+          )}
           {person.badge && <span className="sheet-person-badge">{person.badge}</span>}
         </li>
       ))}
