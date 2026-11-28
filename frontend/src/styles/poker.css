@@ -4370,12 +4370,24 @@ p > .info-tip {
   white-space: nowrap;
 }
 
-/* Recordatorio legal al pie del inicio del póker: discreto, pero a la vista. */
+/* Inicio del póker en escritorio: la mesa a la izquierda y el resto apilado a su lado. */
+@media (min-width: 900px) {
+  .poker-home-grid {
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+  }
+  .poker-home-grid > :first-child {
+    grid-row: span 2;
+  }
+}
+
+/* Recordatorio legal al pie del inicio del póker: discreto, a lo ancho y debajo de todo. */
 .poker-legal-note {
-  margin: 0.25rem auto 0;
-  max-width: 34rem;
+  grid-column: 1 / -1;
+  margin: 0.75rem auto 0;
+  max-width: 40rem;
   font-size: 0.75rem;
   text-align: center;
+  opacity: 0.75;
 }
 
 /* Hoja del plan de la liga: una tarjeta por plan, la recomendada en dorado y la actual marcada. */
