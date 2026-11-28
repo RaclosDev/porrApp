@@ -26,11 +26,14 @@ export default function PokerDatePicker({
   value,
   onChange,
   today = new Date(),
+  past = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   today?: Date;
+  /** Para corregir un torneo ya jugado: deja elegir cualquier día, también los pasados. */
+  past?: boolean;
 }) {
   const panelId = useId();
   const selected = parseDay(value);
@@ -95,7 +98,7 @@ export default function PokerDatePicker({
             <button
               type="button"
               aria-label="Mes anterior"
-              disabled={month <= firstMonth}
+              disabled={!past && month <= firstMonth}
               onClick={() => shift(-1)}
             >
               <ChevronLeft size={18} aria-hidden="true" />
@@ -127,7 +130,7 @@ export default function PokerDatePicker({
                   className={classes || undefined}
                   aria-label={longDate(date)}
                   aria-pressed={day === value}
-                  disabled={day < todayIso && day !== value}
+                  disabled={!past && day < todayIso && day !== value}
                   onClick={() => pick(day)}
                 >
                   {index + 1}

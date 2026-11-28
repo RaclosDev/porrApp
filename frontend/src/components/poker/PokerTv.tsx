@@ -210,7 +210,8 @@ export default function PokerTv({
               <span className="poker-tv-fact-label">
                 {timer.icons?.includes('bullet') && <BulletIcon />}
                 {timer.icons?.includes('bag') && <BagIcon />}
-                {timer.label}
+                {/* Es lo que queda para poder comprar, no la hora: «tiempo de recompras». */}
+                tiempo de {timer.label.toLowerCase()}
               </span>
             </li>
           ))}

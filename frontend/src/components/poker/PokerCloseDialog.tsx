@@ -219,6 +219,11 @@ export default function PokerCloseDialog({
                 ))}
               </div>
             )}
+            <div className="poker-payout-row poker-payout-head" aria-hidden="true">
+              <span />
+              <span>€</span>
+              <span>Puntos</span>
+            </div>
             {payouts.slice(0, shown).map((row) => {
               const standing = standings.find((item) => item.playerId === row.playerId);
               const place = standing?.place ?? 0;
@@ -236,7 +241,6 @@ export default function PokerCloseDialog({
                     <span className="poker-payout-player">{standing?.name}</span>
                   </span>
                   <label>
-                    €
                     <input
                       type="number"
                       className="glass-input"
@@ -255,7 +259,6 @@ export default function PokerCloseDialog({
                     />
                   </label>
                   <label>
-                    Puntos
                     <input
                       type="number"
                       className="glass-input"
@@ -313,7 +316,7 @@ export default function PokerCloseDialog({
             <button type="button" className="league-admin-btn is-ghost" onClick={onCancel}>
               Cancelar
             </button>
-            <button type="submit" className="league-admin-btn is-danger" disabled={busy || !valid}>
+            <button type="submit" className="league-admin-btn is-primary" disabled={busy || !valid}>
               {confirmLabel}
             </button>
           </div>

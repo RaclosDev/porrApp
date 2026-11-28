@@ -2,6 +2,7 @@ import { Coins, HandCoins, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { PokerResultsEdit, PokerSession } from '../../services/endpoints/poker';
 import { confirmAction } from '../../utils/confirmAction';
+import InfoTip from '../InfoTip';
 import SheetDialog from '../SheetDialog';
 import { Purchases } from './PokerBadges';
 import PokerEmpty from './PokerEmpty';
@@ -340,23 +341,54 @@ const statisticColumns: {
   value: (row: Standing) => number | string;
   /** Si sube cuanto más bajo es (el puesto medio): el primer clic ordena de menor a mayor. */
   lowFirst?: boolean;
+  /** Cómo se calcula, en una línea, para la «i» de la cabecera. */
+  tip?: string;
 }[] = [
   { label: 'Jugador', value: (row) => row.name, lowFirst: true },
-  { label: 'Puntos', value: (row) => row.points },
-  { label: 'Torneos', value: (row) => row.played },
-  { label: 'Recompras', value: (row) => row.rebuys },
-  { label: 'Add-ons', value: (row) => row.addOns },
+  { label: 'Puntos', value: (row) => row.points, tip: 'Suma de los puntos de cada torneo.' },
+  { label: 'Torneos', value: (row) => row.played, tip: 'Torneos cerrados en los que jugó.' },
+  { label: 'Recompras', value: (row) => row.rebuys, tip: 'Recompras en todos sus torneos.' },
+  { label: 'Add-ons', value: (row) => row.addOns, tip: 'Add-ons en todos sus torneos.' },
   { label: 'Victorias', value: (row) => row.wins },
-  { label: '% victorias', value: (row) => row.wins / row.played },
-  { label: 'Podios', value: (row) => row.podiums },
-  { label: 'Aplausos', value: (row) => row.applause },
-  { label: '% con premio', value: (row) => row.cashes / row.played },
-  { label: 'Puesto medio', value: (row) => row.places / row.played, lowFirst: true },
-  { label: 'Premios', value: (row) => row.prizes },
-  { label: 'Neto', value: (row) => row.prizes - row.paid },
-  { label: 'ROI', value: (row) => roi(row) ?? -Infinity },
-  { label: 'Racha', value: (row) => row.streak },
-  { label: 'Mejor racha', value: (row) => row.bestStreak },
+  {
+    label: '% victorias',
+    value: (row) => row.wins / row.played,
+    tip: 'Victorias entre torneos jugados.',
+  },
+  { label: 'Podios', value: (row) => row.podiums, tip: 'Veces entre los tres primeros.' },
+  {
+    label: 'Aplausos',
+    value: (row) => row.applause,
+    tip: 'Quedarse a las puertas: el primer puesto sin premio.',
+  },
+  {
+    label: '% con premio',
+    value: (row) => row.cashes / row.played,
+    tip: 'Torneos con premio entre torneos jugados.',
+  },
+  {
+    label: 'Puesto medio',
+    value: (row) => row.places / row.played,
+    lowFirst: true,
+    tip: 'Media de sus puestos finales.',
+  },
+  { label: 'Premios', value: (row) => row.prizes, tip: 'Todo el dinero que ha ganado.' },
+  {
+    label: 'Neto',
+    value: (row) => row.prizes - row.paid,
+    tip: 'Premios menos entradas, recompras y add-ons.',
+  },
+  {
+    label: 'ROI',
+    value: (row) => roi(row) ?? -Infinity,
+    tip: 'Neto dividido entre todo lo que ha puesto.',
+  },
+  {
+    label: 'Racha',
+    value: (row) => row.streak,
+    tip: 'Podios seguidos hasta su último torneo.',
+  },
+  { label: 'Mejor racha', value: (row) => row.bestStreak, tip: 'Su serie más larga de podios.' },
 ];
 
 /** Grupos de columnas de la cabecera, en el orden de `statisticColumns` sin el jugador. */
@@ -471,22 +503,29 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
                           : 'none'
                       }
                     >
-                      <button
-                        type="button"
-                        className="poker-sort"
-                        onClick={() =>
-                          setSort((previous) => ({
-                            column: index,
-                            ascending:
-                              previous?.column === index
-                                ? !previous.ascending
-                                : Boolean(column.lowFirst),
-                          }))
-                        }
-                      >
-                        <span>{column.label}</span>
-                        <SortIcon />
-                      </button>
+                      <span className="poker-th-tip">
+                        <button
+                          type="button"
+                          className="poker-sort"
+                          onClick={() =>
+                            setSort((previous) => ({
+                              column: index,
+                              ascending:
+                                previous?.column === index
+                                  ? !previous.ascending
+                                  : Boolean(column.lowFirst),
+                            }))
+                          }
+                        >
+                          <span>{column.label}</span>
+                          <SortIcon />
+                        </button>
+                        {column.tip && (
+                          <InfoTip label={`Cómo se calcula: ${column.label}`} floating>
+                            {column.tip}
+                          </InfoTip>
+                        )}
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -525,13 +564,6 @@ export function PokerStatistics({ sessions }: { sessions: PokerSession[] }) {
               </tbody>
             </table>
           </div>
-          <p className="poker-note">
-            Los porcentajes se calculan sobre los torneos jugados por cada persona. El neto
-            descuenta entradas, recompras y add-ons. Un aplauso es quedar en el primer puesto sin
-            premio. Las recompras y los add-ons acumulan las compras de cada jugador en los torneos
-            cerrados. El ROI es el neto dividido entre lo aportado. La racha son los podios seguidos
-            hasta el último torneo que jugó cada persona.
-          </p>
         </>
       )}
     </section>
