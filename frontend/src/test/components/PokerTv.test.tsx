@@ -79,7 +79,7 @@ describe('PokerTv', () => {
     expect(screen.getByText(`${chips(50)} / ${chips(100)}`)).toBeInTheDocument();
     expect(screen.getByText('En mesa').nextElementSibling).toHaveTextContent('3 / 5');
     expect(screen.getByText('bote').previousElementSibling).toHaveTextContent(/50,00/);
-    expect(screen.getByText('Recompras')).toBeInTheDocument();
+    expect(screen.getByText('tiempo de recompras')).toBeInTheDocument();
     expect(screen.getByText('media de fichas').previousElementSibling).toHaveTextContent(
       chips(12500),
     );

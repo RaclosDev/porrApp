@@ -176,15 +176,13 @@ export default function PokerLive({
     return () => window.clearInterval(interval);
   }, [session.clock?.endsAt, winner]);
 
-  function canBuy(extra: PokerExtra | null, used: number) {
+  /** Si aún se puede comprar ese extra en este momento del torneo, sin mirar el máximo. */
+  function buyOpen(extra: PokerExtra | null): extra is PokerExtra {
     return Boolean(
-      clock &&
-      extra &&
-      clock.remainingMs > 0 &&
-      clock.level < buyUntil(levels, extra.throughLevel) &&
-      (extra.limit === null || used < extra.limit),
+      clock && extra && clock.remainingMs > 0 && clock.level < buyUntil(levels, extra.throughLevel),
     );
   }
+  const atLimit = (extra: PokerExtra, used: number) => extra.limit !== null && used >= extra.limit;
 
   /** Tiempo que queda para comprar ese extra: el resto del nivel y los siguientes hasta su corte. */
   function timeToBuy(extra: PokerExtra | null) {
@@ -203,13 +201,15 @@ export default function PokerLive({
       text: string,
       icon: ReactNode,
       className = 'glass-btn',
+      // Con el máximo ya gastado el botón se queda en su sitio, apagado, para que no baile la fila.
+      spent?: string,
     ) => (
       <button
         type="button"
         className={compact ? `${className} poker-icon-btn` : className}
-        disabled={busy}
+        disabled={busy || Boolean(spent)}
         aria-label={label}
-        title={label}
+        title={spent ?? label}
         onClick={() => {
           // Hecha la acción, el panel del jugador se cierra solo.
           setSelectedPlayerId(null);
@@ -222,11 +222,29 @@ export default function PokerLive({
     );
     return (
       <>
-        {canBuy(rebuy, entry.rebuys) &&
-          button('REBUY', `Recompra de ${entry.name}`, 'Recompra', <BulletIcon />)}
+        {buyOpen(rebuy) &&
+          button(
+            'REBUY',
+            `Recompra de ${entry.name}`,
+            'Recompra',
+            <BulletIcon />,
+            undefined,
+            atLimit(rebuy, entry.rebuys)
+              ? `${entry.name} ya ha hecho todas sus recompras`
+              : undefined,
+          )}
         {!out &&
-          canBuy(addOn, entry.addOns) &&
-          button('ADD_ON', `Add-on para ${entry.name}`, 'Add-on', <BagIcon />)}
+          buyOpen(addOn) &&
+          button(
+            'ADD_ON',
+            `Add-on para ${entry.name}`,
+            'Add-on',
+            <BagIcon />,
+            undefined,
+            atLimit(addOn, entry.addOns)
+              ? `${entry.name} ya ha hecho todos sus add-ons`
+              : undefined,
+          )}
         {out
           ? button(
               'UNDO_ELIMINATION',

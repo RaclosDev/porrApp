@@ -109,7 +109,7 @@ export default function PokerMusicPanel({ leagueId }: { leagueId: string | numbe
                     type="search"
                     value={text}
                     maxLength={200}
-                    placeholder="Nombre de la canción o enlace de YouTube"
+                    placeholder="Canción o enlace de YouTube"
                     onChange={(event) => setText(event.target.value)}
                   />
                 </label>

@@ -52,7 +52,12 @@ export default function PokerPodium({ places, label }: { places: Place[]; label:
             >
               <span className="sticker-rank">{place ?? index + 1}.º</span> {name}
             </span>
-            <span className="marker-ink poker-podium-value">{value}</span>
+            <span className="marker-ink poker-podium-value">
+              {/* «17 puntos · 2 victorias»: cada dato en su línea, sin partirse a medias. */}
+              {value.split(' · ').map((part) => (
+                <span key={part}>{part}</span>
+              ))}
+            </span>
           </div>
         </li>
       ))}

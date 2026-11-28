@@ -396,7 +396,7 @@ it('actualiza el reloj, limita las compras y permite corregir movimientos antes 
   click('Siguiente nivel');
   click('Recompra de Ana');
   click('Add-on para Ana');
-  expect(screen.queryByRole('button', { name: 'Recompra de Luis' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Recompra de Luis' })).toBeDisabled();
   click('Eliminar a Paz');
   fireEvent.click(screen.getByText('Corregir'));
   click('Quitar una recompra a Luis (1)');
@@ -1094,8 +1094,9 @@ it('abre las acciones desde la foto y respeta permisos y extras disponibles', ()
   expect(command).toHaveBeenLastCalledWith('ELIMINATE', 1);
   click('Acciones de Luis');
   const limited = within(screen.getByRole('region', { name: 'Acciones de Luis' }));
-  expect(limited.queryByRole('button', { name: 'Recompra de Luis' })).not.toBeInTheDocument();
-  expect(limited.queryByRole('button', { name: 'Add-on para Luis' })).not.toBeInTheDocument();
+  // Con el máximo gastado los botones siguen ahí, apagados, para que la fila no cambie.
+  expect(limited.getByRole('button', { name: 'Recompra de Luis' })).toBeDisabled();
+  expect(limited.getByRole('button', { name: 'Add-on para Luis' })).toBeDisabled();
   click('Acciones de Paz');
   const out = within(screen.getByRole('region', { name: 'Acciones de Paz' }));
   expect(out.queryByRole('button', { name: 'Eliminar a Paz' })).not.toBeInTheDocument();

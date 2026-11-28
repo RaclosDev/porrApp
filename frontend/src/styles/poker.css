@@ -1184,9 +1184,14 @@
 }
 
 .poker-podium-value {
+  display: grid;
   font-size: 0.85rem;
   line-height: 1.15;
   text-align: center;
+}
+
+.poker-podium-value > span {
+  white-space: nowrap;
 }
 
 .poker-podium .sticker-featured .poker-podium-value {
@@ -2758,12 +2763,9 @@
   box-sizing: border-box;
 }
 
-/* Safari da al campo de fecha un ancho mínimo propio que lo montaba sobre la entrada. */
-.poker-edit-basics input[type='date'] {
-  display: block;
-  -webkit-appearance: none;
-  appearance: none;
-  text-align: left;
+/* La fecha, con el mismo selector que al preparar el torneo, ocupa toda la fila. */
+.poker-edit-basics .poker-edit-date {
+  grid-column: 1 / -1;
 }
 
 /*
@@ -3053,6 +3055,25 @@
   transform: translateX(-50%);
 }
 
+/* Flotante: la coloca InfoTip en coordenadas de pantalla, por encima de las tablas con scroll. */
+.info-tip-bubble.is-floating {
+  position: fixed;
+  z-index: 1000;
+  transform: none;
+}
+
+/* Cabecera de columna con su «i»: el botón de ordenar y la explicación, juntos y en una línea. */
+.poker-th-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.poker-th-tip .info-tip-btn {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 /* El total con el sobrante: la «i» va en la esquina de la caja y no la hace crecer; el dt recorta su
    texto, pero no la burbuja, que se coloca respecto a la caja. */
 .poker-payout-summary > div {
@@ -3144,6 +3165,7 @@ p > .info-tip {
 
 .poker-close-dialog .poker-payout-row {
   grid-template-columns: minmax(0, 1fr) 6rem 5rem;
+  align-items: center;
 }
 
 /* En los móviles más estrechos las cifras ceden sitio para que se lea el nombre. */
@@ -3153,11 +3175,21 @@ p > .info-tip {
   }
 }
 
+.poker-payout-head {
+  align-items: center;
+  margin-bottom: -0.35rem;
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .poker-close-dialog .poker-payout-name {
   display: flex;
   gap: 0.6rem;
   align-items: center;
-  padding-bottom: 0.4rem;
+  padding-bottom: 0;
   font-size: 1.05rem;
 }
 

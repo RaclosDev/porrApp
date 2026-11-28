@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import SheetDialog from '../SheetDialog';
 import type { PokerResultsEdit, PokerSession } from '../../services/endpoints/poker';
+import PokerDatePicker from './PokerDatePicker';
 import { PokerAvatar } from './PokerFaces';
 import { euros } from './pokerFormat';
 
@@ -140,16 +141,9 @@ export default function PokerResultEditor({ session, busy, onSave, onClose }: Pr
       >
         <fieldset className="poker-edit-basics">
           <legend>Torneo</legend>
-          <label className="poker-edit-date">
-            Fecha
-            <input
-              type="date"
-              className="glass-input"
-              required
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-            />
-          </label>
+          <div className="poker-edit-date">
+            <PokerDatePicker label="Fecha" value={date} onChange={setDate} past />
+          </div>
           {money('Entrada (€)', buyIn, setBuyIn)}
           {rebuy && money('Recompra (€)', rebuyCost, setRebuyCost)}
           {addOn && money('Add-on (€)', addOnCost, setAddOnCost)}
