@@ -577,6 +577,8 @@ function ExtraFields({
   onChange: (extra: PokerExtra | null) => void;
 }) {
   const name = multiple ? 'recompras' : 'add-on';
+  const perPlayer = multiple ? 'Recompras por jugador' : 'Add-ons por jugador';
+  const unlimited = extra?.limit === null;
   const summary = extra
     ? `${(extra.costCents / 100).toLocaleString('es-ES')} € → ${chips(extra.chips)} fichas · hasta el ${cutoffText(settings.levels, extra.throughLevel)}`
     : multiple
@@ -628,22 +630,36 @@ function ExtraFields({
             value={extra.chips}
             onChange={(value) => onChange({ ...extra, chips: value })}
           />
-          <label>
-            Por jugador
-            <SelectMenu
-              className="glass-input"
-              label={multiple ? 'Recompras por jugador' : 'Add-ons por jugador'}
-              value={String(extra.limit ?? 0)}
-              onChange={(next) => onChange({ ...extra, limit: Number(next) || null })}
-              items={[
-                { value: '0', label: 'Sin límite' },
-                ...Array.from({ length: 20 }, (_, index) => ({
-                  value: String(index + 1),
-                  label: index === 0 ? '1 como máximo' : `${index + 1} como máximo`,
-                })),
-              ]}
-            />
-          </label>
+          <div className="poker-limit-field">
+            <label>
+              Por jugador
+              <input
+                type="number"
+                className="glass-input"
+                aria-label={perPlayer}
+                inputMode="numeric"
+                step="1"
+                min={1}
+                max={20}
+                required={unlimited ? undefined : true}
+                disabled={unlimited}
+                placeholder={unlimited ? 'Sin límite' : undefined}
+                value={unlimited || Number.isNaN(extra.limit) ? '' : (extra.limit ?? '')}
+                onChange={(event) =>
+                  onChange({ ...extra, limit: noLeadingZero(event.currentTarget) })
+                }
+              />
+            </label>
+            <label className="poker-check">
+              <input
+                type="checkbox"
+                aria-label={`${multiple ? 'Recompras' : 'Add-ons'} sin límite`}
+                checked={unlimited}
+                onChange={(event) => onChange({ ...extra, limit: event.target.checked ? null : 1 })}
+              />
+              Sin límite
+            </label>
+          </div>
           <label>
             Hasta el final de
             <SelectMenu
